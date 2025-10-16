@@ -1,0 +1,277 @@
+version: '3.8'
+
+services:
+  # 1. Managing Portal - monitors and manages everything else
+  managing-portal:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.managing-portal
+    image: sivanov2018/recontext-managing-portal:latest
+    container_name: recontext-managing-portal
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=recontext
+      - DB_PASSWORD=recontext
+      - DB_NAME=recontext
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      - postgres
+      - rabbitmq
+      - minio
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 2. User Portal - for interaction with the system
+  user-portal:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.user-portal
+    image: sivanov2018/recontext-user-portal:latest
+    container_name: recontext-user-portal
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8081
+      - DB_HOST=postgres
+      - MANAGING_PORTAL_URL=http://managing-portal:8080
+      - MINIO_ENDPOINT=minio:9000
+    depends_on:
+      - managing-portal
+      - postgres
+      - minio
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 3. RabbitMQ - Message Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: recontext-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - recontext-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # 4. Transcription Workers
+  transcription-worker:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.transcription-worker
+    image: sivanov2018/recontext-transcription-worker:latest
+    container_name: recontext-transcription-worker
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - MINIO_ENDPOINT=minio:9000
+      - MANAGING_PORTAL_URL=http://managing-portal:8080
+      - WORKER_ID=transcription-worker-1
+    depends_on:
+      - rabbitmq
+      - minio
+      - managing-portal
+    networks:
+      - recontext-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # 5. Summarization Workers
+  summarization-worker:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.summarization-worker
+    image: sivanov2018/recontext-summarization-worker:latest
+    container_name: recontext-summarization-worker
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - DB_HOST=postgres
+      - MANAGING_PORTAL_URL=http://managing-portal:8080
+      - WORKER_ID=summarization-worker-1
+    depends_on:
+      - rabbitmq
+      - postgres
+      - managing-portal
+    networks:
+      - recontext-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+
+  # 6. RAG Implementation (Vector Database + API)
+  rag-service:
+    image: qdrant/qdrant:latest
+    container_name: recontext-rag-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 7. MinIO Storage
+  minio:
+    image: minio/minio:latest
+    container_name: recontext-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - recontext-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # 8. PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: recontext-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=recontext
+      - POSTGRES_PASSWORD=recontext
+      - POSTGRES_DB=recontext
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - recontext-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recontext"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 9. Jitsi Meet Server
+  jitsi-web:
+    image: jitsi/web:stable
+    container_name: recontext-jitsi-web
+    ports:
+      - "8443:443"
+      - "8000:80"
+    environment:
+      - ENABLE_AUTH=0
+      - ENABLE_GUESTS=1
+      - PUBLIC_URL=https://localhost:8443
+      - ENABLE_RECORDING=1
+    depends_on:
+      - jitsi-prosody
+      - jitsi-jicofo
+      - jitsi-jvb
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  jitsi-prosody:
+    image: jitsi/prosody:stable
+    container_name: recontext-jitsi-prosody
+    environment:
+      - ENABLE_AUTH=0
+      - ENABLE_GUESTS=1
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  jitsi-jicofo:
+    image: jitsi/jicofo:stable
+    container_name: recontext-jitsi-jicofo
+    depends_on:
+      - jitsi-prosody
+    environment:
+      - ENABLE_AUTH=0
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  jitsi-jvb:
+    image: jitsi/jvb:stable
+    container_name: recontext-jitsi-jvb
+    ports:
+      - "10000:10000/udp"
+    environment:
+      - JVB_PORT=10000
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 10. Jitsi Meet Recording Agent (Custom WebRTC Agent)
+  jitsi-agent:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.jitsi-agent
+    image: sivanov2018/recontext-jitsi-agent:latest
+    container_name: recontext-jitsi-agent
+    ports:
+      - "8084:8084"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8084
+      - JITSI_SERVER_URL=http://jitsi-web:80
+      - MANAGING_PORTAL_URL=http://managing-portal:8080
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - MINIO_ENDPOINT=minio:9000
+    volumes:
+      - jitsi-recordings:/recordings
+    depends_on:
+      - jitsi-web
+      - rabbitmq
+      - minio
+      - managing-portal
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+networks:
+  recontext-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  minio-data:
+  rabbitmq-data:
+  qdrant-data:
+  jitsi-recordings:
