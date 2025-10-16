@@ -1,0 +1,85 @@
+/* Recontext.online Color Theme - Light Mode */
+
+:root {
+  /* Main Colors */
+  --bg-main: #F6F8FA;
+  --bg-secondary: #EDEFF3;
+  --bg-card: #FFFFFF;
+
+  /* Brand Colors */
+  --brand-primary: #3E63DD;
+  --brand-secondary: #4AC7D0;
+  --brand-interactive: #6D8BFF;
+
+  /* Text Colors */
+  --text-primary: #222B45;
+  --text-secondary: #6E7A8A;
+  --text-light: #8F9BB3;
+
+  /* Status Colors */
+  --success: #62C29E;
+  --error: #E86C63;
+  --warning: #FFB84D;
+  --info: #4AC7D0;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-glass: 0 8px 32px rgba(62, 99, 221, 0.12);
+
+  /* Gradients */
+  --gradient-bg: linear-gradient(180deg, #F6F8FA 0%, #EDEFF3 100%);
+  --gradient-brand: linear-gradient(90deg, #3E63DD 0%, #4AC7D0 100%);
+  --gradient-interactive: linear-gradient(90deg, #6D8BFF 0%, #4AC7D0 100%);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Source Sans 3', 'Segoe UI', sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 15px;
+  --font-size-md: 16px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 32px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 350ms ease;
+}
+
+/* Glass Effect Utility */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  box-shadow: var(--shadow-glass);
+}
+
+/* Gradient Text Utility */
+.gradient-text {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

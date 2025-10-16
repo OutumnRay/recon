@@ -1,3 +1,5 @@
+# Docker Compose configuration optimized for Mac development
+# No NVIDIA GPU requirements, reduced replicas for easier debugging
 version: '3.8'
 
 services:
@@ -77,18 +79,22 @@ services:
       timeout: 10s
       retries: 5
 
-  # 4. Transcription Workers
+  # 4. Transcription Worker (CPU-only, no GPU)
   transcription-worker:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.transcription-worker
     image: sivanov2018/recontext-transcription-worker:latest
+    container_name: recontext-transcription-worker
+    ports:
+      - "8082:8082"
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - MINIO_ENDPOINT=minio:9000
       - MANAGING_PORTAL_URL=http://managing-portal:8080
       - WORKER_ID=transcription-worker-1
+      - PORT=8082
     depends_on:
       - rabbitmq
       - minio
@@ -96,27 +102,32 @@ services:
     networks:
       - recontext-network
     restart: unless-stopped
+    # CPU-only mode for Mac development
     deploy:
-      replicas: 2
       resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
         reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+          cpus: '1.0'
+          memory: 2G
 
-  # 5. Summarization Workers
+  # 5. Summarization Worker
   summarization-worker:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.summarization-worker
     image: sivanov2018/recontext-summarization-worker:latest
+    container_name: recontext-summarization-worker
+    ports:
+      - "8083:8083"
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - DB_HOST=postgres
       - MANAGING_PORTAL_URL=http://managing-portal:8080
       - WORKER_ID=summarization-worker-1
+      - PORT=8083
     depends_on:
       - rabbitmq
       - postgres
@@ -125,7 +136,13 @@ services:
       - recontext-network
     restart: unless-stopped
     deploy:
-      replicas: 2
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
 
   # 6. RAG Implementation (Vector Database + API)
   rag-service:

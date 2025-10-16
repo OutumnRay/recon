@@ -1,35 +1,47 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react'
+import './styles/theme.css'
 import './App.css'
+import Login from './components/Login'
+import Dashboard from './components/Dashboard'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPath, setCurrentPath] = useState(window.location.pathname)
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname)
+    }
+
+    // Listen for browser navigation
+    window.addEventListener('popstate', handleLocationChange)
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange)
+    }
+  }, [])
+
+  // Check if user is authenticated
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+
+  // If on dashboard route but not authenticated, redirect to login
+  if (currentPath === '/dashboard' && !token) {
+    window.location.href = '/'
+    return null
+  }
+
+  // If authenticated and on root, redirect to dashboard
+  if (currentPath === '/' && token) {
+    window.location.href = '/dashboard'
+    return null
+  }
+
+  // Show dashboard if on /dashboard route
+  if (currentPath === '/dashboard') {
+    return <Dashboard />
+  }
+
+  // Default to login
+  return <Login />
 }
 
 export default App

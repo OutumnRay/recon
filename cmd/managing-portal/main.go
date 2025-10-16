@@ -532,6 +532,12 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
+	// Dashboard endpoints
+	mux.Handle("/api/v1/dashboard/stats", chainMiddleware(
+		http.HandlerFunc(mp.dashboardStatsHandler),
+		authMiddleware,
+	))
+
 	// Serve React frontend for all other routes
 	mux.Handle("/", serveStaticFiles())
 
