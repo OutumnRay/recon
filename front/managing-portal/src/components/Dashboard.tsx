@@ -154,7 +154,6 @@ export const Dashboard: React.FC = (): ReactElement | null => {
     return (
       <div className="dashboard-container">
         <div className="dashboard-error">
-          <span className="error-icon">⚠️</span>
           <p>{error}</p>
           <button onClick={() => fetchDashboardStats()} className="btn btn-primary">
             Retry
@@ -179,7 +178,7 @@ export const Dashboard: React.FC = (): ReactElement | null => {
           {lastUpdated && (
             <div className="last-updated">
               Last updated: {lastUpdated.toLocaleTimeString()}
-              {refreshing && <span className="refresh-indicator"> ⟳</span>}
+              {refreshing && <span className="refresh-indicator"> Refreshing...</span>}
             </div>
           )}
         </div>
@@ -189,7 +188,7 @@ export const Dashboard: React.FC = (): ReactElement | null => {
             className="btn btn-secondary"
             disabled={refreshing}
           >
-            {refreshing ? '⟳ Refreshing...' : '🔄 Refresh'}
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           <button onClick={handleLogout} className="btn btn-secondary">
             Logout
@@ -205,24 +204,24 @@ export const Dashboard: React.FC = (): ReactElement | null => {
               title="Total Users"
               value={stats.users.total}
               subtitle={`${stats.users.active} active`}
-              icon="👥"
+              icon=""
             />
             <StatCard
               title="Groups"
               value={stats.groups.total}
-              icon="🏢"
+              icon=""
             />
             <StatCard
               title="Recordings"
               value={stats.recordings.total}
               subtitle={`${stats.recordings.processing} processing`}
-              icon="🎙️"
+              icon=""
             />
             <StatCard
               title="Storage"
               value={`${storagePercentage}%`}
               subtitle={`${stats.storage.used} GB / ${stats.storage.total} GB`}
-              icon="💾"
+              icon=""
             />
           </div>
         </section>

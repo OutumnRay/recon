@@ -4,6 +4,12 @@
     "retry": "Retry",
     "logout": "Logout"
   },
+  "nav": {
+    "meetings": "Meetings",
+    "search": "Search",
+    "documents": "Documents",
+    "management": "Management"
+  },
   "login": {
     "title": "User Portal",
     "subtitle": "Access your recordings, transcripts and insights",

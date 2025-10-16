@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gradient-bg);
+  background: var(--bg-gradient);
   padding: var(--spacing-lg);
   position: relative;
   overflow: hidden;
@@ -200,7 +200,7 @@
 }
 
 .btn-primary {
-  background: var(--gradient-brand);
+  background: var(--bg-brand);
   color: white;
   box-shadow: 0 2px 8px rgba(62, 99, 221, 0.25);
 }

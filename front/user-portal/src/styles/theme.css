@@ -27,10 +27,10 @@
   --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
   --shadow-glass: 0 8px 32px rgba(62, 99, 221, 0.12);
 
-  /* Gradients */
-  --gradient-bg: linear-gradient(180deg, #F6F8FA 0%, #EDEFF3 100%);
-  --gradient-brand: linear-gradient(90deg, #3E63DD 0%, #4AC7D0 100%);
-  --gradient-interactive: linear-gradient(90deg, #6D8BFF 0%, #4AC7D0 100%);
+  /* Backgrounds (no gradients) */
+  --bg-gradient: #F6F8FA;
+  --bg-brand: #3E63DD;
+  --bg-interactive: #6D8BFF;
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -74,12 +74,4 @@
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   box-shadow: var(--shadow-glass);
-}
-
-/* Gradient Text Utility */
-.gradient-text {
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }

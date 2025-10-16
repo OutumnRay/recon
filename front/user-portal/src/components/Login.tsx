@@ -95,14 +95,12 @@ export const Login: React.FC = () => {
 
         {error && (
           <div className="alert alert-error">
-            <span className="alert-icon">⚠️</span>
             <span>{error}</span>
           </div>
         )}
 
         {success && (
           <div className="alert alert-success">
-            <span className="alert-icon">✓</span>
             <span>{success}</span>
           </div>
         )}

@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: recontext-postgres-dev
+    environment:
+      POSTGRES_USER: recontext
+      POSTGRES_PASSWORD: recontext
+      POSTGRES_DB: recontext
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recontext"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - recontext-dev
+
+  minio:
+    image: minio/minio:latest
+    container_name: recontext-minio-dev
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data-dev:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - recontext-dev
+    platform: linux/amd64
+
+  user-portal:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.user-portal
+    container_name: recontext-user-portal-dev
+    ports:
+      - "10081:8081"
+    environment:
+      - PORT=8081
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=recontext
+      - DB_PASSWORD=recontext
+      - DB_NAME=recontext
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_USE_SSL=false
+      - JWT_SECRET=your-secret-key-change-in-production
+      - LOG_LEVEL=debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - recontext-dev
+    restart: unless-stopped
+    platform: linux/amd64
+
+networks:
+  recontext-dev:
+    driver: bridge
+
+volumes:
+  postgres-data-dev:
+  minio-data-dev:
