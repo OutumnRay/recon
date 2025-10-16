@@ -1,0 +1,70 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "logout": "Logout",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
+    "lastUpdated": "Last updated"
+  },
+  "login": {
+    "title": "Managing Portal",
+    "subtitle": "Sign in to access the administration dashboard",
+    "usernameLabel": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "loginButton": "Sign In",
+    "loggingIn": "Signing in...",
+    "loginSuccess": "Login successful! Redirecting...",
+    "defaultCredentials": "Default credentials:",
+    "needHelp": "Need help?",
+    "contactSupport": "Contact Support",
+    "errors": {
+      "loginFailed": "Login failed",
+      "networkError": "An error occurred during login"
+    }
+  },
+  "dashboard": {
+    "title": "Managing Portal",
+    "loading": "Loading dashboard...",
+    "error": "Failed to load dashboard",
+    "sections": {
+      "overview": "Overview",
+      "workerStatus": "Worker Status",
+      "systemMetrics": "System Metrics"
+    },
+    "stats": {
+      "totalUsers": "Total Users",
+      "activeUsers": "active",
+      "groups": "Groups",
+      "recordings": "Recordings",
+      "processing": "processing",
+      "storage": "Storage"
+    },
+    "workers": {
+      "transcription": "Transcription Workers",
+      "summarization": "Summarization Workers",
+      "activeWorkers": "Active Workers",
+      "total": "Total:",
+      "active": "Active:",
+      "inactive": "Inactive:"
+    },
+    "metrics": {
+      "processingQueue": "Processing Queue",
+      "itemsInQueue": "Items in Queue",
+      "currentlyProcessing": "Currently processing",
+      "workerUtilization": "Worker Utilization",
+      "activeWorkersLabel": "Active Workers",
+      "activeWorkersCount": "active",
+      "inactiveWorkersCount": "inactive",
+      "storageHealth": "Storage Health",
+      "usedCapacity": "Used Capacity",
+      "totalRecordings": "Total Recordings",
+      "processed": "Processed",
+      "allTimeTotal": "All-time total"
+    }
+  }
+}

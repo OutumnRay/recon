@@ -1,0 +1,36 @@
+.language-switcher {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+
+.lang-btn {
+  padding: 6px 12px;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.lang-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-main);
+}
+
+.lang-btn.active {
+  color: white;
+  background: var(--gradient-brand);
+  box-shadow: 0 2px 4px rgba(62, 99, 221, 0.2);
+}
+
+.lang-btn:active {
+  transform: scale(0.95);
+}

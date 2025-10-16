@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import './Login.css';
 
 interface LoginResponse {
@@ -20,6 +22,7 @@ interface ErrorResponse {
 }
 
 export const Login: React.FC = () => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -46,7 +49,7 @@ export const Login: React.FC = () => {
 
       if (!response.ok) {
         const errorData = data as ErrorResponse;
-        throw new Error(errorData.error || 'Login failed');
+        throw new Error(errorData.error || t('login.errors.loginFailed'));
       }
 
       const loginData = data as LoginResponse;
@@ -60,7 +63,7 @@ export const Login: React.FC = () => {
         sessionStorage.setItem('user', JSON.stringify(loginData.user));
       }
 
-      setSuccess('Login successful! Redirecting...');
+      setSuccess(t('login.loginSuccess'));
 
       // Redirect to dashboard after short delay
       setTimeout(() => {
@@ -68,7 +71,7 @@ export const Login: React.FC = () => {
       }, 1000);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during login');
+      setError(err instanceof Error ? err.message : t('login.errors.networkError'));
     } finally {
       setLoading(false);
     }
@@ -76,14 +79,17 @@ export const Login: React.FC = () => {
 
   return (
     <div className="login-container">
+      <div className="language-switcher-wrapper">
+        <LanguageSwitcher />
+      </div>
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">
             <img src="/logo.png" alt="Recontext Logo" />
           </div>
-          <h1 className="login-title">Managing Portal</h1>
+          <h1 className="login-title">{t('login.title')}</h1>
           <p className="login-subtitle">
-            Sign in to access the administration dashboard
+            {t('login.subtitle')}
           </p>
         </div>
 
@@ -104,13 +110,13 @@ export const Login: React.FC = () => {
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="username" className="form-label">
-              Username
+              {t('login.usernameLabel')}
             </label>
             <input
               id="username"
               type="text"
               className="form-input"
-              placeholder="Enter your username"
+              placeholder={t('login.usernamePlaceholder')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
@@ -122,13 +128,13 @@ export const Login: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="password" className="form-label">
-              Password
+              {t('login.passwordLabel')}
             </label>
             <input
               id="password"
               type="password"
               className="form-input"
-              placeholder="Enter your password"
+              placeholder={t('login.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -145,10 +151,10 @@ export const Login: React.FC = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 disabled={loading}
               />
-              <span>Remember me</span>
+              <span>{t('login.rememberMe')}</span>
             </label>
             <a href="#forgot-password" className="form-link">
-              Forgot password?
+              {t('login.forgotPassword')}
             </a>
           </div>
 
@@ -157,18 +163,18 @@ export const Login: React.FC = () => {
             className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
             disabled={loading || !username || !password}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('login.loggingIn') : t('login.loginButton')}
           </button>
         </form>
 
         <div className="login-footer">
           <p>
-            Default credentials: <strong>admin / admin123</strong>
+            {t('login.defaultCredentials')} <strong>admin / admin123</strong>
           </p>
           <p style={{ marginTop: '8px' }}>
-            Need help?{' '}
+            {t('login.needHelp')}{' '}
             <a href="#support" className="login-footer-link">
-              Contact Support
+              {t('login.contactSupport')}
             </a>
           </p>
         </div>
