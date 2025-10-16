@@ -9,10 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"Recontext.online/internal/config"
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/logger"
+	"Recontext.online/pkg/metrics"
 )
 
 //go:embed dist/*
@@ -41,11 +44,12 @@ const version = "0.1.0"
 // @description Type "Bearer" followed by a space and JWT token.
 
 type UserPortal struct {
-	config     *config.Config
-	logger     *logger.Logger
-	jwtManager *auth.JWTManager
-	users      map[string]*models.User      // In-memory user store
-	recordings map[string]*models.Recording // In-memory recordings store
+	config            *config.Config
+	logger            *logger.Logger
+	jwtManager        *auth.JWTManager
+	users             map[string]*models.User      // In-memory user store
+	recordings        map[string]*models.Recording // In-memory recordings store
+	prometheusMetrics *metrics.ServiceMetrics      // Prometheus metrics
 }
 
 func NewUserPortal(cfg *config.Config, log *logger.Logger) *UserPortal {
@@ -64,11 +68,12 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) *UserPortal {
 	}
 
 	return &UserPortal{
-		config:     cfg,
-		logger:     log,
-		jwtManager: jwtManager,
-		users:      users,
-		recordings: make(map[string]*models.Recording),
+		config:            cfg,
+		logger:            log,
+		jwtManager:        jwtManager,
+		users:             users,
+		recordings:        make(map[string]*models.Recording),
+		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
 	}
 }
 
@@ -374,6 +379,9 @@ func serveStaticFiles() http.Handler {
 func (up *UserPortal) setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
+	// Prometheus metrics endpoint (no auth required for scraping)
+	mux.Handle("/metrics", promhttp.Handler())
+
 	// Public endpoints
 	mux.HandleFunc("/health", up.healthHandler)
 	mux.HandleFunc("/api/v1/auth/login", up.loginHandler)
@@ -410,13 +418,18 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 func (up *UserPortal) Start() error {
 	mux := up.setupRoutes()
 
+	// Wrap with metrics middleware
+	metricsMiddleware := metrics.HTTPMetricsMiddleware(up.prometheusMetrics)
+	handler := metricsMiddleware(mux)
+
 	addr := fmt.Sprintf("%s:%d", up.config.Server.Host, up.config.Server.Port)
 	up.logger.Infof("User Portal starting on %s", addr)
 	up.logger.Infof("Version: %s", version)
 	up.logger.Infof("Swagger docs: http://%s/swagger/index.html", addr)
+	up.logger.Infof("Prometheus metrics: http://%s/metrics", addr)
 	up.logger.Infof("Default user credentials: username=user, password=user123")
 
-	return http.ListenAndServe(addr, mux)
+	return http.ListenAndServe(addr, handler)
 }
 
 func main() {

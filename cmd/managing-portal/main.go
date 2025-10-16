@@ -9,10 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"Recontext.online/internal/config"
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/logger"
+	"Recontext.online/pkg/metrics"
+	"Recontext.online/pkg/prometheus"
 )
 
 //go:embed dist/*
@@ -41,14 +45,16 @@ const version = "0.1.0"
 // @description Type "Bearer" followed by a space and JWT token.
 
 type ManagingPortal struct {
-	config     *config.Config
-	logger     *logger.Logger
-	services   map[string]models.ServiceInfo
-	jwtManager *auth.JWTManager
-	users      map[string]*models.User         // In-memory user store (replace with DB)
-	groups     map[string]*models.UserGroup    // In-memory group store
-	metrics    []models.Metric                 // In-memory metrics store
-	logs       []models.LogEntry               // In-memory logs store
+	config            *config.Config
+	logger            *logger.Logger
+	services          map[string]models.ServiceInfo
+	jwtManager        *auth.JWTManager
+	users             map[string]*models.User      // In-memory user store (replace with DB)
+	groups            map[string]*models.UserGroup // In-memory group store
+	metricsData       []models.Metric              // In-memory metrics store
+	logs              []models.LogEntry            // In-memory logs store
+	prometheusMetrics *metrics.ServiceMetrics      // Prometheus metrics
+	prometheusClient  *prometheus.Client           // Prometheus query client
 }
 
 func NewManagingPortal(cfg *config.Config, log *logger.Logger) *ManagingPortal {
@@ -111,15 +117,20 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) *ManagingPortal {
 	}
 	groups["group-viewers"] = viewersGroup
 
+	// Initialize Prometheus client (uses internal Docker network)
+	prometheusClient := prometheus.NewClient("http://prometheus:9090")
+
 	return &ManagingPortal{
-		config:     cfg,
-		logger:     log,
-		services:   make(map[string]models.ServiceInfo),
-		jwtManager: jwtManager,
-		users:      users,
-		groups:     groups,
-		metrics:    make([]models.Metric, 0),
-		logs:       make([]models.LogEntry, 0),
+		config:            cfg,
+		logger:            log,
+		services:          make(map[string]models.ServiceInfo),
+		jwtManager:        jwtManager,
+		users:             users,
+		groups:            groups,
+		metricsData:       make([]models.Metric, 0),
+		logs:              make([]models.LogEntry, 0),
+		prometheusMetrics: metrics.NewServiceMetrics("managing_portal"),
+		prometheusClient:  prometheusClient,
 	}
 }
 
@@ -399,6 +410,9 @@ func serveStaticFiles() http.Handler {
 func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
+	// Prometheus metrics endpoint (no auth required for scraping)
+	mux.Handle("/metrics", promhttp.Handler())
+
 	// Public endpoints
 	mux.HandleFunc("/health", mp.healthHandler)
 	mux.HandleFunc("/api/v1/auth/login", mp.loginHandler)
@@ -547,16 +561,21 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 func (mp *ManagingPortal) Start() error {
 	mux := mp.setupRoutes()
 
+	// Wrap with metrics middleware
+	metricsMiddleware := metrics.HTTPMetricsMiddleware(mp.prometheusMetrics)
+	handler := metricsMiddleware(mux)
+
 	addr := fmt.Sprintf("%s:%d", mp.config.Server.Host, mp.config.Server.Port)
 	mp.logger.Infof("Managing Portal starting on %s", addr)
 	mp.logger.Infof("Version: %s", version)
 	mp.logger.Infof("Swagger docs: http://%s/swagger/index.html", addr)
+	mp.logger.Infof("Prometheus metrics: http://%s/metrics", addr)
 	mp.logger.Infof("Default admin credentials: username=admin, password=admin123")
 
 	// Start heartbeat checker in background
 	go mp.checkServiceHeartbeats()
 
-	return http.ListenAndServe(addr, mux)
+	return http.ListenAndServe(addr, handler)
 }
 
 func (mp *ManagingPortal) checkServiceHeartbeats() {

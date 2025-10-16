@@ -32,7 +32,7 @@ func (mp *ManagingPortal) sendMetricsHandler(w http.ResponseWriter, r *http.Requ
 		metric.ServiceID = req.ServiceID
 		metric.Timestamp = time.Now()
 
-		mp.metrics = append(mp.metrics, metric)
+		mp.metricsData = append(mp.metricsData, metric)
 	}
 
 	mp.logger.Debugf("Received %d metrics from service %s", len(req.Metrics), req.ServiceID)
@@ -60,7 +60,7 @@ func (mp *ManagingPortal) queryMetricsHandler(w http.ResponseWriter, r *http.Req
 	name := r.URL.Query().Get("name")
 
 	var filteredMetrics []models.Metric
-	for _, metric := range mp.metrics {
+	for _, metric := range mp.metricsData {
 		if serviceID != "" && metric.ServiceID != serviceID {
 			continue
 		}
@@ -96,7 +96,7 @@ func (mp *ManagingPortal) getSystemMetricsHandler(w http.ResponseWriter, r *http
 	// Aggregate metrics by service
 	serviceSummaries := make(map[string]models.ServiceMetricsSummary)
 
-	for _, metric := range mp.metrics {
+	for _, metric := range mp.metricsData {
 		summary, exists := serviceSummaries[metric.ServiceID]
 		if !exists {
 			summary = models.ServiceMetricsSummary{

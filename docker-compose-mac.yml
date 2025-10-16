@@ -11,7 +11,7 @@ services:
     image: sivanov2018/recontext-managing-portal:latest
     container_name: recontext-managing-portal
     ports:
-      - "8080:8080"
+      - "10082:8080"
     environment:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
@@ -43,7 +43,7 @@ services:
     image: sivanov2018/recontext-user-portal:latest
     container_name: recontext-user-portal
     ports:
-      - "8081:8081"
+      - "10081:8081"
     environment:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8081
@@ -65,9 +65,13 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+      - "15692:15692"   # Prometheus metrics
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
+    command: >
+      sh -c "rabbitmq-plugins enable --offline rabbitmq_prometheus rabbitmq_management &&
+             rabbitmq-server"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
@@ -167,6 +171,7 @@ services:
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_PROMETHEUS_AUTH_TYPE=public
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
@@ -267,6 +272,7 @@ services:
     container_name: recontext-jitsi-jvb
     ports:
       - "10000:10000/udp"
+      - "8080:8080"   # REST API for metrics
     environment:
       - JVB_PORT=10000
       - XMPP_SERVER=jitsi-prosody
@@ -275,6 +281,7 @@ services:
       - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
       - XMPP_MUC_DOMAIN=muc.meet.jitsi
       - JVB_AUTH_PASSWORD=jvb_password
+      - JVB_ENABLE_APIS=rest,colibri
     networks:
       - recontext-network
     restart: unless-stopped
@@ -307,6 +314,89 @@ services:
       - recontext-network
     restart: unless-stopped
 
+  # 11. Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: recontext-prometheus
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 12. Grafana - Metrics Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: recontext-grafana
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 13. cAdvisor - Container Metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: recontext-cadvisor
+    ports:
+      - "8089:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 14. PostgreSQL Exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: recontext-postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://recontext:recontext@postgres:5432/recontext?sslmode=disable
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 15. Jitsi Exporter
+  jitsi-exporter:
+    image: ghcr.io/jitsi-contrib/jitsi-exporter:latest
+    container_name: recontext-jitsi-exporter
+    command:
+      - "jvb"
+      - "--address=:9888"
+      - "--jvb-url=http://jitsi-jvb:8080/colibri/stats"
+      - "--path=/metrics"
+    ports:
+      - "9888:9888"
+    depends_on:
+      - jitsi-jvb
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
 networks:
   recontext-network:
     driver: bridge
@@ -317,3 +407,5 @@ volumes:
   rabbitmq-data:
   qdrant-data:
   jitsi-recordings:
+  prometheus-data:
+  grafana-data:
