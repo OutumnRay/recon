@@ -3,8 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
+	"Recontext.online/pkg/auth"
 	_ "github.com/lib/pq"
 )
 
@@ -52,13 +54,83 @@ func (db *DB) RunMigrations() error {
 		createUsersTable,
 		createGroupsTable,
 		createGroupMembershipsTable,
-		insertDefaultData,
 	}
 
 	for i, migration := range migrations {
 		if _, err := db.Exec(migration); err != nil {
 			return fmt.Errorf("migration %d failed: %w", i+1, err)
 		}
+	}
+
+	// Insert default data with environment-based admin credentials
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail == "" {
+		adminEmail = "admin@recontext.online"
+	}
+
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	if adminPassword == "" {
+		adminPassword = "admin123"
+	}
+
+	// Hash the admin password
+	hashedAdminPassword := auth.HashPassword(adminPassword)
+
+	// Insert default data with dynamic admin credentials
+	insertDefaultDataSQL := fmt.Sprintf(`
+-- Insert default admin user
+INSERT INTO users (id, username, email, password, role, is_active, created_at, updated_at)
+VALUES (
+	'admin-001',
+	'admin',
+	'%s',
+	'%s',
+	'admin',
+	true,
+	NOW(),
+	NOW()
+) ON CONFLICT (username) DO UPDATE SET
+	email = EXCLUDED.email,
+	password = EXCLUDED.password,
+	updated_at = NOW();
+
+-- Insert default user (password: user123)
+INSERT INTO users (id, username, email, password, role, is_active, created_at, updated_at)
+VALUES (
+	'user-001',
+	'user',
+	'user@recontext.online',
+	'$2a$10$ZK5z.qH.BvR5dqT3BqKqZ.KZ.1HqJ5J5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Zu',
+	'user',
+	true,
+	NOW(),
+	NOW()
+) ON CONFLICT (username) DO NOTHING;
+
+-- Insert default groups
+INSERT INTO groups (id, name, description, permissions, created_at, updated_at)
+VALUES (
+	'group-editors',
+	'Editors',
+	'Users who can view and edit recordings',
+	'{"recordings": {"actions": ["read", "write"], "scope": "all"}, "transcripts": {"actions": ["read"], "scope": "all"}}',
+	NOW(),
+	NOW()
+) ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO groups (id, name, description, permissions, created_at, updated_at)
+VALUES (
+	'group-viewers',
+	'Viewers',
+	'Users who can only view recordings',
+	'{"recordings": {"actions": ["read"], "scope": "all"}, "transcripts": {"actions": ["read"], "scope": "all"}}',
+	NOW(),
+	NOW()
+) ON CONFLICT (name) DO NOTHING;
+`, adminEmail, hashedAdminPassword)
+
+	if _, err := db.Exec(insertDefaultDataSQL); err != nil {
+		return fmt.Errorf("failed to insert default data: %w", err)
 	}
 
 	return nil
@@ -107,53 +179,4 @@ CREATE TABLE IF NOT EXISTS group_memberships (
 
 CREATE INDEX IF NOT EXISTS idx_group_memberships_user ON group_memberships(user_id);
 CREATE INDEX IF NOT EXISTS idx_group_memberships_group ON group_memberships(group_id);
-`
-
-const insertDefaultData = `
--- Insert default admin user (password: admin123)
-INSERT INTO users (id, username, email, password, role, is_active, created_at, updated_at)
-VALUES (
-	'admin-001',
-	'admin',
-	'admin@recontext.online',
-	'$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
-	'admin',
-	true,
-	NOW(),
-	NOW()
-) ON CONFLICT (username) DO NOTHING;
-
--- Insert default user (password: user123)
-INSERT INTO users (id, username, email, password, role, is_active, created_at, updated_at)
-VALUES (
-	'user-001',
-	'user',
-	'user@recontext.online',
-	'$2a$10$ZK5z.qH.BvR5dqT3BqKqZ.KZ.1HqJ5J5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Zu',
-	'user',
-	true,
-	NOW(),
-	NOW()
-) ON CONFLICT (username) DO NOTHING;
-
--- Insert default groups
-INSERT INTO groups (id, name, description, permissions, created_at, updated_at)
-VALUES (
-	'group-editors',
-	'Editors',
-	'Users who can view and edit recordings',
-	'{"recordings": {"actions": ["read", "write"], "scope": "all"}, "transcripts": {"actions": ["read"], "scope": "all"}}',
-	NOW(),
-	NOW()
-) ON CONFLICT (name) DO NOTHING;
-
-INSERT INTO groups (id, name, description, permissions, created_at, updated_at)
-VALUES (
-	'group-viewers',
-	'Viewers',
-	'Users who can only view recordings',
-	'{"recordings": {"actions": ["read"], "scope": "all"}, "transcripts": {"actions": ["read"], "scope": "all"}}',
-	NOW(),
-	NOW()
-) ON CONFLICT (name) DO NOTHING;
 `

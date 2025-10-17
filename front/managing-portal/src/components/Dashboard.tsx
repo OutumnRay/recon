@@ -131,14 +131,6 @@ export const Dashboard: React.FC = (): ReactElement | null => {
     fetchDashboardStats(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
-    window.location.href = '/';
-  };
-
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -171,18 +163,15 @@ export const Dashboard: React.FC = (): ReactElement | null => {
 
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header">
-        <div className="header-left">
-          <img src="/logo.png" alt="Recontext Logo" className="header-logo" />
-          <h1 className="header-title">Managing Portal</h1>
+      <div className="dashboard-header">
+        <h1 className="header-title">Dashboard</h1>
+        <div className="header-right">
           {lastUpdated && (
             <div className="last-updated">
               Last updated: {lastUpdated.toLocaleTimeString()}
               {refreshing && <span className="refresh-indicator"> Refreshing...</span>}
             </div>
           )}
-        </div>
-        <div className="header-right">
           <button
             onClick={handleManualRefresh}
             className="btn btn-secondary"
@@ -190,11 +179,8 @@ export const Dashboard: React.FC = (): ReactElement | null => {
           >
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
-          <button onClick={handleLogout} className="btn btn-secondary">
-            Logout
-          </button>
         </div>
-      </header>
+      </div>
 
       <main className="dashboard-main">
         <section className="stats-section">

@@ -120,6 +120,44 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 	return user, nil
 }
 
+// GetByEmail retrieves a user by email
+func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
+	query := `
+		SELECT id, username, email, password, role, groups, is_active, last_login, created_at, updated_at
+		FROM users
+		WHERE email = $1
+	`
+
+	user := &models.User{}
+	var lastLogin sql.NullTime
+
+	err := r.db.QueryRow(query, email).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		pq.Array(&user.Groups),
+		&user.IsActive,
+		&lastLogin,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("user not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	if lastLogin.Valid {
+		user.LastLogin = &lastLogin.Time
+	}
+
+	return user, nil
+}
+
 // List retrieves all users with optional filters
 func (r *UserRepository) List(role string, isActive *bool) ([]*models.User, error) {
 	query := `

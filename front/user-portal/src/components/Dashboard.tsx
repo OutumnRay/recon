@@ -17,38 +17,71 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <div className="header-left">
-          <img src="/logo.png" alt="Recontext Logo" className="header-logo" />
-          <h1 className="header-title">{t('login.title')}</h1>
+    <div className="dashboard-layout">
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <img src="/logo.png" alt="Recontext Logo" className="sidebar-logo" />
+          <h1 className="sidebar-title">{t('login.title')}</h1>
         </div>
-        <div className="header-right">
-          <LanguageSwitcher />
-          <button onClick={handleLogout} className="btn btn-secondary">
-            {t('common.logout')}
+
+        <nav className="sidebar-nav">
+          <NavLink
+            to="/dashboard/meetings"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="nav-icon">📅</span>
+            <span className="nav-label">{t('nav.meetings')}</span>
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/search"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="nav-icon">🔍</span>
+            <span className="nav-label">{t('nav.search')}</span>
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/documents"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="nav-icon">📄</span>
+            <span className="nav-label">{t('nav.documents')}</span>
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/management"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="nav-icon">⚙️</span>
+            <span className="nav-label">{t('nav.management')}</span>
+          </NavLink>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="language-switcher-wrapper">
+            <LanguageSwitcher />
+          </div>
+          <button onClick={handleLogout} className="logout-btn">
+            <span className="nav-icon">🚪</span>
+            <span className="nav-label">{t('common.logout')}</span>
           </button>
         </div>
-      </header>
+      </aside>
 
-      <nav className="dashboard-nav">
-        <NavLink to="/dashboard/meetings" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          {t('nav.meetings')}
-        </NavLink>
-        <NavLink to="/dashboard/search" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          {t('nav.search')}
-        </NavLink>
-        <NavLink to="/dashboard/documents" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          {t('nav.documents')}
-        </NavLink>
-        <NavLink to="/dashboard/management" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          {t('nav.management')}
-        </NavLink>
-      </nav>
-
-      <main className="dashboard-main">
-        <Outlet />
-      </main>
+      <div className="main-content">
+        <header className="top-header">
+          <div className="header-left">
+            <h2 className="page-current-title">{t('login.title')}</h2>
+          </div>
+          <div className="header-right">
+            <span className="user-info">User</span>
+          </div>
+        </header>
+        <div className="content-area">
+          <Outlet />
+        </div>
+      </div>
     </div>
   );
 };

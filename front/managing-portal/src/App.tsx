@@ -3,6 +3,9 @@ import './styles/theme.css'
 import './App.css'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
+import UserManagement from './components/UserManagement'
+import Groups from './components/Groups'
+import Layout from './components/Layout'
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
@@ -23,8 +26,12 @@ function App() {
   // Check if user is authenticated
   const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
-  // If on dashboard route but not authenticated, redirect to login
-  if (currentPath === '/dashboard' && !token) {
+  // Protected routes - require authentication
+  const protectedRoutes = ['/dashboard', '/users', '/groups']
+  const isProtectedRoute = protectedRoutes.some(route => currentPath.startsWith(route))
+
+  // If on protected route but not authenticated, redirect to login
+  if (isProtectedRoute && !token) {
     window.location.href = '/'
     return null
   }
@@ -35,9 +42,15 @@ function App() {
     return null
   }
 
-  // Show dashboard if on /dashboard route
-  if (currentPath === '/dashboard') {
-    return <Dashboard />
+  // Route handling with Layout
+  if (isProtectedRoute) {
+    return (
+      <Layout currentPath={currentPath}>
+        {currentPath === '/dashboard' && <Dashboard />}
+        {currentPath === '/users' && <UserManagement />}
+        {currentPath === '/groups' && <Groups />}
+      </Layout>
+    )
   }
 
   // Default to login

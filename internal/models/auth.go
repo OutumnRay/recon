@@ -28,7 +28,7 @@ const (
 
 // LoginRequest represents a login request
 type LoginRequest struct {
-	Username string `json:"username" binding:"required" example:"admin"`
+	Username string `json:"username" binding:"required" example:"admin@recontext.online"`
 	Password string `json:"password" binding:"required" example:"password123"`
 }
 

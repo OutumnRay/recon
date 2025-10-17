@@ -47,11 +47,19 @@ services:
     container_name: recontext-managing-portal
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-recontext}:${POSTGRES_PASSWORD:-recontext}@postgres:5432/${POSTGRES_DB:-recontext}?sslmode=disable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-recontext}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-recontext}
+      - DB_NAME=${POSTGRES_DB:-recontext}
+      - DB_SSL_MODE=disable
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_USE_SSL=false
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - SERVER_PORT=8080
     ports:
       - "${MANAGING_PORTAL_PORT:-10080}:8080"
@@ -70,11 +78,19 @@ services:
     container_name: recontext-user-portal
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-recontext}:${POSTGRES_PASSWORD:-recontext}@postgres:5432/${POSTGRES_DB:-recontext}?sslmode=disable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-recontext}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-recontext}
+      - DB_NAME=${POSTGRES_DB:-recontext}
+      - DB_SSL_MODE=disable
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_USE_SSL=false
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - SERVER_PORT=8081
     ports:
       - "${USER_PORTAL_PORT:-10081}:8081"

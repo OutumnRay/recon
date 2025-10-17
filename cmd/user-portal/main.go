@@ -133,10 +133,10 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find user in database
-	user, err := up.userRepo.GetByUsername(req.Username)
+	// Find user in database (username field contains email address)
+	user, err := up.userRepo.GetByEmail(req.Username)
 	if err != nil || !auth.VerifyPassword(req.Password, user.Password) {
-		up.respondWithError(w, http.StatusUnauthorized, "Invalid credentials", "username or password incorrect")
+		up.respondWithError(w, http.StatusUnauthorized, "Invalid credentials", "email or password incorrect")
 		return
 	}
 

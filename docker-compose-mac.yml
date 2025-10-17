@@ -20,6 +20,10 @@ services:
       - DB_USER=recontext
       - DB_PASSWORD=recontext
       - DB_NAME=recontext
+      - DB_SSL_MODE=disable
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
@@ -48,6 +52,14 @@ services:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8081
       - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=recontext
+      - DB_PASSWORD=recontext
+      - DB_NAME=recontext
+      - DB_SSL_MODE=disable
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - MANAGING_PORTAL_URL=http://managing-portal:8080
       - MINIO_ENDPOINT=minio:9000
     depends_on:
