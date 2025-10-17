@@ -48,16 +48,21 @@ func (mp *ManagingPortal) dashboardStatsHandler(w http.ResponseWriter, r *http.R
 	stats := DashboardStats{}
 
 	// Count users
-	stats.Users.Total = len(mp.users)
-	stats.Users.Active = 0
-	for _, user := range mp.users {
-		if user.IsActive {
-			stats.Users.Active++
+	allUsers, err := mp.userRepo.List("", nil)
+	if err == nil {
+		stats.Users.Total = len(allUsers)
+		activeStatus := true
+		activeUsers, err := mp.userRepo.List("", &activeStatus)
+		if err == nil {
+			stats.Users.Active = len(activeUsers)
 		}
 	}
 
 	// Count groups
-	stats.Groups.Total = len(mp.groups)
+	groups, err := mp.groupRepo.List()
+	if err == nil {
+		stats.Groups.Total = len(groups)
+	}
 
 	// Query Prometheus for worker metrics
 	mp.queryWorkerMetrics(ctx, &stats)

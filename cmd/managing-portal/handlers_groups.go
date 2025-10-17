@@ -19,8 +19,14 @@ import (
 // @Security BearerAuth
 // @Router /api/v1/groups [get]
 func (mp *ManagingPortal) listGroupsHandler(w http.ResponseWriter, r *http.Request) {
+	groups, err := mp.groupRepo.List()
+	if err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to list groups", err.Error())
+		return
+	}
+
 	var groupsList []models.UserGroup
-	for _, group := range mp.groups {
+	for _, group := range groups {
 		groupsList = append(groupsList, *group)
 	}
 
@@ -46,9 +52,9 @@ func (mp *ManagingPortal) listGroupsHandler(w http.ResponseWriter, r *http.Reque
 func (mp *ManagingPortal) getGroupHandler(w http.ResponseWriter, r *http.Request) {
 	groupID := strings.TrimPrefix(r.URL.Path, "/api/v1/groups/")
 
-	group, exists := mp.groups[groupID]
-	if !exists {
-		mp.respondWithError(w, http.StatusNotFound, "Group not found", "")
+	group, err := mp.groupRepo.GetByID(groupID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "Group not found", err.Error())
 		return
 	}
 
@@ -74,6 +80,12 @@ func (mp *ManagingPortal) createGroupHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Check if group name already exists
+	if exists, _ := mp.groupRepo.NameExists(req.Name); exists {
+		mp.respondWithError(w, http.StatusConflict, "Group name already exists", "")
+		return
+	}
+
 	groupID := fmt.Sprintf("group-%d", time.Now().Unix())
 	group := &models.UserGroup{
 		ID:          groupID,
@@ -84,7 +96,11 @@ func (mp *ManagingPortal) createGroupHandler(w http.ResponseWriter, r *http.Requ
 		UpdatedAt:   time.Now(),
 	}
 
-	mp.groups[groupID] = group
+	if err := mp.groupRepo.Create(group); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to create group", err.Error())
+		return
+	}
+
 	mp.logger.Infof("Group created: %s (%s)", group.Name, group.ID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -114,9 +130,9 @@ func (mp *ManagingPortal) updateGroupHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	group, exists := mp.groups[groupID]
-	if !exists {
-		mp.respondWithError(w, http.StatusNotFound, "Group not found", "")
+	group, err := mp.groupRepo.GetByID(groupID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "Group not found", err.Error())
 		return
 	}
 
@@ -130,9 +146,13 @@ func (mp *ManagingPortal) updateGroupHandler(w http.ResponseWriter, r *http.Requ
 	if req.Permissions != nil {
 		group.Permissions = req.Permissions
 	}
-	group.UpdatedAt = time.Now()
 
-	mp.groups[groupID] = group
+	if err := mp.groupRepo.Update(group); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to update group", err.Error())
+		return
+	}
+
+	mp.logger.Infof("Group updated: %s (%s)", group.Name, group.ID)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(group)
@@ -151,13 +171,18 @@ func (mp *ManagingPortal) updateGroupHandler(w http.ResponseWriter, r *http.Requ
 func (mp *ManagingPortal) deleteGroupHandler(w http.ResponseWriter, r *http.Request) {
 	groupID := strings.TrimPrefix(r.URL.Path, "/api/v1/groups/")
 
-	group, exists := mp.groups[groupID]
-	if !exists {
-		mp.respondWithError(w, http.StatusNotFound, "Group not found", "")
+	// Get group first to log the name
+	group, err := mp.groupRepo.GetByID(groupID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "Group not found", err.Error())
 		return
 	}
 
-	delete(mp.groups, groupID)
+	if err := mp.groupRepo.Delete(groupID); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to delete group", err.Error())
+		return
+	}
+
 	mp.logger.Infof("Group deleted: %s (%s)", group.Name, group.ID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -187,46 +212,38 @@ func (mp *ManagingPortal) addUserToGroupHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Check if group exists
-	if _, exists := mp.groups[req.GroupID]; !exists {
-		mp.respondWithError(w, http.StatusNotFound, "Group not found", "")
+	if _, err := mp.groupRepo.GetByID(req.GroupID); err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "Group not found", err.Error())
 		return
 	}
 
-	// Find and update user
-	var foundUser *models.User
-	for _, user := range mp.users {
-		if user.ID == req.UserID {
-			foundUser = user
-			break
-		}
-	}
-
-	if foundUser == nil {
-		mp.respondWithError(w, http.StatusNotFound, "User not found", "")
+	// Check if user exists
+	user, err := mp.userRepo.GetByID(req.UserID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return
 	}
 
-	// Add group to user's groups
-	if foundUser.Groups == nil {
-		foundUser.Groups = []string{}
-	}
 	// Check if already in group
-	for _, gid := range foundUser.Groups {
+	for _, gid := range user.Groups {
 		if gid == req.GroupID {
 			mp.respondWithError(w, http.StatusConflict, "User already in group", "")
 			return
 		}
 	}
-	foundUser.Groups = append(foundUser.Groups, req.GroupID)
-	foundUser.UpdatedAt = time.Now()
 
-	mp.users[foundUser.Username] = foundUser
-	mp.logger.Infof("User %s added to group %s", foundUser.Username, req.GroupID)
+	// Add user to group
+	if err := mp.groupRepo.AddUserToGroup(req.UserID, req.GroupID, "admin"); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to add user to group", err.Error())
+		return
+	}
+
+	mp.logger.Infof("User %s added to group %s", user.Username, req.GroupID)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "User added to group successfully",
-		"user_id": req.UserID,
+		"message":  "User added to group successfully",
+		"user_id":  req.UserID,
 		"group_id": req.GroupID,
 	})
 }
@@ -250,16 +267,9 @@ func (mp *ManagingPortal) checkPermissionHandler(w http.ResponseWriter, r *http.
 	}
 
 	// Find user
-	var foundUser *models.User
-	for _, user := range mp.users {
-		if user.ID == req.UserID {
-			foundUser = user
-			break
-		}
-	}
-
-	if foundUser == nil {
-		mp.respondWithError(w, http.StatusNotFound, "User not found", "")
+	foundUser, err := mp.userRepo.GetByID(req.UserID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return
 	}
 
@@ -278,8 +288,8 @@ func (mp *ManagingPortal) checkPermissionHandler(w http.ResponseWriter, r *http.
 	reason := "No permission found"
 
 	for _, groupID := range foundUser.Groups {
-		group, exists := mp.groups[groupID]
-		if !exists {
+		group, err := mp.groupRepo.GetByID(groupID)
+		if err != nil {
 			continue
 		}
 

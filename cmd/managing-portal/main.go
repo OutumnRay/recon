@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +16,7 @@ import (
 	"Recontext.online/internal/config"
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
+	"Recontext.online/pkg/database"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 	"Recontext.online/pkg/prometheus"
@@ -49,73 +52,47 @@ type ManagingPortal struct {
 	logger            *logger.Logger
 	services          map[string]models.ServiceInfo
 	jwtManager        *auth.JWTManager
-	users             map[string]*models.User      // In-memory user store (replace with DB)
-	groups            map[string]*models.UserGroup // In-memory group store
+	db                *database.DB                 // Database connection
+	userRepo          *database.UserRepository     // User repository
+	groupRepo         *database.GroupRepository    // Group repository
 	metricsData       []models.Metric              // In-memory metrics store
 	logs              []models.LogEntry            // In-memory logs store
 	prometheusMetrics *metrics.ServiceMetrics      // Prometheus metrics
 	prometheusClient  *prometheus.Client           // Prometheus query client
 }
 
-func NewManagingPortal(cfg *config.Config, log *logger.Logger) *ManagingPortal {
-	jwtManager := auth.NewJWTManager("your-secret-key-change-in-production", 24*time.Hour)
-
-	// Create default admin user
-	users := make(map[string]*models.User)
-	adminUser := &models.User{
-		ID:        "admin-001",
-		Username:  "admin",
-		Email:     "admin@recontext.online",
-		Password:  auth.HashPassword("admin123"),
-		Role:      models.RoleAdmin,
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal, error) {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "your-secret-key-change-in-production"
 	}
-	users["admin"] = adminUser
+	jwtManager := auth.NewJWTManager(jwtSecret, 24*time.Hour)
 
-	// Create default groups
-	groups := make(map[string]*models.UserGroup)
-
-	// Editors group - can read and write recordings
-	editorsGroup := &models.UserGroup{
-		ID:          "group-editors",
-		Name:        "Editors",
-		Description: "Users who can view and edit recordings",
-		Permissions: map[string]interface{}{
-			"recordings": map[string]interface{}{
-				"actions": []string{"read", "write"},
-				"scope":   "all",
-			},
-			"transcripts": map[string]interface{}{
-				"actions": []string{"read"},
-				"scope":   "all",
-			},
-		},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+	// Initialize database connection
+	dbConfig := database.Config{
+		Host:     getEnv("DB_HOST", "localhost"),
+		Port:     getEnvInt("DB_PORT", 5432),
+		User:     getEnv("DB_USER", "recontext"),
+		Password: getEnv("DB_PASSWORD", "recontext"),
+		DBName:   getEnv("DB_NAME", "recontext"),
+		SSLMode:  getEnv("DB_SSL_MODE", "disable"),
 	}
-	groups["group-editors"] = editorsGroup
 
-	// Viewers group - read-only access
-	viewersGroup := &models.UserGroup{
-		ID:          "group-viewers",
-		Name:        "Viewers",
-		Description: "Users who can only view recordings",
-		Permissions: map[string]interface{}{
-			"recordings": map[string]interface{}{
-				"actions": []string{"read"},
-				"scope":   "all",
-			},
-			"transcripts": map[string]interface{}{
-				"actions": []string{"read"},
-				"scope":   "all",
-			},
-		},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+	db, err := database.NewDB(dbConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
-	groups["group-viewers"] = viewersGroup
+
+	// Run migrations
+	if err := db.RunMigrations(); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	log.Info("Database connected and migrations completed")
+
+	// Initialize repositories
+	userRepo := database.NewUserRepository(db)
+	groupRepo := database.NewGroupRepository(db)
 
 	// Initialize Prometheus client (uses internal Docker network)
 	prometheusClient := prometheus.NewClient("http://prometheus:9090")
@@ -125,13 +102,30 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) *ManagingPortal {
 		logger:            log,
 		services:          make(map[string]models.ServiceInfo),
 		jwtManager:        jwtManager,
-		users:             users,
-		groups:            groups,
+		db:                db,
+		userRepo:          userRepo,
+		groupRepo:         groupRepo,
 		metricsData:       make([]models.Metric, 0),
 		logs:              make([]models.LogEntry, 0),
 		prometheusMetrics: metrics.NewServiceMetrics("managing_portal"),
 		prometheusClient:  prometheusClient,
+	}, nil
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intVal, err := strconv.Atoi(value); err == nil {
+			return intVal
+		}
+	}
+	return defaultValue
 }
 
 // Login godoc
@@ -152,12 +146,21 @@ func (mp *ManagingPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find user
-	user, exists := mp.users[req.Username]
-	if !exists || !auth.VerifyPassword(req.Password, user.Password) {
+	// Find user in database
+	user, err := mp.userRepo.GetByUsername(req.Username)
+	if err != nil || !auth.VerifyPassword(req.Password, user.Password) {
 		mp.respondWithError(w, http.StatusUnauthorized, "Invalid credentials", "username or password incorrect")
 		return
 	}
+
+	// Check if user is active
+	if !user.IsActive {
+		mp.respondWithError(w, http.StatusUnauthorized, "Account is inactive", "")
+		return
+	}
+
+	// Update last login
+	mp.userRepo.UpdateLastLogin(user.ID)
 
 	// Generate token
 	token, expiresAt, err := mp.jwtManager.GenerateToken(user)
@@ -200,9 +203,15 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Check if user already exists
-	if _, exists := mp.users[req.Username]; exists {
+	// Check if username already exists
+	if exists, _ := mp.userRepo.UsernameExists(req.Username); exists {
 		mp.respondWithError(w, http.StatusConflict, "User already exists", "username is taken")
+		return
+	}
+
+	// Check if email already exists
+	if exists, _ := mp.userRepo.EmailExists(req.Email); exists {
+		mp.respondWithError(w, http.StatusConflict, "Email already in use", "email is taken")
 		return
 	}
 
@@ -213,11 +222,17 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 		Email:     req.Email,
 		Password:  auth.HashPassword(req.Password),
 		Role:      models.RoleUser,
+		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
-	mp.users[req.Username] = newUser
+	if err := mp.userRepo.Create(newUser); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to create user", err.Error())
+		return
+	}
+
+	mp.logger.Infof("User created: %s (%s)", newUser.Username, newUser.ID)
 
 	userInfo := models.UserInfo{
 		ID:       newUser.ID,
@@ -603,7 +618,10 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	portal := NewManagingPortal(cfg, log)
+	portal, err := NewManagingPortal(cfg, log)
+	if err != nil {
+		log.Fatalf("Failed to initialize portal: %v", err)
+	}
 
 	if err := portal.Start(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

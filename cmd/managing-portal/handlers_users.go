@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"time"
 
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
@@ -23,16 +22,30 @@ import (
 // @Security BearerAuth
 // @Router /api/v1/users [get]
 func (mp *ManagingPortal) listUsersHandler(w http.ResponseWriter, r *http.Request) {
+	// Get optional filters from query params
+	role := r.URL.Query().Get("role")
+	isActiveStr := r.URL.Query().Get("is_active")
+
+	var isActive *bool
+	if isActiveStr != "" {
+		val := isActiveStr == "true"
+		isActive = &val
+	}
+
+	users, err := mp.userRepo.List(role, isActive)
+	if err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to list users", err.Error())
+		return
+	}
+
 	var usersList []models.UserInfo
-	for _, user := range mp.users {
-		if user.IsActive {
-			usersList = append(usersList, models.UserInfo{
-				ID:       user.ID,
-				Username: user.Username,
-				Email:    user.Email,
-				Role:     user.Role,
-			})
-		}
+	for _, user := range users {
+		usersList = append(usersList, models.UserInfo{
+			ID:       user.ID,
+			Username: user.Username,
+			Email:    user.Email,
+			Role:     user.Role,
+		})
 	}
 
 	response := models.ListUsersResponse{
@@ -59,22 +72,21 @@ func (mp *ManagingPortal) listUsersHandler(w http.ResponseWriter, r *http.Reques
 func (mp *ManagingPortal) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimPrefix(r.URL.Path, "/api/v1/users/")
 
-	for _, user := range mp.users {
-		if user.ID == userID {
-			userInfo := models.UserInfo{
-				ID:       user.ID,
-				Username: user.Username,
-				Email:    user.Email,
-				Role:     user.Role,
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(userInfo)
-			return
-		}
+	user, err := mp.userRepo.GetByID(userID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
+		return
 	}
 
-	mp.respondWithError(w, http.StatusNotFound, "User not found", "")
+	userInfo := models.UserInfo{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Role:     user.Role,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(userInfo)
 }
 
 // UpdateUser godoc
@@ -100,16 +112,9 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Find user
-	var foundUser *models.User
-	for _, user := range mp.users {
-		if user.ID == userID {
-			foundUser = user
-			break
-		}
-	}
-
-	if foundUser == nil {
-		mp.respondWithError(w, http.StatusNotFound, "User not found", "")
+	foundUser, err := mp.userRepo.GetByID(userID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return
 	}
 
@@ -126,9 +131,13 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 	if req.IsActive != nil {
 		foundUser.IsActive = *req.IsActive
 	}
-	foundUser.UpdatedAt = time.Now()
 
-	mp.users[foundUser.Username] = foundUser
+	if err := mp.userRepo.Update(foundUser); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to update user", err.Error())
+		return
+	}
+
+	mp.logger.Infof("User updated: %s (%s)", foundUser.Username, foundUser.ID)
 
 	userInfo := models.UserInfo{
 		ID:       foundUser.ID,
@@ -155,22 +164,26 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 func (mp *ManagingPortal) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimPrefix(r.URL.Path, "/api/v1/users/")
 
-	// Find and delete user
-	for username, user := range mp.users {
-		if user.ID == userID {
-			delete(mp.users, username)
-			mp.logger.Infof("User deleted: %s (%s)", user.Username, user.ID)
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"message": "User deleted successfully",
-				"user_id": userID,
-			})
-			return
-		}
+	// Get user first to log the username
+	user, err := mp.userRepo.GetByID(userID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
+		return
 	}
 
-	mp.respondWithError(w, http.StatusNotFound, "User not found", "")
+	// Delete user
+	if err := mp.userRepo.Delete(userID); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to delete user", err.Error())
+		return
+	}
+
+	mp.logger.Infof("User deleted: %s (%s)", user.Username, user.ID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "User deleted successfully",
+		"user_id": userID,
+	})
 }
 
 // ChangePassword godoc
@@ -199,9 +212,9 @@ func (mp *ManagingPortal) changePasswordHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Find user
-	user, exists := mp.users[claims.Username]
-	if !exists {
-		mp.respondWithError(w, http.StatusNotFound, "User not found", "")
+	user, err := mp.userRepo.GetByUsername(claims.Username)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return
 	}
 
@@ -212,9 +225,11 @@ func (mp *ManagingPortal) changePasswordHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Update password
-	user.Password = auth.HashPassword(req.NewPassword)
-	user.UpdatedAt = time.Now()
-	mp.users[claims.Username] = user
+	hashedPassword := auth.HashPassword(req.NewPassword)
+	if err := mp.userRepo.UpdatePassword(user.ID, hashedPassword); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to update password", err.Error())
+		return
+	}
 
 	mp.logger.Infof("Password changed for user: %s", claims.Username)
 

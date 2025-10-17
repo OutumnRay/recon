@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +16,7 @@ import (
 	"Recontext.online/internal/config"
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
+	"Recontext.online/pkg/database"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 )
@@ -47,34 +50,69 @@ type UserPortal struct {
 	config            *config.Config
 	logger            *logger.Logger
 	jwtManager        *auth.JWTManager
-	users             map[string]*models.User      // In-memory user store
+	db                *database.DB                 // Database connection
+	userRepo          *database.UserRepository     // User repository
 	recordings        map[string]*models.Recording // In-memory recordings store
 	prometheusMetrics *metrics.ServiceMetrics      // Prometheus metrics
 }
 
-func NewUserPortal(cfg *config.Config, log *logger.Logger) *UserPortal {
-	jwtManager := auth.NewJWTManager("your-secret-key-change-in-production", 24*time.Hour)
-
-	// Create default users
-	users := make(map[string]*models.User)
-	users["user"] = &models.User{
-		ID:        "user-001",
-		Username:  "user",
-		Email:     "user@recontext.online",
-		Password:  auth.HashPassword("user123"),
-		Role:      models.RoleUser,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "your-secret-key-change-in-production"
 	}
+	jwtManager := auth.NewJWTManager(jwtSecret, 24*time.Hour)
+
+	// Initialize database connection
+	dbConfig := database.Config{
+		Host:     getEnv("DB_HOST", "localhost"),
+		Port:     getEnvInt("DB_PORT", 5432),
+		User:     getEnv("DB_USER", "recontext"),
+		Password: getEnv("DB_PASSWORD", "recontext"),
+		DBName:   getEnv("DB_NAME", "recontext"),
+		SSLMode:  getEnv("DB_SSL_MODE", "disable"),
+	}
+
+	db, err := database.NewDB(dbConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	// Run migrations
+	if err := db.RunMigrations(); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	log.Info("Database connected and migrations completed")
+
+	// Initialize repository
+	userRepo := database.NewUserRepository(db)
 
 	return &UserPortal{
 		config:            cfg,
 		logger:            log,
 		jwtManager:        jwtManager,
-		users:             users,
+		db:                db,
+		userRepo:          userRepo,
 		recordings:        make(map[string]*models.Recording),
 		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
+	}, nil
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intVal, err := strconv.Atoi(value); err == nil {
+			return intVal
+		}
+	}
+	return defaultValue
 }
 
 // Login godoc
@@ -95,11 +133,21 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, exists := up.users[req.Username]
-	if !exists || !auth.VerifyPassword(req.Password, user.Password) {
+	// Find user in database
+	user, err := up.userRepo.GetByUsername(req.Username)
+	if err != nil || !auth.VerifyPassword(req.Password, user.Password) {
 		up.respondWithError(w, http.StatusUnauthorized, "Invalid credentials", "username or password incorrect")
 		return
 	}
+
+	// Check if user is active
+	if !user.IsActive {
+		up.respondWithError(w, http.StatusUnauthorized, "Account is inactive", "")
+		return
+	}
+
+	// Update last login
+	up.userRepo.UpdateLastLogin(user.ID)
 
 	token, expiresAt, err := up.jwtManager.GenerateToken(user)
 	if err != nil {
@@ -444,7 +492,10 @@ func main() {
 	// Override port for user portal
 	cfg.Server.Port = 8081
 
-	portal := NewUserPortal(cfg, log)
+	portal, err := NewUserPortal(cfg, log)
+	if err != nil {
+		log.Fatalf("Failed to initialize portal: %v", err)
+	}
 
 	if err := portal.Start(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
