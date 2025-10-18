@@ -46,12 +46,26 @@ services:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8081
       - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=recontext
+      - DB_PASSWORD=recontext
+      - DB_NAME=recontext
       - MANAGING_PORTAL_URL=http://managing-portal:8080
       - MINIO_ENDPOINT=minio:9000
+      # Embeddings configuration - supports both OpenAI and self-hosted models
+      # For OpenAI (default):
+      # - EMBEDDINGS_API_URL=https://api.openai.com/v1/embeddings
+      # - EMBEDDINGS_API_KEY=your-openai-api-key
+      # - EMBEDDINGS_MODEL=text-embedding-3-small
+      # For self-hosted (Ollama example):
+      - EMBEDDINGS_API_URL=http://ollama:11434/api/embeddings
+      - EMBEDDINGS_API_KEY=local
+      - EMBEDDINGS_MODEL=nomic-embed-text
     depends_on:
       - managing-portal
       - postgres
       - minio
+      - ollama
     networks:
       - recontext-network
     restart: unless-stopped
@@ -167,9 +181,9 @@ services:
       timeout: 20s
       retries: 3
 
-  # 8. PostgreSQL Database
+  # 8. PostgreSQL Database with pgvector extension
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: recontext-postgres
     ports:
       - "5432:5432"
@@ -187,6 +201,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Ollama - Self-hosted LLM and Embeddings Service (optional)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: recontext-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - recontext-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   # 9. Jitsi Meet Server
   jitsi-web:
@@ -392,3 +425,4 @@ volumes:
   jitsi-recordings:
   prometheus-data:
   grafana-data:
+  ollama-data:

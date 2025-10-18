@@ -9,9 +9,11 @@ import (
 	"os"
 )
 
-type OpenAIEmbeddingsClient struct {
-	apiKey string
-	model  string
+type EmbeddingsClient struct {
+	apiKey   string
+	apiURL   string
+	model    string
+	isLocal  bool
 }
 
 type embeddingRequest struct {
@@ -25,26 +27,32 @@ type embeddingResponse struct {
 	} `json:"data"`
 }
 
-// NewOpenAIEmbeddingsClient creates a new OpenAI embeddings client
-func NewOpenAIEmbeddingsClient() *OpenAIEmbeddingsClient {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	model := os.Getenv("OPENAI_EMBEDDING_MODEL")
+// NewEmbeddingsClient creates a new embeddings client supporting both OpenAI and self-hosted models
+func NewEmbeddingsClient() *EmbeddingsClient {
+	apiURL := os.Getenv("EMBEDDINGS_API_URL")
+	if apiURL == "" {
+		apiURL = "https://api.openai.com/v1/embeddings"
+	}
+
+	apiKey := os.Getenv("EMBEDDINGS_API_KEY")
+	model := os.Getenv("EMBEDDINGS_MODEL")
 	if model == "" {
 		model = "text-embedding-3-small"
 	}
 
-	return &OpenAIEmbeddingsClient{
-		apiKey: apiKey,
-		model:  model,
+	// Detect if using local/self-hosted endpoint (no API key required)
+	isLocal := apiKey == "" || apiKey == "none" || apiKey == "local"
+
+	return &EmbeddingsClient{
+		apiKey:  apiKey,
+		apiURL:  apiURL,
+		model:   model,
+		isLocal: isLocal,
 	}
 }
 
 // GetEmbedding generates an embedding for the given text
-func (c *OpenAIEmbeddingsClient) GetEmbedding(text string) ([]float32, error) {
-	if c.apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
-	}
-
+func (c *EmbeddingsClient) GetEmbedding(text string) ([]float32, error) {
 	reqBody := embeddingRequest{
 		Input: text,
 		Model: c.model,
@@ -55,13 +63,17 @@ func (c *OpenAIEmbeddingsClient) GetEmbedding(text string) ([]float32, error) {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", "https://api.openai.com/v1/embeddings", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", c.apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+
+	// Only add Authorization header if not using local model
+	if !c.isLocal && c.apiKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -72,7 +84,7 @@ func (c *OpenAIEmbeddingsClient) GetEmbedding(text string) ([]float32, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("OpenAI API error (status %d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("embeddings API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var embResp embeddingResponse
