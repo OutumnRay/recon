@@ -1,12 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [hasFilePermission, setHasFilePermission] = useState(false);
+
+  useEffect(() => {
+    checkFilePermission();
+  }, []);
+
+  const checkFilePermission = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch('/api/v1/files/permission', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setHasFilePermission(data.hasPermission || false);
+      }
+    } catch (err) {
+      console.error('Failed to check file permission:', err);
+    }
+  };
+
+  const getUsername = () => {
+    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        return user.username || user.email || 'User';
+      } catch {
+        return 'User';
+      }
+    }
+    return 'User';
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -29,7 +66,7 @@ export const Dashboard: React.FC = () => {
             to="/dashboard/meetings"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
-            <span className="nav-icon">📅</span>
+            <span className="nav-icon"><LuCalendar /></span>
             <span className="nav-label">{t('nav.meetings')}</span>
           </NavLink>
 
@@ -37,33 +74,32 @@ export const Dashboard: React.FC = () => {
             to="/dashboard/search"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
-            <span className="nav-icon">🔍</span>
+            <span className="nav-icon"><LuSearch /></span>
             <span className="nav-label">{t('nav.search')}</span>
           </NavLink>
 
-          <NavLink
-            to="/dashboard/documents"
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
-            <span className="nav-icon">📄</span>
-            <span className="nav-label">{t('nav.documents')}</span>
-          </NavLink>
+          {hasFilePermission && (
+            <NavLink
+              to="/dashboard/documents"
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            >
+              <span className="nav-icon"><LuFileText /></span>
+              <span className="nav-label">{t('nav.documents')}</span>
+            </NavLink>
+          )}
 
           <NavLink
             to="/dashboard/management"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
-            <span className="nav-icon">⚙️</span>
+            <span className="nav-icon"><LuSettings /></span>
             <span className="nav-label">{t('nav.management')}</span>
           </NavLink>
         </nav>
 
         <div className="sidebar-footer">
-          <div className="language-switcher-wrapper">
-            <LanguageSwitcher />
-          </div>
           <button onClick={handleLogout} className="logout-btn">
-            <span className="nav-icon">🚪</span>
+            <span className="nav-icon"><LuLogOut /></span>
             <span className="nav-label">{t('common.logout')}</span>
           </button>
         </div>
@@ -75,7 +111,10 @@ export const Dashboard: React.FC = () => {
             <h2 className="page-current-title">{t('login.title')}</h2>
           </div>
           <div className="header-right">
-            <span className="user-info">User</span>
+            <div className="language-switcher-wrapper">
+              <LanguageSwitcher />
+            </div>
+            <span className="user-info">{getUsername()}</span>
           </div>
         </header>
         <div className="content-area">

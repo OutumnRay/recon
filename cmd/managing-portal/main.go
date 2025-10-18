@@ -532,6 +532,12 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 		adminMiddleware,
 	))
 
+	mux.Handle("/api/v1/groups/remove-user", chainMiddleware(
+		http.HandlerFunc(mp.removeUserFromGroupHandler),
+		authMiddleware,
+		adminMiddleware,
+	))
+
 	mux.Handle("/api/v1/groups/check-permission", chainMiddleware(
 		http.HandlerFunc(mp.checkPermissionHandler),
 		authMiddleware,

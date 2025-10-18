@@ -248,6 +248,54 @@ func (mp *ManagingPortal) addUserToGroupHandler(w http.ResponseWriter, r *http.R
 	})
 }
 
+// RemoveUserFromGroup godoc
+// @Summary Remove user from group
+// @Description Remove a user from a specific group (admin only)
+// @Tags Groups
+// @Accept json
+// @Produce json
+// @Param request body models.AddUserToGroupRequest true "User and group IDs"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/groups/remove-user [post]
+func (mp *ManagingPortal) removeUserFromGroupHandler(w http.ResponseWriter, r *http.Request) {
+	var req models.AddUserToGroupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		mp.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Check if group exists
+	if _, err := mp.groupRepo.GetByID(req.GroupID); err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "Group not found", err.Error())
+		return
+	}
+
+	// Check if user exists
+	user, err := mp.userRepo.GetByID(req.UserID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
+		return
+	}
+
+	// Remove user from group
+	if err := mp.groupRepo.RemoveUserFromGroup(req.UserID, req.GroupID); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to remove user from group", err.Error())
+		return
+	}
+
+	mp.logger.Infof("User %s removed from group %s", user.Username, req.GroupID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":  "User removed from group successfully",
+		"user_id":  req.UserID,
+		"group_id": req.GroupID,
+	})
+}
+
 // CheckPermission godoc
 // @Summary Check user permission
 // @Description Check if a user has permission to perform an action on a resource

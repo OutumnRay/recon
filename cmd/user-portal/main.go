@@ -372,6 +372,164 @@ func (up *UserPortal) searchHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// UploadFile godoc
+// @Summary Upload a file for transcription
+// @Description Upload an audio or video file for transcription (requires file upload permission)
+// @Tags Files
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Audio/video file"
+// @Param description formData string false "File description"
+// @Success 200 {object} models.FileUploadResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/files/upload [post]
+func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	// Check if user has file upload permission
+	hasPermission, err := up.db.CheckUserHasFilePermission(claims.UserID, "write")
+	if err != nil || !hasPermission {
+		up.respondWithError(w, http.StatusForbidden, "You don't have permission to upload files", "Contact administrator to grant file upload access")
+		return
+	}
+
+	// Parse multipart form (max 500MB)
+	if err := r.ParseMultipartForm(500 << 20); err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Failed to parse form", err.Error())
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "File is required", err.Error())
+		return
+	}
+	defer file.Close()
+
+	// Create file record
+	fileID := fmt.Sprintf("file-%d", time.Now().UnixNano())
+	uploadedFile := &models.UploadedFile{
+		ID:           fileID,
+		Filename:     fmt.Sprintf("%d-%s", time.Now().Unix(), header.Filename),
+		OriginalName: header.Filename,
+		FileSize:     header.Size,
+		MimeType:     header.Header.Get("Content-Type"),
+		StoragePath:  fmt.Sprintf("files/%s/%s", claims.UserID, fileID),
+		UserID:       claims.UserID,
+		GroupID:      "group-file-uploaders",
+		Status:       models.StatusPending,
+		UploadedAt:   time.Now(),
+	}
+
+	// Save to database
+	if err := up.db.CreateUploadedFile(uploadedFile); err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to save file record", err.Error())
+		return
+	}
+
+	up.logger.Infof("File uploaded: %s by user %s", fileID, claims.Username)
+
+	response := models.FileUploadResponse{
+		ID:           fileID,
+		Filename:     uploadedFile.Filename,
+		OriginalName: uploadedFile.OriginalName,
+		FileSize:     uploadedFile.FileSize,
+		Status:       uploadedFile.Status,
+		UploadedAt:   uploadedFile.UploadedAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// ListFiles godoc
+// @Summary List uploaded files
+// @Description Get a paginated list of user's uploaded files
+// @Tags Files
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size" default(20)
+// @Success 200 {object} models.ListFilesResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/files [get]
+func (up *UserPortal) listFilesHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	// Parse query parameters
+	page := 1
+	if p := r.URL.Query().Get("page"); p != "" {
+		if val, err := strconv.Atoi(p); err == nil {
+			page = val
+		}
+	}
+
+	pageSize := 20
+	if ps := r.URL.Query().Get("page_size"); ps != "" {
+		if val, err := strconv.Atoi(ps); err == nil {
+			pageSize = val
+		}
+	}
+
+	// Get files from database
+	files, total, err := up.db.ListUploadedFilesByUser(claims.UserID, page, pageSize)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to retrieve files", err.Error())
+		return
+	}
+
+	response := models.ListFilesResponse{
+		Files:    files,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// CheckPermission godoc
+// @Summary Check file upload permission
+// @Description Check if the current user has permission to upload files
+// @Tags Files
+// @Produce json
+// @Success 200 {object} map[string]bool
+// @Failure 401 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/files/permission [get]
+func (up *UserPortal) checkFilePermissionHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	hasPermission, err := up.db.CheckUserHasFilePermission(claims.UserID, "write")
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to check permission", err.Error())
+		return
+	}
+
+	response := map[string]bool{
+		"hasPermission": hasPermission,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func (up *UserPortal) respondWithError(w http.ResponseWriter, code int, message string, detail string) {
 	response := models.ErrorResponse{
 		Error:     message,
@@ -454,6 +612,22 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/search", chainMiddleware(
 		http.HandlerFunc(up.searchHandler),
+		authMiddleware,
+	))
+
+	// File upload endpoints
+	mux.Handle("/api/v1/files/upload", chainMiddleware(
+		http.HandlerFunc(up.uploadFileHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/files/permission", chainMiddleware(
+		http.HandlerFunc(up.checkFilePermissionHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/files", chainMiddleware(
+		http.HandlerFunc(up.listFilesHandler),
 		authMiddleware,
 	))
 

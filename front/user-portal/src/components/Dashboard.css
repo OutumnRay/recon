@@ -84,11 +84,6 @@
   border-top: 1px solid #e2e8f0;
 }
 
-.language-switcher-wrapper {
-  margin-bottom: 1rem;
-  padding: 0 0.5rem;
-}
-
 .logout-btn {
   display: flex;
   align-items: center;
@@ -149,6 +144,11 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.header-right .language-switcher-wrapper {
+  display: flex;
+  align-items: center;
 }
 
 .user-info {
