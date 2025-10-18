@@ -17,6 +17,7 @@ import (
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/database"
+	"Recontext.online/pkg/embeddings"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 )
@@ -50,10 +51,11 @@ type UserPortal struct {
 	config            *config.Config
 	logger            *logger.Logger
 	jwtManager        *auth.JWTManager
-	db                *database.DB                 // Database connection
-	userRepo          *database.UserRepository     // User repository
-	recordings        map[string]*models.Recording // In-memory recordings store
-	prometheusMetrics *metrics.ServiceMetrics      // Prometheus metrics
+	db                *database.DB                   // Database connection
+	userRepo          *database.UserRepository       // User repository
+	recordings        map[string]*models.Recording   // In-memory recordings store
+	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
+	embeddingsClient  *embeddings.EmbeddingsClient   // Embeddings client for RAG
 }
 
 func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) {
@@ -88,6 +90,9 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 	// Initialize repository
 	userRepo := database.NewUserRepository(db)
 
+	// Initialize embeddings client for RAG
+	embeddingsClient := embeddings.NewEmbeddingsClient()
+
 	return &UserPortal{
 		config:            cfg,
 		logger:            log,
@@ -96,6 +101,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		userRepo:          userRepo,
 		recordings:        make(map[string]*models.Recording),
 		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
+		embeddingsClient:  embeddingsClient,
 	}, nil
 }
 
@@ -530,6 +536,140 @@ func (up *UserPortal) checkFilePermissionHandler(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(response)
 }
 
+// RAGSearch godoc
+// @Summary Semantic search through transcriptions
+// @Description Perform semantic search using RAG over transcriptions
+// @Tags RAG
+// @Accept json
+// @Produce json
+// @Param request body models.RAGSearchRequest true "Search query"
+// @Success 200 {object} models.RAGSearchResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/rag/search [post]
+func (up *UserPortal) ragSearchHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	// Check RAG permission
+	hasPermission, err := up.db.CheckUserHasRAGPermission(claims.UserID)
+	if err != nil || !hasPermission {
+		up.respondWithError(w, http.StatusForbidden, "You don't have permission to use RAG search", "Contact administrator to grant RAG access")
+		return
+	}
+
+	var req models.RAGSearchRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	if req.Query == "" {
+		up.respondWithError(w, http.StatusBadRequest, "Query is required", "")
+		return
+	}
+
+	// Set defaults
+	if req.TopK <= 0 {
+		req.TopK = 5
+	}
+	if req.Threshold <= 0 {
+		req.Threshold = 0.7
+	}
+
+	// Generate embedding for query
+	queryEmbedding, err := up.embeddingsClient.GetEmbedding(req.Query)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to generate query embedding", err.Error())
+		return
+	}
+
+	// Search for similar chunks
+	results, err := up.db.SearchSimilarChunks(queryEmbedding, req.TopK, req.Threshold)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to search", err.Error())
+		return
+	}
+
+	response := models.RAGSearchResponse{
+		Query:   req.Query,
+		Results: results,
+		Count:   len(results),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// CheckRAGPermission godoc
+// @Summary Check RAG permission
+// @Description Check if the current user has permission to use RAG search
+// @Tags RAG
+// @Produce json
+// @Success 200 {object} map[string]bool
+// @Failure 401 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/rag/permission [get]
+func (up *UserPortal) checkRAGPermissionHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	hasPermission, err := up.db.CheckUserHasRAGPermission(claims.UserID)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to check permission", err.Error())
+		return
+	}
+
+	response := map[string]bool{
+		"hasPermission": hasPermission,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// RAGStatus godoc
+// @Summary Get RAG system status
+// @Description Get statistics about the RAG system
+// @Tags RAG
+// @Produce json
+// @Success 200 {object} models.RAGStatusResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/rag/status [get]
+func (up *UserPortal) ragStatusHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	// Check RAG permission
+	hasPermission, err := up.db.CheckUserHasRAGPermission(claims.UserID)
+	if err != nil || !hasPermission {
+		up.respondWithError(w, http.StatusForbidden, "You don't have permission to access RAG status", "Contact administrator to grant RAG access")
+		return
+	}
+
+	status, err := up.db.GetRAGStatus()
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to get RAG status", err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
 func (up *UserPortal) respondWithError(w http.ResponseWriter, code int, message string, detail string) {
 	response := models.ErrorResponse{
 		Error:     message,
@@ -628,6 +768,22 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/files", chainMiddleware(
 		http.HandlerFunc(up.listFilesHandler),
+		authMiddleware,
+	))
+
+	// RAG endpoints
+	mux.Handle("/api/v1/rag/search", chainMiddleware(
+		http.HandlerFunc(up.ragSearchHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/rag/permission", chainMiddleware(
+		http.HandlerFunc(up.checkRAGPermissionHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/rag/status", chainMiddleware(
+		http.HandlerFunc(up.ragStatusHandler),
 		authMiddleware,
 	))
 

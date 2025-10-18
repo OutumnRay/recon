@@ -229,6 +229,34 @@ export const UserManagement: React.FC = (): ReactElement => {
     }
   };
 
+  const handleToggleRAGUser = async (user: User) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const isRAGUser = user.groups?.includes('group-rag-users') || false;
+      const endpoint = isRAGUser ? '/api/v1/groups/remove-user' : '/api/v1/groups/add-user';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          group_id: 'group-rag-users'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${isRAGUser ? 'remove user from' : 'add user to'} RAG Users group`);
+      }
+
+      fetchUsers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update RAG user permission');
+    }
+  };
+
   const openEditModal = (user: User) => {
     setSelectedUser(user);
     setFormData({
@@ -288,6 +316,7 @@ export const UserManagement: React.FC = (): ReactElement => {
                 <th>Email</th>
                 <th>Role</th>
                 <th>File Uploader</th>
+                <th>RAG User</th>
                 <th>Groups</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -309,6 +338,14 @@ export const UserManagement: React.FC = (): ReactElement => {
                       checked={user.groups?.includes('group-file-uploaders') || false}
                       onChange={() => handleToggleFileUploader(user)}
                       className="file-uploader-checkbox"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={user.groups?.includes('group-rag-users') || false}
+                      onChange={() => handleToggleRAGUser(user)}
+                      className="rag-user-checkbox"
                     />
                   </td>
                   <td>
