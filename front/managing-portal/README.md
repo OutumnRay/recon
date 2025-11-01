@@ -73,3 +73,35 @@ export default defineConfig([
   },
 ])
 ```
+
+Development is carried out using FSD (see methodology). As a result, we store images in `assets`, reusable components in `shared`, locales (for languages) in `app`, providers in `app`, the `styles` folder in `app` for global styles, etc.
+
+- We write component styles using the SCSS preprocessor and use CSS modules globally
+- I recommend using the classNames library right away, or writing your own (I usually write my own)
+- We typically structure components like this:
+
+```tsx
+import { memo } from "react";
+import { classNames } from "shared/lib/classNames";
+import cls from "./AppRouter.module.scss";
+
+interface AppRouterProps {
+  className?: string;
+}
+
+export const AppRouter = memo((props: AppRouterProps) => {
+  const { className } = props;
+
+  return (
+    <div className={classNames(cls.AppRouter, {}, [className])}>
+      <h1>AppRouter</h1>
+    </div>
+  );
+});
+```
+
+- Implement lazy loading right away, meaning for each page we create an `page.async.ts` file and handle the entire lazy loading process
+- For each component, we structure it as follows:
+```tsx
+folder (ui, index.ts), ui (component.tsx, component.module.scss, component.async.ts)
+```
