@@ -73,3 +73,34 @@ export default defineConfig([
   },
 ])
 ```
+- Разработка ведется по FSD (см. методологию). Как следствие, картинки храним в assets, переиспользуемые компоненты в shared, locales (для языков) в app, providers в app, папка styles в app для глобальных стилей и тд …
+- Стили для компонента пишем через препдпроцессор scss, глобально используем css-modules
+- советую сразу использовать classNames библиотеку, или написать её самостоятельно  (я обычно сама пишу)
+- В компоненте базово оформляем так 
+
+```js
+import { memo } from "react";
+import { classNames } from "shared/lib/classNames";
+import cls from "./AppRouter.module.scss";
+
+interface AppRouterProps {
+  className?: string;
+}
+
+export const AppRouter = memo((props : AppRouterProps) => {
+  const { className } = props;
+
+  return (
+    <div className={classNames(cls.AppRouter, {}, [className])}>
+      <h1>AppRouter</h1>
+    </div>
+  );
+});
+```
+- сразу делаем lazy loading, те для каждой страницы создаем файл page.async.ts и весь процесс lazy loading 
+- для каждого компонента оформляем структуру 
+```js
+folder (ui, index.ts), ui (component.tsx, component.module.scss, component.async.ts)
+```
+
+
