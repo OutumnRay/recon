@@ -73,12 +73,14 @@ export default defineConfig([
   },
 ])
 ```
-- Разработка ведется по FSD (см. методологию). Как следствие, картинки храним в assets, переиспользуемые компоненты в shared, locales (для языков) в app, providers в app, папка styles в app для глобальных стилей и тд …
-- Стили для компонента пишем через препдпроцессор scss, глобально используем css-modules
-- советую сразу использовать classNames библиотеку, или написать её самостоятельно  (я обычно сама пишу)
-- В компоненте базово оформляем так 
 
-```js
+Development is carried out using FSD (see methodology). As a result, we store images in `assets`, reusable components in `shared`, locales (for languages) in `app`, providers in `app`, the `styles` folder in `app` for global styles, etc.
+
+- We write component styles using the SCSS preprocessor and use CSS modules globally
+- I recommend using the classNames library right away, or writing your own (I usually write my own)
+- We typically structure components like this:
+
+```tsx
 import { memo } from "react";
 import { classNames } from "shared/lib/classNames";
 import cls from "./AppRouter.module.scss";
@@ -87,7 +89,7 @@ interface AppRouterProps {
   className?: string;
 }
 
-export const AppRouter = memo((props : AppRouterProps) => {
+export const AppRouter = memo((props: AppRouterProps) => {
   const { className } = props;
 
   return (
@@ -97,10 +99,9 @@ export const AppRouter = memo((props : AppRouterProps) => {
   );
 });
 ```
-- сразу делаем lazy loading, те для каждой страницы создаем файл page.async.ts и весь процесс lazy loading 
-- для каждого компонента оформляем структуру 
-```js
+
+- Implement lazy loading right away, meaning for each page we create an `page.async.ts` file and handle the entire lazy loading process
+- For each component, we structure it as follows:
+```tsx
 folder (ui, index.ts), ui (component.tsx, component.module.scss, component.async.ts)
 ```
-
-
