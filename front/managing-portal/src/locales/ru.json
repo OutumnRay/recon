@@ -1,0 +1,70 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "retry": "Повторить",
+    "logout": "Выйти",
+    "refresh": "Обновить",
+    "refreshing": "Обновление...",
+    "lastUpdated": "Последнее обновление"
+  },
+  "login": {
+    "title": "Портал управления",
+    "subtitle": "Войдите для доступа к панели администрирования",
+    "usernameLabel": "Имя пользователя",
+    "usernamePlaceholder": "Введите имя пользователя",
+    "passwordLabel": "Пароль",
+    "passwordPlaceholder": "Введите ваш пароль",
+    "rememberMe": "Запомнить меня",
+    "forgotPassword": "Забыли пароль?",
+    "loginButton": "Войти",
+    "loggingIn": "Вход...",
+    "loginSuccess": "Успешный вход! Перенаправление...",
+    "defaultCredentials": "Данные по умолчанию:",
+    "needHelp": "Нужна помощь?",
+    "contactSupport": "Связаться с поддержкой",
+    "errors": {
+      "loginFailed": "Ошибка входа",
+      "networkError": "Произошла ошибка при входе"
+    }
+  },
+  "dashboard": {
+    "title": "Портал управления",
+    "loading": "Загрузка панели...",
+    "error": "Не удалось загрузить панель",
+    "sections": {
+      "overview": "Обзор",
+      "workerStatus": "Статус воркеров",
+      "systemMetrics": "Системные метрики"
+    },
+    "stats": {
+      "totalUsers": "Всего пользователей",
+      "activeUsers": "активных",
+      "groups": "Группы",
+      "recordings": "Записи",
+      "processing": "обрабатывается",
+      "storage": "Хранилище"
+    },
+    "workers": {
+      "transcription": "Воркеры транскрипции",
+      "summarization": "Воркеры суммаризации",
+      "activeWorkers": "Активные воркеры",
+      "total": "Всего:",
+      "active": "Активных:",
+      "inactive": "Неактивных:"
+    },
+    "metrics": {
+      "processingQueue": "Очередь обработки",
+      "itemsInQueue": "Элементов в очереди",
+      "currentlyProcessing": "В процессе обработки",
+      "workerUtilization": "Использование воркеров",
+      "activeWorkersLabel": "Активные воркеры",
+      "activeWorkersCount": "активных",
+      "inactiveWorkersCount": "неактивных",
+      "storageHealth": "Состояние хранилища",
+      "usedCapacity": "Использовано",
+      "totalRecordings": "Всего записей",
+      "processed": "Обработано",
+      "allTimeTotal": "За всё время"
+    }
+  }
+}

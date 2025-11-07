@@ -1,0 +1,48 @@
+# Frontend build stage
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Copy frontend package files
+COPY front/user-portal/package*.json ./
+RUN npm ci
+
+# Copy frontend source
+COPY front/user-portal/ ./
+
+# Build frontend
+RUN npm run build
+
+# Backend build stage
+FROM golang:1.24-alpine AS backend-builder
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum* ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Copy built frontend from frontend-builder to cmd/user-portal/dist
+COPY --from=frontend-builder /app/frontend/dist ./cmd/user-portal/dist
+
+# Build the application with embedded frontend
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o user-portal ./cmd/user-portal
+
+# Runtime stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+# Copy the binary from builder (frontend is embedded inside)
+COPY --from=backend-builder /app/user-portal .
+
+# Expose port
+EXPOSE 8081
+
+# Run the application
+CMD ["./user-portal"]

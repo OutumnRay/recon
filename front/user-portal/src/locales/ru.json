@@ -1,0 +1,33 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "retry": "Повторить",
+    "logout": "Выйти"
+  },
+  "nav": {
+    "meetings": "Встречи",
+    "search": "Поиск",
+    "documents": "Документы",
+    "management": "Управление"
+  },
+  "login": {
+    "title": "Портал пользователя",
+    "subtitle": "Доступ к вашим записям, транскриптам и аналитике",
+    "usernameLabel": "Имя пользователя",
+    "usernamePlaceholder": "Введите имя пользователя",
+    "passwordLabel": "Пароль",
+    "passwordPlaceholder": "Введите ваш пароль",
+    "rememberMe": "Запомнить меня",
+    "forgotPassword": "Забыли пароль?",
+    "loginButton": "Войти",
+    "loggingIn": "Вход...",
+    "loginSuccess": "Успешный вход! Перенаправление...",
+    "defaultCredentials": "Данные по умолчанию:",
+    "needHelp": "Нужна помощь?",
+    "contactSupport": "Связаться с поддержкой",
+    "errors": {
+      "loginFailed": "Ошибка входа",
+      "networkError": "Произошла ошибка при входе"
+    }
+  }
+}

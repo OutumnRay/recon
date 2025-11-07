@@ -1,0 +1,87 @@
+# Prometheus Configuration for Recontext.online
+# Scrapes metrics from all system components and custom services
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'recontext'
+    environment: 'development'
+
+# Alerting configuration (optional, for future use)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Managing Portal
+  - job_name: 'managing-portal'
+    static_configs:
+      - targets: ['managing-portal:8080']
+    metrics_path: '/metrics'
+
+  # User Portal
+  - job_name: 'user-portal'
+    static_configs:
+      - targets: ['user-portal:8081']
+    metrics_path: '/metrics'
+
+  # Transcription Workers
+  - job_name: 'transcription-worker'
+    static_configs:
+      - targets: ['transcription-worker:8082']
+    metrics_path: '/metrics'
+
+  # Summarization Workers
+  - job_name: 'summarization-worker'
+    static_configs:
+      - targets: ['summarization-worker:8083']
+    metrics_path: '/metrics'
+
+  # Jitsi Agent
+  - job_name: 'jitsi-agent'
+    static_configs:
+      - targets: ['jitsi-agent:8084']
+    metrics_path: '/metrics'
+
+  # RabbitMQ (built-in Prometheus plugin)
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+    metrics_path: '/metrics'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # MinIO (built-in Prometheus metrics)
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['minio:9000']
+    metrics_path: '/minio/v2/metrics/cluster'
+
+  # Qdrant Vector Database
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['rag-service:6333']
+    metrics_path: '/metrics'
+
+  # Jitsi Stack Metrics
+  - job_name: 'jitsi-exporter'
+    static_configs:
+      - targets: ['jitsi-exporter:9888']
+    metrics_path: '/metrics'
+
+  # cAdvisor (Container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metrics_path: '/metrics'

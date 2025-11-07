@@ -1,0 +1,33 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "logout": "Logout"
+  },
+  "nav": {
+    "meetings": "Meetings",
+    "search": "Search",
+    "documents": "Documents",
+    "management": "Management"
+  },
+  "login": {
+    "title": "User Portal",
+    "subtitle": "Access your recordings, transcripts and insights",
+    "usernameLabel": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "loginButton": "Sign In",
+    "loggingIn": "Signing in...",
+    "loginSuccess": "Login successful! Redirecting...",
+    "defaultCredentials": "Default credentials:",
+    "needHelp": "Need help?",
+    "contactSupport": "Contact Support",
+    "errors": {
+      "loginFailed": "Login failed",
+      "networkError": "An error occurred during login"
+    }
+  }
+}

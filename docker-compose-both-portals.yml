@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: recontext-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-recontext}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recontext}
+      POSTGRES_DB: ${POSTGRES_DB:-recontext}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recontext}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - recontext-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: recontext-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - recontext-network
+
+  managing-portal:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.managing-portal
+    container_name: recontext-managing-portal
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-recontext}:${POSTGRES_PASSWORD:-recontext}@postgres:5432/${POSTGRES_DB:-recontext}?sslmode=disable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-recontext}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-recontext}
+      - DB_NAME=${POSTGRES_DB:-recontext}
+      - DB_SSL_MODE=disable
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_USE_SSL=false
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - SERVER_PORT=8080
+    ports:
+      - "${MANAGING_PORTAL_PORT:-10080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - recontext-network
+
+  user-portal:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.user-portal
+    container_name: recontext-user-portal
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-recontext}:${POSTGRES_PASSWORD:-recontext}@postgres:5432/${POSTGRES_DB:-recontext}?sslmode=disable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-recontext}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-recontext}
+      - DB_NAME=${POSTGRES_DB:-recontext}
+      - DB_SSL_MODE=disable
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_USE_SSL=false
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - SERVER_PORT=8081
+    ports:
+      - "${USER_PORTAL_PORT:-10081}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - recontext-network
+
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  recontext-network:
+    driver: bridge
