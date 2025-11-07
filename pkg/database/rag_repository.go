@@ -1,10 +1,8 @@
 package database
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"Recontext.online/internal/models"
 	"github.com/lib/pq"

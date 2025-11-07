@@ -90,61 +90,61 @@ services:
       retries: 5
 
   # 4. Transcription Workers
-  transcription-worker:
-    image: sivanov2018/recontext-transcription-worker:latest
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - MINIO_ENDPOINT=minio:9000
-      - MANAGING_PORTAL_URL=http://managing-portal:8080
-      - WORKER_ID=transcription-worker-1
-    depends_on:
-      - rabbitmq
-      - minio
-      - managing-portal
-    networks:
-      - recontext-network
-    restart: unless-stopped
-    deploy:
-      replicas: 2
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+#  transcription-worker:
+#    image: sivanov2018/recontext-transcription-worker:latest
+#    environment:
+#      - RABBITMQ_HOST=rabbitmq
+#      - RABBITMQ_PORT=5672
+#      - MINIO_ENDPOINT=minio:9000
+#      - MANAGING_PORTAL_URL=http://managing-portal:8080
+#      - WORKER_ID=transcription-worker-1
+#    depends_on:
+#      - rabbitmq
+#      - minio
+#      - managing-portal
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
+#    deploy:
+#      replicas: 2
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: 1
+#              capabilities: [gpu]
 
   # 5. Summarization Workers
-  summarization-worker:
-    image: sivanov2018/recontext-summarization-worker:latest
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - DB_HOST=postgres
-      - MANAGING_PORTAL_URL=http://managing-portal:8080
-      - WORKER_ID=summarization-worker-1
-    depends_on:
-      - rabbitmq
-      - postgres
-      - managing-portal
-    networks:
-      - recontext-network
-    restart: unless-stopped
-    deploy:
-      replicas: 2
+#  summarization-worker:
+#    image: sivanov2018/recontext-summarization-worker:latest
+#    environment:
+#      - RABBITMQ_HOST=rabbitmq
+#      - RABBITMQ_PORT=5672
+#      - DB_HOST=postgres
+#      - MANAGING_PORTAL_URL=http://managing-portal:8080
+#      - WORKER_ID=summarization-worker-1
+#    depends_on:
+#      - rabbitmq
+#      - postgres
+#      - managing-portal
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
+#    deploy:
+#      replicas: 2
 
   # 6. RAG Implementation (Vector Database + API)
-  rag-service:
-    image: qdrant/qdrant:latest
-    container_name: recontext-rag-qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant-data:/qdrant/storage
-    networks:
-      - recontext-network
-    restart: unless-stopped
+#  rag-service:
+#    image: qdrant/qdrant:latest
+#    container_name: recontext-rag-qdrant
+#    ports:
+#      - "6333:6333"
+#      - "6334:6334"
+#    volumes:
+#      - qdrant-data:/qdrant/storage
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
 
   # 7. MinIO Storage
   minio:
@@ -191,23 +191,23 @@ services:
       retries: 5
 
   # Ollama - Self-hosted LLM and Embeddings Service (optional)
-  ollama:
-    image: ollama/ollama:latest
-    container_name: recontext-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    networks:
-      - recontext-network
-    restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+#  ollama:
+#    image: ollama/ollama:latest
+#    container_name: recontext-ollama
+#    ports:
+#      - "11434:11434"
+#    volumes:
+#      - ollama-data:/root/.ollama
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: 1
+#              capabilities: [gpu]
 
   # 9. Jitsi Meet Server
   jitsi-web:
@@ -291,29 +291,29 @@ services:
     restart: unless-stopped
 
   # 10. Jitsi Meet Recording Agent (Custom WebRTC Agent)
-  jitsi-agent:
-    image: sivanov2018/recontext-jitsi-agent:latest
-    container_name: recontext-jitsi-agent
-    ports:
-      - "8084:8084"
-    environment:
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8084
-      - JITSI_SERVER_URL=http://jitsi-web:80
-      - MANAGING_PORTAL_URL=http://managing-portal:8080
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - MINIO_ENDPOINT=minio:9000
-    volumes:
-      - jitsi-recordings:/recordings
-    depends_on:
-      - jitsi-web
-      - rabbitmq
-      - minio
-      - managing-portal
-    networks:
-      - recontext-network
-    restart: unless-stopped
+#  jitsi-agent:
+#    image: sivanov2018/recontext-jitsi-agent:latest
+#    container_name: recontext-jitsi-agent
+#    ports:
+#      - "8084:8084"
+#    environment:
+#      - SERVER_HOST=0.0.0.0
+#      - SERVER_PORT=8084
+#      - JITSI_SERVER_URL=http://jitsi-web:80
+#      - MANAGING_PORTAL_URL=http://managing-portal:8080
+#      - RABBITMQ_HOST=rabbitmq
+#      - RABBITMQ_PORT=5672
+#      - MINIO_ENDPOINT=minio:9000
+#    volumes:
+#      - jitsi-recordings:/recordings
+#    depends_on:
+#      - jitsi-web
+#      - rabbitmq
+#      - minio
+#      - managing-portal
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
 
 #  # 11. Prometheus - Metrics Collection
 #  prometheus:
