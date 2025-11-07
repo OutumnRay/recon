@@ -59,7 +59,7 @@ services:
       - managing-portal
       - postgres
       - minio
-      - ollama
+#      - ollama
     networks:
       - recontext-network
     restart: unless-stopped
