@@ -18,18 +18,19 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false  # Continue building other images even if one fails
       matrix:
         service:
           - name: managing-portal
             dockerfile: deployments/docker/Dockerfile.managing-portal
           - name: user-portal
             dockerfile: deployments/docker/Dockerfile.user-portal
-          - name: transcription-worker
-            dockerfile: deployments/docker/Dockerfile.transcription-worker
-          - name: summarization-worker
-            dockerfile: deployments/docker/Dockerfile.summarization-worker
-          - name: jitsi-agent
-            dockerfile: deployments/docker/Dockerfile.jitsi-agent
+#          - name: transcription-worker
+#            dockerfile: deployments/docker/Dockerfile.transcription-worker
+#          - name: summarization-worker
+#            dockerfile: deployments/docker/Dockerfile.summarization-worker
+#          - name: jitsi-agent
+#            dockerfile: deployments/docker/Dockerfile.jitsi-agent
 
     steps:
       - name: Checkout code
@@ -59,6 +60,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -70,9 +72,21 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:buildcache
           cache-to: type=registry,ref=${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:buildcache,mode=max
+          # Add build arguments for debugging
+          build-args: |
+            BUILDKIT_PROGRESS=plain
 
-      - name: Image digest
-        run: echo "Image pushed with digest ${{ steps.meta.outputs.digest }}"
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "### Build Result for ${{ matrix.service.name }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.build.outcome }}" == "success" ]; then
+            echo "✅ Successfully built ${{ matrix.service.name }}" >> $GITHUB_STEP_SUMMARY
+            echo "📦 Image: ${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:latest" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Failed to build ${{ matrix.service.name }}" >> $GITHUB_STEP_SUMMARY
+            echo "📄 Check the logs above for details" >> $GITHUB_STEP_SUMMARY
+          fi
 
   build-summary:
     needs: build-and-push
@@ -81,9 +95,29 @@ jobs:
     steps:
       - name: Check build status
         run: |
+          echo "## Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
           if [ "${{ needs.build-and-push.result }}" == "success" ]; then
+            echo "✅ All Docker images built successfully!" >> $GITHUB_STEP_SUMMARY
             echo "✅ All Docker images built and pushed successfully"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Services Built:" >> $GITHUB_STEP_SUMMARY
+            echo "- managing-portal" >> $GITHUB_STEP_SUMMARY
+            echo "- user-portal" >> $GITHUB_STEP_SUMMARY
+            echo "- transcription-worker" >> $GITHUB_STEP_SUMMARY
+            echo "- summarization-worker" >> $GITHUB_STEP_SUMMARY
+            echo "- jitsi-agent" >> $GITHUB_STEP_SUMMARY
           else
+            echo "⚠️ Some Docker images failed to build" >> $GITHUB_STEP_SUMMARY
             echo "❌ Some Docker images failed to build"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check individual job logs for details on which service(s) failed." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Common Issues:" >> $GITHUB_STEP_SUMMARY
+            echo "- Missing frontend directories (front/managing-portal, front/user-portal)" >> $GITHUB_STEP_SUMMARY
+            echo "- Missing package.json in frontend directories" >> $GITHUB_STEP_SUMMARY
+            echo "- Go module download failures" >> $GITHUB_STEP_SUMMARY
+            echo "- Docker Hub authentication issues" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
