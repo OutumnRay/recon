@@ -55,18 +55,25 @@
   - `Dockerfile.user-portal` - Alpine-based runtime
   - `Dockerfile.transcription-worker` - Python + Whisper + Go
   - `Dockerfile.summarization-worker` - Python + transformers + Go
-- ✅ Created comprehensive `docker-compose.yml` with all 11 services:
+- ✅ Created comprehensive `docker-compose.yml` with 16 services:
   1. managing-portal (Port 8080)
   2. user-portal (Port 8081)
-  3. rabbitmq (Ports 5672, 15672)
+  3. rabbitmq (Ports 5672, 15672, 15692)
   4. transcription-worker (GPU support)
   5. summarization-worker
   6. rag-service/Qdrant (Ports 6333, 6334)
   7. minio (Ports 9000, 9001)
-  8. postgres (Port 5432)
-  9. jitsi-web (Ports 8443, 8000)
-  10. jitsi-agent (Jibri)
-  11. jitsi-prosody, jitsi-jicofo, jitsi-jvb
+  8. postgres (Port 5432) with pgvector extension
+  9. ollama (Port 11434) - Self-hosted LLM and embeddings
+  10. jitsi-web (Ports 8443, 8000)
+  11. jitsi-agent (Port 8084) - Custom WebRTC recording agent
+  12. jitsi-prosody, jitsi-jicofo, jitsi-jvb
+  13. prometheus (Port 9090) - Metrics collection
+  14. grafana (Port 3000) - Metrics visualization
+  15. cadvisor (Port 8089) - Container metrics
+  16. postgres-exporter (Port 9187) - PostgreSQL metrics
+  17. jitsi-exporter (Port 9888) - Jitsi metrics
+  18. watchtower - Automatic container updates from Docker Hub
 - ✅ Created `.dockerignore` for optimized builds
 
 ### CI/CD Pipeline (Completed)
@@ -309,7 +316,7 @@
   - Permission checking API for fine-grained access control
 - All APIs have complete Swagger/OpenAPI documentation
 - Consistent data models across all services (auth, media, jitsi, service, groups, metrics, user_crud)
-- Docker Compose ready with all 11 services
+- Docker Compose ready with all 16 services (including observability stack + Watchtower)
 - CI/CD builds and pushes 5 custom services to Docker Hub (main branch only)
 - Next focus: storage integration (PostgreSQL, MinIO, Qdrant) and queue integration (RabbitMQ)
 

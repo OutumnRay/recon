@@ -3,9 +3,6 @@ version: '3.8'
 services:
   # 1. Managing Portal - monitors and manages everything else
   managing-portal:
-    build:
-      context: .
-      dockerfile: deployments/docker/Dockerfile.managing-portal
     image: sivanov2018/recontext-managing-portal:latest
     container_name: recontext-managing-portal
     ports:
@@ -35,9 +32,6 @@ services:
 
   # 2. User Portal - for interaction with the system
   user-portal:
-    build:
-      context: .
-      dockerfile: deployments/docker/Dockerfile.user-portal
     image: sivanov2018/recontext-user-portal:latest
     container_name: recontext-user-portal
     ports:
@@ -97,9 +91,6 @@ services:
 
   # 4. Transcription Workers
   transcription-worker:
-    build:
-      context: .
-      dockerfile: deployments/docker/Dockerfile.transcription-worker
     image: sivanov2018/recontext-transcription-worker:latest
     environment:
       - RABBITMQ_HOST=rabbitmq
@@ -125,9 +116,6 @@ services:
 
   # 5. Summarization Workers
   summarization-worker:
-    build:
-      context: .
-      dockerfile: deployments/docker/Dockerfile.summarization-worker
     image: sivanov2018/recontext-summarization-worker:latest
     environment:
       - RABBITMQ_HOST=rabbitmq
@@ -304,9 +292,6 @@ services:
 
   # 10. Jitsi Meet Recording Agent (Custom WebRTC Agent)
   jitsi-agent:
-    build:
-      context: .
-      dockerfile: deployments/docker/Dockerfile.jitsi-agent
     image: sivanov2018/recontext-jitsi-agent:latest
     container_name: recontext-jitsi-agent
     ports:
@@ -330,88 +315,88 @@ services:
       - recontext-network
     restart: unless-stopped
 
-  # 11. Prometheus - Metrics Collection
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: recontext-prometheus
-    volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-    ports:
-      - "9090:9090"
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    networks:
-      - recontext-network
-    restart: unless-stopped
-
-  # 12. Grafana - Metrics Visualization
-  grafana:
-    image: grafana/grafana:latest
-    container_name: recontext-grafana
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    depends_on:
-      - prometheus
-    networks:
-      - recontext-network
-    restart: unless-stopped
-
-  # 13. cAdvisor - Container Metrics
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: recontext-cadvisor
-    ports:
-      - "8089:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    networks:
-      - recontext-network
-    restart: unless-stopped
-
-  # 14. PostgreSQL Exporter
-  postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
-    container_name: recontext-postgres-exporter
-    environment:
-      - DATA_SOURCE_NAME=postgresql://recontext:recontext@postgres:5432/recontext?sslmode=disable
-    ports:
-      - "9187:9187"
-    depends_on:
-      - postgres
-    networks:
-      - recontext-network
-    restart: unless-stopped
-
-  # 15. Jitsi Exporter
-  jitsi-exporter:
-    image: ghcr.io/jitsi-contrib/jitsi-exporter:latest
-    container_name: recontext-jitsi-exporter
-    command:
-      - "jvb"
-      - "--address=:9888"
-      - "--jvb-url=http://jitsi-jvb:8080/colibri/stats"
-      - "--path=/metrics"
-    ports:
-      - "9888:9888"
-    depends_on:
-      - jitsi-jvb
-    networks:
-      - recontext-network
-    restart: unless-stopped
+#  # 11. Prometheus - Metrics Collection
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: recontext-prometheus
+#    volumes:
+#      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#      - prometheus-data:/prometheus
+#    ports:
+#      - "9090:9090"
+#    command:
+#      - '--config.file=/etc/prometheus/prometheus.yml'
+#      - '--storage.tsdb.path=/prometheus'
+#      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+#      - '--web.console.templates=/usr/share/prometheus/consoles'
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
+#
+#  # 12. Grafana - Metrics Visualization
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: recontext-grafana
+#    volumes:
+#      - grafana-data:/var/lib/grafana
+#      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+#      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - GF_SECURITY_ADMIN_PASSWORD=admin
+#      - GF_USERS_ALLOW_SIGN_UP=false
+#    depends_on:
+#      - prometheus
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
+#
+#  # 13. cAdvisor - Container Metrics
+#  cadvisor:
+#    image: gcr.io/cadvisor/cadvisor:latest
+#    container_name: recontext-cadvisor
+#    ports:
+#      - "8089:8080"
+#    volumes:
+#      - /:/rootfs:ro
+#      - /var/run:/var/run:ro
+#      - /sys:/sys:ro
+#      - /var/lib/docker/:/var/lib/docker:ro
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
+#
+#  # 14. PostgreSQL Exporter
+#  postgres-exporter:
+#    image: prometheuscommunity/postgres-exporter:latest
+#    container_name: recontext-postgres-exporter
+#    environment:
+#      - DATA_SOURCE_NAME=postgresql://recontext:recontext@postgres:5432/recontext?sslmode=disable
+#    ports:
+#      - "9187:9187"
+#    depends_on:
+#      - postgres
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
+#
+#  # 15. Jitsi Exporter
+#  jitsi-exporter:
+#    image: ghcr.io/jitsi-contrib/jitsi-exporter:latest
+#    container_name: recontext-jitsi-exporter
+#    command:
+#      - "jvb"
+#      - "--address=:9888"
+#      - "--jvb-url=http://jitsi-jvb:8080/colibri/stats"
+#      - "--path=/metrics"
+#    ports:
+#      - "9888:9888"
+#    depends_on:
+#      - jitsi-jvb
+#    networks:
+#      - recontext-network
+#    restart: unless-stopped
 
   # 16. Watchtower - Automatic Container Updates
   watchtower:

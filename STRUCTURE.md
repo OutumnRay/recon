@@ -184,19 +184,39 @@ Recontext.online/
 
 ## Docker Compose Services
 
-The `docker-compose.yml` defines 11 services in the Recontext.online platform:
+The `docker-compose.yml` defines 16 services in the Recontext.online platform:
 
+### Core Services
 1. **managing-portal** (Port 8080): Monitors and manages all services
 2. **user-portal** (Port 8081): User-facing API for system interaction
-3. **rabbitmq** (Ports 5672, 15672): Message broker with management UI
+3. **rabbitmq** (Ports 5672, 15672, 15692): Message broker with management UI + Prometheus metrics
 4. **transcription-worker**: Processes audio/video with Whisper (GPU support)
 5. **summarization-worker**: Summarizes transcripts with transformers
+
+### Storage Services
 6. **rag-service (Qdrant)** (Ports 6333, 6334): Vector database for semantic search
 7. **minio** (Ports 9000, 9001): S3-compatible object storage
-8. **postgres** (Port 5432): PostgreSQL database for metadata
-9. **jitsi-web** (Ports 8443, 8000): Jitsi Meet web interface
-10. **jitsi-agent (Custom)** (Port 8084): Custom Go recording agent with WebRTC support
-11. **jitsi-prosody, jitsi-jicofo, jitsi-jvb**: Jitsi Meet supporting services
+8. **postgres** (Port 5432): PostgreSQL database with pgvector extension
+9. **ollama** (Port 11434): Self-hosted LLM and embeddings service (optional)
+
+### Jitsi Services
+10. **jitsi-web** (Ports 8443, 8000): Jitsi Meet web interface
+11. **jitsi-agent (Custom)** (Port 8084): Custom Go recording agent with WebRTC support
+12. **jitsi-prosody, jitsi-jicofo, jitsi-jvb**: Jitsi Meet supporting services
+
+### Observability Services
+13. **prometheus** (Port 9090): Metrics collection and storage
+14. **grafana** (Port 3000): Metrics visualization and dashboards
+15. **cadvisor** (Port 8089): Container resource metrics
+16. **postgres-exporter** (Port 9187): PostgreSQL metrics exporter
+17. **jitsi-exporter** (Port 9888): Jitsi JVB metrics exporter
+
+### DevOps Services
+18. **watchtower**: Automatic container updates from Docker Hub
+   - Monitors: recontext-managing-portal, recontext-user-portal, recontext-jitsi-agent
+   - Poll interval: 5 minutes
+   - Auto-cleanup old images
+   - Restarts containers when updates are available
 
 All services are connected via the `recontext-network` bridge network.
 
