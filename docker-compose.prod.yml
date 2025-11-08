@@ -59,7 +59,7 @@ services:
       - managing-portal
       - postgres
       - minio
-#      - ollama
+    #      - ollama
     networks:
       - recontext-network
     restart: unless-stopped
@@ -90,61 +90,67 @@ services:
       retries: 5
 
   # 4. Transcription Workers
-#  transcription-worker:
-#    image: sivanov2018/recontext-transcription-worker:latest
-#    environment:
-#      - RABBITMQ_HOST=rabbitmq
-#      - RABBITMQ_PORT=5672
-#      - MINIO_ENDPOINT=minio:9000
-#      - MANAGING_PORTAL_URL=http://managing-portal:8080
-#      - WORKER_ID=transcription-worker-1
-#    depends_on:
-#      - rabbitmq
-#      - minio
-#      - managing-portal
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#    deploy:
-#      replicas: 2
-#      resources:
-#        reservations:
-#          devices:
-#            - driver: nvidia
-#              count: 1
-#              capabilities: [gpu]
+  #  transcription-worker:
+  #    build:
+  #      context: .
+  #      dockerfile: deployments/docker/Dockerfile.transcription-worker
+  #    image: sivanov2018/recontext-transcription-worker:latest
+  #    environment:
+  #      - RABBITMQ_HOST=rabbitmq
+  #      - RABBITMQ_PORT=5672
+  #      - MINIO_ENDPOINT=minio:9000
+  #      - MANAGING_PORTAL_URL=http://managing-portal:8080
+  #      - WORKER_ID=transcription-worker-1
+  #    depends_on:
+  #      - rabbitmq
+  #      - minio
+  #      - managing-portal
+  #    networks:
+  #      - recontext-network
+  #    restart: unless-stopped
+  #    deploy:
+  #      replicas: 2
+  #      resources:
+  #        reservations:
+  #          devices:
+  #            - driver: nvidia
+  #              count: 1
+  #              capabilities: [gpu]
 
   # 5. Summarization Workers
-#  summarization-worker:
-#    image: sivanov2018/recontext-summarization-worker:latest
-#    environment:
-#      - RABBITMQ_HOST=rabbitmq
-#      - RABBITMQ_PORT=5672
-#      - DB_HOST=postgres
-#      - MANAGING_PORTAL_URL=http://managing-portal:8080
-#      - WORKER_ID=summarization-worker-1
-#    depends_on:
-#      - rabbitmq
-#      - postgres
-#      - managing-portal
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#    deploy:
-#      replicas: 2
+  #  summarization-worker:
+  #    build:
+  #      context: .
+  #      dockerfile: deployments/docker/Dockerfile.summarization-worker
+  #    image: sivanov2018/recontext-summarization-worker:latest
+  #    environment:
+  #      - RABBITMQ_HOST=rabbitmq
+  #      - RABBITMQ_PORT=5672
+  #      - DB_HOST=postgres
+  #      - MANAGING_PORTAL_URL=http://managing-portal:8080
+  #      - WORKER_ID=summarization-worker-1
+  #    depends_on:
+  #      - rabbitmq
+  #      - postgres
+  #      - managing-portal
+  #    networks:
+  #      - recontext-network
+  #    restart: unless-stopped
+  #    deploy:
+  #      replicas: 2
 
   # 6. RAG Implementation (Vector Database + API)
-#  rag-service:
-#    image: qdrant/qdrant:latest
-#    container_name: recontext-rag-qdrant
-#    ports:
-#      - "6333:6333"
-#      - "6334:6334"
-#    volumes:
-#      - qdrant-data:/qdrant/storage
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
+  #  rag-service:
+  #    image: qdrant/qdrant:latest
+  #    container_name: recontext-rag-qdrant
+  #    ports:
+  #      - "6333:6333"
+  #      - "6334:6334"
+  #    volumes:
+  #      - qdrant-data:/qdrant/storage
+  #    networks:
+  #      - recontext-network
+  #    restart: unless-stopped
 
   # 7. MinIO Storage
   minio:
@@ -190,215 +196,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Ollama - Self-hosted LLM and Embeddings Service (optional)
-#  ollama:
-#    image: ollama/ollama:latest
-#    container_name: recontext-ollama
-#    ports:
-#      - "11434:11434"
-#    volumes:
-#      - ollama-data:/root/.ollama
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#    deploy:
-#      resources:
-#        reservations:
-#          devices:
-#            - driver: nvidia
-#              count: 1
-#              capabilities: [gpu]
 
-  # 9. Jitsi Meet Server
-  jitsi-web:
-    image: jitsi/web:stable
-    container_name: recontext-jitsi-web
-    ports:
-      - "8443:443"
-      - "8000:80"
-    environment:
-      - ENABLE_AUTH=0
-      - ENABLE_GUESTS=1
-      - PUBLIC_URL=https://localhost:8443
-      - ENABLE_RECORDING=1
-      - XMPP_SERVER=jitsi-prosody
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
-      - JICOFO_AUTH_USER=focus
-    depends_on:
-      - jitsi-prosody
-      - jitsi-jicofo
-      - jitsi-jvb
-    networks:
-      - recontext-network
-    restart: unless-stopped
-
-  jitsi-prosody:
-    image: jitsi/prosody:stable
-    container_name: recontext-jitsi-prosody
-    environment:
-      - ENABLE_AUTH=0
-      - ENABLE_GUESTS=1
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
-      - JICOFO_COMPONENT_SECRET=jicofo_secret
-      - JICOFO_AUTH_PASSWORD=jicofo_password
-      - JVB_AUTH_PASSWORD=jvb_password
-    networks:
-      - recontext-network
-    restart: unless-stopped
-
-  jitsi-jicofo:
-    image: jitsi/jicofo:stable
-    container_name: recontext-jitsi-jicofo
-    depends_on:
-      - jitsi-prosody
-    environment:
-      - ENABLE_AUTH=0
-      - XMPP_SERVER=jitsi-prosody
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
-      - JICOFO_COMPONENT_SECRET=jicofo_secret
-      - JICOFO_AUTH_PASSWORD=jicofo_password
-      - JICOFO_AUTH_USER=focus
-    networks:
-      - recontext-network
-    restart: unless-stopped
-
-  jitsi-jvb:
-    image: jitsi/jvb:stable
-    container_name: recontext-jitsi-jvb
-    ports:
-      - "10000:10000/udp"
-      - "8080:8080"   # REST API for metrics
-    environment:
-      - JVB_PORT=10000
-      - XMPP_SERVER=jitsi-prosody
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
-      - JVB_AUTH_PASSWORD=jvb_password
-      - JVB_ENABLE_APIS=rest,colibri
-    networks:
-      - recontext-network
-    restart: unless-stopped
-
-  # 10. Jitsi Meet Recording Agent (Custom WebRTC Agent)
-#  jitsi-agent:
-#    image: sivanov2018/recontext-jitsi-agent:latest
-#    container_name: recontext-jitsi-agent
-#    ports:
-#      - "8084:8084"
-#    environment:
-#      - SERVER_HOST=0.0.0.0
-#      - SERVER_PORT=8084
-#      - JITSI_SERVER_URL=http://jitsi-web:80
-#      - MANAGING_PORTAL_URL=http://managing-portal:8080
-#      - RABBITMQ_HOST=rabbitmq
-#      - RABBITMQ_PORT=5672
-#      - MINIO_ENDPOINT=minio:9000
-#    volumes:
-#      - jitsi-recordings:/recordings
-#    depends_on:
-#      - jitsi-web
-#      - rabbitmq
-#      - minio
-#      - managing-portal
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-
-#  # 11. Prometheus - Metrics Collection
-#  prometheus:
-#    image: prom/prometheus:latest
-#    container_name: recontext-prometheus
-#    volumes:
-#      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-#      - prometheus-data:/prometheus
-#    ports:
-#      - "9090:9090"
-#    command:
-#      - '--config.file=/etc/prometheus/prometheus.yml'
-#      - '--storage.tsdb.path=/prometheus'
-#      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-#      - '--web.console.templates=/usr/share/prometheus/consoles'
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#
-#  # 12. Grafana - Metrics Visualization
-#  grafana:
-#    image: grafana/grafana:latest
-#    container_name: recontext-grafana
-#    volumes:
-#      - grafana-data:/var/lib/grafana
-#      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-#      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
-#    ports:
-#      - "3000:3000"
-#    environment:
-#      - GF_SECURITY_ADMIN_PASSWORD=admin
-#      - GF_USERS_ALLOW_SIGN_UP=false
-#    depends_on:
-#      - prometheus
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#
-#  # 13. cAdvisor - Container Metrics
-#  cadvisor:
-#    image: gcr.io/cadvisor/cadvisor:latest
-#    container_name: recontext-cadvisor
-#    ports:
-#      - "8089:8080"
-#    volumes:
-#      - /:/rootfs:ro
-#      - /var/run:/var/run:ro
-#      - /sys:/sys:ro
-#      - /var/lib/docker/:/var/lib/docker:ro
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#
-#  # 14. PostgreSQL Exporter
-#  postgres-exporter:
-#    image: prometheuscommunity/postgres-exporter:latest
-#    container_name: recontext-postgres-exporter
-#    environment:
-#      - DATA_SOURCE_NAME=postgresql://recontext:recontext@postgres:5432/recontext?sslmode=disable
-#    ports:
-#      - "9187:9187"
-#    depends_on:
-#      - postgres
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#
-#  # 15. Jitsi Exporter
-#  jitsi-exporter:
-#    image: ghcr.io/jitsi-contrib/jitsi-exporter:latest
-#    container_name: recontext-jitsi-exporter
-#    command:
-#      - "jvb"
-#      - "--address=:9888"
-#      - "--jvb-url=http://jitsi-jvb:8080/colibri/stats"
-#      - "--path=/metrics"
-#    ports:
-#      - "9888:9888"
-#    depends_on:
-#      - jitsi-jvb
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-
-  # 16. Watchtower - Automatic Container Updates
   watchtower:
     image: containrrr/watchtower:latest
     container_name: recontext-watchtower

@@ -122,6 +122,44 @@
   - Transcript and TranscriptSegment models
   - Upload/List/Search request/response structures
 
+### Phase 2: Jitsi Recorder Service (Completed)
+- ✅ Implemented Jitsi Recorder Lite (`jitsy/jitsi-recorder-lite/recorder.py`):
+  - **Stream-based recording**: each participant connection = separate file (one stream = one file)
+  - **Reconnection handling**: new file created on each reconnect with `isReconnection` flag
+  - **Immediate S3 upload**: files uploaded right after participant leaves (not waiting for conference end)
+  - **Smart reconnect detection**: automatically detects reconnections within 30 seconds
+  - Filename format: `{room}_{participant_id}_{timestamp}.opus`
+  - Folder structure: `recordings/{room}/{conference_id}/`
+  - S3 metadata: participant ID, duration, join offset, reconnection status
+  - Webhook notifications on conference end with all recording details
+  - Redis coordination for multi-instance deployment
+  - Health check endpoint: `GET /health`
+- ✅ Fixed race conditions and error handling:
+  - Fixed `ProcessLookupError` when stopping already-terminated FFmpeg processes
+  - Fixed `KeyError: 'focus'` when system components leave conference
+  - Added system component filtering (skip 'focus' endpoint in joins)
+  - Changed missing file errors to warnings (expected when FFmpeg fails)
+  - Added safe dictionary deletion with try/except
+  - Process state checking before termination
+- ✅ Enhanced S3 integration:
+  - Detailed S3 initialization logging with endpoint and bucket info
+  - S3 connection test on startup with automatic bucket creation
+  - Enhanced upload logging with file size and path details
+  - Comprehensive error reporting with S3 endpoint, bucket, and key
+  - Conference end summary with S3 path and uploaded recordings list
+- ✅ Created comprehensive documentation:
+  - `jitsy/jitsi-recorder-lite/README.md` with full documentation
+  - Stream-based recording explanation with reconnection examples
+  - Configuration guide with MinIO port clarification (9000 vs 9001)
+  - File structure, metadata format, webhook payload examples
+  - Troubleshooting guide for common issues (S3 port, MinIO access)
+  - Health check and monitoring documentation
+- ✅ Added MinIO to docker-compose.yml:
+  - MinIO service with ports 9000 (API) and 9001 (Console)
+  - Volume for persistent storage
+  - Health check configuration
+  - Recorder depends on MinIO
+
 ### Phase 2: Jitsi Agent Service (Completed)
 - ✅ Implemented custom Jitsi Agent (`cmd/jitsi-agent/main.go`)
   - Start recording: `POST /api/v1/recording/start`
