@@ -448,8 +448,8 @@ services:
         labels:
             service: "jitsi-jvb"
         environment:
-            #- COLIBRI_REST_ENABLED=true  # <--- ДОБАВЛЕНА ЭТА СТРОКА
-            #- JAVA_SYS_PROPS=-Dorg.jitsi.videobridge.rest.enabled=true
+    #        - COLIBRI_REST_ENABLED=true  # <--- ДОБАВЛЕНА ЭТА СТРОКА
+    #        - JAVA_SYS_PROPS=-Dorg.jitsi.videobridge.rest.enabled=true
             - AUTOSCALER_SIDECAR_KEY_FILE
             - AUTOSCALER_SIDECAR_KEY_ID
             - AUTOSCALER_SIDECAR_GROUP_NAME
