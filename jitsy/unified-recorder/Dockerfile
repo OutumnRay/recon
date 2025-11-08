@@ -1,30 +1,33 @@
+# --- unified-recorder/Dockerfile ---
+
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Устанавливаем системные зависимости
 RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# Копируем файл с зависимостями
 COPY requirements.txt .
 
-# Install Python dependencies
+# Устанавливаем Python зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
-COPY unified_recorder.py .
+# Копируем код приложения
+COPY . .
 
-# Create recordings directory
+# Создаем директорию для записей
 RUN mkdir -p /recordings
+VOLUME /recordings
 
-# Expose port
+# Открываем порт
 EXPOSE 8080
 
-# Health check
+# Проверка состояния
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-# Run application
+# Запускаем приложение
 CMD ["python3", "unified_recorder.py"]
