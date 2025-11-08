@@ -542,7 +542,7 @@ services:
         ports:
             - "9888:8080"  # HTTP API (webhook + stats + health)
         environment:
-            - KURENTO_URI=ws://kurento:8888/kurento
+            - KURENTO_URI=ws://kurento:8888/
             - MINIO_ENDPOINT=https://api.storage.recontext.online
             - MINIO_ACCESS_KEY=minioadmin
             - MINIO_SECRET_KEY=minioadmin
@@ -569,31 +569,6 @@ services:
             timeout: 10s
             retries: 3
             start_period: 20s
-
-#    # Recorder service - lib-jitsi-meet (XMPP monitoring)
-#    recorder:
-#        build: ./jitsi-recorder-lite
-#        restart: unless-stopped
-#        environment:
-#            - JITSI_URL=${JITSI_URL:-https://meet.recontext.online}
-#            - JITSI_ROOM=${JITSI_ROOM:-testmeet}
-#            - DISPLAY_NAME=${DISPLAY_NAME:-Recorder Bot}
-#            - RECORD_DIR=/recordings
-#            - HEADLESS=true
-#        volumes:
-#            - ./recordings:/recordings
-#        networks:
-#            - meet.jitsi
-#        mem_limit: 512m
-#        cpu_shares: 512
-#        depends_on:
-#            - web
-#        healthcheck:
-#            test: ["CMD", "pgrep", "-f", "node.*recorder.js"]
-#            interval: 30s
-#            timeout: 10s
-#            retries: 3
-#            start_period: 20s
 
 # Custom network so all services can communicate using a FQDN
 networks:

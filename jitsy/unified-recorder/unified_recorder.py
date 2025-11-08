@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # ========== Конфигурация ==========
 # Kurento
-KURENTO_WS_URI = os.getenv('KURENTO_URI', 'ws://kurento:8888/kurento')
+KURENTO_WS_URI = os.getenv('KURENTO_URI', 'ws://kurento:8888/')
 
 # MinIO / S3
 MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'https://api.storage.recontext.online')
@@ -124,7 +124,20 @@ class KurentoClient:
         }
 
         try:
-            async with websockets.connect(self.ws_uri, ping_interval=20, ping_timeout=10) as websocket:
+            # Ensure URI has proper format
+            uri = self.ws_uri
+            if not uri.startswith('ws://') and not uri.startswith('wss://'):
+                uri = f'ws://{uri}'
+
+            logger.debug(f"Connecting to Kurento: {uri}")
+
+            async with websockets.connect(
+                uri,
+                ping_interval=20,
+                ping_timeout=10,
+                subprotocols=['kurento']  # Kurento requires this subprotocol
+            ) as websocket:
+                logger.debug(f"Connected to Kurento, sending: {method}")
                 await websocket.send(json.dumps(request))
                 response_str = await websocket.recv()
                 response = json.loads(response_str)
@@ -135,9 +148,10 @@ class KurentoClient:
                 if self.session_id is None and "sessionId" in response.get("result", {}):
                     self.session_id = response["result"]["sessionId"]
 
+                logger.debug(f"Kurento response: {method} -> OK")
                 return response.get("result")
         except Exception as e:
-            logger.error(f"Kurento request failed: {e}")
+            logger.error(f"Kurento request failed ({method}): {e}")
             raise
 
     async def create_media_pipeline(self) -> str:
