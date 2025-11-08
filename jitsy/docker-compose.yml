@@ -515,63 +515,85 @@ services:
         mem_limit: 128m
         command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
 
-    # MinIO for S3-compatible storage
-    minio:
-        image: minio/minio:latest
-        container_name: jitsi-minio
+    # Kurento Media Server - for individual stream recording
+    kurento:
+        image: kurento/kurento-media-server:latest
+        container_name: jitsi-kurento
         restart: unless-stopped
         ports:
-            - "9000:9000"   # API port
-            - "9001:9001"   # Console port
+            - "8889:8888"  # Kurento WebSocket API (external 8889 -> internal 8888)
+            - "40000-40100:40000-40100/udp"  # RTP ports for media
         environment:
-            - MINIO_ROOT_USER=minioadmin
-            - MINIO_ROOT_PASSWORD=minioadmin
-            - MINIO_PROMETHEUS_AUTH_TYPE=public
-        command: server /data --console-address ":9001"
+            - KMS_MIN_PORT=40000
+            - KMS_MAX_PORT=40100
+            - GST_DEBUG=2
         volumes:
-            - minio-data:/data
+            - ./kurento.conf.json:/etc/kurento/kurento.conf.json:ro
+            - ./recordings:/recordings
         networks:
             - meet.jitsi
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-            interval: 30s
-            timeout: 20s
-            retries: 3
+        mem_limit: 2g
 
-    # Recorder service - WebRTC Bot
+    # Unified Recorder - автоматическая запись через Kurento (объединенный сервис)
     recorder:
-        build: ./jitsi-recorder-lite
+        build: ./unified-recorder
+        container_name: jitsi-unified-recorder
         restart: unless-stopped
+        ports:
+            - "9888:8080"  # HTTP API (webhook + stats + health)
         environment:
-            # Jitsi connection settings
-            - JITSI_URL=${JITSI_URL:-https://meet.recontext.online}
-            - JITSI_ROOM=${JITSI_ROOM:-testmeet}
-            - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
-            - MUC_DOMAIN=${MUC_DOMAIN:-muc.meet.jitsi}
-            - FOCUS_JID=${FOCUS_JID:-focus.meet.jitsi}
-            - BOT_NICKNAME=${BOT_NICKNAME:-recorder-bot}
-            # Recording settings
-            - RECORD_DIR=${RECORD_DIR:-/tmp/recordings}
-            - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
-            # S3 storage (optional)
-            - S3_ENDPOINT=${S3_ENDPOINT}
-            - S3_BUCKET=${S3_BUCKET:-jitsi-recordings}
-            - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-            - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-            - AWS_REGION=${AWS_REGION:-us-east-1}
+            - KURENTO_URI=ws://kurento:8888/kurento
+            - MINIO_ENDPOINT=https://api.storage.recontext.online
+            - MINIO_ACCESS_KEY=minioadmin
+            - MINIO_SECRET_KEY=minioadmin
+            - MINIO_BUCKET=jitsi-recordings
+            - MINIO_SECURE=true
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - AUTO_RECORD=true
+            - JITSI_DOMAIN=meet.recontext.online
+            - JVB_HOST=jvb
+            - JVB_COLIBRI_PORT=8080
+            - RECORD_DIR=/recordings
         volumes:
-            - /tmp/jitsi-recordings:/tmp/recordings:rw
+            - ./recordings:/recordings
         networks:
             - meet.jitsi
-        mem_limit: 512m
-        cpu_shares: 512
         depends_on:
-            - prosody
+            - kurento
+            - redis
+        mem_limit: 512m
         healthcheck:
-            test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+            test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
             interval: 30s
             timeout: 10s
             retries: 3
+            start_period: 20s
+
+#    # Recorder service - lib-jitsi-meet (XMPP monitoring)
+#    recorder:
+#        build: ./jitsi-recorder-lite
+#        restart: unless-stopped
+#        environment:
+#            - JITSI_URL=${JITSI_URL:-https://meet.recontext.online}
+#            - JITSI_ROOM=${JITSI_ROOM:-testmeet}
+#            - DISPLAY_NAME=${DISPLAY_NAME:-Recorder Bot}
+#            - RECORD_DIR=/recordings
+#            - HEADLESS=true
+#        volumes:
+#            - ./recordings:/recordings
+#        networks:
+#            - meet.jitsi
+#        mem_limit: 512m
+#        cpu_shares: 512
+#        depends_on:
+#            - web
+#        healthcheck:
+#            test: ["CMD", "pgrep", "-f", "node.*recorder.js"]
+#            interval: 30s
+#            timeout: 10s
+#            retries: 3
+#            start_period: 20s
 
 # Custom network so all services can communicate using a FQDN
 networks:
