@@ -4,9 +4,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Устанавливаем системные зависимости
+# Устанавливаем системные зависимости для сборки aiortc
 RUN apt-get update && apt-get install -y \
     curl \
+    build-essential \
+    libopus-dev \
+    libvpx-dev \
+    libavdevice-dev \
+    libsrtp2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Копируем файл с зависимостями

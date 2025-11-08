@@ -193,6 +193,8 @@ services:
     prosody:
         image: jitsi/prosody:${JITSI_IMAGE_VERSION:-stable-10590}
         restart: ${RESTART_POLICY:-unless-stopped}
+        ports:
+            - "5280:5280"
         expose:
             - '${XMPP_PORT:-5222}'
             - '${PROSODY_S2S_PORT:-5269}'
@@ -448,8 +450,6 @@ services:
         labels:
             service: "jitsi-jvb"
         environment:
-    #        - COLIBRI_REST_ENABLED=true  # <--- ДОБАВЛЕНА ЭТА СТРОКА
-    #        - JAVA_SYS_PROPS=-Dorg.jitsi.videobridge.rest.enabled=true
             - AUTOSCALER_SIDECAR_KEY_FILE
             - AUTOSCALER_SIDECAR_KEY_ID
             - AUTOSCALER_SIDECAR_GROUP_NAME
@@ -515,55 +515,39 @@ services:
         mem_limit: 128m
         command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
 
-    # Kurento Media Server - for individual stream recording
-    kurento:
-        image: kurento/kurento-media-server:latest
-        container_name: jitsi-kurento
-        restart: unless-stopped
-        ports:
-            - "8889:8888"  # Kurento WebSocket API (external 8889 -> internal 8888)
-            - "40000-40100:40000-40100/udp"  # RTP ports for media
-        environment:
-            - KMS_MIN_PORT=40000
-            - KMS_MAX_PORT=40100
-            - GST_DEBUG=2
-        volumes:
-            - ./kurento.conf.json:/etc/kurento/kurento.conf.json:ro
-            - ./recordings:/recordings
-        networks:
-            - meet.jitsi
-        mem_limit: 2g
-
     # Unified Recorder - автоматическая запись через Kurento (объединенный сервис)
     recorder:
         build: ./unified-recorder
         container_name: jitsi-unified-recorder
         restart: unless-stopped
         ports:
-            - "9888:8080" # HTTP API (webhook + stats + health)
+            - "9888:8080"  # HTTP API (webhook + stats + health)
         environment:
-            - KURENTO_URI=ws://kurento:8888/kurento
+            # Адреса XMPP, которые нужны для подключения к комнате
+            - JITSI_DOMAIN=meet.recontext.online
+            - XMPP_MUC_DOMAIN=muc.meet.jitsi
+            - XMPP_WEBSOCKET_URL=ws://prosody:5280/xmpp-websocket
+
+            # Настройки MinIO
             - MINIO_ENDPOINT=https://api.storage.recontext.online
             - MINIO_ACCESS_KEY=minioadmin
             - MINIO_SECRET_KEY=minioadmin
             - MINIO_BUCKET=jitsi-recordings
             - MINIO_SECURE=true
+
+            # Остальные настройки
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - AUTO_RECORD=true
-            - JITSI_DOMAIN=meet.recontext.online
-            - JVB_HOST=jvb
-            - JVB_COLIBRI_PORT=8080
             - RECORD_DIR=/recordings
-            - LOG_LEVEL=DEBUG # Оставляем для детальной отладки
+            - LOG_LEVEL=DEBUG
         volumes:
             - ./recordings:/recordings
         networks:
             - meet.jitsi
         depends_on:
-            - kurento
             - redis
-            - jvb # <--- ДОБАВЛЕНА ЗАВИСИМОСТЬ ОТ JVB
+            - jvb # Зависимость от jvb важна, т.к. мы подключаемся к нему
         mem_limit: 512m
         healthcheck:
             test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
@@ -571,6 +555,7 @@ services:
             timeout: 10s
             retries: 3
             start_period: 20s
+
 
 # Custom network so all services can communicate using a FQDN
 networks:

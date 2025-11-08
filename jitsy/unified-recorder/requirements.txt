@@ -2,6 +2,7 @@
 
 aiohttp
 boto3
-websockets
 redis
+aiortc
+pylibsrtp
 sdp-transform
