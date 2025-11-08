@@ -7,7 +7,6 @@
     "net": {
       "websocket": {
         "port": 8888,
-        "path": "/",
         "threads": 10
       }
     }

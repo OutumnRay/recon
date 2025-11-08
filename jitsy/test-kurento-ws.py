@@ -7,7 +7,7 @@ import asyncio
 import json
 import websockets
 
-KURENTO_URI = 'ws://kurento:8888/'
+KURENTO_URI = 'ws://kurento:8888/kurento'
 
 async def test_connection():
     """Test WebSocket connection to Kurento"""

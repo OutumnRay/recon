@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # ========== Конфигурация ==========
 # Kurento
-KURENTO_WS_URI = os.getenv('KURENTO_URI', 'ws://kurento:8888/')
+KURENTO_WS_URI = os.getenv('KURENTO_URI', 'ws://kurento:8888/kurento')
 
 # MinIO / S3
 MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'https://api.storage.recontext.online')
@@ -230,14 +230,12 @@ class KurentoClient:
     async def release(self, object_id: str):
         """Release media object"""
         try:
-            await self._send_request("invoke", {
-                "object": object_id,
-                "operation": "release",
-                "operationParams": {}
+            await self._send_request("release", {
+                "object": object_id
             })
             logger.debug(f"Released object: {object_id}")
         except Exception as e:
-            logger.warning(f"Error releasing object: {e}")
+            logger.debug(f"Error releasing object: {e}")
 
 
 kurento = KurentoClient(KURENTO_WS_URI)
@@ -438,6 +436,8 @@ async def handle_participant_left(room_name: str, endpoint_id: str, participant_
         del active_sessions[participant_id]
 
         logger.info(f"✅ Recording stopped for {session.display_name}")
+    else:
+        logger.debug(f"Participant {participant_id} not in active sessions (already stopped or focus)")
 
 
 async def handle_conference_ended(room_name: str):

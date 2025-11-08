@@ -542,7 +542,7 @@ services:
         ports:
             - "9888:8080"  # HTTP API (webhook + stats + health)
         environment:
-            - KURENTO_URI=ws://kurento:8888/
+            - KURENTO_URI=ws://kurento:8888/kurento
             - MINIO_ENDPOINT=https://api.storage.recontext.online
             - MINIO_ACCESS_KEY=minioadmin
             - MINIO_SECRET_KEY=minioadmin
