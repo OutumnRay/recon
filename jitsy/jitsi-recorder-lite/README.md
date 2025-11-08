@@ -1,21 +1,111 @@
-# Jitsi Recorder Lite
+# Jitsi Recorder Lite - WebRTC Edition
 
-Автоматический рекордер для Jitsi Meet с поддержкой S3/MinIO.
+Автоматический рекордер для Jitsi Meet с прямым WebRTC подключением через XMPP.
 
 ## Возможности
 
-- ✅ **Запись по потокам (streams)** - каждое подключение участника записывается в отдельный файл
-- ✅ **Отдельные файлы при переподключениях** - если участник переподключается, создается новый файл
-- ✅ **Немедленная загрузка на S3** - файлы загружаются сразу после остановки записи (не ждет конца конференции)
-- ✅ **Папки по конференциям** - записи организованы по папкам: `recordings/{room_name}/{conference_id}/`
-- ✅ **Метаданные в S3** - каждый файл содержит метаданные (participant ID, duration, timestamps, reconnection flag)
-- ✅ **Webhook уведомления** - отправка webhook при завершении конференции со списком всех файлов
-- ✅ **Автоматическое определение переподключений** - метка isReconnection для файлов после разрыва связи
-- ✅ **Распределённая работа через Redis** - координация между несколькими инстансами рекордера
+- ✅ **XMPP + WebRTC подключение** - подключение через XMPP WebSocket и Jingle signaling
+- ✅ **Запись индивидуальных audio tracks** - каждый участник записывается в отдельный файл
+- ✅ **SFU (Selective Forwarding Unit)** - JVB отправляет индивидуальные потоки каждого участника
+- ✅ **Отдельные файлы при переподключениях** - если участник переподключается, создается новый track и файл
+- ✅ **Формат Opus** - запись в эффективный Opus формат через PyAV
+- ✅ **Автоматическая загрузка на S3** - опциональная загрузка файлов на S3/MinIO
+- ✅ **Чистый Python WebRTC** - используется aiortc для WebRTC, без зависимостей от FFmpeg
+- ✅ **Без браузера** - не требует Playwright или Selenium
+
+## Архитектура WebRTC Recorder
+
+### Как это работает
+
+```
+┌─────────────────┐
+│  Jitsi Meet     │
+│  (Web UI)       │
+└────────┬────────┘
+         │
+    ┌────▼────────────────────────┐
+    │  Prosody XMPP Server        │
+    │  (wss://...xmpp-websocket)  │
+    └────┬────────────────────┬───┘
+         │                    │
+    ┌────▼────┐          ┌────▼──────────┐
+    │  Focus  │          │  WebRTC Bot   │ ← Наш recorder
+    │ (Jicofo)│          │  (Python)     │
+    └────┬────┘          └────┬──────────┘
+         │                    │
+         │  Jingle signaling  │
+         │◄───────────────────┤
+         │                    │
+    ┌────▼────────────────────▼───┐
+    │  Jitsi Videobridge (JVB)    │
+    │  WebRTC SFU                 │
+    │  Sends individual streams   │
+    └─────────────────────────────┘
+```
+
+1. **XMPP Connection** - подключается к `wss://meet.recontext.online/xmpp-websocket`
+2. **SASL Authentication** - проходит ANONYMOUS аутентификацию
+3. **MUC Join** - присоединяется к Multi-User Chat комнате
+4. **Jingle Signaling** - обменивается Jingle сообщениями с focus.meet.jitsi
+5. **WebRTC Setup** - конвертирует Jingle XML в SDP и устанавливает WebRTC соединение с JVB
+6. **Audio Tracks** - JVB отправляет индивидуальные audio tracks каждого участника (SFU mode)
+7. **Recording** - каждый track записывается в отдельный opus файл используя PyAV
+8. **S3 Upload** - опционально загружает файлы на S3/MinIO
+
+### Технологический стек
+
+- **Python 3.11** - основной язык
+- **aiortc** - WebRTC implementation для Python
+- **PyAV (av)** - кодирование audio в opus формат
+- **websockets** - WebSocket клиент для XMPP
+- **aiohttp** - HTTP health check сервер
+- **boto3** (опционально) - загрузка на S3/MinIO
+
+## Основной компонент - WebRTC Bot
+
+Основной файл: **`jitsi_webrtc_bot.py`** - полноценный WebRTC рекордер.
+
+Этот бот:
+- Подключается к XMPP WebSocket (`wss://meet.recontext.online/xmpp-websocket`)
+- Проходит SASL ANONYMOUS аутентификацию
+- Присоединяется к MUC комнате (`testmeet@muc.meet.jitsi`)
+- Запрашивает конференцию у `focus.meet.jitsi`
+- Получает Jingle session-initiate с SDP offer
+- Конвертирует Jingle XML в SDP для aiortc
+- Устанавливает WebRTC PeerConnection с JVB
+- Получает индивидуальные audio tracks и записывает их в Opus файлы
+
+**Подробная документация**: см. `WEBRTC_BOT_README.md`
+
+### Быстрый старт
+
+```bash
+# Локально
+export JITSI_URL=https://meet.recontext.online
+export JITSI_ROOM=testmeet
+export RECORD_DIR=./recordings
+
+python jitsi_webrtc_bot.py
+```
+
+```bash
+# В Docker
+docker-compose up --build recorder
+```
+
+## Вспомогательные компоненты
+
+### jitsi_xmpp_client.py
+Минимальный XMPP клиент - базовый компонент для подключения к Jitsi XMPP серверу.
+Используется внутри `jitsi_webrtc_bot.py`.
+
+### jingle_sdp.py
+Конвертер между Jingle XML и SDP форматами. Преобразует Jingle сообщения от Jicofo
+в SDP для aiortc и обратно.
 
 ## Как работает запись по потокам
 
-### Одно подключение = один файл
+### Одно подключение = один track = один файл
 
 Каждый раз когда участник подключается к конференции, создается **новый файл**:
 

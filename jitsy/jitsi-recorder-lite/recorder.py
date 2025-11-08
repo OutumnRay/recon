@@ -11,6 +11,9 @@ import redis.asyncio as redis
 from aiohttp import ClientSession, web
 import logging
 
+# Import WebRTC recorder
+from simple_webrtc_recorder import SimpleWebRTCRecorder
+
 # Настройка логирования с детализацией
 logging.basicConfig(
     level=logging.DEBUG,
@@ -358,7 +361,52 @@ class ConferenceRecording:
         self.endTime = None
         self.participants = {}
         self.activeSessions = {}
+        self.webrtc_recorder = None  # WebRTC recorder для этой конференции
+        self.webrtc_connected = False
         logger.info(f"📹 Conference created: {room_name} (ID: {self.conferenceId})")
+
+    async def start_webrtc_recording(self):
+        """Запускает WebRTC recorder для конференции"""
+        if self.webrtc_connected:
+            logger.debug(f"WebRTC recorder already connected for {self.roomName}")
+            return
+
+        try:
+            logger.info(f"🔌 Starting WebRTC recorder for room: {self.roomName}")
+
+            #Создаем recorder
+            self.webrtc_recorder = SimpleWebRTCRecorder(
+                room_name=self.roomName,
+                conference_id=self.conferenceId,
+                jvb_host=JVB_HOST,
+                jvb_port=JVB_PORT,
+                output_dir=os.path.join(RECORD_DIR, self.roomName)
+            )
+
+            # Подключаемся к JVB
+            await self.webrtc_recorder.connect()
+            self.webrtc_connected = True
+
+            logger.info(f"✅ WebRTC recorder started for {self.roomName}")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to start WebRTC recorder: {e}", exc_info=True)
+
+    async def stop_webrtc_recording(self):
+        """Останавливает WebRTC recorder"""
+        if not self.webrtc_connected or not self.webrtc_recorder:
+            return
+
+        try:
+            logger.info(f"🛑 Stopping WebRTC recorder for room: {self.roomName}")
+
+            await self.webrtc_recorder.disconnect()
+            self.webrtc_connected = False
+
+            logger.info(f"✅ WebRTC recorder stopped for {self.roomName}")
+
+        except Exception as e:
+            logger.error(f"❌ Error stopping WebRTC recorder: {e}", exc_info=True)
 
     def get_or_create_participant(self, participant_id, participant_name, display_name):
         if participant_id not in self.participants:
@@ -518,16 +566,11 @@ async def handle_participant_joined(room_name, endpoint_id, participant_id, part
     conference = active_conferences[room_name]
     participant = conference.get_or_create_participant(participant_id, participant_name, display_name)
 
-    # If this endpoint already has an active session, stop it first
-    # This handles cases where the same endpoint reconnects without a proper "left" event
-    if endpoint_id in conference.activeSessions:
-        logger.warning(f"Endpoint {endpoint_id} rejoined without leaving - stopping old session first")
-        old_session = conference.activeSessions[endpoint_id]
-        await old_session.stop_recording(room_name, conference.conferenceId)
-        participant.update_after_session_end(old_session)
+    # Запускаем WebRTC recorder при первом участнике
+    if not conference.webrtc_connected:
+        await conference.start_webrtc_recording()
 
-    # Create a NEW session for each join event
-    # This ensures each stream/reconnection gets its own file
+    # Create a NEW session for tracking metadata
     session_id = f"{endpoint_id}_{datetime.now().timestamp()}"
     session = ParticipantSession(session_id, participant_id, participant_name, display_name, conference.startTime)
 
@@ -537,8 +580,8 @@ async def handle_participant_joined(room_name, endpoint_id, participant_id, part
     # Set as active session (will be stopped on participantLeft)
     conference.activeSessions[endpoint_id] = session
 
-    # Start recording this stream to a new file
-    await session.start_recording(room_name, conference.conferenceId, stream_url)
+    # NOTE: Запись теперь происходит через WebRTC recorder автоматически
+    # Файлы создаются когда WebRTC получает audio tracks
 
 
 async def handle_participant_left(room_name, endpoint_id):
@@ -553,14 +596,16 @@ async def handle_participant_left(room_name, endpoint_id):
     if endpoint_id in conference.activeSessions:
         session = conference.activeSessions[endpoint_id]
 
+        # Update session metadata (recording stops automatically in WebRTC)
+        session.leaveTime = datetime.now(timezone.utc)
+        session.durationSeconds = (session.leaveTime - session.joinTime).total_seconds()
+
         # Check if participant exists before accessing it
         if session.participantId in conference.participants:
             participant = conference.participants[session.participantId]
-            await session.stop_recording(room_name, conference.conferenceId)
             participant.update_after_session_end(session)
         else:
-            logger.warning(f"Participant {session.participantId} not found, stopping recording anyway")
-            await session.stop_recording(room_name, conference.conferenceId)
+            logger.warning(f"Participant {session.participantId} not found")
 
         # Safely remove from active sessions
         try:
@@ -581,6 +626,9 @@ async def handle_conference_ended(room_name):
 
     conference = active_conferences[room_name]
     conference.endTime = datetime.now(timezone.utc)
+
+    # Stop WebRTC recorder
+    await conference.stop_webrtc_recording()
 
     # Stop all active sessions
     for endpoint_id in list(conference.activeSessions.keys()):

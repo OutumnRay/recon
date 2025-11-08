@@ -538,36 +538,35 @@ services:
             timeout: 20s
             retries: 3
 
-    # Recorder service
+    # Recorder service - WebRTC Bot
     recorder:
         build: ./jitsi-recorder-lite
         restart: unless-stopped
         environment:
-            - JITSI_DOMAIN=meet.recontext.online
-            - JVB_HOST=jvb
-            - JVB_PORT=8080
-            - PROSODY_HOST=prosody
-            - REDIS_HOST=redis
-            - REDIS_PORT=6379
+            # Jitsi connection settings
+            - JITSI_URL=${JITSI_URL:-https://meet.recontext.online}
+            - JITSI_ROOM=${JITSI_ROOM:-testmeet}
+            - XMPP_DOMAIN=${XMPP_DOMAIN:-meet.jitsi}
+            - MUC_DOMAIN=${MUC_DOMAIN:-muc.meet.jitsi}
+            - FOCUS_JID=${FOCUS_JID:-focus.meet.jitsi}
+            - BOT_NICKNAME=${BOT_NICKNAME:-recorder-bot}
+            # Recording settings
+            - RECORD_DIR=${RECORD_DIR:-/tmp/recordings}
+            - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+            # S3 storage (optional)
             - S3_ENDPOINT=${S3_ENDPOINT}
             - S3_BUCKET=${S3_BUCKET:-jitsi-recordings}
             - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
             - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
             - AWS_REGION=${AWS_REGION:-us-east-1}
-            - WEBHOOK_URL=${WEBHOOK_URL}
-            - AUDIO_BITRATE=${AUDIO_BITRATE:-48k}
-            - CHECK_INTERVAL=5
         volumes:
             - /tmp/jitsi-recordings:/tmp/recordings:rw
         networks:
             - meet.jitsi
-        mem_limit: 256m
+        mem_limit: 512m
         cpu_shares: 512
         depends_on:
             - prosody
-            - jvb
-            - redis
-            - minio
         healthcheck:
             test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
             interval: 30s
