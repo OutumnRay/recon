@@ -1,270 +1,364 @@
 #!/usr/bin/env python3
 """
-Jitsi Unified Recorder - Прямая запись через aiortc (WebRTC)
+Jitsi Unified Recorder - aiortc WebRTC recorder
+Based on a combination of best practices from provided scripts.
+This version listens for webhook events from Prosody to start and stop recordings.
 """
-
 import os
 import asyncio
 import json
 import logging
-import hashlib
-import uuid
-import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Set
+from typing import Dict, Optional
 
-# ИСПРАВЛЕНИЕ: Импортируем 'aiohttp' целиком, чтобы получить доступ к ClientSession
-import aiohttp
-from aiohttp import web, WSMsgType
+from aiohttp import web
 import boto3
-import redis.asyncio as redis
-
-from aiortc import RTCPeerConnection, RTCSessionDescription
+import websockets
+from aiortc import RTCPeerConnection, RTCSessionDescription, RTCIceCandidate
 from aiortc.contrib.media import MediaRecorder
-import sdp_transform
 
-# Настройка логирования
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG').upper()
+# --- Configuration ---
+# Logging configuration
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
 logging.basicConfig(level=LOG_LEVEL, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logging.getLogger("aiortc").setLevel(logging.WARNING)
-logging.getLogger("aioice").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-# ========== Конфигурация ==========
+# Jitsi and WebRTC configuration
 JITSI_DOMAIN = os.getenv('JITSI_DOMAIN', 'meet.recontext.online')
-XMPP_MUC_DOMAIN = os.getenv('XMPP_MUC_DOMAIN', 'muc.meet.jitsi')
-MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT')
-MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY')
-MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY')
-MINIO_BUCKET = os.getenv('MINIO_BUCKET')
-REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
-REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
+JVB_WS_URL = os.getenv('JVB_WS_URL', f'wss://{JITSI_DOMAIN}/colibri-ws/default-id/default')
+
+# MinIO S3 storage configuration
+MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'https://api.storage.recontext.online')
+MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+MINIO_BUCKET = os.getenv('MINIO_BUCKET', 'jitsi-recordings')
+
+# Recording settings
 RECORD_DIR = Path(os.getenv('RECORD_DIR', '/recordings'))
 AUTO_RECORD = os.getenv('AUTO_RECORD', 'true').lower() == 'true'
 
+# Ensure the recording directory exists
 RECORD_DIR.mkdir(exist_ok=True, parents=True)
 
+# --- Logging Initial Configuration ---
 logger.info("=" * 60)
-logger.info("🎬 Jitsi aiortc Recorder Configuration")
+logger.info("🎬 Jitsi Unified aiortc WebRTC Recorder")
 logger.info("=" * 60)
 logger.info(f"  JITSI_DOMAIN: {JITSI_DOMAIN}")
-logger.info(f"  XMPP_MUC_DOMAIN: {XMPP_MUC_DOMAIN}")
+logger.info(f"  JVB_WS_URL: {JVB_WS_URL}")
 logger.info(f"  MINIO_BUCKET: {MINIO_BUCKET}")
+logger.info(f"  AUTO_RECORD: {AUTO_RECORD}")
 logger.info("=" * 60)
 
-s3_client = boto3.client('s3', endpoint_url=MINIO_ENDPOINT, aws_access_key_id=MINIO_ACCESS_KEY, aws_secret_access_key=MINIO_SECRET_KEY) if MINIO_ENDPOINT else None
+# --- S3 Client Initialization ---
+s3_client = None
+if MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
+    try:
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=MINIO_ENDPOINT,
+            aws_access_key_id=MINIO_ACCESS_KEY,
+            aws_secret_access_key=MINIO_SECRET_KEY
+        )
+        # Verify connection by checking for the bucket
+        s3_client.head_bucket(Bucket=MINIO_BUCKET)
+        logger.info(f"✅ MinIO connection successful to bucket: {MINIO_BUCKET}")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize S3 client: {e}")
+        s3_client = None
+
+# --- Global State ---
+# Dictionary to store active recording sessions, keyed by participant ID
 active_sessions: Dict[str, 'SessionInfo'] = {}
-active_conferences: Dict[str, Set[str]] = {}
 
 class SessionInfo:
+    """
+    Manages a recording session for a single participant using aiortc.
+    """
+
     def __init__(self, participant_id: str, room_name: str, display_name: str):
         self.participant_id = participant_id
         self.room_name = room_name
         self.display_name = display_name
+        self.log_prefix = f"[{self.room_name}][{self.display_name}]"
         self.started_at = datetime.now(timezone.utc)
-        self.pc = RTCPeerConnection()
-        self.recorder = None
-        self.ws = None
-        self.run_task = None
-        timestamp = self.started_at.strftime('%Y%m%d_%H%M%S_%f')
-        safe_name = "".join(c for c in display_name if c.isalnum())[:50]
+
+        # WebRTC components
+        self.pc: Optional[RTCPeerConnection] = None
+        self.websocket: Optional[websockets.WebSocketClientProtocol] = None
+        self.recorder: Optional[MediaRecorder] = None
+        self.signaling_task: Optional[asyncio.Task] = None
+
+        # File naming and path
+        timestamp = self.started_at.strftime('%Y%m%d_%H%M%S')
+        # Sanitize display name for use in filenames
+        safe_name = "".join(c for c in display_name if c.isalnum())[:50] or "unknown"
         self.filename = f"{self.room_name}_{safe_name}_{timestamp}.opus"
-        self.filepath = str(RECORD_DIR / self.filename)
+        self.filepath = RECORD_DIR / self.filename
+
+        logger.info(f"{self.log_prefix} 📝 Session created. Recording will be saved to: {self.filename}")
 
     async def start_recording(self):
-        log_prefix = f"[{self.room_name}][{self.display_name}]"
-        logger.info(f"{log_prefix} 🎙️ Starting direct WebRTC recording -> {self.filename}")
+        """Initializes the WebRTC peer connection and starts the recording process."""
+        logger.info(f"{self.log_prefix} 🎙️ Starting recording...")
         try:
-            self.recorder = MediaRecorder(self.filepath, format="opus")
+            self.pc = RTCPeerConnection()
+
             @self.pc.on("track")
             async def on_track(track):
-                logger.info(f"{log_prefix} Audio track received from Jitsi: {track.kind}")
+                logger.info(f"{self.log_prefix} ✅ Received {track.kind} track from JVB.")
                 if track.kind == "audio":
-                    self.recorder.add_track(track)
-            self.run_task = asyncio.create_task(self._run_signaling())
-            await self.recorder.start()
-            logger.info(f"{log_prefix} ✅ Recorder is running and waiting for audio track.")
+                    self.recorder = MediaRecorder(str(self.filepath))
+                    self.recorder.addTrack(track)
+                    await self.recorder.start()
+                    logger.info(f"{self.log_prefix} 🔴 Started recording audio to {self.filepath}")
+
+            @self.pc.on("connectionstatechange")
+            async def on_connectionstatechange():
+                logger.info(f"{self.log_prefix} Connection state changed to: {self.pc.connectionState}")
+                if self.pc.connectionState in ["failed", "closed", "disconnected"]:
+                    logger.warning(f"{self.log_prefix} Connection state is {self.pc.connectionState}. Stopping session.")
+                    await self.stop_recording()
+
+            # The signaling task handles all WebSocket communication with JVB
+            self.signaling_task = asyncio.create_task(self._run_signaling())
+            logger.info(f"{self.log_prefix} ✅ Recording session started successfully.")
         except Exception as e:
-            logger.error(f"{log_prefix} ❌ Failed to start recording procedure: {e}", exc_info=True)
+            logger.error(f"{self.log_prefix} ❌ Failed to start recording session: {e}", exc_info=True)
             await self.stop_recording()
 
     async def _run_signaling(self):
-        log_prefix = f"[{self.room_name}][{self.display_name}]"
-        if XMPP_WEBSOCKET_URL:
-            ws_url = f"{XMPP_WEBSOCKET_URL}?room={self.room_name}"
-        else:
-            ws_url = f"wss://{JITSI_DOMAIN}/xmpp-websocket?room={self.room_name}"
-
-        logger.debug(f"{log_prefix} Connecting to Jitsi WebSocket: {ws_url}")
+        """Handles the WebSocket signaling with Jitsi Videobridge (JVB)."""
         try:
-            # ИСПРАВЛЕНИЕ: Используем aiohttp.ClientSession()
-            async with aiohttp.ClientSession() as session:
-                async with session.ws_connect(ws_url, ssl=False) as self.ws:
-                    logger.info(f"{log_prefix} WebSocket connected.")
-                    await self.ws.send_str(f'<open to="{JITSI_DOMAIN}" version="1.0" xmlns="urn:ietf:params:xml:ns:xmpp-framing"/>')
-                    room_jid = f"{self.room_name}@{XMPP_MUC_DOMAIN}/{uuid.uuid4()}"
-                    await self.ws.send_str(f'<presence to="{room_jid}" xmlns="jabber:client"><x xmlns="http://jabber.org/protocol/muc"/></presence>')
-                    offer = await self.pc.createOffer()
-                    await self.pc.setLocalDescription(offer)
-                    sdp_text = self.pc.localDescription.sdp
-                    sdp_text = sdp_text.replace("a=sendrecv", "a=recvonly")
-                    jingle_iq = self._create_jingle_offer(sdp_text, room_jid)
-                    logger.debug(f"{log_prefix} Sending Jingle IQ offer...")
-                    await self.ws.send_str(ET.tostring(jingle_iq, encoding='unicode'))
-                    async for msg in self.ws:
-                        if msg.type == WSMsgType.TEXT:
-                            await self._handle_ws_message(msg.data)
-                        elif msg.type in (WSMsgType.CLOSED, WSMsgType.ERROR):
-                            break
+            logger.info(f"{self.log_prefix} 🔌 Connecting to JVB WebSocket at {JVB_WS_URL}")
+            async with websockets.connect(JVB_WS_URL) as ws:
+                self.websocket = ws
+                logger.info(f"{self.log_prefix} ✅ WebSocket connection to JVB established.")
+
+                # Create and send a join message
+                join_msg = json.dumps({
+                    "colibriClass": "EndpointMessage",
+                    "type": "join",
+                    "roomName": self.room_name,
+                    "endpointId": self.participant_id,
+                    "displayName": self.display_name
+                })
+                await ws.send(join_msg)
+                logger.info(f"{self.log_prefix} 📤 Sent 'join' request to JVB.")
+
+                # Create and send SDP offer
+                offer = await self.pc.createOffer()
+                await self.pc.setLocalDescription(offer)
+                offer_msg = json.dumps({
+                    "colibriClass": "EndpointMessage",
+                    "type": "offer",
+                    "sdp": self.pc.localDescription.sdp
+                })
+                await ws.send(offer_msg)
+                logger.info(f"{self.log_prefix} 📤 Sent SDP offer to JVB.")
+
+                # Process incoming messages from JVB
+                async for message in ws:
+                    try:
+                        msg = json.loads(message)
+                        msg_type = msg.get("type")
+                        logger.debug(f"{self.log_prefix} 📥 Received message of type: {msg_type}")
+
+                        if msg_type == "answer":
+                            answer = RTCSessionDescription(sdp=msg.get("sdp"), type="answer")
+                            await self.pc.setRemoteDescription(answer)
+                            logger.info(f"{self.log_prefix} ✅ Set remote SDP answer from JVB.")
+                        elif msg_type == "ice-candidate":
+                            candidate_data = msg.get("candidate")
+                            if candidate_data:
+                                candidate = RTCIceCandidate(
+                                    candidate=candidate_data.get("candidate"),
+                                    sdpMid=candidate_data.get("sdpMid"),
+                                    sdpMLineIndex=candidate_data.get("sdpMLineIndex")
+                                )
+                                await self.pc.addIceCandidate(candidate)
+                        elif msg.get("colibriClass") == "EndpointConnectivityStatusChangeEvent":
+                            # This event can indicate connection issues
+                            is_connected = msg.get("connected", False)
+                            if not is_connected:
+                                logger.warning(f"{self.log_prefix} ⚠️ Endpoint connectivity lost.")
+                                await self.stop_recording()
+                                break
+                    except json.JSONDecodeError:
+                        logger.error(f"{self.log_prefix} ❌ Could not decode JSON from message: {message}")
+                    except Exception as e:
+                        logger.error(f"{self.log_prefix} ❌ Error handling incoming message: {e}", exc_info=True)
+        except websockets.exceptions.ConnectionClosed as e:
+            logger.warning(f"{self.log_prefix} 🔌 WebSocket connection closed unexpectedly: {e}")
         except Exception as e:
-            logger.error(f"{log_prefix} ❌ Signaling task failed: {e}", exc_info=True)
+            logger.error(f"{self.log_prefix} ❌ An error occurred in the signaling task: {e}", exc_info=True)
         finally:
-            logger.warning(f"{log_prefix} Signaling task finished.")
+            logger.info(f"{self.log_prefix} 🔌 Signaling task ended.")
             if self.participant_id in active_sessions:
-                 await handle_participant_left(self.participant_id)
-
-    async def _handle_ws_message(self, data):
-        log_prefix = f"[{self.room_name}][{self.display_name}]"
-        try:
-            root = ET.fromstring(data)
-            jingle = root.find('{urn:xmpp:jingle:1}jingle')
-            if jingle is not None and jingle.attrib.get('action') == 'session-accept':
-                logger.debug(f"{log_prefix} Received Jingle session-accept.")
-                answer_sdp = self._parse_jingle_answer(root)
-                if answer_sdp:
-                    logger.info(f"{log_prefix} SDP Answer received, setting remote description.")
-                    await self.pc.setRemoteDescription(RTCSessionDescription(sdp=answer_sdp, type="answer"))
-        except ET.ParseError:
-            pass
-        except Exception as e:
-            logger.error(f"{log_prefix} Error handling WebSocket message: {e}")
-
-    def _create_jingle_offer(self, sdp_text, to_jid):
-        iq = ET.Element("iq", to=to_jid.split('/')[0] + '/focus', type="set", xmlns="jabber:client")
-        jingle = ET.SubElement(iq, "jingle", action="session-initiate", sid=str(uuid.uuid4()), xmlns="urn:xmpp:jingle:1")
-        parsed_sdp = sdp_transform.parse(sdp_text)
-        for media in parsed_sdp['media']:
-            content = ET.SubElement(jingle, "content", name=media['type'])
-            description = ET.SubElement(content, "description", media="RTP/SAVPF", xmlns="urn:xmpp:jingle:apps:rtp:1")
-            transport = ET.SubElement(content, "transport", pwd=parsed_sdp['icePwd'], ufrag=parsed_sdp['iceUfrag'], xmlns="urn:xmpp:jingle:transports:ice-udp:1")
-            for pt in media['payloads'].split():
-                payload = next((p for p in media['rtp'] if p['payload'] == int(pt)), None)
-                if payload:
-                    ET.SubElement(description, "payload-type", id=str(payload['payload']), name=payload['codec'], clockrate=str(payload['rate']))
-            if media.get('ssrcs'):
-                ET.SubElement(description, "ssrc", **{'xmlns': "urn:xmpp:jingle:apps:rtp:ssrc:0"})
-            for cand in parsed_sdp.get('candidates', []):
-                 ET.SubElement(transport, "candidate", **cand)
-            if parsed_sdp.get('fingerprint'):
-                ET.SubElement(transport, "fingerprint", hash=parsed_sdp['fingerprint']['type'], xmlns="urn:xmpp:jingle:dtls:0").text = parsed_sdp['fingerprint']['hash']
-        return iq
-
-    def _parse_jingle_answer(self, iq_element):
-        jingle = iq_element.find('{urn:xmpp:jingle:1}jingle')
-        if jingle is None: return None
-        sdp_obj = {'version': 0, 'origin': {'username': '-', 'sessionId': '0', 'sessionVersion': 0, 'netType': 'IN', 'ipVer': 4, 'address': '0.0.0.0'}, 'name': '-', 'timing': {'start': 0, 'stop': 0}, 'media': []}
-        for content in jingle.findall('{urn:xmpp:jingle:1}content'):
-            transport = content.find('{urn:xmpp:jingle:transports:ice-udp:1}transport')
-            description = content.find('{urn:xmpp:jingle:apps:rtp:1}description')
-            media_type = description.attrib['media']
-            media = {'type': media_type, 'port': 9, 'protocol': 'UDP/TLS/RTP/SAVPF', 'payloads': ' '.join([pt.attrib['id'] for pt in description.findall('{urn:xmpp:jingle:apps:rtp:1}payload-type')])}
-            sdp_obj['media'].append(media)
-            sdp_obj['iceUfrag'] = transport.attrib['ufrag']
-            sdp_obj['icePwd'] = transport.attrib['pwd']
-            sdp_obj['fingerprint'] = {'type': 'sha-256', 'hash': transport.find('{urn:xmpp:jingle:dtls:0}fingerprint').text}
-            sdp_obj['candidates'] = [{'foundation': c.attrib['foundation'], 'component': int(c.attrib['component']), 'transport': 'udp', 'priority': int(c.attrib['priority']), 'ip': c.attrib['ip'], 'port': int(c.attrib['port']), 'type': c.attrib['type']} for c in transport.findall('{urn:xmpp:jingle:transports:ice-udp:1}candidate')]
-        return sdp_transform.write(sdp_obj)
+                await self.stop_recording()
 
     async def stop_recording(self):
-        log_prefix = f"[{self.room_name}][{self.display_name}]"
-        logger.info(f"{log_prefix} ⏹️ Stopping recording...")
-        if self.run_task and not self.run_task.done():
-            self.run_task.cancel()
+        """Stops the recording, cleans up resources, and initiates the upload."""
+        if self.participant_id not in active_sessions:
+            logger.debug(f"{self.log_prefix} Stop recording called, but session already removed.")
+            return
+
+        logger.info(f"{self.log_prefix} ⏹️ Stopping recording session...")
+        active_sessions.pop(self.participant_id, None)
+
+        if self.signaling_task and not self.signaling_task.done():
+            self.signaling_task.cancel()
         if self.recorder:
             await self.recorder.stop()
-        if self.ws and not self.ws.closed:
-            await self.ws.close()
-        await self.pc.close()
-        filepath = Path(self.filepath)
-        if filepath.exists() and filepath.stat().st_size > 1024:
-            logger.info(f"{log_prefix} 📁 File saved: {self.filepath} ({filepath.stat().st_size} bytes)")
-            await self.upload_to_s3(filepath)
+        if self.pc:
+            await self.pc.close()
+
+        logger.info(f"{self.log_prefix} 🛑 All WebRTC resources have been released.")
+
+        # Brief pause to ensure the file is written to disk
+        await asyncio.sleep(1)
+
+        if self.filepath.exists():
+            file_size = self.filepath.stat().st_size
+            logger.info(f"{self.log_prefix} 📁 Recording file size: {file_size} bytes.")
+            # Avoid uploading empty or tiny files
+            if file_size > 1024:
+                await self.upload_to_s3()
+            else:
+                logger.warning(f"{self.log_prefix} ⚠️ File is too small to upload. Deleting.")
+                self.filepath.unlink()
         else:
-            logger.warning(f"{log_prefix} ⚠️ Empty or missing file, skipping upload.")
+            logger.warning(f"{self.log_prefix} ⚠️ Recording file not found at path: {self.filepath}")
 
-    async def upload_to_s3(self, filepath: Path):
-        if not s3_client: return
+    async def upload_to_s3(self):
+        """Uploads the completed recording file to MinIO S3 storage."""
+        if not s3_client:
+            logger.warning(f"{self.log_prefix} ⚠️ S3 client is not configured. Skipping upload.")
+            return
+
+        s3_key = f"recordings/{self.room_name}/{self.filename}"
+        logger.info(f"{self.log_prefix} ☁️ Uploading to s3://{MINIO_BUCKET}/{s3_key}")
+
         try:
-            s3_key = f"recordings/{self.room_name}/{filepath.name}"
-            logger.info(f"☁️ Uploading to s3://{MINIO_BUCKET}/{s3_key}")
-            await asyncio.to_thread(s3_client.upload_file, str(filepath), MINIO_BUCKET, s3_key)
-            filepath.unlink()
-            logger.info(f"✅ Uploaded and removed local file: {s3_key}")
+            await asyncio.to_thread(
+                s3_client.upload_file,
+                str(self.filepath),
+                MINIO_BUCKET,
+                s3_key,
+                ExtraArgs={
+                    'ContentType': 'audio/opus',
+                    'Metadata': {
+                        'participant_id': self.participant_id,
+                        'display_name': self.display_name,
+                        'room_name': self.room_name,
+                        'started_at': self.started_at.isoformat()
+                    }
+                }
+            )
+            logger.info(f"{self.log_prefix} ✅ Successfully uploaded to S3.")
+            self.filepath.unlink() # Delete local file after successful upload
+            logger.info(f"{self.log_prefix} 🗑️ Local recording file deleted.")
         except Exception as e:
-            logger.error(f"❌ S3 Upload failed: {e}", exc_info=True)
+            logger.error(f"{self.log_prefix} ❌ Failed to upload to S3: {e}", exc_info=True)
 
+# --- Webhook Event Handlers ---
 async def handle_participant_joined(room_name: str, participant_id: str, display_name: str):
-    logger.info(f"📥 Handling PARTICIPANT JOINED for {display_name} (ID: {participant_id})")
-    if 'focus' in participant_id:
-        logger.debug("Skipping system component 'focus'")
+    logger.info(f"📥 PARTICIPANT JOINED: '{display_name}' ({participant_id}) in room '{room_name}'")
+
+    if 'focus' in display_name.lower():
+        logger.info("Ignoring 'focus' user, which is a Jitsi internal component.")
         return
-    if room_name not in active_conferences:
-        active_conferences[room_name] = set()
-    active_conferences[room_name].add(participant_id)
-    if AUTO_RECORD:
-        if participant_id in active_sessions:
-            logger.warning(f"⚠️ Participant {display_name} already has a session. Stopping old one.")
-            await handle_participant_left(participant_id)
-        session = SessionInfo(participant_id, room_name, display_name)
-        active_sessions[participant_id] = session
-        await session.start_recording()
+
+    if not AUTO_RECORD:
+        logger.info("AUTO_RECORD is disabled. Not starting recording.")
+        return
+
+    if participant_id in active_sessions:
+        logger.warning(f"A session for participant {participant_id} already exists. Stopping the old one.")
+        await handle_participant_left(participant_id)
+
+    session = SessionInfo(participant_id, room_name, display_name)
+    active_sessions[participant_id] = session
+    await session.start_recording()
 
 async def handle_participant_left(participant_id: str):
-    logger.info(f"📤 Handling PARTICIPANT LEFT for ID: {participant_id}")
+    logger.info(f"📤 PARTICIPANT LEFT: {participant_id}")
     if participant_id in active_sessions:
-        session = active_sessions.pop(participant_id)
+        session = active_sessions[participant_id]
         await session.stop_recording()
-        if session.room_name in active_conferences:
-            active_conferences[session.room_name].discard(participant_id)
-            if not active_conferences[session.room_name]:
-                logger.info(f"Last participant left room {session.room_name}. Cleaning up conference entry.")
-                del active_conferences[session.room_name]
+    else:
+        logger.debug(f"Received participant left event for an untracked session: {participant_id}")
 
-async def webhook_handler(request):
+async def handle_conference_ended(room_name: str):
+    logger.info(f"🏁 CONFERENCE ENDED: {room_name}. Stopping all related recordings.")
+    # Create a copy of the keys to avoid issues with modifying the dictionary while iterating
+    participant_ids_to_stop = [
+        pid for pid, session in active_sessions.items() if session.room_name == room_name
+    ]
+    for pid in participant_ids_to_stop:
+        await handle_participant_left(pid)
+
+# --- HTTP Server ---
+async def webhook_handler(request: web.Request):
+    """Handles incoming webhook events from Prosody."""
     try:
         data = await request.json()
-        logger.info(f"🔔 Webhook received:\n{json.dumps(data, indent=2)}")
+        logger.info(f"🔔 Webhook received: {json.dumps(data, indent=2)}")
+
         event_type = data.get('eventType')
         room_name = data.get('roomName')
         participant_id = data.get('participantId')
-        if event_type == 'participantJoined':
-            display_name = data.get('displayName', participant_id)
+
+        if event_type == 'participantJoined' and all([room_name, participant_id]):
+            display_name = data.get('displayName', 'Unknown')
             await handle_participant_joined(room_name, participant_id, display_name)
-        elif event_type == 'participantLeft':
+        elif event_type == 'participantLeft' and participant_id:
             await handle_participant_left(participant_id)
+        elif event_type == 'conferenceEnded' and room_name:
+            await handle_conference_ended(room_name)
+        else:
+            logger.warning(f"Received unhandled or incomplete event: {event_type}")
+
         return web.json_response({'status': 'ok'})
     except Exception as e:
-        logger.error(f"❌ Webhook handler error: {e}", exc_info=True)
+        logger.error(f"❌ Error processing webhook: {e}", exc_info=True)
         return web.json_response({'status': 'error', 'message': str(e)}, status=500)
 
-async def health_handler(request):
-    return web.json_response({'status': 'healthy', 'active_sessions': len(active_sessions)})
+async def health_handler(request: web.Request):
+    """Provides a health check endpoint."""
+    return web.json_response({
+        'status': 'healthy',
+        'active_sessions': len(active_sessions),
+        'sessions': [{
+            'participant': s.display_name,
+            'room': s.room_name,
+            'duration_seconds': (datetime.now(timezone.utc) - s.started_at).total_seconds()
+        } for s in active_sessions.values()]
+    })
 
 async def main():
-    logger.info("🚀 Starting Unified aiortc Recorder")
+    logger.info("🚀 Starting Jitsi Unified Recorder...")
     app = web.Application()
-    app.router.add_get('/health', health_handler)
     app.router.add_post('/events', webhook_handler)
+    app.router.add_get('/health', health_handler)
+
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 8080)
     await site.start()
-    logger.info("✅ Recorder ready.")
+
+    logger.info("=" * 60)
+    logger.info("✅ Recorder is running and listening on port 8080")
+    logger.info("  - POST /events : Webhook endpoint for Jitsi events")
+    logger.info("  - GET  /health  : Health check and session status")
+    logger.info("=" * 60)
+
+    # Keep the application running indefinitely
     await asyncio.Event().wait()
 
 if __name__ == '__main__':
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("👋 Shutting down...")
+        logger.info("👋 Shutting down recorder...")

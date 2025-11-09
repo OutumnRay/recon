@@ -1,8 +1,4 @@
-# --- unified-recorder/requirements.txt ---
-
 aiohttp
 boto3
-redis
 aiortc
-pylibsrtp
-sdp-transform
+websockets

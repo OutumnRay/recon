@@ -445,6 +445,7 @@ services:
         ports:
             - '${JVB_PORT:-10000}:${JVB_PORT:-10000}/udp'
             - '127.0.0.1:${JVB_COLIBRI_PORT:-8080}:8080'
+            - '9090:9090'
         volumes:
             - /root/.jitsi-meet-cfg/jvb:/config:Z
         labels:
@@ -484,7 +485,7 @@ services:
             - JVB_REQUIRE_VALID_ADDRESS
             - JVB_USE_USRSCTP
             - JVB_WS_DOMAIN
-            - JVB_WS_SERVER_ID
+            #- JVB_WS_SERVER_ID=${JVB_WS_SERVER_ID}
             - JVB_WS_TLS
             - JVB_XMPP_AUTH_DOMAIN
             - JVB_XMPP_INTERNAL_MUC_DOMAIN
@@ -523,21 +524,23 @@ services:
         ports:
             - "9888:8080"  # HTTP API (webhook + stats + health)
         environment:
-            # Адреса XMPP, которые нужны для подключения к комнате
-            - JITSI_DOMAIN=meet.recontext.online
-            - XMPP_MUC_DOMAIN=muc.meet.jitsi
-            - XMPP_WEBSOCKET_URL=ws://prosody:5280/xmpp-websocket
+            # --- CORRECTED JVB WEBSOCKET URL ---
+            # Use the JVB_WS_SERVER_ID variable to construct the correct path
+            #- JVB_WS_URL=ws://jvb:9090/colibri-ws/${JVB_WS_SERVER_ID}
+            - JVB_WS_URL=ws://jvb:9090/colibri-ws
 
-            # Настройки MinIO
+
+            # Domain and other settings remain the same
+            - JITSI_DOMAIN=meet.recontext.online
+
+            # MinIO Settings
             - MINIO_ENDPOINT=https://api.storage.recontext.online
             - MINIO_ACCESS_KEY=minioadmin
             - MINIO_SECRET_KEY=minioadmin
             - MINIO_BUCKET=jitsi-recordings
             - MINIO_SECURE=true
 
-            # Остальные настройки
-            - REDIS_HOST=redis
-            - REDIS_PORT=6379
+            # Other Settings
             - AUTO_RECORD=true
             - RECORD_DIR=/recordings
             - LOG_LEVEL=DEBUG
@@ -546,8 +549,7 @@ services:
         networks:
             - meet.jitsi
         depends_on:
-            - redis
-            - jvb # Зависимость от jvb важна, т.к. мы подключаемся к нему
+            - jvb
         mem_limit: 512m
         healthcheck:
             test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
