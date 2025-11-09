@@ -72,14 +72,19 @@ export const Meetings: React.FC = () => {
   const fetchMeetings = async () => {
     try {
       setLoading(true);
+
+      // Convert local datetime-local values to UTC ISO format for API
+      const dateFromUTC = dateFromFilter ? new Date(dateFromFilter).toISOString() : undefined;
+      const dateToUTC = dateToFilter ? new Date(dateToFilter).toISOString() : undefined;
+
       const response = await listMyMeetings({
         page,
         page_size: pageSize,
         status: statusFilter || undefined,
         type: typeFilter || undefined,
         subject_id: subjectFilter || undefined,
-        date_from: dateFromFilter || undefined,
-        date_to: dateToFilter || undefined,
+        date_from: dateFromUTC,
+        date_to: dateToUTC,
       });
 
       setMeetings(response.items || []);
@@ -134,6 +139,12 @@ export const Meetings: React.FC = () => {
     } else {
       setViewMode('list');
     }
+  };
+
+  const handleJoinMeeting = () => {
+    if (!selectedMeeting) return;
+    // Navigate to meeting room page - token will be fetched there
+    window.location.href = `/meeting/${selectedMeeting.id}`;
   };
 
   const handleDeleteMeeting = async () => {
@@ -249,8 +260,10 @@ export const Meetings: React.FC = () => {
               {selectedMeeting.participants.map((participant) => (
                 <div key={participant.user_id} className="participant-item">
                   <div className="participant-info">
-                    <span className="participant-name">{participant.user.full_name}</span>
-                    <span className="participant-email">{participant.user.email}</span>
+                    <span className="participant-name">
+                      {participant.user?.full_name || participant.user?.username || participant.user_id}
+                    </span>
+                    <span className="participant-email">{participant.user?.email || ''}</span>
                   </div>
                   <div className="participant-badges">
                     <span className={`role-badge role-${participant.role}`}>
@@ -282,7 +295,7 @@ export const Meetings: React.FC = () => {
             <h3>{t('meetings.details.actions')}</h3>
             <div className="meeting-actions">
               {isMeetingNow(selectedMeeting) && (
-                <button className="action-btn join-btn">
+                <button className="action-btn join-btn" onClick={handleJoinMeeting}>
                   🎥 {t('meetings.details.joinMeeting')}
                 </button>
               )}
@@ -502,11 +515,14 @@ export const Meetings: React.FC = () => {
 
                   <div className="meeting-card-footer">
                     <div className="participants-preview">
-                      {meeting.participants.slice(0, 3).map((participant) => (
-                        <div key={participant.user_id} className="participant-avatar" title={participant.user.full_name}>
-                          {participant.user.full_name.charAt(0).toUpperCase()}
-                        </div>
-                      ))}
+                      {meeting.participants.slice(0, 3).map((participant) => {
+                        const displayName = participant.user?.full_name || participant.user?.username || 'U';
+                        return (
+                          <div key={participant.user_id} className="participant-avatar" title={displayName}>
+                            {displayName.charAt(0).toUpperCase()}
+                          </div>
+                        );
+                      })}
                       {meeting.participants.length > 3 && (
                         <div className="participant-avatar more">
                           +{meeting.participants.length - 3}

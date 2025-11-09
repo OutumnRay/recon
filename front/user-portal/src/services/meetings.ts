@@ -195,15 +195,17 @@ export const getMeetingSubject = async (subjectId: string): Promise<MeetingSubje
 
 /**
  * Format meeting date for display
+ * Dates from backend are in UTC ISO format, displayed in user's local timezone with 24-hour format
  */
 export const formatMeetingDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleString('en-US', {
+  return date.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false, // Use 24-hour format
   });
 };
 

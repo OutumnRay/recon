@@ -352,7 +352,7 @@ export default function MeetingRoom() {
           )}
           {tokenData?.forceEndAt && (
             <p style={{ margin: '5px 0 0 0', color: '#fbbf24' }}>
-              <strong>Meeting will end at:</strong> {new Date(tokenData.forceEndAt).toLocaleString()}
+              <strong>Meeting will end at:</strong> {new Date(tokenData.forceEndAt).toLocaleString(undefined, { hour12: false })}
             </p>
           )}
         </div>

@@ -122,7 +122,7 @@ export const Groups: React.FC = (): ReactElement => {
                     )}
                   </td>
                   <td>
-                    {group.created_at ? new Date(group.created_at).toLocaleDateString() : '-'}
+                    {group.created_at ? new Date(group.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}
                   </td>
                   <td>
                     <div className="action-buttons">

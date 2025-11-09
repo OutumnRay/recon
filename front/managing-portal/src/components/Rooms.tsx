@@ -50,7 +50,7 @@ export const Rooms = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString();
+    return date.toLocaleString(undefined, { hour12: false });
   };
 
   const formatDuration = (startedAt: string, finishedAt?: string) => {
