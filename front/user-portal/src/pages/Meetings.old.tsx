@@ -292,7 +292,7 @@ export const Meetings: React.FC = () => {
           <div className="details-section">
             <h3>Meeting Actions</h3>
             <div className="meeting-actions">
-              {isMeetingNow(selectedMeeting) && (
+              {selectedMeeting.status !== 'cancelled' && (
                 <button className="action-btn join-btn" onClick={handleJoinMeeting}>
                   🎥 Join Meeting
                 </button>

@@ -294,7 +294,7 @@ export const Meetings: React.FC = () => {
           <div className="details-section">
             <h3>{t('meetings.details.actions')}</h3>
             <div className="meeting-actions">
-              {isMeetingNow(selectedMeeting) && (
+              {selectedMeeting.status !== 'cancelled' && (
                 <button className="action-btn join-btn" onClick={handleJoinMeeting}>
                   🎥 {t('meetings.details.joinMeeting')}
                 </button>

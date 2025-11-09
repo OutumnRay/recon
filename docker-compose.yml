@@ -68,6 +68,10 @@ services:
       - EMBEDDINGS_API_URL=http://ollama:11434/api/embeddings
       - EMBEDDINGS_API_KEY=local
       - EMBEDDINGS_MODEL=nomic-embed-text
+      # LiveKit Configuration
+      - LIVEKIT_URL=wss://video.recontext.online
+      - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
+      - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
       # SMTP Configuration for email sending
       - SMTP_HOST=smtp.timeweb.ru
       - SMTP_PORT=465

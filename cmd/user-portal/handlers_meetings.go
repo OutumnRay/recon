@@ -97,11 +97,15 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		NeedsAudioRecord:   req.NeedsAudioRecord,
 		AdditionalNotes:    req.AdditionalNotes,
 		ForceEndAtDuration: req.ForceEndAtDuration,
-		LiveKitRoomID:      nil, // Will be set when meeting starts
+		LiveKitRoomID:      nil, // Will be set below
 		CreatedBy:          claims.UserID,
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
 	}
+
+	// Create LiveKit room ID immediately
+	livekitRoomID := fmt.Sprintf("meeting-%s", meetingID)
+	meeting.LiveKitRoomID = &livekitRoomID
 
 	if err := up.meetingRepo.CreateMeeting(meeting); err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to create meeting", err.Error())

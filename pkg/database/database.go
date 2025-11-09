@@ -474,7 +474,7 @@ CREATE TABLE IF NOT EXISTS meetings (
 	needs_video_record BOOLEAN NOT NULL DEFAULT false,
 	needs_audio_record BOOLEAN NOT NULL DEFAULT false,
 	additional_notes TEXT,
-	livekit_room_id VARCHAR(255) REFERENCES livekit_rooms(sid) ON DELETE SET NULL,
+	livekit_room_id VARCHAR(255),
 	created_by VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_at TIMESTAMP NOT NULL DEFAULT NOW()
