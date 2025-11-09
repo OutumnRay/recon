@@ -47,14 +47,15 @@ func (mp *ManagingPortal) listUsersHandler(w http.ResponseWriter, r *http.Reques
 			Role:         user.Role,
 			DepartmentID: user.DepartmentID,
 			Permissions:  user.Permissions,
+			Language:     user.Language,
 		})
 	}
 
 	response := models.ListUsersResponse{
-		Users:    usersList,
+		Items:    usersList,
 		Total:    len(usersList),
-		Page:     1,
-		PageSize: 20,
+		Offset:   0,
+		PageSize: len(usersList),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -87,6 +88,7 @@ func (mp *ManagingPortal) getUserHandler(w http.ResponseWriter, r *http.Request)
 		Role:         user.Role,
 		DepartmentID: user.DepartmentID,
 		Permissions:  user.Permissions,
+		Language:     user.Language,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -138,6 +140,9 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 	if req.Permissions != nil {
 		foundUser.Permissions = *req.Permissions
 	}
+	if req.Language != "" {
+		foundUser.Language = req.Language
+	}
 	if req.IsActive != nil {
 		foundUser.IsActive = *req.IsActive
 	}
@@ -156,6 +161,7 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 		Role:         foundUser.Role,
 		DepartmentID: foundUser.DepartmentID,
 		Permissions:  foundUser.Permissions,
+		Language:     foundUser.Language,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

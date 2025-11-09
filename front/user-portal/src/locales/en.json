@@ -5,6 +5,7 @@
     "logout": "Logout",
     "cancel": "Cancel",
     "save": "Save",
+    "saving": "Saving...",
     "delete": "Delete",
     "edit": "Edit",
     "create": "Create",
@@ -13,6 +14,17 @@
     "confirm": "Confirm",
     "yes": "Yes",
     "no": "No"
+  },
+  "settings": {
+    "title": "User Settings",
+    "accountInfo": "Account Information",
+    "username": "Username",
+    "email": "Email",
+    "preferences": "Preferences",
+    "language": "Language",
+    "languageHint": "Select your preferred language for the interface",
+    "saveSuccess": "Settings saved successfully",
+    "saveError": "Failed to save settings"
   },
   "nav": {
     "meetings": "Meetings",

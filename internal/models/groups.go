@@ -57,8 +57,10 @@ type AddUserToGroupRequest struct {
 
 // ListGroupsResponse represents a list of groups
 type ListGroupsResponse struct {
-	Groups []UserGroup `json:"groups"`
-	Total  int         `json:"total"`
+	Items    []UserGroup `json:"items"`
+	Total    int         `json:"total"`
+	Offset   int         `json:"offset"`
+	PageSize int         `json:"page_size"`
 }
 
 // PermissionCheckRequest represents a request to check permissions

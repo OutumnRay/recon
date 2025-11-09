@@ -22,10 +22,13 @@ func (up *UserPortal) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return simplified user list
+	// Return standardized response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"users": users,
+		"items":     users,
+		"total":     len(users),
+		"offset":    0,
+		"page_size": len(users),
 	})
 }
 
@@ -45,9 +48,12 @@ func (up *UserPortal) listDepartmentsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Return departments list
+	// Return standardized response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"items": departments,
+		"items":     departments,
+		"total":     len(departments),
+		"offset":    0,
+		"page_size": len(departments),
 	})
 }

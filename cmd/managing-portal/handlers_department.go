@@ -113,8 +113,22 @@ func (mp *ManagingPortal) listDepartmentsHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// Convert to slice of values for standardized response
+	var departmentsList []models.Department
+	for _, dept := range departments {
+		departmentsList = append(departmentsList, *dept)
+	}
+
+	// Return standardized response
+	response := models.ListDepartmentsResponse{
+		Items:    departmentsList,
+		Total:    len(departmentsList),
+		Offset:   0,
+		PageSize: len(departmentsList),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(departments)
+	json.NewEncoder(w).Encode(response)
 }
 
 // GetDepartment godoc

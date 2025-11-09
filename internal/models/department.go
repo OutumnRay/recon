@@ -47,10 +47,10 @@ type ListDepartmentsRequest struct {
 
 // ListDepartmentsResponse represents a paginated list of departments
 type ListDepartmentsResponse struct {
-	Departments []Department `json:"departments"`
-	Total       int          `json:"total"`
-	Page        int          `json:"page"`
-	PageSize    int          `json:"page_size"`
+	Items    []Department `json:"items"`
+	Total    int          `json:"total"`
+	Offset   int          `json:"offset"`
+	PageSize int          `json:"page_size"`
 }
 
 // DepartmentWithStats represents a department with statistics

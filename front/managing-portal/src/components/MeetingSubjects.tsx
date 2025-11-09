@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { meetingSubjectsApi } from '../services/meetingSubjects';
-import type { MeetingSubject, CreateMeetingSubjectRequest, UpdateMeetingSubjectRequest } from '../services/meetingSubjects';
+import type { MeetingSubject } from '../services/meetingSubjects';
 import './MeetingSubjects.css';
 
 export const MeetingSubjects: React.FC = (): ReactElement => {
@@ -10,13 +10,6 @@ export const MeetingSubjects: React.FC = (): ReactElement => {
   const [subjects, setSubjects] = useState<MeetingSubject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<MeetingSubject | null>(null);
-  const [formData, setFormData] = useState<CreateMeetingSubjectRequest>({
-    name: '',
-    description: ''
-  });
 
   useEffect(() => {
     fetchSubjects();
@@ -34,36 +27,6 @@ export const MeetingSubjects: React.FC = (): ReactElement => {
     }
   };
 
-  const handleAddSubject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await meetingSubjectsApi.createSubject(formData);
-      setShowAddModal(false);
-      setFormData({ name: '', description: '' });
-      fetchSubjects();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('subjects.errors.createFailed'));
-    }
-  };
-
-  const handleUpdateSubject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSubject) return;
-
-    try {
-      const updateData: UpdateMeetingSubjectRequest = {
-        name: formData.name,
-        description: formData.description
-      };
-      await meetingSubjectsApi.updateSubject(selectedSubject.id, updateData);
-      setShowEditModal(false);
-      setSelectedSubject(null);
-      setFormData({ name: '', description: '' });
-      fetchSubjects();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('subjects.errors.updateFailed'));
-    }
-  };
 
   const handleDeleteSubject = async (id: string) => {
     if (!confirm(t('subjects.confirmDelete'))) return;
@@ -76,19 +39,6 @@ export const MeetingSubjects: React.FC = (): ReactElement => {
     }
   };
 
-  const openEditModal = (subject: MeetingSubject) => {
-    setSelectedSubject(subject);
-    setFormData({
-      name: subject.name,
-      description: subject.description || ''
-    });
-    setShowEditModal(true);
-  };
-
-  const openAddModal = () => {
-    setFormData({ name: '', description: '' });
-    setShowAddModal(true);
-  };
 
   if (loading) {
     return (
@@ -105,7 +55,7 @@ export const MeetingSubjects: React.FC = (): ReactElement => {
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">{t('subjects.title')}</h1>
-        <button onClick={openAddModal} className="btn btn-primary">
+        <button onClick={() => window.location.href = '/subjects/new'} className="btn btn-primary">
           + {t('subjects.addSubject')}
         </button>
       </div>
@@ -146,7 +96,7 @@ export const MeetingSubjects: React.FC = (): ReactElement => {
                   </td>
                   <td className="actions-cell">
                     <button
-                      onClick={() => openEditModal(subject)}
+                      onClick={() => window.location.href = `/subjects/${subject.id}/edit`}
                       className="btn btn-sm btn-secondary"
                     >
                       {t('subjects.table.edit')}
@@ -162,88 +112,6 @@ export const MeetingSubjects: React.FC = (): ReactElement => {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {/* Add Subject Modal */}
-      {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{t('subjects.addSubject')}</h2>
-              <button onClick={() => setShowAddModal(false)} className="modal-close">×</button>
-            </div>
-            <form onSubmit={handleAddSubject} className="modal-form">
-              <div className="form-group">
-                <label>{t('subjects.form.name')}</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('subjects.form.description')}</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="form-textarea"
-                  rows={3}
-                />
-              </div>
-              <div className="modal-actions">
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary">
-                  {t('subjects.form.cancel')}
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {t('subjects.form.save')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Subject Modal */}
-      {showEditModal && selectedSubject && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{t('subjects.form.editSubjectTitle', { name: selectedSubject.name })}</h2>
-              <button onClick={() => setShowEditModal(false)} className="modal-close">×</button>
-            </div>
-            <form onSubmit={handleUpdateSubject} className="modal-form">
-              <div className="form-group">
-                <label>{t('subjects.form.name')}</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('subjects.form.description')}</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="form-textarea"
-                  rows={3}
-                />
-              </div>
-              <div className="modal-actions">
-                <button type="button" onClick={() => setShowEditModal(false)} className="btn btn-secondary">
-                  {t('subjects.form.cancel')}
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {t('subjects.form.update')}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
     </div>

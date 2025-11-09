@@ -31,8 +31,10 @@ func (mp *ManagingPortal) listGroupsHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	response := models.ListGroupsResponse{
-		Groups: groupsList,
-		Total:  len(groupsList),
+		Items:    groupsList,
+		Total:    len(groupsList),
+		Offset:   0,
+		PageSize: len(groupsList),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

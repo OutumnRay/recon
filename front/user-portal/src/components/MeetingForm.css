@@ -321,3 +321,25 @@
   outline: 2px solid #4a90e2;
   outline-offset: 2px;
 }
+
+/* Icon styles */
+.checkbox-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+  color: #4a90e2;
+}
+
+.select-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.select-icon {
+  color: #4a90e2;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}

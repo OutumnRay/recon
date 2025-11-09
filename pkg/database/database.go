@@ -73,6 +73,7 @@ func (db *DB) RunMigrations() error {
 		createMeetingsTable,
 		createMeetingParticipantsTable,
 		createMeetingDepartmentsTable,
+		addLanguageToUsers,
 	}
 
 	for i, migration := range migrations {
@@ -517,4 +518,16 @@ CREATE TABLE IF NOT EXISTS meeting_departments (
 
 CREATE INDEX IF NOT EXISTS idx_meeting_departments_meeting_id ON meeting_departments(meeting_id);
 CREATE INDEX IF NOT EXISTS idx_meeting_departments_department_id ON meeting_departments(department_id);
+`
+
+const addLanguageToUsers = `
+DO $$
+BEGIN
+	IF NOT EXISTS (
+		SELECT 1 FROM information_schema.columns
+		WHERE table_name = 'users' AND column_name = 'language'
+	) THEN
+		ALTER TABLE users ADD COLUMN language VARCHAR(10) NOT NULL DEFAULT 'en';
+	END IF;
+END $$;
 `

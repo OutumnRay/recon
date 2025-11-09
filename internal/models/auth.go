@@ -12,6 +12,7 @@ type User struct {
 	DepartmentID *string        `json:"department_id,omitempty" db:"department_id"` // Department user belongs to
 	Groups       []string       `json:"groups,omitempty" db:"groups"`                // Group IDs user belongs to
 	Permissions  UserPermissions `json:"permissions" db:"permissions"`                // User-specific permissions
+	Language     string         `json:"language" db:"language"`                      // User's preferred language (ru, en, etc.)
 	IsActive     bool           `json:"is_active" db:"is_active"`
 	LastLogin    *time.Time     `json:"last_login,omitempty" db:"last_login"`
 	CreatedAt    time.Time      `json:"created_at" db:"created_at"`
@@ -56,6 +57,7 @@ type UserInfo struct {
 	Role         UserRole        `json:"role" example:"admin"`
 	DepartmentID *string         `json:"department_id,omitempty" example:"dept-001"`
 	Permissions  UserPermissions `json:"permissions"`
+	Language     string          `json:"language" example:"en"`
 }
 
 // RegisterRequest represents a registration request
@@ -63,6 +65,7 @@ type RegisterRequest struct {
 	Username string `json:"username" binding:"required" example:"newuser"`
 	Email    string `json:"email" binding:"required,email" example:"user@example.com"`
 	Password string `json:"password" binding:"required,min=8" example:"password123"`
+	Language string `json:"language,omitempty" example:"en"` // Optional language preference
 }
 
 // TokenClaims represents JWT token claims

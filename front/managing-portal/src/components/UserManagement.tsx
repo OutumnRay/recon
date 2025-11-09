@@ -2,12 +2,20 @@ import React, { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import './UserManagement.css';
 
+interface UserPermissions {
+  can_schedule_meetings: boolean;
+  can_manage_department: boolean;
+  can_approve_recordings: boolean;
+}
+
 interface User {
   id: string;
   username: string;
   email: string;
   role: 'admin' | 'user' | 'operator';
+  department_id?: string | null;
   groups?: string[];
+  permissions: UserPermissions;
   is_active?: boolean;
 }
 
@@ -17,29 +25,11 @@ interface Group {
   description?: string;
 }
 
-interface UserFormData {
-  username: string;
-  email: string;
-  password: string;
-  role: 'admin' | 'user' | 'operator';
-  groups: string[];
-}
-
 export const UserManagement: React.FC = (): ReactElement => {
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState<UserFormData>({
-    username: '',
-    email: '',
-    password: '',
-    role: 'user',
-    groups: []
-  });
 
   useEffect(() => {
     fetchUsers();
@@ -60,7 +50,7 @@ export const UserManagement: React.FC = (): ReactElement => {
       }
 
       const data = await response.json();
-      setUsers(data.users || []);
+      setUsers(data.items || []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users');
@@ -80,75 +70,13 @@ export const UserManagement: React.FC = (): ReactElement => {
 
       if (response.ok) {
         const data = await response.json();
-        setGroups(data.groups || []);
+        setGroups(data.items || []);
       }
     } catch (err) {
       console.error('Failed to fetch groups:', err);
     }
   };
 
-  const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await fetch('/api/v1/auth/register', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create user');
-      }
-
-      setShowAddModal(false);
-      resetForm();
-      fetchUsers();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create user');
-    }
-  };
-
-  const handleUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser) return;
-
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await fetch(`/api/v1/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          role: formData.role,
-          groups: formData.groups,
-          is_active: selectedUser.is_active
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update user');
-      }
-
-      setShowEditModal(false);
-      setSelectedUser(null);
-      resetForm();
-      fetchUsers();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update user');
-    }
-  };
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) {
@@ -257,27 +185,6 @@ export const UserManagement: React.FC = (): ReactElement => {
     }
   };
 
-  const openEditModal = (user: User) => {
-    setSelectedUser(user);
-    setFormData({
-      username: user.username,
-      email: user.email,
-      password: '',
-      role: user.role,
-      groups: user.groups || []
-    });
-    setShowEditModal(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      username: '',
-      email: '',
-      password: '',
-      role: 'user',
-      groups: []
-    });
-  };
 
   if (loading) {
     return (
@@ -295,7 +202,7 @@ export const UserManagement: React.FC = (): ReactElement => {
       <header className="page-header">
         <h1 className="page-title">User Management</h1>
         <div className="header-right">
-          <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
+          <button onClick={() => window.location.href = '/users/new'} className="btn btn-primary">
             + Add User
           </button>
         </div>
@@ -375,7 +282,7 @@ export const UserManagement: React.FC = (): ReactElement => {
                   <td>
                     <div className="action-buttons">
                       <button
-                        onClick={() => openEditModal(user)}
+                        onClick={() => window.location.href = `/users/${user.id}/edit`}
                         className="btn btn-small btn-secondary"
                       >
                         Edit
@@ -400,124 +307,6 @@ export const UserManagement: React.FC = (): ReactElement => {
           )}
         </div>
       </main>
-
-      {/* Add User Modal */}
-      {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Add New User</h2>
-              <button onClick={() => setShowAddModal(false)} className="modal-close">×</button>
-            </div>
-            <form onSubmit={handleAddUser} className="user-form">
-              <div className="form-group">
-                <label htmlFor="username">Username</label>
-                <input
-                  type="text"
-                  id="username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength={8}
-                />
-              </div>
-              <div className="modal-actions">
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Create User
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit User Modal */}
-      {showEditModal && selectedUser && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Edit User: {selectedUser.username}</h2>
-              <button onClick={() => setShowEditModal(false)} className="modal-close">×</button>
-            </div>
-            <form onSubmit={handleUpdateUser} className="user-form">
-              <div className="form-group">
-                <label htmlFor="edit-email">Email</label>
-                <input
-                  type="email"
-                  id="edit-email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="edit-role">Role</label>
-                <select
-                  id="edit-role"
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                >
-                  <option value="user">User</option>
-                  <option value="operator">Operator</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Groups</label>
-                <div className="checkbox-group">
-                  {groups.map((group) => (
-                    <label key={group.id} className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={formData.groups.includes(group.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({ ...formData, groups: [...formData.groups, group.id] });
-                          } else {
-                            setFormData({ ...formData, groups: formData.groups.filter(g => g !== group.id) });
-                          }
-                        }}
-                      />
-                      {group.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="modal-actions">
-                <button type="button" onClick={() => setShowEditModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Update User
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

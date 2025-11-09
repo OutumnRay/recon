@@ -22,6 +22,13 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      # SMTP Configuration for email sending
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-noreply@recontext.online}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Recontext}
     depends_on:
       - postgres
       - rabbitmq
@@ -55,6 +62,13 @@ services:
       - EMBEDDINGS_API_URL=http://ollama:11434/api/embeddings
       - EMBEDDINGS_API_KEY=local
       - EMBEDDINGS_MODEL=nomic-embed-text
+      # SMTP Configuration for email sending
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-noreply@recontext.online}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Recontext}
     depends_on:
       - managing-portal
       - postgres
@@ -89,68 +103,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # 4. Transcription Workers
-  #  transcription-worker:
-  #    build:
-  #      context: .
-  #      dockerfile: deployments/docker/Dockerfile.transcription-worker
-  #    image: sivanov2018/recontext-transcription-worker:latest
-  #    environment:
-  #      - RABBITMQ_HOST=rabbitmq
-  #      - RABBITMQ_PORT=5672
-  #      - MINIO_ENDPOINT=minio:9000
-  #      - MANAGING_PORTAL_URL=http://managing-portal:8080
-  #      - WORKER_ID=transcription-worker-1
-  #    depends_on:
-  #      - rabbitmq
-  #      - minio
-  #      - managing-portal
-  #    networks:
-  #      - recontext-network
-  #    restart: unless-stopped
-  #    deploy:
-  #      replicas: 2
-  #      resources:
-  #        reservations:
-  #          devices:
-  #            - driver: nvidia
-  #              count: 1
-  #              capabilities: [gpu]
-
-  # 5. Summarization Workers
-  #  summarization-worker:
-  #    build:
-  #      context: .
-  #      dockerfile: deployments/docker/Dockerfile.summarization-worker
-  #    image: sivanov2018/recontext-summarization-worker:latest
-  #    environment:
-  #      - RABBITMQ_HOST=rabbitmq
-  #      - RABBITMQ_PORT=5672
-  #      - DB_HOST=postgres
-  #      - MANAGING_PORTAL_URL=http://managing-portal:8080
-  #      - WORKER_ID=summarization-worker-1
-  #    depends_on:
-  #      - rabbitmq
-  #      - postgres
-  #      - managing-portal
-  #    networks:
-  #      - recontext-network
-  #    restart: unless-stopped
-  #    deploy:
-  #      replicas: 2
-
-  # 6. RAG Implementation (Vector Database + API)
-  #  rag-service:
-  #    image: qdrant/qdrant:latest
-  #    container_name: recontext-rag-qdrant
-  #    ports:
-  #      - "6333:6333"
-  #      - "6334:6334"
-  #    volumes:
-  #      - qdrant-data:/qdrant/storage
-  #    networks:
-  #      - recontext-network
-  #    restart: unless-stopped
 
   # 7. MinIO Storage
   minio:

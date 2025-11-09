@@ -7,6 +7,7 @@ type UpdateUserRequest struct {
 	DepartmentID *string          `json:"department_id,omitempty" example:"dept-001"`
 	Groups       []string         `json:"groups,omitempty"`
 	Permissions  *UserPermissions `json:"permissions,omitempty"`
+	Language     string           `json:"language,omitempty" example:"en"`
 	IsActive     *bool            `json:"is_active,omitempty" example:"true"`
 }
 
@@ -28,9 +29,9 @@ type ListUsersRequest struct {
 
 // ListUsersResponse represents a paginated list of users
 type ListUsersResponse struct {
-	Users    []UserInfo `json:"users"`
+	Items    []UserInfo `json:"items"`
 	Total    int        `json:"total"`
-	Page     int        `json:"page"`
+	Offset   int        `json:"offset"`
 	PageSize int        `json:"page_size"`
 }
 

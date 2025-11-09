@@ -83,9 +83,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 	// Create meeting
 	meetingID := fmt.Sprintf("meeting-%s", uuid.New().String())
 
-	// Generate LiveKit room ID (UUID format)
-	livekitRoomID := uuid.New().String()
-
+	// Don't assign LiveKit room ID yet - it will be created when meeting starts
 	meeting := &models.Meeting{
 		ID:                 meetingID,
 		Title:              req.Title,
@@ -99,7 +97,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		NeedsAudioRecord:   req.NeedsAudioRecord,
 		AdditionalNotes:    req.AdditionalNotes,
 		ForceEndAtDuration: req.ForceEndAtDuration,
-		LiveKitRoomID:      &livekitRoomID,
+		LiveKitRoomID:      nil, // Will be set when meeting starts
 		CreatedBy:          claims.UserID,
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
@@ -517,4 +515,55 @@ func (up *UserPortal) deleteMeetingHandler(w http.ResponseWriter, r *http.Reques
 		"message":    "Meeting deleted successfully",
 		"meeting_id": meetingID,
 	})
+}
+
+// ListMeetingSubjects godoc
+// @Summary List meeting subjects
+// @Description Get a paginated list of active meeting subjects
+// @Tags Meetings
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size" default(100)
+// @Param include_inactive query bool false "Include inactive subjects" default(false)
+// @Success 200 {object} models.MeetingSubjectsResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/meeting-subjects [get]
+func (up *UserPortal) listMeetingSubjectsHandler(w http.ResponseWriter, r *http.Request) {
+	_, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	// Parse pagination parameters
+	page := 1
+	if p := r.URL.Query().Get("page"); p != "" {
+		if val, err := strconv.Atoi(p); err == nil && val > 0 {
+			page = val
+		}
+	}
+
+	pageSize := 100
+	if ps := r.URL.Query().Get("page_size"); ps != "" {
+		if val, err := strconv.Atoi(ps); err == nil && val > 0 && val <= 1000 {
+			pageSize = val
+		}
+	}
+
+	// Parse include_inactive parameter
+	includeInactive := false
+	if ia := r.URL.Query().Get("include_inactive"); ia == "true" {
+		includeInactive = true
+	}
+
+	// Get subjects from repository
+	response, err := up.meetingRepo.ListSubjects(page, pageSize, nil, includeInactive)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to list meeting subjects", err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

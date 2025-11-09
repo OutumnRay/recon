@@ -4,9 +4,12 @@ import './App.css'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import UserManagement from './components/UserManagement'
+import UserForm from './components/UserForm'
 import Groups from './components/Groups'
+import GroupForm from './components/GroupForm'
 import Departments from './components/Departments'
 import MeetingSubjects from './components/MeetingSubjects'
+import MeetingSubjectForm from './components/MeetingSubjectForm'
 import Rooms from './components/Rooms'
 import RoomDetails from './components/RoomDetails'
 import Layout from './components/Layout'
@@ -52,13 +55,31 @@ function App() {
     const roomMatch = currentPath.match(/^\/rooms\/([^/]+)$/);
     const roomSid = roomMatch ? roomMatch[1] : null;
 
+    // Extract user ID from path if on user edit page
+    const userEditMatch = currentPath.match(/^\/users\/([^/]+)\/edit$/);
+    const userId = userEditMatch ? userEditMatch[1] : null;
+
+    // Extract group ID from path if on group edit page
+    const groupEditMatch = currentPath.match(/^\/groups\/([^/]+)\/edit$/);
+    const groupId = groupEditMatch ? groupEditMatch[1] : null;
+
+    // Extract subject ID from path if on subject edit page
+    const subjectEditMatch = currentPath.match(/^\/subjects\/([^/]+)\/edit$/);
+    const subjectId = subjectEditMatch ? subjectEditMatch[1] : null;
+
     return (
       <Layout currentPath={currentPath}>
         {currentPath === '/dashboard' && <Dashboard />}
         {currentPath === '/users' && <UserManagement />}
+        {currentPath === '/users/new' && <UserForm />}
+        {userId && <UserForm />}
         {currentPath === '/groups' && <Groups />}
+        {currentPath === '/groups/new' && <GroupForm />}
+        {groupId && <GroupForm />}
         {currentPath === '/departments' && <Departments />}
         {currentPath === '/subjects' && <MeetingSubjects />}
+        {currentPath === '/subjects/new' && <MeetingSubjectForm />}
+        {subjectId && <MeetingSubjectForm />}
         {currentPath === '/rooms' && <Rooms />}
         {roomSid && <RoomDetails roomSid={roomSid} />}
       </Layout>

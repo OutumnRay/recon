@@ -12,6 +12,7 @@ interface LoginResponse {
     username: string;
     email: string;
     role: string;
+    language: string;
   };
 }
 
@@ -22,7 +23,7 @@ interface ErrorResponse {
 }
 
 export const Login: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -53,6 +54,12 @@ export const Login: React.FC = () => {
       }
 
       const loginData = data as LoginResponse;
+
+      // Apply user's preferred language if available
+      if (loginData.user.language) {
+        await i18n.changeLanguage(loginData.user.language);
+        localStorage.setItem('i18nextLng', loginData.user.language);
+      }
 
       // Store token
       if (rememberMe) {

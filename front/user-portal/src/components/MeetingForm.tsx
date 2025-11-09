@@ -13,6 +13,9 @@ import type {
   UpdateMeetingRequest,
   MeetingSubject,
 } from '../types/meeting';
+import { SearchableSelect } from './SearchableSelect';
+import { MultiSelectWithSearch } from './MultiSelectWithSearch';
+import { LuUsers, LuMic, LuVideo, LuClock } from 'react-icons/lu';
 import './MeetingForm.css';
 
 interface MeetingFormProps {
@@ -142,7 +145,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        setUsers(data.users || []);
+        setUsers(data.items || []);
       }
     } catch (err) {
       console.error('Failed to fetch users:', err);
@@ -163,29 +166,13 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        setDepartments(data.departments || data.items || []);
+        setDepartments(data.items || []);
       }
     } catch (err) {
       console.error('Failed to fetch departments:', err);
       // Set empty array if API doesn't exist yet
       setDepartments([]);
     }
-  };
-
-  const handleUserToggle = (userId: string) => {
-    setSelectedUserIds((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
-    );
-  };
-
-  const handleDepartmentToggle = (deptId: string) => {
-    setSelectedDepartmentIds((prev) =>
-      prev.includes(deptId)
-        ? prev.filter((id) => id !== deptId)
-        : [...prev, deptId]
-    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -242,7 +229,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           force_end_at_duration: forceEndAtDuration,
           additional_notes: additionalNotes || undefined,
           speaker_id: type === 'presentation' ? speakerId : undefined,
-          participant_user_ids: selectedUserIds,
+          participant_ids: selectedUserIds,
           department_ids: selectedDepartmentIds,
         };
 
@@ -262,7 +249,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           force_end_at_duration: forceEndAtDuration,
           additional_notes: additionalNotes || undefined,
           speaker_id: type === 'presentation' ? speakerId : undefined,
-          participant_user_ids: selectedUserIds,
+          participant_ids: selectedUserIds,
           department_ids: selectedDepartmentIds,
         };
 
@@ -327,36 +314,38 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
               <label htmlFor="type" className="form-label required">
                 {t('meetings.form.type')}
               </label>
-              <select
-                id="type"
-                value={type}
-                onChange={(e) => setType(e.target.value as MeetingType)}
-                className="form-select"
-                required
-              >
-                <option value="conference">👥 {t('meetings.type.conference')}</option>
-                <option value="presentation">🎤 {t('meetings.type.presentation')}</option>
-              </select>
+              <div className="select-with-icon">
+                {type === 'conference' ? <LuUsers className="select-icon" /> : <LuMic className="select-icon" />}
+                <select
+                  id="type"
+                  value={type}
+                  onChange={(e) => setType(e.target.value as MeetingType)}
+                  className="form-select"
+                  required
+                >
+                  <option value="conference">
+                    {t('meetings.type.conference')}
+                  </option>
+                  <option value="presentation">
+                    {t('meetings.type.presentation')}
+                  </option>
+                </select>
+              </div>
             </div>
 
             <div className="form-group">
-              <label htmlFor="subject" className="form-label required">
-                {t('meetings.form.subject')}
-              </label>
-              <select
+              <SearchableSelect
                 id="subject"
+                label={`${t('meetings.form.subject')} *`}
                 value={subjectId}
-                onChange={(e) => setSubjectId(e.target.value)}
-                className="form-select"
-                required
-              >
-                <option value="">{t('meetings.form.selectSubject')}</option>
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setSubjectId(value)}
+                options={subjects.map(subject => ({
+                  value: subject.id,
+                  label: subject.name,
+                }))}
+                placeholder={t('meetings.form.selectSubject')}
+                emptyPlaceholder={t('meetings.form.selectSubject')}
+              />
             </div>
           </div>
 
@@ -416,81 +405,47 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
 
           {type === 'presentation' && (
             <div className="form-group">
-              <label htmlFor="speaker" className="form-label required">
-                {t('meetings.form.speaker')}
-              </label>
-              <select
+              <SearchableSelect
                 id="speaker"
+                label={`${t('meetings.form.speaker')} *`}
                 value={speakerId}
-                onChange={(e) => setSpeakerId(e.target.value)}
-                className="form-select"
-                required
-              >
-                <option value="">{t('meetings.form.selectSpeaker')}</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.full_name} ({user.email})
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setSpeakerId(value)}
+                options={users.map(user => ({
+                  value: user.id,
+                  label: `${user.full_name || user.username} (${user.email})`,
+                }))}
+                placeholder={t('meetings.form.selectSpeaker')}
+                emptyPlaceholder={t('meetings.form.selectSpeaker')}
+              />
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">{t('meetings.form.individualParticipants')}</label>
-            {users.length === 0 ? (
-              <p className="empty-hint">
-                {t('meetings.form.noUsersAvailable')}
-              </p>
-            ) : (
-              <div className="checkbox-list">
-                {users.map((user) => (
-                  <label key={user.id} className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={selectedUserIds.includes(user.id)}
-                      onChange={() => handleUserToggle(user.id)}
-                      disabled={user.id === speakerId}
-                    />
-                    <span className="checkbox-label">
-                      {user.full_name} ({user.email})
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+          <MultiSelectWithSearch
+            label={t('meetings.form.individualParticipants')}
+            options={users.map(user => ({
+              id: user.id,
+              name: user.full_name || user.username,
+              email: user.email,
+            }))}
+            selectedIds={selectedUserIds}
+            onChange={setSelectedUserIds}
+            placeholder={t('meetings.form.searchUsers') || 'Поиск пользователей...'}
+            emptyMessage={t('meetings.form.noUsersAvailable')}
+            disabledIds={speakerId ? [speakerId] : []}
+          />
 
-          <div className="form-group">
-            <label className="form-label">{t('meetings.form.departments')}</label>
-            {departments.length === 0 ? (
-              <p className="empty-hint">
-                {t('meetings.form.noDepartmentsAvailable')}
-              </p>
-            ) : (
-              <div className="checkbox-list">
-                {departments.map((dept) => (
-                  <label key={dept.id} className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={selectedDepartmentIds.includes(dept.id)}
-                      onChange={() => handleDepartmentToggle(dept.id)}
-                    />
-                    <span className="checkbox-label">
-                      {dept.name}
-                      {dept.description && (
-                        <span className="checkbox-hint"> - {dept.description}</span>
-                      )}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="participant-count">
-            {t('meetings.form.selectedCount', { users: selectedUserIds.length, departments: selectedDepartmentIds.length })}
-          </div>
+          <MultiSelectWithSearch
+            label={t('meetings.form.departments')}
+            options={departments.map(dept => ({
+              id: dept.id,
+              name: dept.name,
+              description: dept.description,
+            }))}
+            selectedIds={selectedDepartmentIds}
+            onChange={setSelectedDepartmentIds}
+            placeholder={t('meetings.form.searchDepartments') || 'Поиск подразделений...'}
+            emptyMessage={t('meetings.form.noDepartmentsAvailable')}
+          />
         </div>
 
         {/* Recording Options */}
@@ -504,7 +459,9 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 checked={needsVideoRecord}
                 onChange={(e) => setNeedsVideoRecord(e.target.checked)}
               />
-              <span className="checkbox-label">🎥 {t('meetings.form.videoRecording')}</span>
+              <span className="checkbox-label">
+                <LuVideo className="checkbox-icon" /> {t('meetings.form.videoRecording')}
+              </span>
             </label>
           </div>
 
@@ -515,7 +472,9 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 checked={needsAudioRecord}
                 onChange={(e) => setNeedsAudioRecord(e.target.checked)}
               />
-              <span className="checkbox-label">🎙️ {t('meetings.form.audioRecording')}</span>
+              <span className="checkbox-label">
+                <LuMic className="checkbox-icon" /> {t('meetings.form.audioRecording')}
+              </span>
             </label>
           </div>
 
@@ -526,7 +485,9 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 checked={forceEndAtDuration}
                 onChange={(e) => setForceEndAtDuration(e.target.checked)}
               />
-              <span className="checkbox-label">⏱️ {t('meetings.form.forceEndAtDuration')}</span>
+              <span className="checkbox-label">
+                <LuClock className="checkbox-icon" /> {t('meetings.form.forceEndAtDuration')}
+              </span>
             </label>
           </div>
         </div>

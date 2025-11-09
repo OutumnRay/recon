@@ -61,7 +61,8 @@ export const liveKitApi = {
       throw new Error('Failed to fetch rooms');
     }
 
-    return response.json();
+    const data = await response.json();
+    return data.items || [];
   },
 
   async getRoom(sid: string): Promise<Room> {
@@ -85,7 +86,8 @@ export const liveKitApi = {
       throw new Error('Failed to fetch participants');
     }
 
-    return response.json();
+    const data = await response.json();
+    return data.items || [];
   },
 
   async getTracks(roomSid: string): Promise<Track[]> {
@@ -97,7 +99,8 @@ export const liveKitApi = {
       throw new Error('Failed to fetch tracks');
     }
 
-    return response.json();
+    const data = await response.json();
+    return data.items || [];
   },
 
   async getWebhookEvents(eventType?: string, roomSid?: string, limit: number = 100, offset: number = 0) {
@@ -115,6 +118,7 @@ export const liveKitApi = {
       throw new Error('Failed to fetch webhook events');
     }
 
-    return response.json();
+    const data = await response.json();
+    return data.items || [];
   },
 };

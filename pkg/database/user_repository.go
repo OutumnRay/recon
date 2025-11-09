@@ -20,8 +20,8 @@ func NewUserRepository(db *DB) *UserRepository {
 // Create creates a new user
 func (r *UserRepository) Create(user *models.User) error {
 	query := `
-		INSERT INTO users (id, username, email, password, role, groups, is_active, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO users (id, username, email, password, role, groups, language, is_active, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
 
 	_, err := r.db.Exec(
@@ -32,6 +32,7 @@ func (r *UserRepository) Create(user *models.User) error {
 		user.Password,
 		user.Role,
 		pq.Array(user.Groups),
+		user.Language,
 		user.IsActive,
 		user.CreatedAt,
 		user.UpdatedAt,
@@ -47,7 +48,7 @@ func (r *UserRepository) Create(user *models.User) error {
 // GetByID retrieves a user by ID
 func (r *UserRepository) GetByID(id string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password, role, groups, is_active, last_login, created_at, updated_at
+		SELECT id, username, email, password, role, groups, language, is_active, last_login, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -62,6 +63,7 @@ func (r *UserRepository) GetByID(id string) (*models.User, error) {
 		&user.Password,
 		&user.Role,
 		pq.Array(&user.Groups),
+		&user.Language,
 		&user.IsActive,
 		&lastLogin,
 		&user.CreatedAt,
@@ -85,7 +87,7 @@ func (r *UserRepository) GetByID(id string) (*models.User, error) {
 // GetByUsername retrieves a user by username
 func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password, role, groups, is_active, last_login, created_at, updated_at
+		SELECT id, username, email, password, role, groups, language, is_active, last_login, created_at, updated_at
 		FROM users
 		WHERE username = $1
 	`
@@ -100,6 +102,7 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 		&user.Password,
 		&user.Role,
 		pq.Array(&user.Groups),
+		&user.Language,
 		&user.IsActive,
 		&lastLogin,
 		&user.CreatedAt,
@@ -123,7 +126,7 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 // GetByEmail retrieves a user by email
 func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password, role, groups, is_active, last_login, created_at, updated_at
+		SELECT id, username, email, password, role, groups, language, is_active, last_login, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -138,6 +141,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 		&user.Password,
 		&user.Role,
 		pq.Array(&user.Groups),
+		&user.Language,
 		&user.IsActive,
 		&lastLogin,
 		&user.CreatedAt,
@@ -161,7 +165,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 // List retrieves all users with optional filters
 func (r *UserRepository) List(role string, isActive *bool) ([]*models.User, error) {
 	query := `
-		SELECT id, username, email, password, role, groups, is_active, last_login, created_at, updated_at
+		SELECT id, username, email, password, role, groups, language, is_active, last_login, created_at, updated_at
 		FROM users
 		WHERE 1=1
 	`
@@ -200,6 +204,7 @@ func (r *UserRepository) List(role string, isActive *bool) ([]*models.User, erro
 			&user.Password,
 			&user.Role,
 			pq.Array(&user.Groups),
+			&user.Language,
 			&user.IsActive,
 			&lastLogin,
 			&user.CreatedAt,
@@ -223,7 +228,7 @@ func (r *UserRepository) List(role string, isActive *bool) ([]*models.User, erro
 func (r *UserRepository) Update(user *models.User) error {
 	query := `
 		UPDATE users
-		SET email = $2, role = $3, groups = $4, is_active = $5, updated_at = $6
+		SET email = $2, role = $3, groups = $4, language = $5, is_active = $6, updated_at = $7
 		WHERE id = $1
 	`
 
@@ -235,6 +240,7 @@ func (r *UserRepository) Update(user *models.User) error {
 		user.Email,
 		user.Role,
 		pq.Array(user.Groups),
+		user.Language,
 		user.IsActive,
 		user.UpdatedAt,
 	)

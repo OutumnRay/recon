@@ -25,6 +25,13 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      # SMTP Configuration for email sending
+      - SMTP_HOST=smtp.timeweb.ru
+      - SMTP_PORT=465
+      - SMTP_USER=support@recontext.online
+      - SMTP_PASSWORD=\oF^8,09D$-\6h
+      - SMTP_FROM_ADDRESS=support@recontext.online
+      - SMTP_FROM_NAME=Служба поддержки Recontext
     depends_on:
       - postgres
       - rabbitmq
@@ -61,6 +68,13 @@ services:
       - EMBEDDINGS_API_URL=http://ollama:11434/api/embeddings
       - EMBEDDINGS_API_KEY=local
       - EMBEDDINGS_MODEL=nomic-embed-text
+      # SMTP Configuration for email sending
+      - SMTP_HOST=smtp.timeweb.ru
+      - SMTP_PORT=465
+      - SMTP_USER=support@recontext.online
+      - SMTP_PASSWORD=\oF^8,09D$-\6h
+      - SMTP_FROM_ADDRESS=support@recontext.online
+      - SMTP_FROM_NAME=Служба поддержки Recontext
     depends_on:
       - managing-portal
       - postgres

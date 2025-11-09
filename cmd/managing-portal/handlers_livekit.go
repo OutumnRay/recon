@@ -362,7 +362,7 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 // @Param status query string false "Filter by status (active, finished)"
 // @Param limit query int false "Limit results" default(50)
 // @Param offset query int false "Offset for pagination" default(0)
-// @Success 200 {array} models.Room
+// @Success 200 {object} map[string]interface{}
 // @Security BearerAuth
 // @Router /api/v1/livekit/rooms [get]
 func (mp *ManagingPortal) listLiveKitRoomsHandler(w http.ResponseWriter, r *http.Request) {
@@ -390,8 +390,16 @@ func (mp *ManagingPortal) listLiveKitRoomsHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	// Return standardized response format
+	response := map[string]interface{}{
+		"items":     rooms,
+		"total":     len(rooms),
+		"offset":    offset,
+		"page_size": limit,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(rooms)
+	json.NewEncoder(w).Encode(response)
 }
 
 // GetLiveKitRoom godoc
@@ -427,7 +435,7 @@ func (mp *ManagingPortal) getLiveKitRoomHandler(w http.ResponseWriter, r *http.R
 // @Tags LiveKit
 // @Produce json
 // @Param room_sid query string true "Room SID"
-// @Success 200 {array} models.Participant
+// @Success 200 {object} map[string]interface{}
 // @Security BearerAuth
 // @Router /api/v1/livekit/participants [get]
 func (mp *ManagingPortal) listLiveKitParticipantsHandler(w http.ResponseWriter, r *http.Request) {
@@ -443,8 +451,16 @@ func (mp *ManagingPortal) listLiveKitParticipantsHandler(w http.ResponseWriter, 
 		return
 	}
 
+	// Return standardized response format
+	response := map[string]interface{}{
+		"items":     participants,
+		"total":     len(participants),
+		"offset":    0,
+		"page_size": len(participants),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(participants)
+	json.NewEncoder(w).Encode(response)
 }
 
 // GetLiveKitTracks godoc
@@ -453,7 +469,7 @@ func (mp *ManagingPortal) listLiveKitParticipantsHandler(w http.ResponseWriter, 
 // @Tags LiveKit
 // @Produce json
 // @Param room_sid query string true "Room SID"
-// @Success 200 {array} models.Track
+// @Success 200 {object} map[string]interface{}
 // @Security BearerAuth
 // @Router /api/v1/livekit/tracks [get]
 func (mp *ManagingPortal) listLiveKitTracksHandler(w http.ResponseWriter, r *http.Request) {
@@ -469,8 +485,16 @@ func (mp *ManagingPortal) listLiveKitTracksHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
+	// Return standardized response format
+	response := map[string]interface{}{
+		"items":     tracks,
+		"total":     len(tracks),
+		"offset":    0,
+		"page_size": len(tracks),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tracks)
+	json.NewEncoder(w).Encode(response)
 }
 
 // GetWebhookEvents godoc
@@ -482,7 +506,7 @@ func (mp *ManagingPortal) listLiveKitTracksHandler(w http.ResponseWriter, r *htt
 // @Param room_sid query string false "Filter by room SID"
 // @Param limit query int false "Limit results" default(100)
 // @Param offset query int false "Offset for pagination" default(0)
-// @Success 200 {array} models.WebhookEventLog
+// @Success 200 {object} map[string]interface{}
 // @Security BearerAuth
 // @Router /api/v1/livekit/webhook-events [get]
 func (mp *ManagingPortal) listWebhookEventsHandler(w http.ResponseWriter, r *http.Request) {
@@ -511,6 +535,14 @@ func (mp *ManagingPortal) listWebhookEventsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
+	// Return standardized response format
+	response := map[string]interface{}{
+		"items":     events,
+		"total":     len(events),
+		"offset":    offset,
+		"page_size": limit,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(events)
+	json.NewEncoder(w).Encode(response)
 }

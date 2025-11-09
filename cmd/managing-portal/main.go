@@ -17,6 +17,7 @@ import (
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/database"
+	"Recontext.online/pkg/email"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 	"Recontext.online/pkg/prometheus"
@@ -58,6 +59,7 @@ type ManagingPortal struct {
 	departmentRepo    *database.DepartmentRepository // Department repository
 	meetingRepo       *database.MeetingRepository    // Meeting repository
 	liveKitRepo       *database.LiveKitRepository    // LiveKit repository
+	mailer            *email.Mailer                  // Email service
 	metricsData       []models.Metric                // In-memory metrics store
 	logs              []models.LogEntry              // In-memory logs store
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
@@ -100,6 +102,10 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 	meetingRepo := database.NewMeetingRepository(db)
 	liveKitRepo := database.NewLiveKitRepository(db)
 
+	// Initialize email mailer
+	emailConfig := email.LoadConfigFromEnv()
+	mailer := email.NewMailer(emailConfig)
+
 	// Initialize Prometheus client (uses internal Docker network)
 	prometheusClient := prometheus.NewClient("http://prometheus:9090")
 
@@ -114,6 +120,7 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 		departmentRepo:    departmentRepo,
 		meetingRepo:       meetingRepo,
 		liveKitRepo:       liveKitRepo,
+		mailer:            mailer,
 		metricsData:       make([]models.Metric, 0),
 		logs:              make([]models.LogEntry, 0),
 		prometheusMetrics: metrics.NewServiceMetrics("managing_portal"),
@@ -188,6 +195,7 @@ func (mp *ManagingPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 			Role:         user.Role,
 			DepartmentID: user.DepartmentID,
 			Permissions:  user.Permissions,
+			Language:     user.Language,
 		},
 	}
 
@@ -227,6 +235,11 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Create new user with default permissions
+	language := req.Language
+	if language == "" {
+		language = "en" // Default language
+	}
+
 	newUser := &models.User{
 		ID:       fmt.Sprintf("user-%d", time.Now().Unix()),
 		Username: req.Username,
@@ -238,6 +251,7 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 			CanManageDepartment:  false,
 			CanApproveRecordings: false,
 		},
+		Language:  language,
 		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -250,6 +264,23 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 
 	mp.logger.Infof("User created: %s (%s)", newUser.Username, newUser.ID)
 
+	// Send welcome email asynchronously
+	go func() {
+		loginURL := getEnv("LOGIN_URL", "http://localhost:20080")
+		emailData := email.WelcomeEmailData{
+			Username: newUser.Username,
+			Email:    newUser.Email,
+			Language: newUser.Language,
+			LoginURL: loginURL,
+		}
+
+		if err := mp.mailer.SendWelcomeEmail(newUser.Email, emailData); err != nil {
+			mp.logger.Errorf("Failed to send welcome email to %s: %v", newUser.Email, err)
+		} else {
+			mp.logger.Infof("Welcome email sent to %s", newUser.Email)
+		}
+	}()
+
 	userInfo := models.UserInfo{
 		ID:           newUser.ID,
 		Username:     newUser.Username,
@@ -257,6 +288,7 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 		Role:         newUser.Role,
 		DepartmentID: newUser.DepartmentID,
 		Permissions:  newUser.Permissions,
+		Language:     newUser.Language,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

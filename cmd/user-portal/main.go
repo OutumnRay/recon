@@ -813,6 +813,12 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
+	// Meeting subjects endpoint
+	mux.Handle("/api/v1/meeting-subjects", chainMiddleware(
+		http.HandlerFunc(up.listMeetingSubjectsHandler),
+		authMiddleware,
+	))
+
 	// Helper endpoints for meeting form
 	mux.Handle("/api/v1/users", chainMiddleware(
 		http.HandlerFunc(up.listUsersHandler),
