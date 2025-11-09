@@ -2,7 +2,17 @@
   "common": {
     "loading": "Loading...",
     "retry": "Retry",
-    "logout": "Logout"
+    "logout": "Logout",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "reset": "Reset",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
   },
   "nav": {
     "meetings": "Meetings",
@@ -28,6 +38,185 @@
     "errors": {
       "loginFailed": "Login failed",
       "networkError": "An error occurred during login"
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "subtitle": "Upload and transcribe audio/video files",
+    "upload": {
+      "title": "Upload Audio/Video File",
+      "description": "Upload audio or video files for transcription. Maximum file size: 500MB",
+      "clickOrDrag": "Click to upload",
+      "dragText": "or drag and drop",
+      "hint": "Audio: MP3, WAV, M4A | Video: MP4, MOV",
+      "clear": "Clear",
+      "uploadButton": "Upload File",
+      "uploading": "uploaded",
+      "success": "File uploaded successfully!",
+      "errors": {
+        "sizeLimit": "File size exceeds 500MB limit",
+        "invalidType": "Invalid file type. Please upload audio or video files only",
+        "uploadFailed": "Failed to upload file",
+        "networkError": "Network error occurred during upload"
+      }
+    },
+    "list": {
+      "title": "Uploaded Files",
+      "refresh": "Refresh",
+      "loading": "Loading files...",
+      "noFiles": "No files uploaded yet",
+      "noFilesHint": "Upload your first audio or video file above",
+      "table": {
+        "filename": "Filename",
+        "size": "Size",
+        "status": "Status",
+        "uploaded": "Uploaded"
+      },
+      "status": {
+        "pending": "Pending",
+        "processing": "Processing",
+        "completed": "Completed",
+        "failed": "Failed"
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "info": "Page {{page}} of {{total}} ({{count}} total files)"
+      },
+      "errors": {
+        "loadFailed": "Failed to load files"
+      }
+    }
+  },
+  "search": {
+    "title": "Search",
+    "subtitle": "Search through your meetings and transcripts",
+    "comingSoon": "Search functionality coming soon",
+    "description": "You'll be able to search through all your meetings, transcripts, and documents to find exactly what you need."
+  },
+  "management": {
+    "title": "Management",
+    "subtitle": "Manage your account settings and preferences",
+    "panel": "Management panel",
+    "description": "Configure your account settings, manage integrations, and customize your workspace."
+  },
+  "meetings": {
+    "title": "My Video Meetings",
+    "subtitle": "View and manage your scheduled video meetings",
+    "createNew": "Create New Meeting",
+    "viewDetails": "View Details",
+    "backToList": "Back to Meetings",
+    "loadingMeetings": "Loading meetings...",
+    "loadingForm": "Loading form...",
+    "noMeetings": "No meetings found",
+    "noMeetingsDescription": "You have no scheduled meetings yet. Create a new meeting to get started.",
+    "noMeetingsFiltered": "Try adjusting your filters to see more meetings.",
+    "meetingInProgress": "Meeting in progress",
+    "filters": {
+      "title": "Filters",
+      "status": "Status",
+      "type": "Type",
+      "subject": "Subject",
+      "dateFrom": "From Date",
+      "dateTo": "To Date",
+      "resetFilters": "Reset Filters",
+      "allStatuses": "All Statuses",
+      "allTypes": "All Types",
+      "allSubjects": "All Subjects"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "type": {
+      "presentation": "Presentation",
+      "conference": "Conference"
+    },
+    "recurrence": {
+      "none": "None (One-time)",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    },
+    "participantStatus": {
+      "invited": "Invited",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "tentative": "Tentative"
+    },
+    "details": {
+      "information": "Meeting Information",
+      "type": "Type",
+      "status": "Status",
+      "scheduled": "Scheduled",
+      "duration": "Duration",
+      "subject": "Subject",
+      "recurrence": "Recurrence",
+      "videoRecording": "Video Recording",
+      "audioRecording": "Audio Recording",
+      "additionalNotes": "Additional Notes",
+      "participants": "Participants",
+      "departments": "Departments",
+      "actions": "Meeting Actions",
+      "joinMeeting": "Join Meeting",
+      "addToCalendar": "Add to Calendar",
+      "editMeeting": "Edit Meeting",
+      "cancelMeeting": "Cancel Meeting"
+    },
+    "form": {
+      "createTitle": "Create New Meeting",
+      "editTitle": "Edit Meeting",
+      "basicInformation": "Basic Information",
+      "participants": "Participants",
+      "recordingOptions": "Recording Options",
+      "additionalNotes": "Additional Notes",
+      "title": "Meeting Title",
+      "titlePlaceholder": "Enter meeting title",
+      "type": "Meeting Type",
+      "subject": "Subject",
+      "selectSubject": "Select a subject",
+      "scheduledAt": "Scheduled Date & Time",
+      "duration": "Duration (minutes)",
+      "recurrence": "Recurrence",
+      "speaker": "Speaker",
+      "selectSpeaker": "Select a speaker",
+      "individualParticipants": "Individual Participants",
+      "departments": "Departments",
+      "videoRecording": "Enable Video Recording",
+      "audioRecording": "Enable Audio Recording",
+      "forceEndAtDuration": "Force end meeting at scheduled duration",
+      "notesPlaceholder": "Add any additional notes or agenda items...",
+      "selectedCount": "Selected: {{users}} users, {{departments}} departments",
+      "noUsersAvailable": "No users available. Users list will be loaded from the API.",
+      "noDepartmentsAvailable": "No departments available. Departments list will be loaded from the API.",
+      "createButton": "Create Meeting",
+      "updateButton": "Update Meeting",
+      "saving": "Saving...",
+      "required": "required"
+    },
+    "errors": {
+      "loadFailed": "Failed to load meetings",
+      "createFailed": "Failed to create meeting",
+      "updateFailed": "Failed to update meeting",
+      "deleteFailed": "Failed to delete meeting",
+      "titleRequired": "Title is required",
+      "dateRequired": "Scheduled date and time is required",
+      "durationInvalid": "Duration must be greater than 0",
+      "subjectRequired": "Subject is required",
+      "speakerRequired": "Speaker is required for presentations",
+      "participantsRequired": "At least one participant or department is required"
+    },
+    "confirmDelete": "Are you sure you want to cancel \"{{title}}\"?",
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "info": "Page {{page}} of {{total}} ({{count}} total meetings)"
+    },
+    "card": {
+      "participants": "{{count}} participants",
+      "videoRecording": "Video Recording"
     }
   }
 }

@@ -56,12 +56,23 @@ func (db *DB) RunMigrations() error {
 	}
 
 	migrations := []string{
+		createDepartmentsTable,
 		createUsersTable,
 		createGroupsTable,
 		createGroupMembershipsTable,
 		createUploadedFilesTable,
 		createFileTranscriptionsTable,
 		createDocumentChunksTable,
+		createLiveKitRoomsTable,
+		createLiveKitParticipantsTable,
+		createLiveKitTracksTable,
+		createLiveKitWebhookEventsTable,
+		addDepartmentToUsers,
+		addPermissionsToUsers,
+		createMeetingSubjectsTable,
+		createMeetingsTable,
+		createMeetingParticipantsTable,
+		createMeetingDepartmentsTable,
 	}
 
 	for i, migration := range migrations {
@@ -264,4 +275,246 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 CREATE INDEX IF NOT EXISTS idx_document_chunks_file ON document_chunks(file_id);
 CREATE INDEX IF NOT EXISTS idx_document_chunks_transcription ON document_chunks(transcription_id);
 CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+`
+
+const createLiveKitRoomsTable = `
+CREATE TABLE IF NOT EXISTS livekit_rooms (
+	id VARCHAR(255) PRIMARY KEY,
+	sid VARCHAR(255) UNIQUE NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	empty_timeout INTEGER DEFAULT 300,
+	departure_timeout INTEGER DEFAULT 20,
+	creation_time VARCHAR(50),
+	creation_time_ms VARCHAR(50),
+	turn_password TEXT,
+	enabled_codecs JSONB DEFAULT '[]',
+	status VARCHAR(50) NOT NULL DEFAULT 'active',
+	started_at TIMESTAMP NOT NULL,
+	finished_at TIMESTAMP,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_livekit_rooms_sid ON livekit_rooms(sid);
+CREATE INDEX IF NOT EXISTS idx_livekit_rooms_name ON livekit_rooms(name);
+CREATE INDEX IF NOT EXISTS idx_livekit_rooms_status ON livekit_rooms(status);
+CREATE INDEX IF NOT EXISTS idx_livekit_rooms_started_at ON livekit_rooms(started_at DESC);
+`
+
+const createLiveKitParticipantsTable = `
+CREATE TABLE IF NOT EXISTS livekit_participants (
+	id VARCHAR(255) PRIMARY KEY,
+	sid VARCHAR(255) UNIQUE NOT NULL,
+	room_sid VARCHAR(255) NOT NULL REFERENCES livekit_rooms(sid) ON DELETE CASCADE,
+	identity VARCHAR(255) NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	state VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+	joined_at VARCHAR(50) NOT NULL,
+	joined_at_ms VARCHAR(50) NOT NULL,
+	version INTEGER DEFAULT 0,
+	permission JSONB DEFAULT '{}',
+	is_publisher BOOLEAN DEFAULT false,
+	disconnect_reason VARCHAR(255),
+	left_at TIMESTAMP,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_livekit_participants_sid ON livekit_participants(sid);
+CREATE INDEX IF NOT EXISTS idx_livekit_participants_room_sid ON livekit_participants(room_sid);
+CREATE INDEX IF NOT EXISTS idx_livekit_participants_identity ON livekit_participants(identity);
+CREATE INDEX IF NOT EXISTS idx_livekit_participants_state ON livekit_participants(state);
+`
+
+const createLiveKitTracksTable = `
+CREATE TABLE IF NOT EXISTS livekit_tracks (
+	id VARCHAR(255) PRIMARY KEY,
+	sid VARCHAR(255) UNIQUE NOT NULL,
+	participant_sid VARCHAR(255) NOT NULL REFERENCES livekit_participants(sid) ON DELETE CASCADE,
+	room_sid VARCHAR(255) NOT NULL REFERENCES livekit_rooms(sid) ON DELETE CASCADE,
+	type VARCHAR(50),
+	source VARCHAR(50) NOT NULL,
+	mime_type VARCHAR(100) NOT NULL,
+	mid VARCHAR(50),
+	width INTEGER,
+	height INTEGER,
+	simulcast BOOLEAN DEFAULT false,
+	layers JSONB DEFAULT '[]',
+	codecs JSONB DEFAULT '[]',
+	stream VARCHAR(255),
+	version JSONB DEFAULT '{}',
+	audio_features TEXT[] DEFAULT '{}',
+	backup_codec_policy VARCHAR(50),
+	status VARCHAR(50) NOT NULL DEFAULT 'published',
+	published_at TIMESTAMP NOT NULL,
+	unpublished_at TIMESTAMP,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_livekit_tracks_sid ON livekit_tracks(sid);
+CREATE INDEX IF NOT EXISTS idx_livekit_tracks_participant_sid ON livekit_tracks(participant_sid);
+CREATE INDEX IF NOT EXISTS idx_livekit_tracks_room_sid ON livekit_tracks(room_sid);
+CREATE INDEX IF NOT EXISTS idx_livekit_tracks_type ON livekit_tracks(type);
+CREATE INDEX IF NOT EXISTS idx_livekit_tracks_source ON livekit_tracks(source);
+CREATE INDEX IF NOT EXISTS idx_livekit_tracks_status ON livekit_tracks(status);
+`
+
+const createLiveKitWebhookEventsTable = `
+CREATE TABLE IF NOT EXISTS livekit_webhook_events (
+	id VARCHAR(255) PRIMARY KEY,
+	event_type VARCHAR(100) NOT NULL,
+	event_id VARCHAR(255) NOT NULL,
+	room_sid VARCHAR(255),
+	participant_sid VARCHAR(255),
+	track_sid VARCHAR(255),
+	payload JSONB NOT NULL,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_event_type ON livekit_webhook_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_event_id ON livekit_webhook_events(event_id);
+CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_room_sid ON livekit_webhook_events(room_sid);
+CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_participant_sid ON livekit_webhook_events(participant_sid);
+CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_created_at ON livekit_webhook_events(created_at DESC);
+`
+
+// Department-related migrations
+const createDepartmentsTable = `
+CREATE TABLE IF NOT EXISTS departments (
+	id VARCHAR(255) PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	description TEXT,
+	parent_id VARCHAR(255) REFERENCES departments(id) ON DELETE SET NULL,
+	level INTEGER NOT NULL DEFAULT 0,
+	path TEXT NOT NULL,
+	is_active BOOLEAN NOT NULL DEFAULT true,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_departments_parent_id ON departments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_departments_path ON departments(path);
+CREATE INDEX IF NOT EXISTS idx_departments_is_active ON departments(is_active);
+CREATE INDEX IF NOT EXISTS idx_departments_name ON departments(name);
+
+-- Insert default root department
+INSERT INTO departments (id, name, description, parent_id, level, path, is_active, created_at, updated_at)
+VALUES (
+	'dept-root',
+	'Organization',
+	'Root department',
+	NULL,
+	0,
+	'Organization',
+	true,
+	NOW(),
+	NOW()
+) ON CONFLICT (id) DO NOTHING;
+`
+
+const addDepartmentToUsers = `
+-- Add department_id column to users table
+DO $$
+BEGIN
+	IF NOT EXISTS (
+		SELECT 1 FROM information_schema.columns
+		WHERE table_name = 'users' AND column_name = 'department_id'
+	) THEN
+		ALTER TABLE users ADD COLUMN department_id VARCHAR(255) REFERENCES departments(id) ON DELETE SET NULL;
+		CREATE INDEX IF NOT EXISTS idx_users_department_id ON users(department_id);
+	END IF;
+END $$;
+`
+
+const addPermissionsToUsers = `
+-- Add permissions column to users table
+DO $$
+BEGIN
+	IF NOT EXISTS (
+		SELECT 1 FROM information_schema.columns
+		WHERE table_name = 'users' AND column_name = 'permissions'
+	) THEN
+		ALTER TABLE users ADD COLUMN permissions JSONB NOT NULL DEFAULT '{"can_schedule_meetings": false, "can_manage_department": false, "can_approve_recordings": false}';
+
+		-- Update admin users to have all permissions
+		UPDATE users SET permissions = '{"can_schedule_meetings": true, "can_manage_department": true, "can_approve_recordings": true}' WHERE role = 'admin';
+	END IF;
+END $$;
+`
+
+// Meeting-related migrations
+const createMeetingSubjectsTable = `
+CREATE TABLE IF NOT EXISTS meeting_subjects (
+	id VARCHAR(255) PRIMARY KEY,
+	name VARCHAR(255) NOT NULL UNIQUE,
+	description TEXT,
+	department_ids TEXT[] DEFAULT '{}',
+	is_active BOOLEAN NOT NULL DEFAULT true,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_meeting_subjects_name ON meeting_subjects(name);
+CREATE INDEX IF NOT EXISTS idx_meeting_subjects_is_active ON meeting_subjects(is_active);
+CREATE INDEX IF NOT EXISTS idx_meeting_subjects_department_ids ON meeting_subjects USING GIN(department_ids);
+`
+
+const createMeetingsTable = `
+CREATE TABLE IF NOT EXISTS meetings (
+	id VARCHAR(255) PRIMARY KEY,
+	title VARCHAR(500) NOT NULL,
+	scheduled_at TIMESTAMP NOT NULL,
+	duration INTEGER NOT NULL,
+	recurrence VARCHAR(50) NOT NULL DEFAULT 'none',
+	type VARCHAR(50) NOT NULL,
+	subject_id VARCHAR(255) NOT NULL REFERENCES meeting_subjects(id) ON DELETE RESTRICT,
+	status VARCHAR(50) NOT NULL DEFAULT 'scheduled',
+	needs_video_record BOOLEAN NOT NULL DEFAULT false,
+	needs_audio_record BOOLEAN NOT NULL DEFAULT false,
+	additional_notes TEXT,
+	livekit_room_id VARCHAR(255) REFERENCES livekit_rooms(sid) ON DELETE SET NULL,
+	created_by VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_meetings_scheduled_at ON meetings(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings(status);
+CREATE INDEX IF NOT EXISTS idx_meetings_type ON meetings(type);
+CREATE INDEX IF NOT EXISTS idx_meetings_subject_id ON meetings(subject_id);
+CREATE INDEX IF NOT EXISTS idx_meetings_created_by ON meetings(created_by);
+CREATE INDEX IF NOT EXISTS idx_meetings_livekit_room_id ON meetings(livekit_room_id);
+`
+
+const createMeetingParticipantsTable = `
+CREATE TABLE IF NOT EXISTS meeting_participants (
+	id VARCHAR(255) PRIMARY KEY,
+	meeting_id VARCHAR(255) NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+	user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	role VARCHAR(50) NOT NULL,
+	status VARCHAR(50) NOT NULL DEFAULT 'invited',
+	joined_at TIMESTAMP,
+	left_at TIMESTAMP,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	UNIQUE(meeting_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_meeting_participants_meeting_id ON meeting_participants(meeting_id);
+CREATE INDEX IF NOT EXISTS idx_meeting_participants_user_id ON meeting_participants(user_id);
+CREATE INDEX IF NOT EXISTS idx_meeting_participants_role ON meeting_participants(role);
+CREATE INDEX IF NOT EXISTS idx_meeting_participants_status ON meeting_participants(status);
+`
+
+const createMeetingDepartmentsTable = `
+CREATE TABLE IF NOT EXISTS meeting_departments (
+	id VARCHAR(255) PRIMARY KEY,
+	meeting_id VARCHAR(255) NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+	department_id VARCHAR(255) NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	UNIQUE(meeting_id, department_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_meeting_departments_meeting_id ON meeting_departments(meeting_id);
+CREATE INDEX IF NOT EXISTS idx_meeting_departments_department_id ON meeting_departments(department_id);
 `

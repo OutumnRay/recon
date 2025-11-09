@@ -66,5 +66,194 @@
       "processed": "Processed",
       "allTimeTotal": "All-time total"
     }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "groups": "Groups",
+    "departments": "Departments",
+    "subjects": "Meeting Subjects",
+    "rooms": "Rooms"
+  },
+  "users": {
+    "title": "User Management",
+    "addUser": "Add User",
+    "editUser": "Edit User",
+    "deleteUser": "Delete",
+    "loading": "Loading users...",
+    "noUsers": "No users found",
+    "form": {
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "role": "Role",
+      "groups": "Groups",
+      "selectGroups": "Select groups",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "save": "Save User",
+      "update": "Update User",
+      "editUserTitle": "Edit User: {{username}}"
+    },
+    "roles": {
+      "admin": "Admin",
+      "user": "User",
+      "operator": "Operator"
+    },
+    "table": {
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "groups": "Groups",
+      "status": "Status",
+      "actions": "Actions",
+      "edit": "Edit"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "errors": {
+      "loadFailed": "Failed to load users",
+      "createFailed": "Failed to create user",
+      "updateFailed": "Failed to update user",
+      "deleteFailed": "Failed to delete user"
+    }
+  },
+  "groups": {
+    "title": "Group Management",
+    "addGroup": "Add Group",
+    "editGroup": "Edit Group",
+    "deleteGroup": "Delete",
+    "loading": "Loading groups...",
+    "noGroups": "No groups found",
+    "form": {
+      "name": "Group Name",
+      "description": "Description",
+      "cancel": "Cancel",
+      "save": "Save Group",
+      "update": "Update Group",
+      "editGroupTitle": "Edit Group: {{name}}"
+    },
+    "table": {
+      "name": "Name",
+      "description": "Description",
+      "members": "Members",
+      "actions": "Actions",
+      "edit": "Edit"
+    },
+    "errors": {
+      "loadFailed": "Failed to load groups",
+      "createFailed": "Failed to create group",
+      "updateFailed": "Failed to update group",
+      "deleteFailed": "Failed to delete group"
+    }
+  },
+  "departments": {
+    "title": "Department Management",
+    "addDepartment": "Add Department",
+    "editDepartment": "Edit Department",
+    "deleteDepartment": "Delete",
+    "loading": "Loading departments...",
+    "noDepartments": "No departments found",
+    "form": {
+      "name": "Department Name",
+      "description": "Description",
+      "parentDepartment": "Parent Department",
+      "selectParent": "Select parent department",
+      "noParent": "None (Top Level)",
+      "cancel": "Cancel",
+      "save": "Save Department",
+      "update": "Update Department",
+      "editDepartmentTitle": "Edit Department: {{name}}"
+    },
+    "table": {
+      "name": "Name",
+      "description": "Description",
+      "parent": "Parent",
+      "actions": "Actions",
+      "edit": "Edit"
+    },
+    "errors": {
+      "loadFailed": "Failed to load departments",
+      "createFailed": "Failed to create department",
+      "updateFailed": "Failed to update department",
+      "deleteFailed": "Failed to delete department"
+    }
+  },
+  "subjects": {
+    "title": "Meeting Subjects Management",
+    "addSubject": "Add Subject",
+    "editSubject": "Edit Subject",
+    "deleteSubject": "Delete",
+    "loading": "Loading subjects...",
+    "noSubjects": "No subjects found",
+    "confirmDelete": "Are you sure you want to delete this subject?",
+    "form": {
+      "name": "Subject Name",
+      "description": "Description",
+      "cancel": "Cancel",
+      "save": "Save Subject",
+      "update": "Update Subject",
+      "editSubjectTitle": "Edit Subject: {{name}}"
+    },
+    "table": {
+      "name": "Name",
+      "description": "Description",
+      "status": "Status",
+      "actions": "Actions",
+      "edit": "Edit"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "errors": {
+      "loadFailed": "Failed to load subjects",
+      "createFailed": "Failed to create subject",
+      "updateFailed": "Failed to update subject",
+      "deleteFailed": "Failed to delete subject"
+    }
+  },
+  "rooms": {
+    "title": "LiveKit Rooms",
+    "viewDetails": "View Details",
+    "backToList": "Back to Rooms",
+    "loading": "Loading rooms...",
+    "refreshing": "Refreshing...",
+    "noRooms": "No active rooms",
+    "noRoomsDescription": "There are currently no active LiveKit rooms.",
+    "table": {
+      "name": "Room Name",
+      "participants": "Participants",
+      "created": "Created",
+      "duration": "Duration",
+      "actions": "Actions"
+    },
+    "details": {
+      "roomInfo": "Room Information",
+      "roomName": "Room Name",
+      "roomSid": "Room SID",
+      "created": "Created At",
+      "duration": "Duration",
+      "numParticipants": "Participants",
+      "maxParticipants": "Max Participants",
+      "emptyTimeout": "Empty Timeout",
+      "metadata": "Metadata",
+      "participantsList": "Participants List",
+      "identity": "Identity",
+      "state": "State",
+      "joinedAt": "Joined At",
+      "tracks": "Tracks"
+    },
+    "participantState": {
+      "active": "Active",
+      "disconnected": "Disconnected",
+      "joining": "Joining"
+    },
+    "errors": {
+      "loadFailed": "Failed to load rooms",
+      "loadDetailsFailed": "Failed to load room details"
+    }
   }
 }

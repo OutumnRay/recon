@@ -58,6 +58,9 @@ services:
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_USE_SSL=false
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
+      - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
+      - LIVEKIT_URL=ws://localhost:7880
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - SERVER_PORT=8080
@@ -89,6 +92,9 @@ services:
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_USE_SSL=false
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
+      - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
+      - LIVEKIT_URL=ws://localhost:7880
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - SERVER_PORT=8081

@@ -1,8 +1,0 @@
-return {
-	["salt"] = "1fc0cfbe-eb11-42b9-8712-c7f422075396";
-	["created"] = 1762589907;
-	["updated"] = 1762589907;
-	["iteration_count"] = 10000;
-	["server_key"] = "3c3f04a5e1a150770e9167574e297b350397e527";
-	["stored_key"] = "2757a549bba713cbc208a1f458da6d0e4b24f091";
-};

@@ -47,7 +47,10 @@ write_files:
           whip_base_url: https://ingress.recontext.online/w
       keys:
           APIBj3yrXtyPRNq: 2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
-      
+      webhook:
+          api_key: "APIBj3yrXtyPRNq"
+          urls:
+            - "https://webhook.site/c9cd001a-fafa-4a41-bc11-f0a70097fbdb"
 
   - path: /opt/livekit/caddy.yaml
     content: |

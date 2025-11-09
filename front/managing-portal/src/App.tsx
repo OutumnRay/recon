@@ -5,6 +5,10 @@ import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import UserManagement from './components/UserManagement'
 import Groups from './components/Groups'
+import Departments from './components/Departments'
+import MeetingSubjects from './components/MeetingSubjects'
+import Rooms from './components/Rooms'
+import RoomDetails from './components/RoomDetails'
 import Layout from './components/Layout'
 
 function App() {
@@ -27,7 +31,7 @@ function App() {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
   // Protected routes - require authentication
-  const protectedRoutes = ['/dashboard', '/users', '/groups']
+  const protectedRoutes = ['/dashboard', '/users', '/groups', '/departments', '/subjects', '/rooms']
   const isProtectedRoute = protectedRoutes.some(route => currentPath.startsWith(route))
 
   // If on protected route but not authenticated, redirect to login
@@ -44,11 +48,19 @@ function App() {
 
   // Route handling with Layout
   if (isProtectedRoute) {
+    // Extract room SID from path if on room details page
+    const roomMatch = currentPath.match(/^\/rooms\/([^/]+)$/);
+    const roomSid = roomMatch ? roomMatch[1] : null;
+
     return (
       <Layout currentPath={currentPath}>
         {currentPath === '/dashboard' && <Dashboard />}
         {currentPath === '/users' && <UserManagement />}
         {currentPath === '/groups' && <Groups />}
+        {currentPath === '/departments' && <Departments />}
+        {currentPath === '/subjects' && <MeetingSubjects />}
+        {currentPath === '/rooms' && <Rooms />}
+        {roomSid && <RoomDetails roomSid={roomSid} />}
       </Layout>
     )
   }

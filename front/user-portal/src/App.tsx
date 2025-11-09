@@ -4,6 +4,7 @@ import './App.css';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Meetings from './pages/Meetings';
+import MeetingRoom from './pages/MeetingRoom';
 import Search from './pages/Search';
 import Documents from './pages/Documents';
 import Management from './pages/Management';
@@ -20,6 +21,7 @@ function App() {
           <Route path="documents" element={<Documents />} />
           <Route path="management" element={<Management />} />
         </Route>
+        <Route path="/meeting/:meetingId" element={<MeetingRoom />} />
       </Routes>
     </BrowserRouter>
   );

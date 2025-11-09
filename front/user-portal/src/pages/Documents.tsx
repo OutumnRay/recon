@@ -8,8 +8,8 @@ export const Documents: React.FC = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">{t('nav.documents')}</h1>
-      <p className="page-subtitle">Upload and transcribe audio/video files</p>
+      <h1 className="page-title">{t('documents.title')}</h1>
+      <p className="page-subtitle">{t('documents.subtitle')}</p>
 
       <FileUpload />
       <FilesList />

@@ -9,7 +9,7 @@ services:
     image: sivanov2018/recontext-managing-portal:latest
     container_name: recontext-managing-portal
     ports:
-      - "10080:8080"
+      - "20080:8080"
     environment:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
@@ -41,7 +41,7 @@ services:
     image: sivanov2018/recontext-user-portal:latest
     container_name: recontext-user-portal
     ports:
-      - "10081:8081"
+      - "20081:8081"
     environment:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8081
@@ -95,68 +95,7 @@ services:
       timeout: 10s
       retries: 5
 
-  # 4. Transcription Workers
-#  transcription-worker:
-#    build:
-#      context: .
-#      dockerfile: deployments/docker/Dockerfile.transcription-worker
-#    image: sivanov2018/recontext-transcription-worker:latest
-#    environment:
-#      - RABBITMQ_HOST=rabbitmq
-#      - RABBITMQ_PORT=5672
-#      - MINIO_ENDPOINT=minio:9000
-#      - MANAGING_PORTAL_URL=http://managing-portal:8080
-#      - WORKER_ID=transcription-worker-1
-#    depends_on:
-#      - rabbitmq
-#      - minio
-#      - managing-portal
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#    deploy:
-#      replicas: 2
-#      resources:
-#        reservations:
-#          devices:
-#            - driver: nvidia
-#              count: 1
-#              capabilities: [gpu]
 
-  # 5. Summarization Workers
-#  summarization-worker:
-#    build:
-#      context: .
-#      dockerfile: deployments/docker/Dockerfile.summarization-worker
-#    image: sivanov2018/recontext-summarization-worker:latest
-#    environment:
-#      - RABBITMQ_HOST=rabbitmq
-#      - RABBITMQ_PORT=5672
-#      - DB_HOST=postgres
-#      - MANAGING_PORTAL_URL=http://managing-portal:8080
-#      - WORKER_ID=summarization-worker-1
-#    depends_on:
-#      - rabbitmq
-#      - postgres
-#      - managing-portal
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
-#    deploy:
-#      replicas: 2
-
-  # 6. RAG Implementation (Vector Database + API)
-#  rag-service:
-#    image: qdrant/qdrant:latest
-#    container_name: recontext-rag-qdrant
-#    ports:
-#      - "6333:6333"
-#      - "6334:6334"
-#    volumes:
-#      - qdrant-data:/qdrant/storage
-#    networks:
-#      - recontext-network
-#    restart: unless-stopped
 
   # 7. MinIO Storage
   minio:
@@ -202,39 +141,6 @@ services:
       timeout: 5s
       retries: 5
 
-
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: recontext-watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      # Check for updates every 5 minutes (300 seconds)
-      - WATCHTOWER_POLL_INTERVAL=300
-      # Remove old images after updating
-      - WATCHTOWER_CLEANUP=true
-      # Include stopped containers
-      - WATCHTOWER_INCLUDE_STOPPED=true
-      # Include restarting containers
-      - WATCHTOWER_INCLUDE_RESTARTING=true
-      # Enable debug logging
-      - WATCHTOWER_DEBUG=false
-      # Send notifications on updates (optional - configure as needed)
-      # - WATCHTOWER_NOTIFICATIONS=shoutrrr
-      # - WATCHTOWER_NOTIFICATION_URL=
-      # Monitor only containers with label (optional)
-      # - WATCHTOWER_LABEL_ENABLE=true
-      # Rolling restart - update one container at a time (optional)
-      # - WATCHTOWER_ROLLING_RESTART=true
-    command:
-      # Monitor specific containers (optional - remove to monitor all)
-      # For now, monitor all Recontext custom services
-      - recontext-managing-portal
-      - recontext-user-portal
-      - recontext-jitsi-agent
-    networks:
-      - recontext-network
-    restart: unless-stopped
 
 networks:
   recontext-network:

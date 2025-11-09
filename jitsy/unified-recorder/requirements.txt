@@ -1,4 +1,0 @@
-aiohttp
-boto3
-aiortc
-websockets

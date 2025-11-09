@@ -2,7 +2,17 @@
   "common": {
     "loading": "Загрузка...",
     "retry": "Повторить",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "create": "Создать",
+    "back": "Назад",
+    "reset": "Сбросить",
+    "confirm": "Подтвердить",
+    "yes": "Да",
+    "no": "Нет"
   },
   "nav": {
     "meetings": "Встречи",
@@ -28,6 +38,185 @@
     "errors": {
       "loginFailed": "Ошибка входа",
       "networkError": "Произошла ошибка при входе"
+    }
+  },
+  "documents": {
+    "title": "Документы",
+    "subtitle": "Загрузка и транскрипция аудио/видео файлов",
+    "upload": {
+      "title": "Загрузить аудио/видео файл",
+      "description": "Загружайте аудио или видео файлы для транскрипции. Максимальный размер файла: 500МБ",
+      "clickOrDrag": "Нажмите для загрузки",
+      "dragText": "или перетащите файл",
+      "hint": "Аудио: MP3, WAV, M4A | Видео: MP4, MOV",
+      "clear": "Очистить",
+      "uploadButton": "Загрузить файл",
+      "uploading": "загружено",
+      "success": "Файл успешно загружен!",
+      "errors": {
+        "sizeLimit": "Размер файла превышает лимит в 500МБ",
+        "invalidType": "Неверный тип файла. Пожалуйста, загружайте только аудио или видео файлы",
+        "uploadFailed": "Не удалось загрузить файл",
+        "networkError": "Произошла ошибка сети при загрузке"
+      }
+    },
+    "list": {
+      "title": "Загруженные файлы",
+      "refresh": "Обновить",
+      "loading": "Загрузка файлов...",
+      "noFiles": "Файлы еще не загружены",
+      "noFilesHint": "Загрузите свой первый аудио или видео файл выше",
+      "table": {
+        "filename": "Имя файла",
+        "size": "Размер",
+        "status": "Статус",
+        "uploaded": "Загружен"
+      },
+      "status": {
+        "pending": "В ожидании",
+        "processing": "Обработка",
+        "completed": "Завершено",
+        "failed": "Ошибка"
+      },
+      "pagination": {
+        "previous": "Предыдущая",
+        "next": "Следующая",
+        "info": "Страница {{page}} из {{total}} (всего {{count}} файлов)"
+      },
+      "errors": {
+        "loadFailed": "Не удалось загрузить файлы"
+      }
+    }
+  },
+  "search": {
+    "title": "Поиск",
+    "subtitle": "Поиск по встречам и транскриптам",
+    "comingSoon": "Функция поиска скоро появится",
+    "description": "Вы сможете искать по всем своим встречам, транскриптам и документам, чтобы найти именно то, что вам нужно."
+  },
+  "management": {
+    "title": "Управление",
+    "subtitle": "Управление настройками аккаунта и параметрами",
+    "panel": "Панель управления",
+    "description": "Настройте параметры аккаунта, управляйте интеграциями и персонализируйте свое рабочее пространство."
+  },
+  "meetings": {
+    "title": "Мои видеовстречи",
+    "subtitle": "Просмотр и управление запланированными видеовстречами",
+    "createNew": "Создать встречу",
+    "viewDetails": "Подробнее",
+    "backToList": "К списку встреч",
+    "loadingMeetings": "Загрузка встреч...",
+    "loadingForm": "Загрузка формы...",
+    "noMeetings": "Встречи не найдены",
+    "noMeetingsDescription": "У вас пока нет запланированных встреч. Создайте новую встречу для начала работы.",
+    "noMeetingsFiltered": "Попробуйте изменить фильтры для просмотра других встреч.",
+    "meetingInProgress": "Встреча идет",
+    "filters": {
+      "title": "Фильтры",
+      "status": "Статус",
+      "type": "Тип",
+      "subject": "Предмет",
+      "dateFrom": "Дата от",
+      "dateTo": "Дата до",
+      "resetFilters": "Сбросить фильтры",
+      "allStatuses": "Все статусы",
+      "allTypes": "Все типы",
+      "allSubjects": "Все предметы"
+    },
+    "status": {
+      "scheduled": "Запланирована",
+      "in_progress": "Идет",
+      "completed": "Завершена",
+      "cancelled": "Отменена"
+    },
+    "type": {
+      "presentation": "Презентация",
+      "conference": "Совещание"
+    },
+    "recurrence": {
+      "none": "Разовая",
+      "daily": "Ежедневно",
+      "weekly": "Еженедельно",
+      "monthly": "Ежемесячно"
+    },
+    "participantStatus": {
+      "invited": "Приглашен",
+      "accepted": "Принял",
+      "declined": "Отклонил",
+      "tentative": "Возможно"
+    },
+    "details": {
+      "information": "Информация о встрече",
+      "type": "Тип",
+      "status": "Статус",
+      "scheduled": "Запланирована",
+      "duration": "Длительность",
+      "subject": "Предмет",
+      "recurrence": "Периодичность",
+      "videoRecording": "Видеозапись",
+      "audioRecording": "Аудиозапись",
+      "additionalNotes": "Дополнительные заметки",
+      "participants": "Участники",
+      "departments": "Отделы",
+      "actions": "Действия",
+      "joinMeeting": "Присоединиться",
+      "addToCalendar": "Добавить в календарь",
+      "editMeeting": "Редактировать",
+      "cancelMeeting": "Отменить встречу"
+    },
+    "form": {
+      "createTitle": "Создать новую встречу",
+      "editTitle": "Редактировать встречу",
+      "basicInformation": "Основная информация",
+      "participants": "Участники",
+      "recordingOptions": "Параметры записи",
+      "additionalNotes": "Дополнительные заметки",
+      "title": "Название встречи",
+      "titlePlaceholder": "Введите название встречи",
+      "type": "Тип встречи",
+      "subject": "Предмет",
+      "selectSubject": "Выберите предмет",
+      "scheduledAt": "Дата и время",
+      "duration": "Длительность (минуты)",
+      "recurrence": "Периодичность",
+      "speaker": "Спикер",
+      "selectSpeaker": "Выберите спикера",
+      "individualParticipants": "Отдельные участники",
+      "departments": "Отделы",
+      "videoRecording": "Включить видеозапись",
+      "audioRecording": "Включить аудиозапись",
+      "forceEndAtDuration": "Принудительно завершить по истечении времени",
+      "notesPlaceholder": "Добавьте дополнительные заметки или пункты повестки...",
+      "selectedCount": "Выбрано: {{users}} пользователей, {{departments}} отделов",
+      "noUsersAvailable": "Пользователи недоступны. Список будет загружен из API.",
+      "noDepartmentsAvailable": "Отделы недоступны. Список будет загружен из API.",
+      "createButton": "Создать встречу",
+      "updateButton": "Обновить встречу",
+      "saving": "Сохранение...",
+      "required": "обязательно"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить встречи",
+      "createFailed": "Не удалось создать встречу",
+      "updateFailed": "Не удалось обновить встречу",
+      "deleteFailed": "Не удалось удалить встречу",
+      "titleRequired": "Название обязательно",
+      "dateRequired": "Дата и время обязательны",
+      "durationInvalid": "Длительность должна быть больше 0",
+      "subjectRequired": "Предмет обязателен",
+      "speakerRequired": "Для презентации требуется спикер",
+      "participantsRequired": "Требуется хотя бы один участник или отдел"
+    },
+    "confirmDelete": "Вы уверены, что хотите отменить встречу \"{{title}}\"?",
+    "pagination": {
+      "previous": "Предыдущая",
+      "next": "Следующая",
+      "info": "Страница {{page}} из {{total}} (всего {{count}} встреч)"
+    },
+    "card": {
+      "participants": "{{count}} участников",
+      "videoRecording": "Видеозапись"
     }
   }
 }

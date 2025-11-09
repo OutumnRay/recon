@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import './FileUpload.css';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
@@ -14,6 +15,7 @@ const ALLOWED_TYPES = [
 ];
 
 export const FileUpload: React.FC = () => {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -34,10 +36,10 @@ export const FileUpload: React.FC = () => {
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
-      return 'File size exceeds 500MB limit';
+      return t('documents.upload.errors.sizeLimit');
     }
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return 'Invalid file type. Please upload audio or video files only';
+      return t('documents.upload.errors.invalidType');
     }
     return null;
   };
@@ -100,7 +102,7 @@ export const FileUpload: React.FC = () => {
 
       xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
-          setSuccess('File uploaded successfully!');
+          setSuccess(t('documents.upload.success'));
           setFile(null);
           setProgress(0);
           if (fileInputRef.current) {
@@ -110,13 +112,13 @@ export const FileUpload: React.FC = () => {
           window.dispatchEvent(new Event('fileUploaded'));
         } else {
           const response = JSON.parse(xhr.responseText);
-          setError(response.error || 'Failed to upload file');
+          setError(response.error || t('documents.upload.errors.uploadFailed'));
         }
         setUploading(false);
       });
 
       xhr.addEventListener('error', () => {
-        setError('Network error occurred during upload');
+        setError(t('documents.upload.errors.networkError'));
         setUploading(false);
       });
 
@@ -125,7 +127,7 @@ export const FileUpload: React.FC = () => {
       xhr.send(formData);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload file');
+      setError(err instanceof Error ? err.message : t('documents.upload.errors.uploadFailed'));
       setUploading(false);
     }
   };
@@ -140,9 +142,9 @@ export const FileUpload: React.FC = () => {
 
   return (
     <div className="file-upload-container">
-      <h2>Upload Audio/Video File</h2>
+      <h2>{t('documents.upload.title')}</h2>
       <p className="upload-description">
-        Upload audio or video files for transcription. Maximum file size: 500MB
+        {t('documents.upload.description')}
       </p>
 
       <div
@@ -173,10 +175,10 @@ export const FileUpload: React.FC = () => {
           <div className="drop-zone-content">
             <div className="upload-icon">⬆️</div>
             <p className="drop-zone-text">
-              <strong>Click to upload</strong> or drag and drop
+              <strong>{t('documents.upload.clickOrDrag')}</strong> {t('documents.upload.dragText')}
             </p>
             <p className="drop-zone-hint">
-              Audio: MP3, WAV, M4A | Video: MP4, MOV
+              {t('documents.upload.hint')}
             </p>
           </div>
         )}
@@ -190,7 +192,7 @@ export const FileUpload: React.FC = () => {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="progress-text">{progress}% uploaded</p>
+          <p className="progress-text">{progress}% {t('documents.upload.uploading')}</p>
         </div>
       )}
 
@@ -222,13 +224,13 @@ export const FileUpload: React.FC = () => {
               }}
               className="btn btn-secondary"
             >
-              Clear
+              {t('documents.upload.clear')}
             </button>
             <button
               onClick={handleUpload}
               className="btn btn-primary"
             >
-              Upload File
+              {t('documents.upload.uploadButton')}
             </button>
           </>
         )}

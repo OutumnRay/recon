@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import './FilesList.css';
 
 interface UploadedFile {
@@ -10,6 +11,7 @@ interface UploadedFile {
 }
 
 export const FilesList: React.FC = () => {
+  const { t } = useTranslation();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export const FilesList: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch files');
+        throw new Error(t('documents.list.errors.loadFailed'));
       }
 
       const data = await response.json();
@@ -50,7 +52,7 @@ export const FilesList: React.FC = () => {
       setTotal(data.total || 0);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load files');
+      setError(err instanceof Error ? err.message : t('documents.list.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -90,17 +92,23 @@ export const FilesList: React.FC = () => {
     }
   };
 
+  const getStatusText = (status: string): string => {
+    const statusLower = status.toLowerCase();
+    const statusKey = `documents.list.status.${statusLower}`;
+    return t(statusKey);
+  };
+
   const totalPages = Math.ceil(total / pageSize);
 
   if (loading && files.length === 0) {
     return (
       <div className="files-list-container">
         <div className="files-list-header">
-          <h2>Uploaded Files</h2>
+          <h2>{t('documents.list.title')}</h2>
         </div>
         <div className="loading-state">
           <div className="loading-spinner"></div>
-          <p>Loading files...</p>
+          <p>{t('documents.list.loading')}</p>
         </div>
       </div>
     );
@@ -109,9 +117,9 @@ export const FilesList: React.FC = () => {
   return (
     <div className="files-list-container">
       <div className="files-list-header">
-        <h2>Uploaded Files</h2>
+        <h2>{t('documents.list.title')}</h2>
         <button onClick={fetchFiles} className="refresh-btn" disabled={loading}>
-          🔄 Refresh
+          🔄 {t('documents.list.refresh')}
         </button>
       </div>
 
@@ -125,8 +133,8 @@ export const FilesList: React.FC = () => {
       {files.length === 0 && !loading && (
         <div className="empty-state">
           <div className="empty-icon">📁</div>
-          <p className="empty-text">No files uploaded yet</p>
-          <p className="empty-hint">Upload your first audio or video file above</p>
+          <p className="empty-text">{t('documents.list.noFiles')}</p>
+          <p className="empty-hint">{t('documents.list.noFilesHint')}</p>
         </div>
       )}
 
@@ -136,10 +144,10 @@ export const FilesList: React.FC = () => {
             <table className="files-table">
               <thead>
                 <tr>
-                  <th>Filename</th>
-                  <th>Size</th>
-                  <th>Status</th>
-                  <th>Uploaded</th>
+                  <th>{t('documents.list.table.filename')}</th>
+                  <th>{t('documents.list.table.size')}</th>
+                  <th>{t('documents.list.table.status')}</th>
+                  <th>{t('documents.list.table.uploaded')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,7 +160,7 @@ export const FilesList: React.FC = () => {
                     <td>{formatFileSize(file.file_size)}</td>
                     <td>
                       <span className={getStatusBadgeClass(file.status)}>
-                        {file.status}
+                        {getStatusText(file.status)}
                       </span>
                     </td>
                     <td>{formatDate(file.uploaded_at)}</td>
@@ -169,17 +177,17 @@ export const FilesList: React.FC = () => {
                 disabled={page === 1}
                 className="pagination-btn"
               >
-                Previous
+                {t('documents.list.pagination.previous')}
               </button>
               <span className="pagination-info">
-                Page {page} of {totalPages} ({total} total files)
+                {t('documents.list.pagination.info', { page, total: totalPages, count: total })}
               </span>
               <button
                 onClick={() => setPage(page + 1)}
                 disabled={page >= totalPages}
                 className="pagination-btn"
               >
-                Next
+                {t('documents.list.pagination.next')}
               </button>
             </div>
           )}

@@ -6,13 +6,13 @@ export const Search: React.FC = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">{t('nav.search')}</h1>
-      <p className="page-subtitle">Search through your meetings and transcripts</p>
+      <h1 className="page-title">{t('search.title')}</h1>
+      <p className="page-subtitle">{t('search.subtitle')}</p>
 
       <div className="empty-state">
-        <h2 className="empty-title">Search functionality coming soon</h2>
+        <h2 className="empty-title">{t('search.comingSoon')}</h2>
         <p className="empty-description">
-          You'll be able to search through all your meetings, transcripts, and documents to find exactly what you need.
+          {t('search.description')}
         </p>
       </div>
     </div>

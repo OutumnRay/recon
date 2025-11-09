@@ -6,13 +6,13 @@ export const Management: React.FC = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">{t('nav.management')}</h1>
-      <p className="page-subtitle">Manage your account settings and preferences</p>
+      <h1 className="page-title">{t('management.title')}</h1>
+      <p className="page-subtitle">{t('management.subtitle')}</p>
 
       <div className="empty-state">
-        <h2 className="empty-title">Management panel</h2>
+        <h2 className="empty-title">{t('management.panel')}</h2>
         <p className="empty-description">
-          Configure your account settings, manage integrations, and customize your workspace.
+          {t('management.description')}
         </p>
       </div>
     </div>

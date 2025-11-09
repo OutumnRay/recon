@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ReactElement } from 'react';
-import { LuLayoutDashboard, LuUsers, LuBuilding2, LuLogOut } from 'react-icons/lu';
+import { useTranslation } from 'react-i18next';
+import { LuLayoutDashboard, LuUsers, LuBuilding2, LuBuilding, LuBookmark, LuVideo, LuLogOut } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import './Layout.css';
 
@@ -10,6 +11,8 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentPath }): ReactElement => {
+  const { t } = useTranslation();
+
   const getUsername = () => {
     const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
     if (userStr) {
@@ -32,6 +35,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPath }): ReactE
   };
 
   const isActive = (path: string) => {
+    // For rooms, also mark as active if on a room details page
+    if (path === '/rooms' && currentPath.startsWith('/rooms')) {
+      return 'active';
+    }
     return currentPath === path ? 'active' : '';
   };
 
@@ -53,7 +60,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPath }): ReactE
             }}
           >
             <span className="nav-icon"><LuLayoutDashboard /></span>
-            <span className="nav-label">Dashboard</span>
+            <span className="nav-label">{t('nav.dashboard')}</span>
           </a>
 
           <a
@@ -65,7 +72,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPath }): ReactE
             }}
           >
             <span className="nav-icon"><LuUsers /></span>
-            <span className="nav-label">Users</span>
+            <span className="nav-label">{t('nav.users')}</span>
           </a>
 
           <a
@@ -77,14 +84,50 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPath }): ReactE
             }}
           >
             <span className="nav-icon"><LuBuilding2 /></span>
-            <span className="nav-label">Groups</span>
+            <span className="nav-label">{t('nav.groups')}</span>
+          </a>
+
+          <a
+            href="/departments"
+            className={`nav-item ${isActive('/departments')}`}
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/departments';
+            }}
+          >
+            <span className="nav-icon"><LuBuilding /></span>
+            <span className="nav-label">{t('nav.departments')}</span>
+          </a>
+
+          <a
+            href="/subjects"
+            className={`nav-item ${isActive('/subjects')}`}
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/subjects';
+            }}
+          >
+            <span className="nav-icon"><LuBookmark /></span>
+            <span className="nav-label">{t('nav.subjects')}</span>
+          </a>
+
+          <a
+            href="/rooms"
+            className={`nav-item ${isActive('/rooms')}`}
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/rooms';
+            }}
+          >
+            <span className="nav-icon"><LuVideo /></span>
+            <span className="nav-label">{t('nav.rooms')}</span>
           </a>
         </nav>
 
         <div className="sidebar-footer">
           <button onClick={handleLogout} className="logout-btn">
             <span className="nav-icon"><LuLogOut /></span>
-            <span className="nav-label">Logout</span>
+            <span className="nav-label">{t('common.logout')}</span>
           </button>
         </div>
       </aside>
@@ -93,9 +136,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPath }): ReactE
         <header className="top-header">
           <div className="header-left">
             <h2 className="page-current-title">
-              {currentPath === '/dashboard' && 'Dashboard'}
-              {currentPath === '/users' && 'User Management'}
-              {currentPath === '/groups' && 'Groups Management'}
+              {currentPath === '/dashboard' && t('dashboard.title')}
+              {currentPath === '/users' && t('users.title')}
+              {currentPath === '/groups' && t('groups.title')}
+              {currentPath === '/departments' && t('departments.title')}
+              {currentPath === '/subjects' && t('subjects.title')}
+              {currentPath === '/rooms' && t('rooms.title')}
+              {currentPath.startsWith('/rooms/') && t('rooms.viewDetails')}
             </h2>
           </div>
           <div className="header-right">
