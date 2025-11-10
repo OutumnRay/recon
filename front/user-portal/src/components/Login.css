@@ -33,7 +33,7 @@
   box-shadow: var(--shadow-sm);
 }
 
-.language-switcher-wrapper {
+.login-container .language-switcher-wrapper {
   position: absolute;
   top: var(--space-lg);
   right: var(--space-lg);
@@ -205,7 +205,7 @@
     padding: var(--space-lg);
   }
 
-  .language-switcher-wrapper {
+  .login-container .language-switcher-wrapper {
     position: static;
     align-self: flex-end;
     margin-bottom: var(--space-lg);

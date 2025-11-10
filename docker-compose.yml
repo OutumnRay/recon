@@ -29,7 +29,7 @@ services:
       - SMTP_HOST=smtp.timeweb.ru
       - SMTP_PORT=465
       - SMTP_USER=support@recontext.online
-      - SMTP_PASSWORD=\oF^8,09D$-\6h
+      - SMTP_PASSWORD=hiwu9vdxe5
       - SMTP_FROM_ADDRESS=support@recontext.online
       - SMTP_FROM_NAME=Служба поддержки Recontext
     depends_on:
@@ -76,7 +76,7 @@ services:
       - SMTP_HOST=smtp.timeweb.ru
       - SMTP_PORT=465
       - SMTP_USER=support@recontext.online
-      - SMTP_PASSWORD=\oF^8,09D$-\6h
+      - SMTP_PASSWORD=hiwu9vdxe5
       - SMTP_FROM_ADDRESS=support@recontext.online
       - SMTP_FROM_NAME=Служба поддержки Recontext
     depends_on:

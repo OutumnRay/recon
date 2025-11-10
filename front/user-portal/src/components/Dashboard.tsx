@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -8,6 +8,7 @@ import './Dashboard.css';
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [hasFilePermission, setHasFilePermission] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -53,6 +54,26 @@ export const Dashboard: React.FC = () => {
     sessionStorage.removeItem('user');
     navigate('/');
   };
+
+  const pageMeta = (() => {
+    if (location.pathname.startsWith('/dashboard/documents')) {
+      return { title: t('documents.title'), subtitle: t('documents.subtitle') };
+    }
+
+    if (location.pathname.startsWith('/dashboard/search')) {
+      return { title: t('search.title'), subtitle: t('search.subtitle') };
+    }
+
+    if (location.pathname.startsWith('/dashboard/management')) {
+      return { title: t('management.title'), subtitle: t('management.subtitle') };
+    }
+
+    if (location.pathname.startsWith('/dashboard/meetings')) {
+      return { title: t('meetings.title'), subtitle: t('meetings.subtitle') };
+    }
+
+    return { title: 'Recontext', subtitle: t('nav.dashboard', { defaultValue: '' }) };
+  })();
 
   return (
     <div className="dashboard-layout">
@@ -116,13 +137,18 @@ export const Dashboard: React.FC = () => {
             >
               {isSidebarCollapsed ? <LuMenu /> : <LuX />}
             </button>
-            <h2 className="page-current-title">Recontext</h2>
+            <div className="page-context">
+              <h2 className="page-current-title">{pageMeta.title}</h2>
+              {pageMeta.subtitle && (
+                <p className="page-current-description">{pageMeta.subtitle}</p>
+              )}
+            </div>
           </div>
           <div className="header-right">
-            <div className="language-switcher-wrapper">
+            <span className="user-info">{getUsername()}</span>
+            <div className="header-language-switcher">
               <LanguageSwitcher />
             </div>
-            <span className="user-info">{getUsername()}</span>
           </div>
         </header>
         <div className="content-area">

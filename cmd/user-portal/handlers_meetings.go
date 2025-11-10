@@ -112,6 +112,19 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Add the creator as an organizer participant
+	creatorParticipant := &models.MeetingParticipant{
+		ID:        fmt.Sprintf("participant-%s", uuid.New().String()),
+		MeetingID: meetingID,
+		UserID:    claims.UserID,
+		Role:      "organizer",
+		Status:    "invited",
+		CreatedAt: time.Now(),
+	}
+	if err := up.meetingRepo.AddParticipant(creatorParticipant); err != nil {
+		up.logger.Infof("Failed to add creator as participant to meeting: %v", err)
+	}
+
 	// Add speaker if provided (for presentations)
 	if req.SpeakerID != nil && *req.SpeakerID != "" {
 		participant := &models.MeetingParticipant{
@@ -397,10 +410,13 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 
 	// Handle participant updates if provided
 	if req.ParticipantIDs != nil || req.SpeakerID != nil {
-		// Get current participants to remove old ones
+		// Get current participants to remove old ones (except the creator/organizer)
 		currentParticipants, _ := up.meetingRepo.GetMeetingParticipants(meetingID)
 		for _, participant := range currentParticipants {
-			up.meetingRepo.RemoveParticipant(meetingID, participant.UserID)
+			// Don't remove the meeting creator
+			if participant.UserID != meeting.CreatedBy {
+				up.meetingRepo.RemoveParticipant(meetingID, participant.UserID)
+			}
 		}
 
 		// Add new speaker if provided

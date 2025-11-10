@@ -196,6 +196,8 @@
       "selectSpeaker": "Select a speaker",
       "individualParticipants": "Individual Participants",
       "departments": "Departments",
+      "searchUsers": "Search users...",
+      "searchDepartments": "Search departments...",
       "videoRecording": "Enable Video Recording",
       "audioRecording": "Enable Audio Recording",
       "forceEndAtDuration": "Force end meeting at scheduled duration",
@@ -229,6 +231,45 @@
     "card": {
       "participants": "{{count}} participants",
       "videoRecording": "Video Recording"
+    }
+  },
+  "meetingRoom": {
+    "pageTitle": "Meeting",
+    "statusLabel": "Status",
+    "connectedAs": "Connected as {{name}}",
+    "connecting": "Connecting...",
+    "participantLabel": "Participants",
+    "speakingLabel": "Speaking",
+    "endsAt": "Meeting will end at",
+    "leaveRoom": "Leave Room",
+    "enableBoth": "Enable Camera & Mic",
+    "enableCamera": "📹 Enable Camera",
+    "disableCamera": "📹 Disable Camera",
+    "enableMic": "🎤 Enable Mic",
+    "disableMic": "🎤 Disable Mic",
+    "yourVideo": "Your Video",
+    "cameraOff": "Camera is off",
+    "remoteParticipants": "Remote Participants",
+    "waitingForParticipants": "Waiting for other participants to join...",
+    "connectingTitle": "Joining Meeting...",
+    "connectingDescription": "Please wait while we connect you to the meeting room.",
+    "unableToJoin": "Unable to Join Meeting",
+    "guest": "Guest",
+    "enterFullscreen": "Full Screen",
+    "exitFullscreen": "Exit Full Screen",
+    "collapseHeader": "Hide Details",
+    "expandHeader": "Show Details",
+    "toggleParticipants": "Toggle participant panel",
+    "leaveConfirmTitle": "Leave meeting?",
+    "leaveConfirmDescription": "You will disconnect from this meeting. Continue?",
+    "confirmLeave": "Leave",
+    "cancelLeave": "Stay",
+    "errors": {
+      "missingMeetingId": "Meeting ID is required",
+      "connect": "Failed to connect to room",
+      "toggleCamera": "Failed to toggle camera",
+      "toggleMicrophone": "Failed to toggle microphone",
+      "enableDevices": "Failed to enable camera and microphone"
     }
   }
 }

@@ -183,7 +183,8 @@
 
 .form-input,
 .form-select,
-.form-textarea {
+.form-textarea,
+.filter-select {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
   font-size: var(--font-size-sm);
@@ -196,7 +197,8 @@
 
 .form-input:focus,
 .form-select:focus,
-.form-textarea:focus {
+.form-textarea:focus,
+.filter-select:focus {
   outline: none;
   border-color: var(--color-primary-400);
   box-shadow: 0 0 0 3px rgba(70, 175, 186, 0.2);
@@ -205,7 +207,8 @@
 
 .form-input:disabled,
 .form-select:disabled,
-.form-textarea:disabled {
+.form-textarea:disabled,
+.filter-select:disabled {
   background: var(--bg-secondary);
   cursor: not-allowed;
   opacity: 0.6;
@@ -220,9 +223,10 @@
   min-height: 100px;
 }
 
-.form-select {
+.form-select,
+.filter-select {
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234096ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%232f8d97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right var(--space-md) center;
   padding-right: var(--space-2xl);
@@ -232,17 +236,58 @@
 /* Date and Time Inputs */
 .form-input[type="date"],
 .form-input[type="datetime-local"],
-.form-input[type="time"] {
+.form-input[type="time"],
+.filter-input[type="date"],
+.filter-input[type="datetime-local"],
+.filter-input[type="time"],
+.filter-select[type="date"],
+.filter-select[type="datetime-local"],
+.filter-select[type="time"],
+.form-select[type="date"],
+.form-select[type="datetime-local"],
+.form-select[type="time"] {
   cursor: pointer;
+  background-image: none;
+  padding-right: calc(var(--space-2xl) + 4px);
 }
 
 .form-input[type="date"]::-webkit-calendar-picker-indicator,
 .form-input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-.form-input[type="time"]::-webkit-calendar-picker-indicator {
+.form-input[type="time"]::-webkit-calendar-picker-indicator,
+.filter-input[type="date"]::-webkit-calendar-picker-indicator,
+.filter-input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.filter-input[type="time"]::-webkit-calendar-picker-indicator,
+.form-select[type="date"]::-webkit-calendar-picker-indicator,
+.form-select[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.form-select[type="time"]::-webkit-calendar-picker-indicator,
+.filter-select[type="date"]::-webkit-calendar-picker-indicator,
+.filter-select[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.filter-select[type="time"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  filter: invert(42%) sepia(95%) saturate(4864%) hue-rotate(202deg) brightness(102%) contrast(106%);
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary-50);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%232f8d97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3Cpath d='M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: none;
+}
+
+.form-input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.form-input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+.form-input[type="time"]::-webkit-calendar-picker-indicator:hover,
+.filter-input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.filter-input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+.filter-input[type="time"]::-webkit-calendar-picker-indicator:hover,
+.form-select[type="date"]::-webkit-calendar-picker-indicator:hover,
+.form-select[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+.form-select[type="time"]::-webkit-calendar-picker-indicator:hover,
+.filter-select[type="date"]::-webkit-calendar-picker-indicator:hover,
+.filter-select[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+.filter-select[type="time"]::-webkit-calendar-picker-indicator:hover {
+  background-color: var(--color-primary-100);
 }
 
 .form-error {

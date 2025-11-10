@@ -96,11 +96,20 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 
 	isParticipant := false
 	participantRole := "participant"
-	for _, p := range participants {
-		if p.UserID == claims.UserID {
-			isParticipant = true
-			participantRole = p.Role
-			break
+
+	// Check if user is the meeting creator
+	if meeting.CreatedBy == claims.UserID {
+		isParticipant = true
+		participantRole = "organizer"
+		fmt.Printf("INFO: User %s is the creator of meeting %s\n", claims.UserID, meetingID)
+	} else {
+		// Check if user is in the participants list
+		for _, p := range participants {
+			if p.UserID == claims.UserID {
+				isParticipant = true
+				participantRole = p.Role
+				break
+			}
 		}
 	}
 

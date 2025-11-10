@@ -357,9 +357,6 @@ export const Meetings: React.FC = () => {
   // Render list view
   return (
     <div className="page-container">
-      <h1 className="page-title">{t('meetings.title')}</h1>
-      <p className="page-subtitle">{t('meetings.subtitle')}</p>
-
       {/* Filters Section */}
       <div className="filters-section">
         <div className="filters-grid">

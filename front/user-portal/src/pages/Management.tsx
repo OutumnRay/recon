@@ -11,9 +11,6 @@ export const Management: React.FC = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">{t('management.title')}</h1>
-      <p className="page-subtitle">{t('management.subtitle')}</p>
-
       <div className="empty-state">
         <h2 className="empty-title">{t('management.panel')}</h2>
         <p className="empty-description">

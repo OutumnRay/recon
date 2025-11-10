@@ -41,6 +41,9 @@ WORKDIR /root/
 # Copy the binary from builder (frontend is embedded inside)
 COPY --from=backend-builder /app/managing-portal .
 
+# Copy email templates
+COPY --from=backend-builder /app/pkg/email/templates ./pkg/email/templates
+
 # Expose port
 EXPOSE 8080
 

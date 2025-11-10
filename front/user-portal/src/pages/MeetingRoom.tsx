@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Room,
@@ -12,18 +12,27 @@ import {
   VideoPresets,
   Participant,
 } from 'livekit-client';
-import { getMeetingToken } from '../services/meetings';
+import { useTranslation } from 'react-i18next';
+import { getMeeting, getMeetingToken } from '../services/meetings';
 import type { MeetingTokenResponse } from '../types/meeting';
+import {
+  LuMic,
+  LuMicOff,
+  LuVideo,
+  LuVideoOff,
+  LuMaximize2,
+  LuMinimize2,
+  LuChevronDown,
+  LuChevronUp,
+  LuMenu,
+  LuLogOut,
+} from 'react-icons/lu';
 import './MeetingRoom.css';
 
 export default function MeetingRoom() {
   const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
-
-  // Set page title
-  useEffect(() => {
-    document.title = 'Recontext - Meeting Room';
-  }, []);
+  const { t } = useTranslation();
 
   const [room] = useState(() => new Room({
     adaptiveStream: true,
@@ -41,11 +50,182 @@ export default function MeetingRoom() {
   const [isCameraEnabled, setIsCameraEnabled] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(false);
   const [tokenData, setTokenData] = useState<MeetingTokenResponse | null>(null);
+  const [meetingTitle, setMeetingTitle] = useState('');
+  const [stageParticipantId, setStageParticipantId] = useState<string | null>(null);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isParticipantsCollapsed, setIsParticipantsCollapsed] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
-  const localVideoRef = useRef<HTMLDivElement>(null);
+  const localPreviewRef = useRef<HTMLDivElement>(null);
+  const stageVideoRef = useRef<HTMLDivElement>(null);
 
-  // Set up event listeners
+  const participantVideoTracks = useRef<Map<string, RemoteTrack>>(new Map());
+  const stageTrackRef = useRef<Track | null>(null);
+  const stageElementRef = useRef<HTMLMediaElement | null>(null);
+  const localPreviewTrackRef = useRef<Track | null>(null);
+  const localPreviewElementRef = useRef<HTMLMediaElement | null>(null);
+
+  const getInitials = (value: string) => {
+    const parts = value.trim().split(' ');
+    const letters = parts.length === 1
+      ? parts[0].slice(0, 2)
+      : `${parts[0][0]}${parts[1][0]}`;
+    return letters.toUpperCase();
+  };
+
+  const detachStageVideo = useCallback(() => {
+    if (stageTrackRef.current && stageElementRef.current) {
+      stageTrackRef.current.detach(stageElementRef.current);
+      stageElementRef.current.remove();
+    }
+    stageTrackRef.current = null;
+    stageElementRef.current = null;
+  }, []);
+
+  const detachLocalPreview = useCallback(() => {
+    if (localPreviewTrackRef.current && localPreviewElementRef.current) {
+      localPreviewTrackRef.current.detach(localPreviewElementRef.current);
+      localPreviewElementRef.current.remove();
+    }
+    localPreviewTrackRef.current = null;
+    localPreviewElementRef.current = null;
+  }, []);
+
+  const renderLocalPreview = useCallback(() => {
+    const container = localPreviewRef.current;
+    if (!container) return;
+
+    detachLocalPreview();
+    container.innerHTML = '';
+
+    const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
+    if (publication?.track) {
+      const element = publication.track.attach();
+      element.classList.add('meeting-video-element');
+      container.appendChild(element);
+      localPreviewTrackRef.current = publication.track;
+      localPreviewElementRef.current = element;
+    }
+  }, [detachLocalPreview, room]);
+
+  const renderStageVideo = useCallback((preferredId?: string) => {
+    const container = stageVideoRef.current;
+    if (!container) return;
+
+    detachStageVideo();
+    container.innerHTML = '';
+
+    const targetId = preferredId || stageParticipantId || room.localParticipant?.sid || null;
+
+    let track: Track | null = null;
+    let element: HTMLMediaElement | null = null;
+
+    if (targetId && targetId === room.localParticipant?.sid) {
+      const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
+      if (publication?.track) {
+        track = publication.track;
+        element = publication.track.attach();
+      }
+    } else if (targetId) {
+      const remoteTrack = participantVideoTracks.current.get(targetId);
+      if (remoteTrack) {
+        track = remoteTrack;
+        element = remoteTrack.attach();
+      }
+    }
+
+    if (element) {
+      element.classList.add('meeting-video-element');
+      container.appendChild(element);
+      stageTrackRef.current = track;
+      stageElementRef.current = element;
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'stage-placeholder';
+      placeholder.textContent = t('meetingRoom.waitingForParticipants');
+      container.appendChild(placeholder);
+    }
+  }, [detachStageVideo, room, stageParticipantId, t]);
+
+  const updateSidebarHighlight = useCallback((selectedId: string | null) => {
+    if (!videoContainerRef.current) return;
+    const tiles = videoContainerRef.current.querySelectorAll<HTMLElement>('.remote-participant-tile');
+    tiles.forEach((tile) => {
+      tile.classList.toggle('active', !!selectedId && tile.dataset.participant === selectedId);
+    });
+  }, []);
+
+  const ensureParticipantTile = (participant: RemoteParticipant) => {
+    let container = document.getElementById(`participant-${participant.sid}`) as HTMLElement | null;
+    if (!container) {
+      container = document.createElement('div');
+      container.id = `participant-${participant.sid}`;
+      container.className = 'remote-participant-tile';
+      container.dataset.participant = participant.sid;
+
+      const header = document.createElement('div');
+      header.className = 'remote-participant-header';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'participant-avatar';
+      avatar.textContent = getInitials(participant.identity || participant.sid);
+      header.appendChild(avatar);
+
+      const name = document.createElement('div');
+      name.className = 'remote-participant-name';
+      name.textContent = participant.identity || participant.sid;
+      header.appendChild(name);
+
+      container.appendChild(header);
+
+      const videoSlot = document.createElement('div');
+      videoSlot.className = 'remote-participant-video';
+      videoSlot.dataset.slot = participant.sid;
+      container.appendChild(videoSlot);
+
+      videoContainerRef.current?.appendChild(container);
+    }
+    return container;
+  };
+
+  const attachTrackToTile = (participant: RemoteParticipant, element: HTMLElement) => {
+    const container = ensureParticipantTile(participant);
+    const videoSlot = container.querySelector<HTMLDivElement>('.remote-participant-video');
+
+    if (videoSlot) {
+      videoSlot.innerHTML = '';
+      videoSlot.appendChild(element);
+    } else {
+      container.appendChild(element);
+    }
+  };
+
+  useEffect(() => {
+    if (!meetingId) {
+      setError(t('meetingRoom.errors.missingMeetingId'));
+      setIsJoining(false);
+      return;
+    }
+
+    const loadMeetingTitle = async () => {
+      try {
+        const meeting = await getMeeting(meetingId);
+        setMeetingTitle(meeting.title);
+      } catch (err) {
+        console.error('Failed to load meeting details:', err);
+      }
+    };
+
+    loadMeetingTitle();
+  }, [meetingId, t]);
+
+  useEffect(() => {
+    const pageTitle = meetingTitle || tokenData?.roomName || t('meetingRoom.pageTitle');
+    document.title = `Recontext - ${pageTitle}`;
+  }, [meetingTitle, tokenData, t]);
+
   useEffect(() => {
     if (!isConnected) return;
 
@@ -54,31 +234,24 @@ export default function MeetingRoom() {
       _publication: RemoteTrackPublication,
       participant: RemoteParticipant,
     ) => {
-      console.log('Track subscribed:', track.kind, 'from', participant.identity);
-
       if (track.kind === Track.Kind.Video || track.kind === Track.Kind.Audio) {
         const element = track.attach();
         element.id = `${participant.sid}-${track.kind}`;
 
         if (track.kind === Track.Kind.Video) {
+          participantVideoTracks.current.set(participant.sid, track);
           element.classList.add('meeting-video-element');
+          attachTrackToTile(participant, element);
+
+          if (stageParticipantId === participant.sid) {
+            renderStageVideo(participant.sid);
+          }
+        } else {
+          element.style.display = 'none';
+          attachTrackToTile(participant, element);
         }
 
-        let participantContainer = document.getElementById(`participant-${participant.sid}`);
-        if (!participantContainer && videoContainerRef.current) {
-          participantContainer = document.createElement('div');
-          participantContainer.id = `participant-${participant.sid}`;
-          participantContainer.className = 'remote-participant-tile';
-
-          const nameEl = document.createElement('h3');
-          nameEl.className = 'remote-participant-name';
-          nameEl.textContent = participant.identity || participant.sid;
-
-          participantContainer.appendChild(nameEl);
-          videoContainerRef.current.appendChild(participantContainer);
-        }
-
-        participantContainer?.appendChild(element);
+        updateSidebarHighlight(stageParticipantId);
       }
     };
 
@@ -87,12 +260,17 @@ export default function MeetingRoom() {
       _publication: RemoteTrackPublication,
       participant: RemoteParticipant,
     ) => {
-      console.log('Track unsubscribed:', track.kind, 'from', participant.identity);
       track.detach();
+      participantVideoTracks.current.delete(participant.sid);
 
-      const element = document.getElementById(`${participant.sid}-${track.kind}`);
-      if (element) {
-        element.remove();
+      const container = document.getElementById(`participant-${participant.sid}`);
+      const videoSlot = container?.querySelector<HTMLDivElement>('.remote-participant-video');
+      if (videoSlot) {
+        videoSlot.innerHTML = '';
+      }
+
+      if (stageParticipantId === participant.sid) {
+        renderStageVideo();
       }
     };
 
@@ -100,14 +278,11 @@ export default function MeetingRoom() {
       publication: LocalTrackPublication,
       _participant: LocalParticipant,
     ) => {
-      console.log('Local track published:', publication.kind);
-
-      if (publication.track && publication.kind === Track.Kind.Video && localVideoRef.current) {
-        const element = publication.track.attach();
-        element.classList.add('meeting-video-element');
-
-        localVideoRef.current.innerHTML = '';
-        localVideoRef.current.appendChild(element);
+      if (publication.track && publication.kind === Track.Kind.Video) {
+        renderLocalPreview();
+        if (stageParticipantId === room.localParticipant?.sid) {
+          renderStageVideo(room.localParticipant.sid);
+        }
       }
     };
 
@@ -115,46 +290,48 @@ export default function MeetingRoom() {
       publication: LocalTrackPublication,
       _participant: LocalParticipant,
     ) => {
-      console.log('Local track unpublished:', publication.kind);
-      if (publication.track) {
-        publication.track.detach();
-      }
-      if (publication.kind === Track.Kind.Video && localVideoRef.current) {
-        while (localVideoRef.current.firstChild) {
-          localVideoRef.current.removeChild(localVideoRef.current.firstChild);
+      if (publication.track && publication.kind === Track.Kind.Video) {
+        detachLocalPreview();
+        if (stageParticipantId === room.localParticipant?.sid) {
+          renderStageVideo();
         }
       }
     };
 
     const handleActiveSpeakerChange = (speakers: Participant[]) => {
-      console.log('Active speakers changed:', speakers.map(s => s.identity));
       setActiveSpeakers(speakers);
     };
 
     const handleDisconnect = () => {
-      console.log('Disconnected from room');
       setIsConnected(false);
       setParticipants(new Map());
       setIsCameraEnabled(false);
       setIsMicEnabled(false);
+      participantVideoTracks.current.clear();
+      renderStageVideo();
+      detachLocalPreview();
     };
 
     const handleParticipantConnected = (participant: RemoteParticipant) => {
-      console.log('Participant connected:', participant.identity);
       setParticipants(prev => new Map(prev).set(participant.sid, participant));
+      ensureParticipantTile(participant);
     };
 
     const handleParticipantDisconnected = (participant: RemoteParticipant) => {
-      console.log('Participant disconnected:', participant.identity);
       setParticipants(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(participant.sid);
-        return newMap;
+        const next = new Map(prev);
+        next.delete(participant.sid);
+        return next;
       });
 
-      const participantContainer = document.getElementById(`participant-${participant.sid}`);
-      if (participantContainer) {
-        participantContainer.remove();
+      participantVideoTracks.current.delete(participant.sid);
+      const container = document.getElementById(`participant-${participant.sid}`);
+      if (container) {
+        container.remove();
+      }
+
+      if (stageParticipantId === participant.sid) {
+        renderStageVideo();
       }
     };
 
@@ -171,36 +348,41 @@ export default function MeetingRoom() {
     return () => {
       room.removeAllListeners();
     };
-  }, [room, isConnected]);
+  }, [
+    detachLocalPreview,
+    renderLocalPreview,
+    renderStageVideo,
+    room,
+    stageParticipantId,
+    updateSidebarHighlight,
+  ]);
 
-  // Auto-join on component mount
   useEffect(() => {
     if (!meetingId) {
-      setError('Meeting ID is required');
+      setError(t('meetingRoom.errors.missingMeetingId'));
       setIsJoining(false);
       return;
     }
 
     const joinRoom = async () => {
       try {
-        console.log('Getting token from server for meeting:', meetingId);
         const data = await getMeetingToken(meetingId);
         setTokenData(data);
 
-        console.log('Connecting to LiveKit server...');
         await room.prepareConnection(data.url, data.token);
         await room.connect(data.url, data.token);
 
-        console.log('Connected to room:', room.name);
         setIsConnected(true);
         setError(null);
+        setStageParticipantId(current => current ?? room.localParticipant?.sid ?? null);
 
         room.remoteParticipants.forEach((participant) => {
           setParticipants(prev => new Map(prev).set(participant.sid, participant));
+          ensureParticipantTile(participant);
         });
       } catch (err) {
         console.error('Failed to connect:', err);
-        setError(err instanceof Error ? err.message : 'Failed to connect to room');
+        setError(err instanceof Error ? err.message : t('meetingRoom.errors.connect'));
       } finally {
         setIsJoining(false);
       }
@@ -211,9 +393,44 @@ export default function MeetingRoom() {
     return () => {
       room.disconnect();
     };
-  }, [meetingId, room]);
+  }, [meetingId, room, t]);
 
-  const handleLeaveRoom = () => {
+  useEffect(() => {
+    if (activeSpeakers.length > 0) {
+      const topSpeaker = activeSpeakers[0].sid;
+      if (topSpeaker && topSpeaker !== stageParticipantId) {
+        setStageParticipantId(topSpeaker);
+      }
+    } else if (!stageParticipantId) {
+      const firstParticipant = participants.keys().next().value;
+      if (firstParticipant) {
+        setStageParticipantId(firstParticipant);
+      } else if (room.localParticipant?.sid) {
+        setStageParticipantId(room.localParticipant.sid);
+      }
+    }
+  }, [activeSpeakers, participants, room, stageParticipantId]);
+
+  useEffect(() => {
+    if (!stageParticipantId) return;
+    const isLocal = stageParticipantId === room.localParticipant?.sid;
+    if (!isLocal && !participants.has(stageParticipantId)) {
+      const fallback = activeSpeakers[0]?.sid || participants.keys().next().value || room.localParticipant?.sid || null;
+      if (fallback && fallback !== stageParticipantId) {
+        setStageParticipantId(fallback);
+      }
+    }
+  }, [activeSpeakers, participants, room, stageParticipantId]);
+
+  useEffect(() => {
+    renderStageVideo();
+  }, [renderStageVideo, stageParticipantId, isCameraEnabled]);
+
+  useEffect(() => {
+    updateSidebarHighlight(stageParticipantId);
+  }, [stageParticipantId, updateSidebarHighlight]);
+
+  const confirmLeave = () => {
     room.disconnect();
     navigate('/dashboard/meetings');
   };
@@ -223,13 +440,19 @@ export default function MeetingRoom() {
       if (isCameraEnabled) {
         await room.localParticipant.setCameraEnabled(false);
         setIsCameraEnabled(false);
+        detachLocalPreview();
       } else {
         await room.localParticipant.setCameraEnabled(true);
         setIsCameraEnabled(true);
+        renderLocalPreview();
+      }
+
+      if (stageParticipantId === room.localParticipant?.sid) {
+        renderStageVideo(room.localParticipant.sid);
       }
     } catch (err) {
       console.error('Failed to toggle camera:', err);
-      setError(err instanceof Error ? err.message : 'Failed to toggle camera');
+      setError(err instanceof Error ? err.message : t('meetingRoom.errors.toggleCamera'));
     }
   };
 
@@ -244,38 +467,23 @@ export default function MeetingRoom() {
       }
     } catch (err) {
       console.error('Failed to toggle microphone:', err);
-      setError(err instanceof Error ? err.message : 'Failed to toggle microphone');
+      setError(err instanceof Error ? err.message : t('meetingRoom.errors.toggleMicrophone'));
     }
   };
 
-  const enableBoth = async () => {
-    try {
-      await room.localParticipant.enableCameraAndMicrophone();
-      setIsCameraEnabled(true);
-      setIsMicEnabled(true);
-    } catch (err) {
-      console.error('Failed to enable camera and microphone:', err);
-      setError(err instanceof Error ? err.message : 'Failed to enable camera and microphone');
-    }
-  };
-
-  // If joining, show loading state
   if (isJoining) {
     return (
       <div className="meeting-room-state-card">
-        <h1>Joining Meeting...</h1>
-        <p>Please wait while we connect you to the meeting room.</p>
+        <h1>{t('meetingRoom.connectingTitle')}</h1>
+        <p>{t('meetingRoom.connectingDescription')}</p>
       </div>
     );
   }
 
-  // If error occurred before joining
   if (error && !isConnected) {
     return (
       <div className="meeting-room-state-card meeting-room-state-error">
-        <h1>
-          Unable to Join Meeting
-        </h1>
+        <h1>{t('meetingRoom.unableToJoin')}</h1>
         <div className="state-alert">
           {error}
         </div>
@@ -283,115 +491,162 @@ export default function MeetingRoom() {
           onClick={() => navigate('/dashboard/meetings')}
           className="btn btn-primary state-action"
         >
-          Back to Meetings
+          {t('meetings.backToList')}
         </button>
       </div>
     );
   }
 
-  // Main room interface
+  const layoutClass = `meeting-layout ${isParticipantsCollapsed ? 'sidebar-collapsed' : ''}`;
+
   return (
-    <div className="meeting-room-page">
-      <div className="meeting-room-status-card">
-        <div>
-          <h1>
-            {tokenData?.roomName ? `Room: ${tokenData.roomName}` : 'Meeting Room'}
-          </h1>
-          <p className="meeting-room-meta">
-            <strong>Status:</strong>{' '}
-            <span className={`meeting-status ${isConnected ? 'connected' : 'pending'}`}>
-              {isConnected
-                ? `Connected as ${tokenData?.participantName || 'Guest'}`
-                : 'Connecting...'}
-            </span>
-          </p>
-          <p className="meeting-room-meta">
-            <strong>Participants:</strong> {participants.size + 1}
-          </p>
-          {activeSpeakers.length > 0 && (
-            <p className="meeting-room-meta">
-              <strong>Speaking:</strong>{' '}
-              {activeSpeakers.map(s => s.identity || s.sid).join(', ')}
-            </p>
-          )}
-          {tokenData?.forceEndAt && (
-            <p className="meeting-room-meta meeting-warning">
-              <strong>Meeting will end at:</strong>{' '}
-              {new Date(tokenData.forceEndAt).toLocaleString(undefined, { hour12: false })}
-            </p>
-          )}
+    <div className={`meeting-room-page ${isFullscreen ? 'fullscreen' : ''}`}>
+      {!isFullscreen && (
+        <div className={`meeting-room-header ${isHeaderCollapsed ? 'collapsed' : ''}`}>
+          <div className="meeting-room-header-info">
+            <h1>{meetingTitle || tokenData?.roomName || t('meetingRoom.pageTitle')}</h1>
+            {!isHeaderCollapsed && (
+              <div className="meeting-room-header-meta">
+                <p className="meeting-room-meta">
+                  <strong>{t('meetingRoom.statusLabel')}:</strong>{' '}
+                  <span className={`meeting-status ${isConnected ? 'connected' : 'pending'}`}>
+                    {isConnected
+                      ? t('meetingRoom.connectedAs', { name: tokenData?.participantName || t('meetingRoom.guest') })
+                      : t('meetingRoom.connecting')}
+                  </span>
+                </p>
+                <p className="meeting-room-meta">
+                  <strong>{t('meetingRoom.participantLabel')}:</strong> {participants.size + 1}
+                </p>
+                {activeSpeakers.length > 0 && (
+                  <p className="meeting-room-meta">
+                    <strong>{t('meetingRoom.speakingLabel')}:</strong>{' '}
+                    {activeSpeakers.map(s => s.identity || s.sid).join(', ')}
+                  </p>
+                )}
+                {tokenData?.forceEndAt && (
+                  <p className="meeting-room-meta meeting-warning">
+                    <strong>{t('meetingRoom.endsAt')}:</strong>{' '}
+                    {new Date(tokenData.forceEndAt).toLocaleString(undefined, { hour12: false })}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="meeting-room-header-actions">
+            <button
+              onClick={() => setIsFullscreen(prev => !prev)}
+              className="icon-circle-button"
+              aria-label={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
+              title={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
+            >
+              {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
+            </button>
+            <button
+              onClick={() => setIsHeaderCollapsed(prev => !prev)}
+              className="icon-circle-button"
+              aria-label={isHeaderCollapsed ? t('meetingRoom.expandHeader') : t('meetingRoom.collapseHeader')}
+              title={isHeaderCollapsed ? t('meetingRoom.expandHeader') : t('meetingRoom.collapseHeader')}
+            >
+              {isHeaderCollapsed ? <LuChevronDown /> : <LuChevronUp />}
+            </button>
+            <button
+              onClick={() => setShowLeaveConfirm(true)}
+              className="icon-circle-button danger"
+              aria-label={t('meetingRoom.leaveRoom')}
+              title={t('meetingRoom.leaveRoom')}
+            >
+              <LuLogOut />
+            </button>
+          </div>
         </div>
+      )}
 
-        <button
-          onClick={handleLeaveRoom}
-          className="btn btn-danger meeting-leave-btn"
-        >
-          Leave Room
-        </button>
-      </div>
-
-      {error && (
+      {error && isConnected && (
         <div className="alert alert-error meeting-room-inline-alert">
           {error}
         </div>
       )}
 
-      <div className="meeting-room-controls">
-        <button
-          onClick={enableBoth}
-          className="btn btn-success meeting-control-btn"
-          disabled={!isConnected}
-        >
-          Enable Camera &amp; Mic
-        </button>
-
-        <button
-          onClick={toggleCamera}
-          className={`btn meeting-control-btn ${isCameraEnabled ? 'btn-danger' : 'btn-primary'}`}
-          disabled={!isConnected}
-        >
-          {isCameraEnabled ? '📹 Disable Camera' : '📹 Enable Camera'}
-        </button>
-
-        <button
-          onClick={toggleMicrophone}
-          className={`btn meeting-control-btn ${isMicEnabled ? 'btn-danger' : 'btn-primary'}`}
-          disabled={!isConnected}
-        >
-          {isMicEnabled ? '🎤 Disable Mic' : '🎤 Enable Mic'}
-        </button>
-      </div>
-
-      <div className="meeting-panels">
-        <div className="meeting-panel">
-          <h2 className="panel-heading">Your Video</h2>
-          <div className={`video-surface ${!isCameraEnabled ? 'video-surface-muted' : ''}`}>
-            {!isCameraEnabled && (
-              <p className="video-placeholder">
-                Camera is off
-              </p>
-            )}
-            <div
-              ref={localVideoRef}
-              className="video-feed"
-            />
+      <div className={layoutClass}>
+        <div className="stage-section">
+          <div className="stage-video-wrapper">
+            <div className="stage-video" ref={stageVideoRef} />
+            <div className={`local-preview ${isCameraEnabled ? 'visible' : ''}`}>
+              <div className="local-preview-video" ref={localPreviewRef} />
+            </div>
+            <div className="stage-controls">
+              <button
+                onClick={toggleCamera}
+                className="icon-circle-button"
+                aria-label={isCameraEnabled ? t('meetingRoom.disableCamera') : t('meetingRoom.enableCamera')}
+                title={isCameraEnabled ? t('meetingRoom.disableCamera') : t('meetingRoom.enableCamera')}
+                disabled={!isConnected}
+              >
+                {isCameraEnabled ? <LuVideo /> : <LuVideoOff />}
+              </button>
+              <button
+                onClick={toggleMicrophone}
+                className="icon-circle-button"
+                aria-label={isMicEnabled ? t('meetingRoom.disableMic') : t('meetingRoom.enableMic')}
+                title={isMicEnabled ? t('meetingRoom.disableMic') : t('meetingRoom.enableMic')}
+                disabled={!isConnected}
+              >
+                {isMicEnabled ? <LuMic /> : <LuMicOff />}
+              </button>
+              <button
+                onClick={() => setIsFullscreen(prev => !prev)}
+                className="icon-circle-button"
+                aria-label={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
+                title={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
+              >
+                {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className={`meeting-panel ${participants.size === 0 ? 'meeting-panel-full' : ''}`}>
-          <h2 className="panel-heading">
-            Remote Participants {participants.size > 0 && `(${participants.size})`}
-          </h2>
-          <div
-            ref={videoContainerRef}
-            className="remote-participants-grid"
-          >
-            {participants.size === 0 && (
-              <p className="empty-participants-text">Waiting for other participants to join...</p>
-            )}
+        <aside className={`participant-sidebar ${isParticipantsCollapsed ? 'collapsed' : ''}`}>
+          <div className="participant-sidebar-header">
+            {!isParticipantsCollapsed && t('meetingRoom.remoteParticipants')}
+            <button
+              className="icon-circle-button"
+              onClick={() => setIsParticipantsCollapsed(prev => !prev)}
+              aria-label={t('meetingRoom.toggleParticipants')}
+              title={t('meetingRoom.toggleParticipants')}
+            >
+              <LuMenu />
+            </button>
+          </div>
+          <div className="participant-sidebar-list" ref={videoContainerRef} />
+          {participants.size === 0 && (
+            <p className="empty-participants-text">{t('meetingRoom.waitingForParticipants')}</p>
+          )}
+        </aside>
+      </div>
+
+      {showLeaveConfirm && (
+        <div className="meeting-room-modal-backdrop">
+          <div className="meeting-room-modal">
+            <h3>{t('meetingRoom.leaveConfirmTitle')}</h3>
+            <p>{t('meetingRoom.leaveConfirmDescription')}</p>
+            <div className="meeting-room-modal-actions">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowLeaveConfirm(false)}
+              >
+                {t('meetingRoom.cancelLeave')}
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={confirmLeave}
+              >
+                {t('meetingRoom.confirmLeave')}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

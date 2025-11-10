@@ -11,9 +11,6 @@ export const Search: React.FC = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">{t('search.title')}</h1>
-      <p className="page-subtitle">{t('search.subtitle')}</p>
-
       <div className="empty-state">
         <h2 className="empty-title">{t('search.comingSoon')}</h2>
         <p className="empty-description">

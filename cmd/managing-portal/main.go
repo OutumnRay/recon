@@ -270,6 +270,7 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 		emailData := email.WelcomeEmailData{
 			Username: newUser.Username,
 			Email:    newUser.Email,
+			Password: req.Password, // Send original password before hashing
 			Language: newUser.Language,
 			LoginURL: loginURL,
 		}
