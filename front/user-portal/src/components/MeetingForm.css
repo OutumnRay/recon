@@ -287,9 +287,15 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .form-row {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .meeting-form-container {
-    padding: var(--space-lg);
+    padding: var(--space-lg) var(--space-md);
   }
 
   .meeting-form {
@@ -305,28 +311,41 @@
     gap: var(--space-md);
   }
 
+  .section-title {
+    font-size: var(--font-size-lg);
+  }
+
   .form-actions {
     flex-direction: column-reverse;
     gap: var(--space-sm);
   }
 
-  .btn {
+  .form-actions .btn {
     width: 100%;
   }
 
   .checkbox-list {
-    max-height: 200px;
+    max-height: 250px;
+  }
+
+  .checkbox-item {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .participant-count {
+    font-size: var(--font-size-xs);
+    padding: var(--space-sm);
   }
 }
 
 @media (max-width: 480px) {
   .meeting-form-container {
-    padding: var(--space-md);
+    padding: var(--space-md) var(--space-sm);
   }
 
   .meeting-form {
     padding: var(--space-md);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
   }
 
   .form-title {
@@ -342,14 +361,79 @@
   .section-title {
     font-size: var(--font-size-base);
     margin-bottom: var(--space-md);
+    gap: var(--space-xs);
+  }
+
+  .section-title svg {
+    width: 18px;
+    height: 18px;
   }
 
   .form-group {
     margin-bottom: var(--space-md);
   }
 
+  .form-label {
+    font-size: var(--font-size-xs);
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: var(--space-sm);
+    font-size: var(--font-size-sm);
+  }
+
   .form-actions {
     margin-top: var(--space-lg);
     padding-top: var(--space-lg);
+  }
+
+  .checkbox-list {
+    max-height: 180px;
+    padding: var(--space-sm);
+  }
+
+  .checkbox-item {
+    padding: var(--space-xs) var(--space-sm);
+    margin-bottom: var(--space-xs);
+  }
+
+  .checkbox-label {
+    font-size: var(--font-size-xs);
+  }
+
+  .checkbox-hint {
+    font-size: 10px;
+  }
+
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border-width: 3px;
+  }
+
+  .error-message {
+    padding: var(--space-sm);
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 360px) {
+  .meeting-form-container {
+    padding: var(--space-sm) 0;
+  }
+
+  .meeting-form {
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+  }
+
+  .form-title {
+    font-size: var(--font-size-lg);
+  }
+
+  .section-title {
+    font-size: var(--font-size-sm);
   }
 }

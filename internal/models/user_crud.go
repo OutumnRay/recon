@@ -3,6 +3,7 @@ package models
 // UpdateUserRequest represents a request to update user information
 type UpdateUserRequest struct {
 	Email        string           `json:"email,omitempty" example:"newemail@example.com"`
+	Password     string           `json:"password,omitempty" example:"newpassword123"`
 	Role         UserRole         `json:"role,omitempty" example:"operator"`
 	DepartmentID *string          `json:"department_id,omitempty" example:"dept-001"`
 	Groups       []string         `json:"groups,omitempty"`

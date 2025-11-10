@@ -128,6 +128,12 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 	if req.Email != "" {
 		foundUser.Email = req.Email
 	}
+	if req.Password != "" {
+		// Hash the new password
+		hashedPassword := auth.HashPassword(req.Password)
+		foundUser.Password = hashedPassword
+		mp.logger.Infof("Password updated for user: %s (%s)", foundUser.Username, foundUser.ID)
+	}
 	if req.Role != "" {
 		foundUser.Role = req.Role
 	}

@@ -652,21 +652,25 @@
 .icon-sm {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 .icon-md {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
 }
 
 .icon-lg {
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
 }
 
 .icon-xl {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
 }
 
 /* Floating Action Button */
@@ -869,4 +873,343 @@
   background: var(--color-secondary-50);
   color: var(--color-secondary-700);
   border: 1px solid var(--color-secondary-200);
+}
+
+/* Global Mobile Responsive Styles */
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 var(--space-md);
+  }
+
+  .container-sm {
+    padding: 0 var(--space-md);
+  }
+
+  .card {
+    border-radius: var(--radius-lg);
+  }
+
+  .modal {
+    max-width: 90%;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Typography adjustments */
+  .page-title {
+    font-size: var(--font-size-2xl);
+  }
+
+  .page-subtitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .empty-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .empty-description {
+    font-size: var(--font-size-sm);
+  }
+
+  /* Button adjustments */
+  .btn {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .btn-sm {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 11px;
+  }
+
+  .btn-lg {
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--font-size-sm);
+  }
+
+  .btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Card adjustments */
+  .card {
+    border-radius: var(--radius-lg);
+  }
+
+  .card-header,
+  .card-body,
+  .card-footer {
+    padding: var(--space-md);
+  }
+
+  /* Form adjustments */
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .form-label {
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-xs);
+  }
+
+  .form-group {
+    margin-bottom: var(--space-md);
+  }
+
+  /* Table adjustments */
+  .table {
+    font-size: var(--font-size-sm);
+  }
+
+  .table th,
+  .table td {
+    padding: var(--space-sm);
+  }
+
+  /* Modal adjustments */
+  .modal {
+    max-width: 95%;
+    max-height: 95vh;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: var(--space-md);
+  }
+
+  .modal-title {
+    font-size: var(--font-size-lg);
+  }
+
+  /* Badge adjustments */
+  .badge {
+    font-size: 10px;
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  /* Alert adjustments */
+  .alert {
+    padding: var(--space-sm);
+    font-size: var(--font-size-sm);
+  }
+
+  /* Container adjustments */
+  .page-container {
+    padding: var(--space-lg);
+  }
+
+  .container,
+  .container-sm {
+    padding: 0 var(--space-md);
+  }
+
+  /* Status badge adjustments */
+  .status-badge {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+
+  /* FAB adjustments */
+  .fab {
+    width: 52px;
+    height: 52px;
+    bottom: var(--space-lg);
+    right: var(--space-lg);
+  }
+
+  .fab svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Typography for small mobile */
+  .page-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .page-subtitle {
+    font-size: var(--font-size-xs);
+  }
+
+  .empty-title {
+    font-size: var(--font-size-lg);
+  }
+
+  .empty-description {
+    font-size: var(--font-size-xs);
+  }
+
+  /* Button for small mobile */
+  .btn {
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--font-size-xs);
+  }
+
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .btn-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Card for small mobile */
+  .card {
+    border-radius: var(--radius-md);
+  }
+
+  .card-header,
+  .card-body,
+  .card-footer {
+    padding: var(--space-sm);
+  }
+
+  /* Form for small mobile */
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-xs);
+  }
+
+  .form-label {
+    font-size: var(--font-size-xs);
+  }
+
+  .form-group {
+    margin-bottom: var(--space-sm);
+  }
+
+  /* Modal for small mobile */
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: var(--space-sm);
+  }
+
+  .modal-title {
+    font-size: var(--font-size-base);
+  }
+
+  /* Container for small mobile */
+  .page-container {
+    padding: var(--space-md);
+  }
+
+  .container,
+  .container-sm {
+    padding: 0 var(--space-sm);
+  }
+
+  /* FAB for small mobile */
+  .fab {
+    width: 48px;
+    height: 48px;
+    bottom: var(--space-md);
+    right: var(--space-md);
+  }
+
+  .fab svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Loading state */
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border-width: 3px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    padding: var(--space-xl);
+  }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  .btn {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    min-height: 44px;
+  }
+
+  .form-check input[type="checkbox"],
+  .form-check input[type="radio"] {
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .btn:hover,
+  .nav-item:hover {
+    transform: none;
+  }
+
+  /* Improve scrolling */
+  .sidebar-nav,
+  .dropdown-menu,
+  .modal-body,
+  .table {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Landscape mode optimizations */
+@media (max-width: 896px) and (orientation: landscape) {
+  .page-container {
+    padding: var(--space-md);
+  }
+
+  .modal {
+    max-height: 90vh;
+  }
+
+  .empty-state {
+    padding: var(--space-lg);
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+  .page-title {
+    font-size: var(--font-size-lg);
+  }
+
+  .btn {
+    font-size: 11px;
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 12px;
+  }
+
+  .page-container {
+    padding: var(--space-sm);
+  }
 }

@@ -162,15 +162,103 @@
 
 @media (max-width: 768px) {
   .file-upload-container {
-    padding: var(--space-xl);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+
+  .file-upload-container h2 {
+    font-size: var(--font-size-xl);
   }
 
   .drop-zone {
-    padding: var(--space-xl);
+    padding: var(--space-lg);
+  }
+
+  .upload-icon {
+    font-size: 40px;
+  }
+
+  .file-icon {
+    font-size: 40px;
+  }
+
+  .drop-zone-text {
+    font-size: var(--font-size-sm);
+  }
+
+  .drop-zone-hint {
+    font-size: var(--font-size-xs);
   }
 
   .upload-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .upload-actions .btn {
+    width: 100%;
+  }
+
+  .file-info {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .file-details {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .file-upload-container {
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+
+  .file-upload-container h2 {
+    font-size: var(--font-size-lg);
+  }
+
+  .upload-description {
+    font-size: var(--font-size-xs);
+  }
+
+  .drop-zone {
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+
+  .upload-icon {
+    font-size: 36px;
+  }
+
+  .file-icon {
+    font-size: 36px;
+  }
+
+  .drop-zone-text {
+    font-size: var(--font-size-xs);
+  }
+
+  .drop-zone-hint {
+    font-size: 11px;
+  }
+
+  .file-name {
+    font-size: var(--font-size-sm);
+  }
+
+  .file-size {
+    font-size: var(--font-size-xs);
+  }
+
+  .upload-message {
+    font-size: var(--font-size-xs);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .progress-text {
+    font-size: var(--font-size-xs);
   }
 }

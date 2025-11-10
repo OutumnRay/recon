@@ -181,6 +181,55 @@
   max-width: calc(100% - 2 * var(--space-lg));
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-sm);
+  color: var(--text-inverse);
+}
+
+.volume-control input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+  height: 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.volume-control input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.volume-control input[type="range"]:hover::-webkit-slider-thumb {
+  background: var(--color-primary-600);
+  transform: scale(1.1);
+}
+
+.volume-control input[type="range"]:hover::-moz-range-thumb {
+  background: var(--color-primary-600);
+  transform: scale(1.1);
 }
 
 .stage-speaking-indicator {
@@ -455,5 +504,138 @@
   .local-preview {
     width: 140px;
     height: 96px;
+  }
+
+  /* Mobile optimizations */
+  .meeting-room-page {
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  .meeting-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .participant-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 40vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    z-index: 100;
+    transition: max-height 0.3s ease;
+  }
+
+  .participant-sidebar.collapsed {
+    max-height: 60px;
+  }
+
+  .participant-sidebar-list {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+  }
+
+  .remote-participant-tile {
+    min-width: 120px;
+    max-width: 120px;
+    height: 140px;
+  }
+
+  .stage-video-wrapper {
+    min-height: 100vh;
+    border-radius: 0;
+  }
+
+  .stage-section {
+    border-radius: 0;
+    border: none;
+    padding: 0;
+  }
+
+  .stage-controls {
+    bottom: calc(40vh + var(--space-md));
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: var(--space-sm);
+  }
+
+  .volume-control {
+    display: none; /* Hide volume on mobile to save space */
+  }
+
+  .icon-circle-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .meeting-room-header {
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--border-light);
+    padding: var(--space-md);
+  }
+
+  .meeting-room-header h1 {
+    font-size: var(--font-size-lg);
+  }
+
+  .stage-speaking-indicator {
+    top: var(--space-sm);
+    left: var(--space-sm);
+    font-size: var(--font-size-xs);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .local-preview {
+    width: 100px;
+    height: 75px;
+    bottom: calc(40vh + 80px);
+    right: var(--space-sm);
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 375px) {
+  .stage-controls {
+    gap: var(--space-xs);
+    padding: var(--space-xs);
+  }
+
+  .icon-circle-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .icon-circle-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .remote-participant-tile {
+    min-width: 100px;
+    max-width: 100px;
+    height: 120px;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-width: 896px) and (orientation: landscape) {
+  .participant-sidebar {
+    max-height: 50vh;
+  }
+
+  .stage-controls {
+    bottom: calc(50vh + var(--space-sm));
+  }
+
+  .local-preview {
+    bottom: calc(50vh + 60px);
   }
 }

@@ -10,7 +10,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [hasFilePermission, setHasFilePermission] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     checkFilePermission();
@@ -75,9 +75,20 @@ export const Dashboard: React.FC = () => {
     return { title: 'Recontext', subtitle: t('nav.dashboard', { defaultValue: '' }) };
   })();
 
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <div className="dashboard-layout">
-      <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+      {isMobileMenuOpen && (
+        <div className="sidebar-overlay active" onClick={closeMobileMenu}></div>
+      )}
+      <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <img src="/logo.png" alt="Recontext Logo" className="sidebar-logo" />
           <h1 className="sidebar-title">Recontext</h1>
@@ -87,6 +98,7 @@ export const Dashboard: React.FC = () => {
           <NavLink
             to="/dashboard/meetings"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={closeMobileMenu}
           >
             <span className="nav-icon"><LuCalendar /></span>
             <span className="nav-label">{t('nav.meetings')}</span>
@@ -95,6 +107,7 @@ export const Dashboard: React.FC = () => {
           <NavLink
             to="/dashboard/search"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={closeMobileMenu}
           >
             <span className="nav-icon"><LuSearch /></span>
             <span className="nav-label">{t('nav.search')}</span>
@@ -104,6 +117,7 @@ export const Dashboard: React.FC = () => {
             <NavLink
               to="/dashboard/documents"
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              onClick={closeMobileMenu}
             >
               <span className="nav-icon"><LuFileText /></span>
               <span className="nav-label">{t('nav.documents')}</span>
@@ -113,6 +127,7 @@ export const Dashboard: React.FC = () => {
           <NavLink
             to="/dashboard/management"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={closeMobileMenu}
           >
             <span className="nav-icon"><LuSettings /></span>
             <span className="nav-label">{t('nav.management')}</span>
@@ -127,15 +142,15 @@ export const Dashboard: React.FC = () => {
         </div>
       </aside>
 
-      <div className={`main-content ${isSidebarCollapsed ? 'expanded' : ''}`}>
+      <div className="main-content">
         <header className="top-header">
           <div className="header-left">
             <button
               className="sidebar-toggle"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title={isSidebarCollapsed ? t('common.expand') : t('common.collapse')}
+              onClick={handleMobileMenuToggle}
+              title={isMobileMenuOpen ? t('common.close') : t('common.menu')}
             >
-              {isSidebarCollapsed ? <LuMenu /> : <LuX />}
+              {isMobileMenuOpen ? <LuX /> : <LuMenu />}
             </button>
             <div className="page-context">
               <h2 className="page-current-title">{pageMeta.title}</h2>

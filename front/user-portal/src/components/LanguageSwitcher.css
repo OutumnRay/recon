@@ -35,3 +35,40 @@
 .lang-btn:active {
   transform: scale(0.96);
 }
+
+@media (max-width: 768px) {
+  .language-switcher {
+    gap: var(--space-xs);
+    padding: 4px;
+  }
+
+  .lang-btn {
+    padding: 6px var(--space-sm);
+    font-size: 11px;
+    min-width: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .language-switcher {
+    padding: 3px;
+  }
+
+  .lang-btn {
+    padding: 5px var(--space-xs);
+    font-size: 10px;
+    min-width: 28px;
+  }
+}
+
+/* Touch-friendly on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .lang-btn {
+    min-height: 32px;
+    min-width: 40px;
+  }
+
+  .lang-btn:hover {
+    transform: none;
+  }
+}

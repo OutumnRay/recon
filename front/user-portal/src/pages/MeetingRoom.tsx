@@ -53,6 +53,7 @@ export default function MeetingRoom() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isParticipantsCollapsed, setIsParticipantsCollapsed] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [volume, setVolume] = useState(100);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const localPreviewRef = useRef<HTMLDivElement>(null);
@@ -63,6 +64,7 @@ export default function MeetingRoom() {
   const stageElementRef = useRef<HTMLMediaElement | null>(null);
   const localPreviewTrackRef = useRef<Track | null>(null);
   const localPreviewElementRef = useRef<HTMLMediaElement | null>(null);
+  const volumeRef = useRef<number>(100);
 
   const getInitials = (value: string) => {
     const parts = value.trim().split(' ');
@@ -70,6 +72,11 @@ export default function MeetingRoom() {
       ? parts[0].slice(0, 2)
       : `${parts[0][0]}${parts[1][0]}`;
     return letters.toUpperCase();
+  };
+
+  const getParticipantDisplayName = (participant: Participant) => {
+    // Use participant.name if available (set by backend), fallback to identity (user ID)
+    return participant.name || participant.identity || participant.sid;
   };
 
   const detachStageVideo = useCallback(() => {
@@ -170,12 +177,13 @@ export default function MeetingRoom() {
 
       const avatar = document.createElement('div');
       avatar.className = 'participant-avatar';
-      avatar.textContent = getInitials(participant.identity || participant.sid);
+      const displayName = getParticipantDisplayName(participant);
+      avatar.textContent = getInitials(displayName);
       header.appendChild(avatar);
 
       const name = document.createElement('div');
       name.className = 'remote-participant-name';
-      name.textContent = participant.identity || participant.sid;
+      name.textContent = displayName;
       header.appendChild(name);
 
       container.appendChild(header);
@@ -227,18 +235,28 @@ export default function MeetingRoom() {
   }, [meetingTitle, tokenData, t]);
 
   useEffect(() => {
-    if (!isConnected) return;
+    if (!isConnected) {
+      console.log('[Effect] Not connected yet, skipping event handlers setup');
+      return;
+    }
+
+    console.log('[Effect] Setting up event handlers for connected room');
+    console.log('[Effect] Current remote participants:', room.remoteParticipants.size);
 
     const handleTrackSubscribed = (
       track: RemoteTrack,
       _publication: RemoteTrackPublication,
       participant: RemoteParticipant,
     ) => {
+      const displayName = getParticipantDisplayName(participant);
+      console.log(`[Track Subscribed] Participant: ${displayName} (${participant.sid}), Track: ${track.kind}, Source: ${track.source}`);
+
       if (track.kind === Track.Kind.Video || track.kind === Track.Kind.Audio) {
         const element = track.attach();
         element.id = `${participant.sid}-${track.kind}`;
 
         if (track.kind === Track.Kind.Video) {
+          console.log(`[Video Track] Attaching video for ${displayName}`, element);
           participantVideoTracks.current.set(participant.sid, track);
           element.classList.add('meeting-video-element');
           attachTrackToTile(participant, element);
@@ -247,6 +265,12 @@ export default function MeetingRoom() {
             renderStageVideo(participant.sid);
           }
         } else {
+          console.log(`[Audio Track] Attaching audio for ${displayName}`, element);
+          // Apply current volume to audio element
+          if (element instanceof HTMLAudioElement) {
+            element.volume = volumeRef.current / 100;
+            console.log(`[Audio Track] Set volume to ${volumeRef.current}%`);
+          }
           element.style.display = 'none';
           attachTrackToTile(participant, element);
         }
@@ -260,6 +284,7 @@ export default function MeetingRoom() {
       _publication: RemoteTrackPublication,
       participant: RemoteParticipant,
     ) => {
+      console.log(`[Track Unsubscribed] Participant: ${participant.identity}, Track: ${track.kind}`);
       track.detach();
       participantVideoTracks.current.delete(participant.sid);
 
@@ -272,6 +297,31 @@ export default function MeetingRoom() {
       if (stageParticipantId === participant.sid) {
         renderStageVideo();
       }
+    };
+
+    const handleTrackPublished = (
+      publication: RemoteTrackPublication,
+      participant: RemoteParticipant,
+    ) => {
+      const displayName = getParticipantDisplayName(participant);
+      console.log(`[Track Published] Participant: ${displayName}, Track: ${publication.kind}, Source: ${publication.source}`);
+      console.log(`  - Is subscribed: ${publication.isSubscribed}`);
+      console.log(`  - Is enabled: ${publication.isEnabled}`);
+      console.log(`  - Track exists: ${publication.track ? 'yes' : 'no'}`);
+
+      // If track is already subscribed, manually attach it
+      if (publication.isSubscribed && publication.track) {
+        console.log(`  - Track is already subscribed, manually triggering handleTrackSubscribed`);
+        handleTrackSubscribed(publication.track as RemoteTrack, publication, participant);
+      }
+    };
+
+    const handleTrackUnpublished = (
+      publication: RemoteTrackPublication,
+      participant: RemoteParticipant,
+    ) => {
+      const displayName = getParticipantDisplayName(participant);
+      console.log(`[Track Unpublished] Participant: ${displayName}, Track: ${publication.kind}`);
     };
 
     const handleLocalTrackPublished = (
@@ -313,8 +363,22 @@ export default function MeetingRoom() {
     };
 
     const handleParticipantConnected = (participant: RemoteParticipant) => {
+      const displayName = getParticipantDisplayName(participant);
+      console.log(`[Participant Connected] ${displayName} (${participant.sid})`);
+      console.log(`[Participant Tracks] Audio publications:`, participant.audioTrackPublications.size);
+      console.log(`[Participant Tracks] Video publications:`, participant.videoTrackPublications.size);
+
       setParticipants(prev => new Map(prev).set(participant.sid, participant));
       ensureParticipantTile(participant);
+
+      // Check if participant already has published tracks that we need to subscribe to
+      participant.trackPublications.forEach((publication, trackSid) => {
+        console.log(`[Existing Track] Track ${trackSid}: ${publication.kind}, subscribed: ${publication.isSubscribed}, track: ${publication.track ? 'exists' : 'null'}`);
+
+        if (publication.track && !publication.isSubscribed) {
+          console.log(`[Manual Subscribe] Attempting to subscribe to ${publication.kind} track`);
+        }
+      });
     };
 
     const handleParticipantDisconnected = (participant: RemoteParticipant) => {
@@ -338,6 +402,8 @@ export default function MeetingRoom() {
     room
       .on(RoomEvent.TrackSubscribed, handleTrackSubscribed)
       .on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
+      .on(RoomEvent.TrackPublished, handleTrackPublished)
+      .on(RoomEvent.TrackUnpublished, handleTrackUnpublished)
       .on(RoomEvent.LocalTrackPublished, handleLocalTrackPublished)
       .on(RoomEvent.LocalTrackUnpublished, handleLocalTrackUnpublished)
       .on(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakerChange)
@@ -346,9 +412,11 @@ export default function MeetingRoom() {
       .on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
 
     return () => {
+      console.log('[Effect] Cleaning up event handlers');
       room.removeAllListeners();
     };
   }, [
+    isConnected,
     detachLocalPreview,
     renderLocalPreview,
     renderStageVideo,
@@ -369,16 +437,59 @@ export default function MeetingRoom() {
         const data = await getMeetingToken(meetingId);
         setTokenData(data);
 
+        console.log('[Room Connect] Connecting to room:', data.url);
+        console.log('[Room Connect] Participant name:', data.participantName);
+
         await room.prepareConnection(data.url, data.token);
         await room.connect(data.url, data.token);
+
+        console.log('[Room Connect] Connected successfully');
+        console.log('[Room Connect] Local participant:', room.localParticipant?.identity);
+        console.log('[Room Connect] Remote participants count:', room.remoteParticipants.size);
 
         setIsConnected(true);
         setError(null);
         setStageParticipantId(current => current ?? room.localParticipant?.sid ?? null);
 
+        // Enable camera and microphone by default after connection
+        setTimeout(() => {
+          enableMediaByDefault();
+        }, 500);
+
         room.remoteParticipants.forEach((participant) => {
+          const displayName = getParticipantDisplayName(participant);
+          console.log(`[Existing Participant] ${displayName} (${participant.sid})`);
+          console.log(`  - Audio tracks: ${participant.audioTrackPublications.size}`);
+          console.log(`  - Video tracks: ${participant.videoTrackPublications.size}`);
+
           setParticipants(prev => new Map(prev).set(participant.sid, participant));
           ensureParticipantTile(participant);
+
+          // Process existing tracks
+          participant.trackPublications.forEach((publication, trackSid) => {
+            console.log(`  - Track ${trackSid}: ${publication.kind}, subscribed: ${publication.isSubscribed}, enabled: ${publication.isEnabled}`);
+
+            if (publication.isSubscribed && publication.track) {
+              console.log(`  - Track already subscribed, attaching...`);
+              const track = publication.track as RemoteTrack;
+              const element = track.attach();
+              element.id = `${participant.sid}-${track.kind}`;
+
+              if (track.kind === Track.Kind.Video) {
+                participantVideoTracks.current.set(participant.sid, track);
+                element.classList.add('meeting-video-element');
+                attachTrackToTile(participant, element);
+              } else if (track.kind === Track.Kind.Audio) {
+                // Apply current volume to audio element
+                if (element instanceof HTMLAudioElement) {
+                  element.volume = volumeRef.current / 100;
+                  console.log(`[Existing Audio] Set volume to ${volumeRef.current}%`);
+                }
+                element.style.display = 'none';
+                attachTrackToTile(participant, element);
+              }
+            }
+          });
         });
       } catch (err) {
         console.error('Failed to connect:', err);
@@ -422,9 +533,107 @@ export default function MeetingRoom() {
     updateSidebarHighlight(stageParticipantId);
   }, [stageParticipantId, updateSidebarHighlight]);
 
+  // Update volume for all audio elements when volume changes
+  useEffect(() => {
+    volumeRef.current = volume;
+    const audioElements = document.querySelectorAll<HTMLAudioElement>('audio');
+    console.log(`[Volume] Updating volume to ${volume}% for ${audioElements.length} audio elements`);
+    audioElements.forEach(audio => {
+      audio.volume = volume / 100;
+    });
+  }, [volume]);
+
   const confirmLeave = () => {
     room.disconnect();
     navigate('/dashboard/meetings');
+  };
+
+  const enableMediaByDefault = async () => {
+    try {
+      console.log('[Media] Enabling camera and microphone by default...');
+      console.log('[Media] Navigator available:', typeof navigator);
+      console.log('[Media] Navigator.mediaDevices available:', typeof navigator?.mediaDevices);
+      console.log('[Media] Protocol:', window.location.protocol);
+      console.log('[Media] User agent:', navigator.userAgent);
+
+      // Check if mediaDevices is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const protocol = window.location.protocol;
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+        let errorMsg = 'Camera and microphone access is not available.\n\n';
+
+        if (protocol === 'http:' && !isLocalhost) {
+          errorMsg += '⚠️ The page is loaded via HTTP (not HTTPS).\n';
+          errorMsg += 'WebRTC requires HTTPS for security.\n\n';
+          errorMsg += 'Please access this page via HTTPS:\n';
+          errorMsg += `https://${window.location.host}${window.location.pathname}`;
+        } else {
+          errorMsg += 'Your browser does not support WebRTC or camera/microphone access is blocked.\n\n';
+          errorMsg += 'Please:\n';
+          errorMsg += '1. Use a modern browser (Chrome, Firefox, Safari, Edge)\n';
+          errorMsg += '2. Allow camera and microphone permissions when prompted\n';
+          errorMsg += '3. Check that no other app is using the camera';
+        }
+
+        console.error('[Media] WebRTC not supported:', errorMsg);
+        setError(errorMsg);
+        return;
+      }
+
+      // For iOS Safari, we need to request permissions explicitly first
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      console.log('[Media] iOS device:', isIOS);
+
+      if (isIOS) {
+        console.log('[Media] iOS detected, requesting permissions explicitly...');
+        try {
+          // Request permissions first on iOS
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: { facingMode: 'user' }
+          });
+          console.log('[Media] iOS permissions granted, stopping test stream');
+          stream.getTracks().forEach(track => track.stop());
+        } catch (permErr) {
+          console.error('[Media] Failed to get iOS permissions:', permErr);
+          setError(`Please allow camera and microphone access: ${permErr instanceof Error ? permErr.message : 'Unknown error'}`);
+          return;
+        }
+      }
+
+      // Enable microphone first (more likely to succeed)
+      try {
+        await room.localParticipant.setMicrophoneEnabled(true);
+        setIsMicEnabled(true);
+        console.log('[Media] Microphone enabled successfully');
+      } catch (micErr) {
+        console.error('[Media] Failed to enable microphone:', micErr);
+        const errorMsg = micErr instanceof Error ? micErr.message : 'Unknown error';
+        console.error('[Media] Microphone error details:', errorMsg);
+        // Don't set error state for mic, continue trying camera
+      }
+
+      // Then enable camera
+      try {
+        await room.localParticipant.setCameraEnabled(true);
+        setIsCameraEnabled(true);
+        renderLocalPreview();
+        console.log('[Media] Camera enabled successfully');
+      } catch (camErr) {
+        console.error('[Media] Failed to enable camera:', camErr);
+        const errorMsg = camErr instanceof Error ? camErr.message : 'Unknown error';
+        console.error('[Media] Camera error details:', errorMsg);
+        // Don't set error state, user can enable manually
+      }
+
+      if (stageParticipantId === room.localParticipant?.sid) {
+        renderStageVideo(room.localParticipant.sid);
+      }
+    } catch (err) {
+      console.error('[Media] Failed to enable media:', err);
+      setError(err instanceof Error ? err.message : 'Failed to enable camera/microphone');
+    }
   };
 
   const toggleCamera = async () => {
@@ -490,7 +699,7 @@ export default function MeetingRoom() {
   }
 
   const layoutClass = `meeting-layout ${isParticipantsCollapsed ? 'sidebar-collapsed' : ''}`;
-  const speakingNames = activeSpeakers.map(s => s.identity || s.sid).join(', ');
+  const speakingNames = activeSpeakers.map(s => getParticipantDisplayName(s)).join(', ');
   const statusText = isConnected
     ? t('meetingRoom.connectedAs', { name: tokenData?.participantName || t('meetingRoom.guest') })
     : t('meetingRoom.connecting');
@@ -574,6 +783,21 @@ export default function MeetingRoom() {
               >
                 {isMicEnabled ? <LuMic /> : <LuMicOff />}
               </button>
+              <div className="volume-control">
+                <label htmlFor="volume-slider" style={{ fontSize: '14px', marginRight: '8px' }}>
+                  🔊 {volume}%
+                </label>
+                <input
+                  id="volume-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  style={{ width: '100px' }}
+                  title={t('meetingRoom.volumeControl') || 'Volume'}
+                />
+              </div>
               <button
                 onClick={() => setIsFullscreen(prev => !prev)}
                 className="icon-circle-button"

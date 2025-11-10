@@ -128,20 +128,88 @@
 
 @media (max-width: 768px) {
   .user-settings-container {
-    padding: var(--space-xl) var(--space-lg);
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .settings-title {
+    font-size: var(--font-size-2xl);
   }
 
   .settings-section,
   .settings-actions {
-    padding: var(--space-xl);
+    padding: var(--space-lg);
+  }
+
+  .section-title {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-md);
   }
 
   .info-row {
     flex-direction: column;
     align-items: flex-start;
+    padding: var(--space-sm) 0;
+    gap: var(--space-sm);
+  }
+
+  .info-label {
+    font-size: var(--font-size-sm);
+  }
+
+  .info-value {
+    font-size: var(--font-size-sm);
   }
 
   .settings-actions {
     justify-content: center;
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .settings-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-settings-container {
+    padding: var(--space-md) var(--space-sm);
+  }
+
+  .settings-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .settings-card {
+    border-radius: var(--radius-lg);
+  }
+
+  .settings-section,
+  .settings-actions {
+    padding: var(--space-md);
+  }
+
+  .section-title {
+    font-size: var(--font-size-base);
+  }
+
+  .info-label,
+  .info-value {
+    font-size: var(--font-size-xs);
+  }
+
+  .info-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .title-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border-width: 3px;
   }
 }
