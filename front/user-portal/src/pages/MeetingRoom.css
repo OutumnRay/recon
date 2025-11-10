@@ -20,18 +20,10 @@
   align-items: center;
 }
 
-.meeting-room-header.collapsed {
-  padding: var(--space-md) var(--space-lg);
-}
-
 .meeting-room-header-info {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-}
-
-.meeting-room-header.collapsed .meeting-room-header-meta {
-  display: none;
 }
 
 .meeting-room-header-actions {
@@ -96,6 +88,11 @@
   color: var(--color-warning);
 }
 
+.meeting-room-header-info h1 .meeting-status {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
 .meeting-warning {
   color: var(--color-warning);
 }
@@ -130,19 +127,21 @@
   flex: 1;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  min-height: 60vh;
+  min-height: clamp(360px, 60vh, 720px);
   background: radial-gradient(circle at top, rgba(70, 175, 186, 0.15), rgba(17, 49, 51, 0.85));
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--space-lg);
 }
 
 .stage-video {
   width: 100%;
-  height: 100%;
+  height: 85vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: inherit;
 }
 
 .meeting-video-element {
@@ -154,28 +153,59 @@
 }
 
 .stage-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-lg);
+  background: var(--surface-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
   font-size: var(--font-size-base);
   color: var(--text-secondary);
+  text-align: center;
 }
 
 .stage-controls {
   position: absolute;
-  bottom: var(--space-lg);
+  bottom: var(--space-md);
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
   gap: var(--space-sm);
-  padding: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   background: rgba(17, 49, 51, 0.6);
   border-radius: var(--radius-full);
   backdrop-filter: blur(12px);
   box-shadow: var(--shadow-md);
+  max-width: calc(100% - 2 * var(--space-lg));
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.stage-speaking-indicator {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--text-inverse);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.stage-speaking-indicator strong {
+  font-weight: var(--font-weight-semibold);
 }
 
 .local-preview {
   position: absolute;
-  bottom: var(--space-lg);
-  right: var(--space-lg);
+  bottom: var(--space-md);
+  right: var(--space-md);
   width: 180px;
   height: 120px;
   border-radius: var(--radius-lg);
@@ -225,11 +255,27 @@
   height: 36px;
 }
 
+.participant-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.participant-count-pill {
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--color-primary-100);
+}
+
 .participant-sidebar.collapsed {
   align-items: center;
   justify-content: center;
 }
 
+.participant-sidebar.collapsed .participant-sidebar-title,
 .participant-sidebar.collapsed .participant-sidebar-list,
 .participant-sidebar.collapsed .empty-participants-text {
   display: none;

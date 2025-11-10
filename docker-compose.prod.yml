@@ -22,13 +22,16 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - LIVEKIT_URL=wss://video.recontext.online
+      - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
+      - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
       # SMTP Configuration for email sending
-      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-noreply@recontext.online}
-      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Recontext}
+      - SMTP_HOST=smtp.timeweb.ru
+      - SMTP_PORT=465
+      - SMTP_USER=support@recontext.online
+      - SMTP_PASSWORD=hiwu9vdxe5
+      - SMTP_FROM_ADDRESS=support@recontext.online
+      - SMTP_FROM_NAME=Служба поддержки Recontext
     depends_on:
       - postgres
       - rabbitmq
@@ -62,13 +65,16 @@ services:
       - EMBEDDINGS_API_URL=http://ollama:11434/api/embeddings
       - EMBEDDINGS_API_KEY=local
       - EMBEDDINGS_MODEL=nomic-embed-text
+      - LIVEKIT_URL=wss://video.recontext.online
+      - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
+      - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
       # SMTP Configuration for email sending
-      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-noreply@recontext.online}
-      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Recontext}
+      - SMTP_HOST=smtp.timeweb.ru
+      - SMTP_PORT=465
+      - SMTP_USER=support@recontext.online
+      - SMTP_PASSWORD=hiwu9vdxe5
+      - SMTP_FROM_ADDRESS=support@recontext.online
+      - SMTP_FROM_NAME=Служба поддержки Recontext
     depends_on:
       - managing-portal
       - postgres

@@ -22,8 +22,6 @@ import {
   LuVideoOff,
   LuMaximize2,
   LuMinimize2,
-  LuChevronDown,
-  LuChevronUp,
   LuMenu,
   LuLogOut,
 } from 'react-icons/lu';
@@ -52,7 +50,6 @@ export default function MeetingRoom() {
   const [tokenData, setTokenData] = useState<MeetingTokenResponse | null>(null);
   const [meetingTitle, setMeetingTitle] = useState('');
   const [stageParticipantId, setStageParticipantId] = useState<string | null>(null);
-  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isParticipantsCollapsed, setIsParticipantsCollapsed] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -164,6 +161,9 @@ export default function MeetingRoom() {
       container.id = `participant-${participant.sid}`;
       container.className = 'remote-participant-tile';
       container.dataset.participant = participant.sid;
+      container.addEventListener('click', () => {
+        setStageParticipantId(participant.sid);
+      });
 
       const header = document.createElement('div');
       header.className = 'remote-participant-header';
@@ -396,31 +396,23 @@ export default function MeetingRoom() {
   }, [meetingId, room, t]);
 
   useEffect(() => {
-    if (activeSpeakers.length > 0) {
-      const topSpeaker = activeSpeakers[0].sid;
-      if (topSpeaker && topSpeaker !== stageParticipantId) {
-        setStageParticipantId(topSpeaker);
-      }
-    } else if (!stageParticipantId) {
-      const firstParticipant = participants.keys().next().value;
-      if (firstParticipant) {
-        setStageParticipantId(firstParticipant);
-      } else if (room.localParticipant?.sid) {
-        setStageParticipantId(room.localParticipant.sid);
-      }
+    if (stageParticipantId) return;
+    const fallback = participants.keys().next().value || room.localParticipant?.sid || null;
+    if (fallback) {
+      setStageParticipantId(fallback);
     }
-  }, [activeSpeakers, participants, room, stageParticipantId]);
+  }, [participants, room, stageParticipantId]);
 
   useEffect(() => {
     if (!stageParticipantId) return;
     const isLocal = stageParticipantId === room.localParticipant?.sid;
     if (!isLocal && !participants.has(stageParticipantId)) {
-      const fallback = activeSpeakers[0]?.sid || participants.keys().next().value || room.localParticipant?.sid || null;
+      const fallback = participants.keys().next().value || room.localParticipant?.sid || null;
       if (fallback && fallback !== stageParticipantId) {
         setStageParticipantId(fallback);
       }
     }
-  }, [activeSpeakers, participants, room, stageParticipantId]);
+  }, [participants, room, stageParticipantId]);
 
   useEffect(() => {
     renderStageVideo();
@@ -498,40 +490,30 @@ export default function MeetingRoom() {
   }
 
   const layoutClass = `meeting-layout ${isParticipantsCollapsed ? 'sidebar-collapsed' : ''}`;
+  const speakingNames = activeSpeakers.map(s => s.identity || s.sid).join(', ');
+  const statusText = isConnected
+    ? t('meetingRoom.connectedAs', { name: tokenData?.participantName || t('meetingRoom.guest') })
+    : t('meetingRoom.connecting');
 
   return (
     <div className={`meeting-room-page ${isFullscreen ? 'fullscreen' : ''}`}>
       {!isFullscreen && (
-        <div className={`meeting-room-header ${isHeaderCollapsed ? 'collapsed' : ''}`}>
+        <div className="meeting-room-header">
           <div className="meeting-room-header-info">
-            <h1>{meetingTitle || tokenData?.roomName || t('meetingRoom.pageTitle')}</h1>
-            {!isHeaderCollapsed && (
-              <div className="meeting-room-header-meta">
-                <p className="meeting-room-meta">
-                  <strong>{t('meetingRoom.statusLabel')}:</strong>{' '}
-                  <span className={`meeting-status ${isConnected ? 'connected' : 'pending'}`}>
-                    {isConnected
-                      ? t('meetingRoom.connectedAs', { name: tokenData?.participantName || t('meetingRoom.guest') })
-                      : t('meetingRoom.connecting')}
-                  </span>
+            <h1>
+              {meetingTitle || tokenData?.roomName || t('meetingRoom.pageTitle')}
+              <span className={`meeting-status ${isConnected ? 'connected' : 'pending'}`}>
+                {' '}
+                ({statusText})
+              </span>
+            </h1>
+            <div className="meeting-room-header-meta">
+              {tokenData?.forceEndAt && (
+                <p className="meeting-room-meta meeting-warning">
+                  {t('meetingRoom.endsAt')}: {new Date(tokenData.forceEndAt).toLocaleString(undefined, { hour12: false })}
                 </p>
-                <p className="meeting-room-meta">
-                  <strong>{t('meetingRoom.participantLabel')}:</strong> {participants.size + 1}
-                </p>
-                {activeSpeakers.length > 0 && (
-                  <p className="meeting-room-meta">
-                    <strong>{t('meetingRoom.speakingLabel')}:</strong>{' '}
-                    {activeSpeakers.map(s => s.identity || s.sid).join(', ')}
-                  </p>
-                )}
-                {tokenData?.forceEndAt && (
-                  <p className="meeting-room-meta meeting-warning">
-                    <strong>{t('meetingRoom.endsAt')}:</strong>{' '}
-                    {new Date(tokenData.forceEndAt).toLocaleString(undefined, { hour12: false })}
-                  </p>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <div className="meeting-room-header-actions">
             <button
@@ -541,14 +523,6 @@ export default function MeetingRoom() {
               title={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
             >
               {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
-            </button>
-            <button
-              onClick={() => setIsHeaderCollapsed(prev => !prev)}
-              className="icon-circle-button"
-              aria-label={isHeaderCollapsed ? t('meetingRoom.expandHeader') : t('meetingRoom.collapseHeader')}
-              title={isHeaderCollapsed ? t('meetingRoom.expandHeader') : t('meetingRoom.collapseHeader')}
-            >
-              {isHeaderCollapsed ? <LuChevronDown /> : <LuChevronUp />}
             </button>
             <button
               onClick={() => setShowLeaveConfirm(true)}
@@ -571,6 +545,12 @@ export default function MeetingRoom() {
       <div className={layoutClass}>
         <div className="stage-section">
           <div className="stage-video-wrapper">
+            {speakingNames && (
+              <div className="stage-speaking-indicator">
+                <span>{t('meetingRoom.speakingNow')}</span>
+                <strong>{speakingNames}</strong>
+              </div>
+            )}
             <div className="stage-video" ref={stageVideoRef} />
             <div className={`local-preview ${isCameraEnabled ? 'visible' : ''}`}>
               <div className="local-preview-video" ref={localPreviewRef} />
@@ -608,7 +588,14 @@ export default function MeetingRoom() {
 
         <aside className={`participant-sidebar ${isParticipantsCollapsed ? 'collapsed' : ''}`}>
           <div className="participant-sidebar-header">
-            {!isParticipantsCollapsed && t('meetingRoom.remoteParticipants')}
+            {!isParticipantsCollapsed && (
+              <div className="participant-sidebar-title">
+                <span>{t('meetingRoom.remoteParticipants')}</span>
+                <span className="participant-count-pill">
+                  {participants.size + 1}
+                </span>
+              </div>
+            )}
             <button
               className="icon-circle-button"
               onClick={() => setIsParticipantsCollapsed(prev => !prev)}
