@@ -38,10 +38,11 @@
 	<string>Microphone access is required for audio in video calls</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
-		<string>processing</string>
 		<string>push-to-talk</string>
 		<string>voip</string>
 		<string>remote-notification</string>
