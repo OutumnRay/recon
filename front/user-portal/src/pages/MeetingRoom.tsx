@@ -54,6 +54,9 @@ export default function MeetingRoom() {
   const [isParticipantsCollapsed, setIsParticipantsCollapsed] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [volume, setVolume] = useState(100);
+  const [isMobile, setIsMobile] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const localPreviewRef = useRef<HTMLDivElement>(null);
@@ -210,6 +213,25 @@ export default function MeetingRoom() {
     }
   };
 
+  // Check if mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Initialize participants sidebar collapsed on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setIsParticipantsCollapsed(true);
+    }
+  }, [isMobile]);
+
   useEffect(() => {
     if (!meetingId) {
       setError(t('meetingRoom.errors.missingMeetingId'));
@@ -299,7 +321,7 @@ export default function MeetingRoom() {
       }
     };
 
-    const handleTrackPublished = (
+    const handleTrackPublished = async (
       publication: RemoteTrackPublication,
       participant: RemoteParticipant,
     ) => {
@@ -308,6 +330,17 @@ export default function MeetingRoom() {
       console.log(`  - Is subscribed: ${publication.isSubscribed}`);
       console.log(`  - Is enabled: ${publication.isEnabled}`);
       console.log(`  - Track exists: ${publication.track ? 'yes' : 'no'}`);
+
+      // If track is not subscribed yet, explicitly subscribe to it
+      if (!publication.isSubscribed && publication.kind !== Track.Kind.Unknown) {
+        console.log(`  - Track not subscribed, attempting to subscribe...`);
+        try {
+          await publication.setSubscribed(true);
+          console.log(`  - Successfully subscribed to ${publication.kind} track`);
+        } catch (err) {
+          console.error(`  - Failed to subscribe to ${publication.kind} track:`, err);
+        }
+      }
 
       // If track is already subscribed, manually attach it
       if (publication.isSubscribed && publication.track) {
@@ -372,11 +405,41 @@ export default function MeetingRoom() {
       ensureParticipantTile(participant);
 
       // Check if participant already has published tracks that we need to subscribe to
-      participant.trackPublications.forEach((publication, trackSid) => {
+      participant.trackPublications.forEach(async (publication, trackSid) => {
         console.log(`[Existing Track] Track ${trackSid}: ${publication.kind}, subscribed: ${publication.isSubscribed}, track: ${publication.track ? 'exists' : 'null'}`);
 
-        if (publication.track && !publication.isSubscribed) {
+        // If track exists but is not subscribed, explicitly subscribe to it
+        if (!publication.isSubscribed && publication.kind !== Track.Kind.Unknown) {
           console.log(`[Manual Subscribe] Attempting to subscribe to ${publication.kind} track`);
+          try {
+            await publication.setSubscribed(true);
+            console.log(`[Manual Subscribe] Successfully subscribed to ${publication.kind} track`);
+          } catch (err) {
+            console.error(`[Manual Subscribe] Failed to subscribe to ${publication.kind} track:`, err);
+          }
+        }
+
+        // If already subscribed and has track, attach it immediately
+        if (publication.isSubscribed && publication.track) {
+          console.log(`[Existing Track] Track already subscribed, manually attaching...`);
+          const track = publication.track as RemoteTrack;
+          const element = track.attach();
+          element.id = `${participant.sid}-${track.kind}`;
+
+          if (track.kind === Track.Kind.Video) {
+            participantVideoTracks.current.set(participant.sid, track);
+            element.classList.add('meeting-video-element');
+            attachTrackToTile(participant, element);
+            if (stageParticipantId === participant.sid) {
+              renderStageVideo(participant.sid);
+            }
+          } else if (track.kind === Track.Kind.Audio) {
+            if (element instanceof HTMLAudioElement) {
+              element.volume = volumeRef.current / 100;
+            }
+            element.style.display = 'none';
+            attachTrackToTile(participant, element);
+          }
         }
       });
     };
@@ -456,7 +519,7 @@ export default function MeetingRoom() {
           enableMediaByDefault();
         }, 500);
 
-        room.remoteParticipants.forEach((participant) => {
+        room.remoteParticipants.forEach(async (participant) => {
           const displayName = getParticipantDisplayName(participant);
           console.log(`[Existing Participant] ${displayName} (${participant.sid})`);
           console.log(`  - Audio tracks: ${participant.audioTrackPublications.size}`);
@@ -466,8 +529,19 @@ export default function MeetingRoom() {
           ensureParticipantTile(participant);
 
           // Process existing tracks
-          participant.trackPublications.forEach((publication, trackSid) => {
+          participant.trackPublications.forEach(async (publication, trackSid) => {
             console.log(`  - Track ${trackSid}: ${publication.kind}, subscribed: ${publication.isSubscribed}, enabled: ${publication.isEnabled}`);
+
+            // If track is not subscribed yet, subscribe to it
+            if (!publication.isSubscribed && publication.kind !== Track.Kind.Unknown) {
+              console.log(`  - Track not subscribed yet, subscribing to ${publication.kind} track...`);
+              try {
+                await publication.setSubscribed(true);
+                console.log(`  - Successfully subscribed to ${publication.kind} track`);
+              } catch (err) {
+                console.error(`  - Failed to subscribe to ${publication.kind} track:`, err);
+              }
+            }
 
             if (publication.isSubscribed && publication.track) {
               console.log(`  - Track already subscribed, attaching...`);
@@ -546,6 +620,32 @@ export default function MeetingRoom() {
   const confirmLeave = () => {
     room.disconnect();
     navigate('/dashboard/meetings');
+  };
+
+  // Touch handlers for swipe gesture on participant sidebar
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isUpSwipe = distance > minSwipeDistance;
+    const isDownSwipe = distance < -minSwipeDistance;
+
+    if (isUpSwipe && isParticipantsCollapsed) {
+      setIsParticipantsCollapsed(false);
+    } else if (isDownSwipe && !isParticipantsCollapsed) {
+      setIsParticipantsCollapsed(true);
+    }
   };
 
   const enableMediaByDefault = async () => {
@@ -810,8 +910,16 @@ export default function MeetingRoom() {
           </div>
         </div>
 
-        <aside className={`participant-sidebar ${isParticipantsCollapsed ? 'collapsed' : ''}`}>
-          <div className="participant-sidebar-header">
+        <aside
+          className={`participant-sidebar ${isParticipantsCollapsed ? 'collapsed' : ''}`}
+          onTouchStart={isMobile ? onTouchStart : undefined}
+          onTouchMove={isMobile ? onTouchMove : undefined}
+          onTouchEnd={isMobile ? onTouchEnd : undefined}
+        >
+          <div
+            className="participant-sidebar-header"
+            onClick={isMobile ? () => setIsParticipantsCollapsed(prev => !prev) : undefined}
+          >
             {!isParticipantsCollapsed && (
               <div className="participant-sidebar-title">
                 <span>{t('meetingRoom.remoteParticipants')}</span>
@@ -820,14 +928,16 @@ export default function MeetingRoom() {
                 </span>
               </div>
             )}
-            <button
-              className="icon-circle-button"
-              onClick={() => setIsParticipantsCollapsed(prev => !prev)}
-              aria-label={t('meetingRoom.toggleParticipants')}
-              title={t('meetingRoom.toggleParticipants')}
-            >
-              <LuMenu />
-            </button>
+            {!isMobile && (
+              <button
+                className="icon-circle-button"
+                onClick={() => setIsParticipantsCollapsed(prev => !prev)}
+                aria-label={t('meetingRoom.toggleParticipants')}
+                title={t('meetingRoom.toggleParticipants')}
+              >
+                <LuMenu />
+              </button>
+            )}
           </div>
           <div className="participant-sidebar-list" ref={videoContainerRef} />
           {participants.size === 0 && (
