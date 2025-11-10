@@ -168,7 +168,7 @@ export const Dashboard: React.FC = (): ReactElement | null => {
         <div className="header-right">
           {lastUpdated && (
             <div className="last-updated">
-              Last updated: {lastUpdated.toLocaleTimeString()}
+              Last updated: {lastUpdated.toLocaleTimeString(undefined, { hour12: false })}
               {refreshing && <span className="refresh-indicator"> Refreshing...</span>}
             </div>
           )}

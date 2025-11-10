@@ -122,6 +122,44 @@
   - Transcript and TranscriptSegment models
   - Upload/List/Search request/response structures
 
+### Phase 2: Jitsi Recorder Service (Completed)
+- ✅ Implemented Jitsi Recorder Lite (`jitsy/jitsi-recorder-lite/recorder.py`):
+  - **Stream-based recording**: each participant connection = separate file (one stream = one file)
+  - **Reconnection handling**: new file created on each reconnect with `isReconnection` flag
+  - **Immediate S3 upload**: files uploaded right after participant leaves (not waiting for conference end)
+  - **Smart reconnect detection**: automatically detects reconnections within 30 seconds
+  - Filename format: `{room}_{participant_id}_{timestamp}.opus`
+  - Folder structure: `recordings/{room}/{conference_id}/`
+  - S3 metadata: participant ID, duration, join offset, reconnection status
+  - Webhook notifications on conference end with all recording details
+  - Redis coordination for multi-instance deployment
+  - Health check endpoint: `GET /health`
+- ✅ Fixed race conditions and error handling:
+  - Fixed `ProcessLookupError` when stopping already-terminated FFmpeg processes
+  - Fixed `KeyError: 'focus'` when system components leave conference
+  - Added system component filtering (skip 'focus' endpoint in joins)
+  - Changed missing file errors to warnings (expected when FFmpeg fails)
+  - Added safe dictionary deletion with try/except
+  - Process state checking before termination
+- ✅ Enhanced S3 integration:
+  - Detailed S3 initialization logging with endpoint and bucket info
+  - S3 connection test on startup with automatic bucket creation
+  - Enhanced upload logging with file size and path details
+  - Comprehensive error reporting with S3 endpoint, bucket, and key
+  - Conference end summary with S3 path and uploaded recordings list
+- ✅ Created comprehensive documentation:
+  - `jitsy/jitsi-recorder-lite/README.md` with full documentation
+  - Stream-based recording explanation with reconnection examples
+  - Configuration guide with MinIO port clarification (9000 vs 9001)
+  - File structure, metadata format, webhook payload examples
+  - Troubleshooting guide for common issues (S3 port, MinIO access)
+  - Health check and monitoring documentation
+- ✅ Added MinIO to docker-compose.yml:
+  - MinIO service with ports 9000 (API) and 9001 (Console)
+  - Volume for persistent storage
+  - Health check configuration
+  - Recorder depends on MinIO
+
 ### Phase 2: Jitsi Agent Service (Completed)
 - ✅ Implemented custom Jitsi Agent (`cmd/jitsi-agent/main.go`)
   - Start recording: `POST /api/v1/recording/start`
@@ -231,6 +269,418 @@
   - Added Status, ProcessedAt, DurationSecs fields
   - Enhanced for worker integration
 
+### Phase 6: Department Management System (Completed)
+
+#### Backend
+- ✅ Created Department data models (`internal/models/department.go`)
+  - Department model with hierarchical structure (parent_id, level, path)
+  - DepartmentTreeNode for tree visualization
+  - DepartmentWithStats for statistics display
+  - CreateDepartmentRequest/UpdateDepartmentRequest models
+  - ListDepartmentsRequest/Response for paginated results
+- ✅ Updated User model with department support (`internal/models/auth.go`)
+  - Added DepartmentID field to link users to departments
+  - Created UserPermissions struct with meeting permissions:
+    - can_schedule_meetings: Permission to schedule video meetings
+    - can_manage_department: Permission to manage department
+    - can_approve_recordings: Permission to approve recordings
+  - Updated UserInfo to include department and permissions
+- ✅ Implemented database migrations (`pkg/database/database.go`)
+  - `departments` table with hierarchical structure support
+  - Materialized path pattern for efficient tree queries
+  - Level tracking for depth-based operations
+  - Soft delete support (is_active flag)
+  - Root department created by default ("Organization")
+  - Added department_id column to users table
+  - Added permissions JSONB column to users table
+  - Default permissions for new users (all false)
+  - Admin users get all permissions by default
+- ✅ Created DepartmentRepository (`pkg/database/department_repository.go`)
+  - Create: Automatic level and path calculation
+  - GetByID: Retrieve department by ID
+  - List: List departments with optional filters (parent, active status)
+  - GetTree: Build hierarchical tree structure
+  - Update: Update with automatic path recalculation for children
+  - updateChildrenPaths: Recursive path updates for descendants
+  - Delete: Soft delete with user validation
+  - GetWithStats: Department with user count and child count statistics
+  - GetChildren: Get direct child departments
+  - NameExists: Check name uniqueness within level
+  - Circular reference prevention in hierarchy
+- ✅ Implemented Department API handlers (`cmd/managing-portal/handlers_department.go`)
+  - `POST /api/v1/departments` - Create new department
+  - `GET /api/v1/departments` - List departments (flat or tree)
+  - `GET /api/v1/departments/{id}` - Get department (with optional stats)
+  - `PUT /api/v1/departments/{id}` - Update department
+  - `DELETE /api/v1/departments/{id}` - Soft delete department
+  - `GET /api/v1/departments/{id}/children` - Get child departments
+  - All endpoints admin-only with full Swagger documentation
+  - Name uniqueness validation within same level
+  - User count validation before deletion
+- ✅ Updated user handlers (`cmd/managing-portal/handlers_users.go`)
+  - Added department_id field to user responses
+  - Added permissions field to user responses
+  - Support for updating user department assignment
+  - Support for updating user permissions
+  - Default permissions set on user creation
+- ✅ Integrated with Managing Portal (`cmd/managing-portal/main.go`)
+  - Added DepartmentRepository to ManagingPortal struct
+  - Registered all department endpoints
+  - All routes protected with JWT authentication and admin role
+  - Backend successfully compiles and builds
+
+#### Frontend (Managing Portal UI)
+- ✅ Created Department API service (`front/managing-portal/src/services/departments.ts`)
+  - TypeScript interfaces for Department, DepartmentTreeNode, DepartmentWithStats
+  - API methods for all department operations
+  - Type-safe request/response models
+  - Automatic token injection for authenticated requests
+- ✅ Implemented Departments component (`front/managing-portal/src/components/Departments.tsx`)
+  - Dual view modes: Tree view and List view
+  - Tree view:
+    - Hierarchical tree display with expand/collapse
+    - Visual depth indication with indentation
+    - Level badges showing hierarchy depth
+    - Click to select and view details
+  - List view:
+    - Grid of department cards
+    - Shows name, level, path, description
+    - Responsive card layout
+  - Department details panel:
+    - Description and hierarchy information
+    - Statistics: direct users, child departments, total users (including sub-departments)
+    - Active/inactive status badge
+  - Create/Edit modal:
+    - Form with name, description, parent department selection
+    - Parent department dropdown with full paths
+    - Validation and error handling
+  - Inline edit/delete actions:
+    - Edit button opens pre-filled modal
+    - Delete with confirmation
+    - Cannot delete departments with active users
+  - Real-time updates after create/edit/delete operations
+- ✅ Integrated Departments into navigation
+  - Added "Departments" menu item with building icon in sidebar
+  - Added route in App.tsx: `/departments`
+  - Active state highlighting for departments section
+  - Updated page title in Layout component
+- ✅ Fixed TypeScript compilation issues
+  - Corrected icon imports (LuPencil, LuCircleCheck, LuCircleX, LuActivity)
+  - Used `import type` syntax for type-only imports
+  - Removed unused functions
+  - Frontend successfully compiles and builds
+
+#### Documentation
+- ✅ Created comprehensive user guide (`docs/DEPARTMENTS_USER_GUIDE.md`)
+  - Feature overview and key capabilities
+  - Step-by-step instructions for all operations
+  - Department hierarchy and user assignment
+  - User permissions management
+  - Best practices and organizational structure guidelines
+  - Common use cases and scenarios
+  - Troubleshooting guide
+  - Security considerations
+- ✅ Created detailed developer guide (`docs/DEPARTMENTS_DEV_GUIDE.md`)
+  - Technical architecture overview
+  - Database schema documentation
+  - Data model specifications
+  - Repository method documentation
+  - Complete API endpoint reference with examples
+  - Frontend implementation details
+  - Materialized path pattern explanation
+  - Circular reference prevention algorithm
+  - Soft delete pattern implementation
+  - Performance considerations and optimization
+  - Testing guidelines
+  - Development tasks and troubleshooting
+
+### Phase 5: LiveKit Webhook Integration (Completed)
+
+#### Backend
+- ✅ Created LiveKit webhook data models (`internal/models/livekit_webhook.go`)
+  - Room model with codec support and lifecycle tracking
+  - Participant model with state management and permissions
+  - Track model supporting both audio and video with detailed metadata
+  - WebhookEventLog for complete event audit trail
+  - WebhookRequest/Response models for API handling
+- ✅ Implemented database migrations (`pkg/database/database.go`)
+  - `livekit_rooms` table with status tracking and timestamps
+  - `livekit_participants` table with join/leave tracking
+  - `livekit_tracks` table with publish/unpublish tracking
+  - `livekit_webhook_events` table for complete event logging
+  - Foreign key relationships ensuring data integrity
+  - Comprehensive indexes for fast queries
+- ✅ Created LiveKit repository (`pkg/database/livekit_repository.go`)
+  - Room operations: Create, GetBySID, FinishRoom, ListRooms
+  - Participant operations: Create, UpdateParticipantLeft, GetBySID, ListByRoom
+  - Track operations: Create, UnpublishTrack, GetBySID, ListByParticipant, ListByRoom
+  - Webhook event logging: LogWebhookEvent, GetWebhookEvents with filters
+  - Full CRUD support with proper error handling
+- ✅ Implemented webhook handler (`cmd/managing-portal/handlers_livekit.go`)
+  - Public webhook endpoint: `POST /webhook/meet` (no auth required)
+  - Processes 6 event types:
+    - `room_started` - Creates room record
+    - `participant_joined` - Tracks participant joining
+    - `track_published` - Records audio/video track publication
+    - `track_unpublished` - Updates track status
+    - `participant_left` - Marks participant as disconnected
+    - `room_finished` - Finalizes room session
+  - Management API endpoints (authenticated):
+    - `GET /api/v1/livekit/rooms` - List all rooms with filters
+    - `GET /api/v1/livekit/rooms/{sid}` - Get room details
+    - `GET /api/v1/livekit/participants?room_sid=X` - List participants
+    - `GET /api/v1/livekit/tracks?room_sid=X` - List tracks
+    - `GET /api/v1/livekit/webhook-events` - Query event logs
+  - Full Swagger/OpenAPI documentation
+  - Comprehensive logging for debugging
+- ✅ Integrated with Managing Portal (`cmd/managing-portal/main.go`)
+  - Added LiveKitRepository to ManagingPortal struct
+  - Registered all webhook and management endpoints
+  - Webhook endpoint publicly accessible for LiveKit server
+  - Management endpoints protected with JWT authentication
+
+#### Frontend (Managing Portal UI)
+- ✅ Created LiveKit API service (`front/managing-portal/src/services/livekit.ts`)
+  - TypeScript interfaces for Room, Participant, Track
+  - API methods for fetching rooms, participants, tracks, events
+  - Automatic token injection for authenticated requests
+- ✅ Implemented Rooms list component (`front/managing-portal/src/components/Rooms.tsx`)
+  - Grid view of all meeting rooms
+  - Status filtering (All, Active, Finished)
+  - Auto-refresh every 5 seconds for active rooms
+  - Real-time status indicators with pulse animation
+  - Click to view room details
+  - Responsive card layout
+- ✅ Implemented Room Details component (`front/managing-portal/src/components/RoomDetails.tsx`)
+  - Complete room information dashboard
+  - Statistics cards: participants count, tracks count, duration, timestamps
+  - Tabbed interface: Participants tab and Tracks tab
+  - Participants view:
+    - Avatar with user icon
+    - Join/leave timestamps
+    - Connection state (Active/Disconnected)
+    - Disconnect reason when available
+  - Tracks view:
+    - Audio/video track cards
+    - Track type icons (microphone, camera, screen share)
+    - Codec information and resolution for video
+    - Simulcast status
+    - Publish/unpublish timestamps
+  - Back navigation to rooms list
+- ✅ Integrated Rooms into navigation
+  - Added "Rooms" menu item with video icon in sidebar
+  - Added routes in App.tsx: `/rooms` and `/rooms/:sid`
+  - Active state highlighting for rooms section
+  - Updated page titles in Layout component
+- ✅ Implemented Transcription Worker structure (`cmd/transcription-worker/main.go`)
+  - Health check endpoint: `GET /health` - Service health status
+  - Status endpoint: `GET /status` - Worker statistics and task count
+  - Worker loop with goroutine-based task management
+  - Placeholder for RabbitMQ message consumption
+  - Placeholder for Whisper transcription processing
+  - Placeholder for speaker diarization
+  - Runs on port 8082
+  - Full Swagger documentation
+  - Successfully compiles and builds
+- ✅ Implemented Summarization Worker structure (`cmd/summarization-worker/main.go`)
+  - Health check endpoint: `GET /health` - Service health status
+  - Status endpoint: `GET /status` - Worker statistics and task count
+  - Worker loop with goroutine-based task management
+  - Placeholder for RabbitMQ message consumption
+  - Placeholder for LLM summarization processing
+  - Runs on port 8083
+  - Full Swagger documentation
+  - Successfully compiles and builds
+- ✅ Created worker task models (`internal/models/media.go`)
+  - TranscriptionTask - Task structure for transcription queue
+  - SummarizationTask - Task structure for summarization queue
+  - Status tracking, timestamps, error handling
+- ✅ Updated Transcript model
+  - Added Status, ProcessedAt, DurationSecs fields
+  - Enhanced for worker integration
+
+### Phase 7: Video Meetings System (Completed)
+
+#### Backend
+- ✅ Created Meeting data models (`internal/models/meeting.go`)
+  - MeetingType: presentation (with speaker) or conference (all participants equal)
+  - MeetingStatus: scheduled, in_progress, completed, cancelled
+  - MeetingRecurrence: none, daily, weekly, monthly
+  - MeetingSubject: topic categories linked to departments for organization
+  - Meeting: core entity with all required fields (title, date/time, duration, recording flags)
+  - MeetingParticipant: participants with roles (speaker/participant) and status tracking
+  - MeetingDepartment: junction table for department-wide invitations
+  - MeetingWithDetails: complete meeting info with all related data loaded
+  - Paginated response format: `{items, offset, page_size, total}`
+- ✅ Implemented database migrations (`pkg/database/database.go`)
+  - `meeting_subjects` table with department_ids array for multi-department linking
+  - `meetings` table with all fields including LiveKit room integration
+  - `meeting_participants` table with roles and status (invited, accepted, declined, tentative)
+  - `meeting_departments` table for bulk department invitations
+  - Foreign keys ensuring data integrity with proper cascade/restrict rules
+  - Comprehensive indexes for all search filters
+- ✅ Created MeetingRepository (`pkg/database/meeting_repository.go`, ~900 lines)
+  - Subject CRUD: Create, List (with filters), GetByID, Update, Delete (soft)
+  - Meeting CRUD: Create, GetByID, GetWithDetails, Update, Delete
+  - ListMeetings with comprehensive filtering:
+    - Status, Type, SubjectID filters
+    - Date range filtering (date_from, date_to)
+    - Speaker filter for presentations
+    - UserID filter for "My Meetings" view (participant or speaker)
+    - Pagination support
+  - Participant management: Add, Get, List by meeting
+  - Department management: Add, Get, List by meeting
+  - Efficient batch loading to avoid N+1 queries:
+    - loadMeetingSubjects, loadMeetingParticipants
+    - loadMeetingDepartments, loadMeetingCreators
+- ✅ Implemented Meeting Subject API handlers (Managing Portal, `cmd/managing-portal/handlers_meeting_subjects.go`)
+  - `POST /api/v1/meeting-subjects` - Create subject (admin only)
+  - `GET /api/v1/meeting-subjects` - List subjects with pagination and filters
+  - `GET /api/v1/meeting-subjects/{id}` - Get subject details
+  - `PUT /api/v1/meeting-subjects/{id}` - Update subject (admin only)
+  - `DELETE /api/v1/meeting-subjects/{id}` - Soft delete subject (admin only)
+  - Full Swagger documentation
+- ✅ Implemented Meeting API handlers (User Portal, `cmd/user-portal/handlers_meetings.go`, ~470 lines)
+  - `POST /api/v1/meetings` - Create meeting with permission check
+    - Validates can_schedule_meetings permission for non-admin users
+    - Supports both individual participants and department-wide invitations
+    - Automatically adds speaker for presentation type
+    - All participants start with "invited" status
+  - `GET /api/v1/meetings` - List "My Meetings" with filters
+    - Shows only meetings where user is participant or speaker
+    - Supports all search filters: status, type, subject, date range, speaker
+    - Paginated response format as requested
+  - `GET /api/v1/meetings/{id}` - Get meeting details with access control
+    - Only accessible to participants, speakers, or admins
+    - Returns full details with nested data
+  - `PUT /api/v1/meetings/{id}` - Update meeting (creator or admin only)
+    - Can update all meeting fields
+    - Can change participants and departments
+    - Recalculates participant lists
+  - `DELETE /api/v1/meetings/{id}` - Delete meeting (creator or admin only)
+    - Hard delete with cascade to participants and departments
+  - Full Swagger documentation
+  - All CRUD operations compile successfully
+- ✅ Integrated with both portals
+  - Managing Portal: Added MeetingRepository, registered subject management routes
+  - User Portal: Added MeetingRepository, registered meeting CRUD routes
+  - Both backends build successfully
+
+#### Frontend (User Portal UI)
+- ✅ Created comprehensive TypeScript types (`front/user-portal/src/types/meeting.ts`)
+  - All enums: MeetingType, MeetingStatus, MeetingRecurrence, ParticipantRole, ParticipantStatus
+  - All models: Meeting, MeetingSubject, MeetingParticipant, MeetingWithDetails
+  - All request/response types matching backend exactly
+  - Department and User interfaces for dropdowns
+- ✅ Created Meeting API service (`front/user-portal/src/services/meetings.ts`)
+  - Complete CRUD operations: create, update, delete, get, list
+  - Subject operations: list, get
+  - Automatic token injection from localStorage/sessionStorage
+  - Comprehensive utility functions:
+    - formatMeetingDate, formatDuration
+    - getMeetingStatusInfo (with color classes)
+    - getMeetingTypeInfo (with icons)
+    - isMeetingUpcoming, isMeetingNow, isMeetingPast
+    - Participant role and status helpers
+- ✅ Implemented Meetings list page (`front/user-portal/src/pages/Meetings.tsx`, ~560 lines)
+  - **Filter Panel** with all requested search capabilities:
+    - Status dropdown (All, Scheduled, In Progress, Completed, Cancelled)
+    - Type dropdown (All, Presentation, Conference)
+    - Subject dropdown (populated from API)
+    - Date range filters (From Date, To Date with datetime-local inputs)
+    - Reset filters button
+  - **Meetings List View**:
+    - Card-based design with meeting cards
+    - Each card shows: title, type icon, subject, status badge
+    - Date/time, duration, participant count, recording icons
+    - Participants preview with avatar circles (first 3 + count)
+    - "View Details" button for each meeting
+    - Visual indicators for meetings in progress (red pulse)
+    - Grayed out past meetings
+  - **Meeting Details View**:
+    - Complete meeting information grid
+    - Type, status, scheduled time, duration, subject, recurrence
+    - Video/audio recording flags
+    - Additional notes section
+    - Participants list with roles (speaker/participant) and status badges
+    - Departments list with tags
+    - Meeting actions: Join (if in progress), Edit, Delete
+  - **Create/Edit Integration**:
+    - Floating action button (FAB) for creating meetings
+    - Create button in empty state
+    - Edit button in details view
+    - Delete with confirmation dialog
+  - **Pagination**: Previous/Next buttons with page info
+  - **Empty states**: Different messages for filtered vs no meetings
+  - **Loading states**: Spinner during data fetch
+  - **Error handling**: Error message display
+  - **Real-time updates**: Refetch after create/edit/delete
+- ✅ Implemented Meeting Form component (`front/user-portal/src/components/MeetingForm.tsx`, ~400 lines)
+  - **Dual mode**: Create new or Edit existing meeting
+  - **Basic Information Section**:
+    - Title input with validation
+    - Type select (Conference/Presentation with icons)
+    - Subject dropdown (loaded from API)
+    - Scheduled date/time (datetime-local)
+    - Duration in minutes (15-minute increments)
+    - Recurrence select (None, Daily, Weekly, Monthly)
+  - **Participants Section**:
+    - Speaker dropdown (required for presentations, auto-populated in edit)
+    - Individual participants checkboxes with full list
+    - Departments checkboxes for bulk invitations
+    - Participant count display
+    - Speaker cannot be selected as regular participant
+  - **Recording Options Section**:
+    - Video recording checkbox
+    - Audio recording checkbox
+  - **Additional Notes Section**:
+    - Multi-line textarea for agenda/notes
+  - **Form Features**:
+    - Comprehensive validation (required fields, duration > 0, etc.)
+    - Error message display with shake animation
+    - Loading states during save
+    - Success/Cancel callbacks for integration
+    - Pre-population for edit mode
+    - API integration for users and departments (with graceful fallback)
+  - **Responsive Design**: Mobile-friendly with column stacking
+- ✅ Created comprehensive CSS styling
+  - `Meetings.css`: Complete styling for list, details, filters, cards
+  - `MeetingForm.css`: Form styling with validation states, focus effects
+  - Status badge colors for all meeting states
+  - Role and participant status badge styling
+  - Responsive design with mobile breakpoints
+  - Loading spinners and animations
+  - Floating action button (FAB) styling
+  - Empty state styling
+
+#### Features Delivered
+- ✅ **Complete "My Video Meetings" tab** as requested
+  - Shows meetings where user is speaker or participant
+  - List view with cards showing all key information
+  - Details view with complete meeting data
+- ✅ **All requested meeting fields**:
+  - Title (название) ✓
+  - Date and time (дата и время) ✓
+  - Recurrence (периодичность) ✓
+  - Type: presentation or conference (тип: доклад или совещание) ✓
+  - Subject with department links (предмет встречи с привязкой к отделам) ✓
+  - Duration (длительность) ✓
+  - Participants handling ✓
+    - For conferences: all participants ✓
+    - For presentations: speaker + participants ✓
+    - Add by departments or individually ✓
+  - Status: scheduled, in progress, cancelled, etc. ✓
+  - Video recording needed (нужна ли видеозапись) ✓
+  - Audio recording needed (нужна ли аудиозапись) ✓
+  - Additional comments (дополнительные комментарии) ✓
+- ✅ **Exact pagination format requested**: `{items: array, offset, pageSize, total}` ✓
+- ✅ **All requested search filters**:
+  - By date and time (date range) ✓
+  - By status ✓
+  - By speaker ✓
+  - By subject ✓
+  - By theme (via subject) ✓
+
 ## What Needs To Be Done Next
 
 ### Phase 2: Storage Layer Implementation
@@ -306,6 +756,8 @@
 - **Phase 2 (Authentication & Core Services) is complete**: JWT auth, User Portal, Jitsi Agent, Swagger docs
 - **Phase 3 (User Management & Metrics) is complete**: User CRUD, Groups with dynamic JSON permissions, Metrics collection
 - **Phase 4 (Worker Services Structure) is complete**: Transcription and Summarization workers with health checks, basic structure
+- **Phase 5 (LiveKit Webhook Integration) is complete**: Full webhook handling, room/participant/track tracking, event logging
+- **Phase 6 (Department Management System) is complete**: Hierarchical departments, user assignment, meeting permissions, full UI with tree/list views
 - All 5 services now build and run successfully:
   - Managing Portal (Port 8080): admin/admin123 - Admin dashboard with user/group management
   - User Portal (Port 8081): user/user123 - User-facing API for recordings
@@ -318,8 +770,14 @@
   - Metrics and telemetry collection from all services
   - Centralized logging system
   - Permission checking API for fine-grained access control
+  - LiveKit webhook processing with database persistence
+  - Room, participant, and track management APIs
+  - Full UI for managing LiveKit rooms with real-time updates
+  - **NEW**: Department management system with hierarchical organization structure
+  - **NEW**: User permissions system (meeting scheduling, department management, recording approval)
+  - **NEW**: Video Meetings system with full lifecycle management
 - All APIs have complete Swagger/OpenAPI documentation
-- Consistent data models across all services (auth, media, jitsi, service, groups, metrics, user_crud)
+- Consistent data models across all services (auth, media, jitsi, livekit_webhook, service, groups, metrics, user_crud)
 - Docker Compose ready with all 16 services (including observability stack + Watchtower)
 - CI/CD builds and pushes 5 custom services to Docker Hub (main branch only)
 - Next focus: storage integration (PostgreSQL, MinIO, Qdrant) and queue integration (RabbitMQ)
@@ -339,6 +797,35 @@ curl http://localhost:8081/health
 curl http://localhost:8082/health  # Transcription Worker
 curl http://localhost:8083/health  # Summarization Worker
 curl http://localhost:8084/health
+
+# Test LiveKit webhook (simulate event from LiveKit server)
+curl -X POST http://localhost:8080/webhook/meet \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "room_started",
+    "room": {
+      "sid": "RM_TEST123",
+      "name": "test-room",
+      "emptyTimeout": 300,
+      "departureTimeout": 20,
+      "creationTime": "1762684951",
+      "creationTimeMs": "1762684951036"
+    },
+    "id": "EV_TEST123",
+    "createdAt": "1762684951"
+  }'
+
+# List LiveKit rooms (requires authentication)
+curl http://localhost:8080/api/v1/livekit/rooms \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get room participants
+curl "http://localhost:8080/api/v1/livekit/participants?room_sid=RM_TEST123" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get webhook event logs
+curl "http://localhost:8080/api/v1/livekit/webhook-events?room_sid=RM_TEST123" \
+  -H "Authorization: Bearer $TOKEN"
 
 # Login to Managing Portal
 curl -X POST http://localhost:8080/api/v1/auth/login \

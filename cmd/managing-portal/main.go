@@ -17,6 +17,7 @@ import (
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/database"
+	"Recontext.online/pkg/email"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 	"Recontext.online/pkg/prometheus"
@@ -52,13 +53,17 @@ type ManagingPortal struct {
 	logger            *logger.Logger
 	services          map[string]models.ServiceInfo
 	jwtManager        *auth.JWTManager
-	db                *database.DB                 // Database connection
-	userRepo          *database.UserRepository     // User repository
-	groupRepo         *database.GroupRepository    // Group repository
-	metricsData       []models.Metric              // In-memory metrics store
-	logs              []models.LogEntry            // In-memory logs store
-	prometheusMetrics *metrics.ServiceMetrics      // Prometheus metrics
-	prometheusClient  *prometheus.Client           // Prometheus query client
+	db                *database.DB                   // Database connection
+	userRepo          *database.UserRepository       // User repository
+	groupRepo         *database.GroupRepository      // Group repository
+	departmentRepo    *database.DepartmentRepository // Department repository
+	meetingRepo       *database.MeetingRepository    // Meeting repository
+	liveKitRepo       *database.LiveKitRepository    // LiveKit repository
+	mailer            *email.Mailer                  // Email service
+	metricsData       []models.Metric                // In-memory metrics store
+	logs              []models.LogEntry              // In-memory logs store
+	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
+	prometheusClient  *prometheus.Client             // Prometheus query client
 }
 
 func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal, error) {
@@ -93,6 +98,13 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 	// Initialize repositories
 	userRepo := database.NewUserRepository(db)
 	groupRepo := database.NewGroupRepository(db)
+	departmentRepo := database.NewDepartmentRepository(db)
+	meetingRepo := database.NewMeetingRepository(db)
+	liveKitRepo := database.NewLiveKitRepository(db)
+
+	// Initialize email mailer
+	emailConfig := email.LoadConfigFromEnv()
+	mailer := email.NewMailer(emailConfig)
 
 	// Initialize Prometheus client (uses internal Docker network)
 	prometheusClient := prometheus.NewClient("http://prometheus:9090")
@@ -105,6 +117,10 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 		db:                db,
 		userRepo:          userRepo,
 		groupRepo:         groupRepo,
+		departmentRepo:    departmentRepo,
+		meetingRepo:       meetingRepo,
+		liveKitRepo:       liveKitRepo,
+		mailer:            mailer,
 		metricsData:       make([]models.Metric, 0),
 		logs:              make([]models.LogEntry, 0),
 		prometheusMetrics: metrics.NewServiceMetrics("managing_portal"),
@@ -173,10 +189,13 @@ func (mp *ManagingPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		Token:     token,
 		ExpiresAt: expiresAt,
 		User: models.UserInfo{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			Role:     user.Role,
+			ID:           user.ID,
+			Username:     user.Username,
+			Email:        user.Email,
+			Role:         user.Role,
+			DepartmentID: user.DepartmentID,
+			Permissions:  user.Permissions,
+			Language:     user.Language,
 		},
 	}
 
@@ -215,13 +234,24 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Create new user
+	// Create new user with default permissions
+	language := req.Language
+	if language == "" {
+		language = "en" // Default language
+	}
+
 	newUser := &models.User{
-		ID:        fmt.Sprintf("user-%d", time.Now().Unix()),
-		Username:  req.Username,
-		Email:     req.Email,
-		Password:  auth.HashPassword(req.Password),
-		Role:      models.RoleUser,
+		ID:       fmt.Sprintf("user-%d", time.Now().Unix()),
+		Username: req.Username,
+		Email:    req.Email,
+		Password: auth.HashPassword(req.Password),
+		Role:     models.RoleUser,
+		Permissions: models.UserPermissions{
+			CanScheduleMeetings:  false,
+			CanManageDepartment:  false,
+			CanApproveRecordings: false,
+		},
+		Language:  language,
 		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -234,11 +264,32 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 
 	mp.logger.Infof("User created: %s (%s)", newUser.Username, newUser.ID)
 
+	// Send welcome email asynchronously
+	go func() {
+		loginURL := getEnv("LOGIN_URL", "http://localhost:20080")
+		emailData := email.WelcomeEmailData{
+			Username: newUser.Username,
+			Email:    newUser.Email,
+			Password: req.Password, // Send original password before hashing
+			Language: newUser.Language,
+			LoginURL: loginURL,
+		}
+
+		if err := mp.mailer.SendWelcomeEmail(newUser.Email, emailData); err != nil {
+			mp.logger.Errorf("Failed to send welcome email to %s: %v", newUser.Email, err)
+		} else {
+			mp.logger.Infof("Welcome email sent to %s", newUser.Email)
+		}
+	}()
+
 	userInfo := models.UserInfo{
-		ID:       newUser.ID,
-		Username: newUser.Username,
-		Email:    newUser.Email,
-		Role:     newUser.Role,
+		ID:           newUser.ID,
+		Username:     newUser.Username,
+		Email:        newUser.Email,
+		Role:         newUser.Role,
+		DepartmentID: newUser.DepartmentID,
+		Permissions:  newUser.Permissions,
+		Language:     newUser.Language,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -543,6 +594,81 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
+	// Meeting subject management endpoints (admin only)
+	mux.Handle("/api/v1/meeting-subjects", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				mp.listMeetingSubjectsHandler(w, r)
+			} else if r.Method == http.MethodPost {
+				mp.createMeetingSubjectHandler(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+		adminMiddleware,
+	))
+
+	mux.Handle("/api/v1/meeting-subjects/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodGet:
+				mp.getMeetingSubjectHandler(w, r)
+			case http.MethodPut:
+				mp.updateMeetingSubjectHandler(w, r)
+			case http.MethodDelete:
+				mp.deleteMeetingSubjectHandler(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+		adminMiddleware,
+	))
+
+	// Department management endpoints (admin only)
+	mux.Handle("/api/v1/departments", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				mp.listDepartmentsHandler(w, r)
+			} else if r.Method == http.MethodPost {
+				mp.createDepartmentHandler(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+		adminMiddleware,
+	))
+
+	mux.Handle("/api/v1/departments/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Check if path ends with /children
+			if strings.HasSuffix(r.URL.Path, "/children") {
+				if r.Method == http.MethodGet {
+					mp.getDepartmentChildrenHandler(w, r)
+				} else {
+					http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				}
+				return
+			}
+
+			// Handle department CRUD operations
+			switch r.Method {
+			case http.MethodGet:
+				mp.getDepartmentHandler(w, r)
+			case http.MethodPut:
+				mp.updateDepartmentHandler(w, r)
+			case http.MethodDelete:
+				mp.deleteDepartmentHandler(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+		adminMiddleware,
+	))
+
 	// Metrics and telemetry endpoints
 	mux.Handle("/api/v1/metrics", chainMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -570,6 +696,35 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 	// Dashboard endpoints
 	mux.Handle("/api/v1/dashboard/stats", chainMiddleware(
 		http.HandlerFunc(mp.dashboardStatsHandler),
+		authMiddleware,
+	))
+
+	// LiveKit webhook endpoint (no auth required for LiveKit server)
+	mux.HandleFunc("/webhook/meet", mp.liveKitWebhookHandler)
+
+	// LiveKit management endpoints (authenticated)
+	mux.Handle("/api/v1/livekit/rooms", chainMiddleware(
+		http.HandlerFunc(mp.listLiveKitRoomsHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/livekit/rooms/", chainMiddleware(
+		http.HandlerFunc(mp.getLiveKitRoomHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/livekit/participants", chainMiddleware(
+		http.HandlerFunc(mp.listLiveKitParticipantsHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/livekit/tracks", chainMiddleware(
+		http.HandlerFunc(mp.listLiveKitTracksHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/livekit/webhook-events", chainMiddleware(
+		http.HandlerFunc(mp.listWebhookEventsHandler),
 		authMiddleware,
 	))
 

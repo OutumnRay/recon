@@ -22,3 +22,4 @@ cmd/user-portal/dist/
 
 # Frontend artifacts are built during Docker build
 # Keep the source in front/ but ignore built dist in cmd/
+/jitsy/jitsi-recorder-lite/myenv/

@@ -60,6 +60,9 @@ services:
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_USE_SSL=false
       - JWT_SECRET=your-secret-key-change-in-production
+      - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
+      - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
+      - LIVEKIT_URL=ws://localhost:7880
       - LOG_LEVEL=debug
     depends_on:
       postgres:

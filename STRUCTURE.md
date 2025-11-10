@@ -5,6 +5,20 @@
 ```
 Recontext.online/
 ├── .git/                          # Git version control
+├── front/                         # Frontend applications
+│   └── managing-portal/           # Managing Portal React app
+│       ├── src/
+│       │   ├── components/        # React components
+│       │   │   ├── Dashboard.tsx
+│       │   │   ├── UserManagement.tsx
+│       │   │   ├── Groups.tsx
+│       │   │   ├── Rooms.tsx        # LiveKit rooms list
+│       │   │   ├── RoomDetails.tsx  # LiveKit room details with tracks
+│       │   │   ├── Layout.tsx
+│       │   │   └── Login.tsx
+│       │   ├── services/          # API services
+│       │   │   └── livekit.ts     # LiveKit API client
+│       │   └── App.tsx            # Main app with routing
 ├── .github/                       # GitHub configuration
 │   └── workflows/                 # GitHub Actions workflows
 │       └── docker-build-push.yml  # Docker image build and push workflow
@@ -33,7 +47,8 @@ Recontext.online/
 │   │   ├── groups.go              # User groups and dynamic permissions
 │   │   ├── metrics.go             # Metrics and telemetry models
 │   │   ├── media.go               # Media models (Recording, Transcript, Upload)
-│   │   └── jitsi.go               # Jitsi models (Session, WebRTC connection)
+│   │   ├── jitsi.go               # Jitsi models (Session, WebRTC connection)
+│   │   └── livekit_webhook.go     # LiveKit webhook models (Room, Participant, Track, Events)
 │   ├── storage/                   # Storage layer (placeholder)
 │   └── queue/                     # Message queue integration (placeholder)
 ├── pkg/                           # Public libraries
@@ -99,10 +114,37 @@ Recontext.online/
     - `GET /api/v1/metrics` - Query metrics
     - `GET /api/v1/metrics/system` - Get system-wide metrics
     - `POST /api/v1/logs` - Receive logs from services
+  - **LiveKit Webhook & Management**:
+    - `POST /webhook/meet` - Receive LiveKit webhook events (public endpoint)
+    - `GET /api/v1/livekit/rooms` - List rooms
+    - `GET /api/v1/livekit/rooms/{sid}` - Get room details
+    - `GET /api/v1/livekit/participants` - List participants by room
+    - `GET /api/v1/livekit/tracks` - List tracks by room
+    - `GET /api/v1/livekit/webhook-events` - List webhook event logs
   - **Security**: JWT authentication, role-based authorization + dynamic JSON permissions
   - **Swagger**: Full OpenAPI/Swagger documentation
   - Default credentials: admin/admin123
   - Default groups: Editors (read/write), Viewers (read-only)
+- **cmd/managing-portal/handlers_livekit.go**: LiveKit webhook handlers
+  - Processes webhook events: room_started, participant_joined, track_published, track_unpublished, participant_left, room_finished
+  - Stores room, participant, and track data in PostgreSQL
+  - Logs all webhook events for debugging and audit
+
+### Frontend Components
+- **front/managing-portal/src/components/Rooms.tsx**: LiveKit rooms list page
+  - Grid view of all meeting rooms
+  - Status filtering and auto-refresh
+  - Real-time status indicators
+  - Navigation to room details
+- **front/managing-portal/src/components/RoomDetails.tsx**: Room details page
+  - Room statistics dashboard
+  - Participants list with join/leave tracking
+  - Tracks list with audio/video information
+  - Tabbed interface for participants and tracks
+- **front/managing-portal/src/services/livekit.ts**: LiveKit API client
+  - TypeScript interfaces for LiveKit entities
+  - API methods for rooms, participants, tracks
+  - Authenticated requests with JWT
 
 - **cmd/user-portal/main.go**: User Portal API server (Port 8081)
   - **Authentication**: `/api/v1/auth/login`
@@ -157,6 +199,9 @@ Recontext.online/
   - TranscriptionTask, SummarizationTask - Worker task models
 - **internal/models/jitsi.go**: Jitsi-specific models
   - JitsiSession, WebRTCConnection, Recording control requests/responses
+- **internal/models/livekit_webhook.go**: LiveKit webhook models
+  - Room, Participant, Track, WebhookEventLog
+  - WebhookRequest/Response for processing LiveKit events
 
 ### Public Packages
 - **pkg/auth/jwt.go**: JWT token management
@@ -168,6 +213,16 @@ Recontext.online/
   - Role-based access control
   - Context injection for user claims
 - **pkg/logger/logger.go**: Simple logging utility with Info, Error, Debug, Fatal levels
+- **pkg/database/database.go**: Database connection and migrations
+  - PostgreSQL connection pooling
+  - Migration system with 10 tables (users, groups, files, transcriptions, livekit_rooms, livekit_participants, livekit_tracks, livekit_webhook_events, etc.)
+- **pkg/database/user_repository.go**: User CRUD operations
+- **pkg/database/group_repository.go**: Group management operations
+- **pkg/database/livekit_repository.go**: LiveKit data operations
+  - Room management (create, get, finish, list)
+  - Participant tracking (create, update, list)
+  - Track management (create, unpublish, list)
+  - Webhook event logging and retrieval
 
 ### Deployment
 - **deployments/docker/**: Dockerfiles for all Go services

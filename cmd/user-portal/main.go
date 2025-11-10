@@ -53,6 +53,8 @@ type UserPortal struct {
 	jwtManager        *auth.JWTManager
 	db                *database.DB                   // Database connection
 	userRepo          *database.UserRepository       // User repository
+	departmentRepo    *database.DepartmentRepository // Department repository
+	meetingRepo       *database.MeetingRepository    // Meeting repository
 	recordings        map[string]*models.Recording   // In-memory recordings store
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
 	embeddingsClient  *embeddings.EmbeddingsClient   // Embeddings client for RAG
@@ -87,8 +89,10 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 
 	log.Info("Database connected and migrations completed")
 
-	// Initialize repository
+	// Initialize repositories
 	userRepo := database.NewUserRepository(db)
+	departmentRepo := database.NewDepartmentRepository(db)
+	meetingRepo := database.NewMeetingRepository(db)
 
 	// Initialize embeddings client for RAG
 	embeddingsClient := embeddings.NewEmbeddingsClient()
@@ -99,6 +103,8 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		jwtManager:        jwtManager,
 		db:                db,
 		userRepo:          userRepo,
+		departmentRepo:    departmentRepo,
+		meetingRepo:       meetingRepo,
 		recordings:        make(map[string]*models.Recording),
 		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
 		embeddingsClient:  embeddingsClient,
@@ -768,6 +774,59 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/files", chainMiddleware(
 		http.HandlerFunc(up.listFilesHandler),
+		authMiddleware,
+	))
+
+	// Meeting endpoints
+	mux.Handle("/api/v1/meetings", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				up.listMyMeetingsHandler(w, r)
+			} else if r.Method == http.MethodPost {
+				up.createMeetingHandler(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/meetings/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Check if this is a token request
+			if strings.HasSuffix(r.URL.Path, "/token") && r.Method == http.MethodGet {
+				up.getMeetingTokenHandler(w, r)
+				return
+			}
+
+			switch r.Method {
+			case http.MethodGet:
+				up.getMeetingHandler(w, r)
+			case http.MethodPut:
+				up.updateMeetingHandler(w, r)
+			case http.MethodDelete:
+				up.deleteMeetingHandler(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+	))
+
+	// Meeting subjects endpoint
+	mux.Handle("/api/v1/meeting-subjects", chainMiddleware(
+		http.HandlerFunc(up.listMeetingSubjectsHandler),
+		authMiddleware,
+	))
+
+	// Helper endpoints for meeting form
+	mux.Handle("/api/v1/users", chainMiddleware(
+		http.HandlerFunc(up.listUsersHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/departments", chainMiddleware(
+		http.HandlerFunc(up.listDepartmentsHandler),
 		authMiddleware,
 	))
 

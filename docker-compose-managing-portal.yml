@@ -52,6 +52,9 @@ services:
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_USE_SSL=false
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
+      - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
+      - LIVEKIT_URL=ws://localhost:7880
       - SERVER_PORT=8080
     ports:
       - "${MANAGING_PORTAL_PORT:-10080}:8080"

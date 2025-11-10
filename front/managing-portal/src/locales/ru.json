@@ -66,5 +66,216 @@
       "processed": "Обработано",
       "allTimeTotal": "За всё время"
     }
+  },
+  "nav": {
+    "dashboard": "Панель управления",
+    "users": "Пользователи",
+    "groups": "Группы",
+    "departments": "Подразделения",
+    "subjects": "Предметы встреч",
+    "rooms": "Комнаты"
+  },
+  "users": {
+    "title": "Управление пользователями",
+    "addUser": "Добавить пользователя",
+    "editUser": "Редактировать пользователя",
+    "deleteUser": "Удалить",
+    "loading": "Загрузка пользователей...",
+    "noUsers": "Пользователи не найдены",
+    "form": {
+      "createTitle": "Создать нового пользователя",
+      "editTitle": "Редактировать пользователя",
+      "accountInfo": "Информация об аккаунте",
+      "organization": "Организация",
+      "permissions": "Разрешения",
+      "username": "Имя пользователя",
+      "usernamePlaceholder": "Введите имя пользователя",
+      "usernameHint": "Имя пользователя нельзя изменить",
+      "email": "Email",
+      "emailPlaceholder": "user@example.com",
+      "password": "Пароль",
+      "passwordPlaceholder": "Минимум 8 символов",
+      "passwordRequired": "Пароль обязателен для новых пользователей",
+      "generatePassword": "Сгенерировать",
+      "role": "Роль",
+      "language": "Язык",
+      "groups": "Группы",
+      "selectGroups": "Выберите группы",
+      "noGroupsAvailable": "Нет доступных групп",
+      "department": "Подразделение",
+      "isActive": "Аккаунт активен",
+      "canScheduleMeetings": "Может планировать встречи",
+      "canManageDepartment": "Может управлять подразделением",
+      "canApproveRecordings": "Может одобрять записи",
+      "cancel": "Отмена",
+      "save": "Создать пользователя",
+      "update": "Обновить пользователя",
+      "saving": "Сохранение...",
+      "required": "*"
+    },
+    "languages": {
+      "en": "English",
+      "ru": "Русский"
+    },
+    "roles": {
+      "admin": "Администратор",
+      "user": "Пользователь",
+      "operator": "Оператор"
+    },
+    "table": {
+      "username": "Имя пользователя",
+      "email": "Email",
+      "role": "Роль",
+      "groups": "Группы",
+      "status": "Статус",
+      "actions": "Действия",
+      "edit": "Редактировать"
+    },
+    "status": {
+      "active": "Активен",
+      "inactive": "Неактивен"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить пользователей",
+      "createFailed": "Не удалось создать пользователя",
+      "updateFailed": "Не удалось обновить пользователя",
+      "deleteFailed": "Не удалось удалить пользователя"
+    }
+  },
+  "groups": {
+    "title": "Управление группами",
+    "addGroup": "Добавить группу",
+    "editGroup": "Редактировать группу",
+    "deleteGroup": "Удалить",
+    "loading": "Загрузка групп...",
+    "noGroups": "Группы не найдены",
+    "form": {
+      "name": "Название группы",
+      "description": "Описание",
+      "cancel": "Отмена",
+      "save": "Сохранить группу",
+      "update": "Обновить группу",
+      "editGroupTitle": "Редактировать группу: {{name}}"
+    },
+    "table": {
+      "name": "Название",
+      "description": "Описание",
+      "members": "Участники",
+      "actions": "Действия",
+      "edit": "Редактировать"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить группы",
+      "createFailed": "Не удалось создать группу",
+      "updateFailed": "Не удалось обновить группу",
+      "deleteFailed": "Не удалось удалить группу"
+    }
+  },
+  "departments": {
+    "title": "Управление подразделениями",
+    "addDepartment": "Добавить подразделение",
+    "editDepartment": "Редактировать подразделение",
+    "deleteDepartment": "Удалить",
+    "loading": "Загрузка подразделений...",
+    "noDepartments": "Подразделения не найдены",
+    "form": {
+      "name": "Название подразделения",
+      "description": "Описание",
+      "parentDepartment": "Родительское подразделение",
+      "selectParent": "Выберите родительское подразделение",
+      "noParent": "Нет (Верхний уровень)",
+      "cancel": "Отмена",
+      "save": "Сохранить подразделение",
+      "update": "Обновить подразделение",
+      "editDepartmentTitle": "Редактировать подразделение: {{name}}"
+    },
+    "table": {
+      "name": "Название",
+      "description": "Описание",
+      "parent": "Родитель",
+      "actions": "Действия",
+      "edit": "Редактировать"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить подразделения",
+      "createFailed": "Не удалось создать подразделение",
+      "updateFailed": "Не удалось обновить подразделение",
+      "deleteFailed": "Не удалось удалить подразделение"
+    }
+  },
+  "subjects": {
+    "title": "Управление предметами встреч",
+    "addSubject": "Добавить предмет",
+    "editSubject": "Редактировать предмет",
+    "deleteSubject": "Удалить",
+    "loading": "Загрузка предметов...",
+    "noSubjects": "Предметы не найдены",
+    "confirmDelete": "Вы уверены, что хотите удалить этот предмет?",
+    "form": {
+      "name": "Название предмета",
+      "description": "Описание",
+      "cancel": "Отмена",
+      "save": "Сохранить предмет",
+      "update": "Обновить предмет",
+      "editSubjectTitle": "Редактировать предмет: {{name}}"
+    },
+    "table": {
+      "name": "Название",
+      "description": "Описание",
+      "status": "Статус",
+      "actions": "Действия",
+      "edit": "Редактировать"
+    },
+    "status": {
+      "active": "Активен",
+      "inactive": "Неактивен"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить предметы",
+      "createFailed": "Не удалось создать предмет",
+      "updateFailed": "Не удалось обновить предмет",
+      "deleteFailed": "Не удалось удалить предмет"
+    }
+  },
+  "rooms": {
+    "title": "Комнаты LiveKit",
+    "viewDetails": "Подробнее",
+    "backToList": "К списку комнат",
+    "loading": "Загрузка комнат...",
+    "refreshing": "Обновление...",
+    "noRooms": "Нет активных комнат",
+    "noRoomsDescription": "В данный момент нет активных комнат LiveKit.",
+    "table": {
+      "name": "Название комнаты",
+      "participants": "Участники",
+      "created": "Создана",
+      "duration": "Длительность",
+      "actions": "Действия"
+    },
+    "details": {
+      "roomInfo": "Информация о комнате",
+      "roomName": "Название комнаты",
+      "roomSid": "SID комнаты",
+      "created": "Создана",
+      "duration": "Длительность",
+      "numParticipants": "Участники",
+      "maxParticipants": "Макс. участников",
+      "emptyTimeout": "Таймаут пустой комнаты",
+      "metadata": "Метаданные",
+      "participantsList": "Список участников",
+      "identity": "Идентификатор",
+      "state": "Состояние",
+      "joinedAt": "Присоединился",
+      "tracks": "Треки"
+    },
+    "participantState": {
+      "active": "Активен",
+      "disconnected": "Отключен",
+      "joining": "Подключается"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить комнаты",
+      "loadDetailsFailed": "Не удалось загрузить детали комнаты"
+    }
   }
 }
