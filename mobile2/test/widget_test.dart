@@ -11,20 +11,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:recontext/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const RecontextApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify that the login screen loads with the app title
+    expect(find.text('Recontext'), findsOneWidget);
+    expect(find.text('Video conferences & meeting management'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify login form fields are present
+    expect(find.byType(TextFormField), findsNWidgets(2));
+    expect(find.text('Login'), findsOneWidget);
   });
 }
