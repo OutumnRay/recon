@@ -24,6 +24,12 @@ interface ErrorResponse {
 
 export const Login: React.FC = () => {
   const { t, i18n } = useTranslation();
+
+  // Set page title
+  React.useEffect(() => {
+    document.title = `Recontext - ${t('login.title')}`;
+  }, [t]);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -89,7 +95,7 @@ export const Login: React.FC = () => {
       <div className="language-switcher-wrapper">
         <LanguageSwitcher />
       </div>
-      <div className="login-card">
+      <div className="login-card surface-card elevated">
         <div className="login-header">
           <div className="login-logo">
             <img src="/logo.png" alt="Recontext Logo" />
@@ -176,7 +182,7 @@ export const Login: React.FC = () => {
           <p>
             {t('login.defaultCredentials')} <strong>user / user123</strong>
           </p>
-          <p style={{ marginTop: '8px' }}>
+          <p className="login-footer-note">
             {t('login.needHelp')}{' '}
             <a href="#support" className="login-footer-link">
               {t('login.contactSupport')}

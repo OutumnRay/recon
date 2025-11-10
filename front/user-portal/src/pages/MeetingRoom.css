@@ -1,0 +1,212 @@
+.meeting-room-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.meeting-room-status-card {
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.meeting-room-status-card h1 {
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.meeting-room-meta {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.meeting-status {
+  font-weight: var(--font-weight-semibold);
+}
+
+.meeting-status.connected {
+  color: var(--color-success);
+}
+
+.meeting-status.pending {
+  color: var(--color-warning);
+}
+
+.meeting-warning {
+  color: var(--color-warning);
+}
+
+.meeting-leave-btn {
+  min-width: 160px;
+}
+
+.meeting-room-inline-alert {
+  margin: 0;
+}
+
+.meeting-room-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.meeting-control-btn {
+  min-width: 220px;
+}
+
+.meeting-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-xl);
+}
+
+.meeting-panel {
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.meeting-panel-full {
+  grid-column: 1 / -1;
+}
+
+.panel-heading {
+  margin: 0;
+  font-size: var(--font-size-xl);
+}
+
+.video-surface {
+  background: #0d2a2f;
+  border-radius: var(--radius-lg);
+  min-height: 260px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.video-surface-muted {
+  background: rgba(14, 27, 30, 0.8);
+}
+
+.video-placeholder {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  z-index: 1;
+  margin: 0;
+}
+
+.video-feed {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meeting-video-element {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+}
+
+.remote-participants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+.remote-participant-tile {
+  background: rgba(13, 42, 47, 0.8);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  color: var(--text-inverse);
+}
+
+.remote-participant-name {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.empty-participants-text {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.meeting-room-state-card {
+  max-width: 480px;
+  margin: 120px auto;
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2xl);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.meeting-room-state-card h1 {
+  margin: 0;
+}
+
+.meeting-room-state-card p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.meeting-room-state-card .state-alert {
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(194, 101, 95, 0.4);
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.meeting-room-state-card .state-action {
+  width: 100%;
+  margin-top: var(--space-sm);
+}
+
+.meeting-room-state-error h1 {
+  color: var(--color-error);
+}
+
+@media (max-width: 768px) {
+  .meeting-room-page {
+    padding: var(--space-xl);
+  }
+
+  .meeting-room-controls {
+    flex-direction: column;
+  }
+
+  .meeting-control-btn,
+  .meeting-leave-btn {
+    width: 100%;
+  }
+}

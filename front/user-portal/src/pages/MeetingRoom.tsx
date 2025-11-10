@@ -14,10 +14,16 @@ import {
 } from 'livekit-client';
 import { getMeetingToken } from '../services/meetings';
 import type { MeetingTokenResponse } from '../types/meeting';
+import './MeetingRoom.css';
 
 export default function MeetingRoom() {
   const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
+
+  // Set page title
+  useEffect(() => {
+    document.title = 'Recontext - Meeting Room';
+  }, []);
 
   const [room] = useState(() => new Room({
     adaptiveStream: true,
@@ -55,22 +61,24 @@ export default function MeetingRoom() {
         element.id = `${participant.sid}-${track.kind}`;
 
         if (track.kind === Track.Kind.Video) {
-          element.style.width = '100%';
-          element.style.height = 'auto';
-          element.style.borderRadius = '8px';
+          element.classList.add('meeting-video-element');
         }
 
-        const participantContainer = document.getElementById(`participant-${participant.sid}`);
-        if (participantContainer) {
-          participantContainer.appendChild(element);
-        } else if (videoContainerRef.current) {
-          const container = document.createElement('div');
-          container.id = `participant-${participant.sid}`;
-          container.style.marginBottom = '20px';
-          container.innerHTML = `<h3 style="color: white;">${participant.identity || participant.sid}</h3>`;
-          container.appendChild(element);
-          videoContainerRef.current.appendChild(container);
+        let participantContainer = document.getElementById(`participant-${participant.sid}`);
+        if (!participantContainer && videoContainerRef.current) {
+          participantContainer = document.createElement('div');
+          participantContainer.id = `participant-${participant.sid}`;
+          participantContainer.className = 'remote-participant-tile';
+
+          const nameEl = document.createElement('h3');
+          nameEl.className = 'remote-participant-name';
+          nameEl.textContent = participant.identity || participant.sid;
+
+          participantContainer.appendChild(nameEl);
+          videoContainerRef.current.appendChild(participantContainer);
         }
+
+        participantContainer?.appendChild(element);
       }
     };
 
@@ -96,9 +104,7 @@ export default function MeetingRoom() {
 
       if (publication.track && publication.kind === Track.Kind.Video && localVideoRef.current) {
         const element = publication.track.attach();
-        element.style.width = '100%';
-        element.style.height = 'auto';
-        element.style.borderRadius = '8px';
+        element.classList.add('meeting-video-element');
 
         localVideoRef.current.innerHTML = '';
         localVideoRef.current.appendChild(element);
@@ -256,17 +262,9 @@ export default function MeetingRoom() {
   // If joining, show loading state
   if (isJoining) {
     return (
-      <div style={{
-        padding: '20px',
-        maxWidth: '500px',
-        margin: '100px auto',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderRadius: '16px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-        textAlign: 'center',
-      }}>
-        <h1 style={{ color: '#333', marginBottom: '20px' }}>Joining Meeting...</h1>
-        <p style={{ color: '#666' }}>Please wait while we connect you to the meeting room.</p>
+      <div className="meeting-room-state-card">
+        <h1>Joining Meeting...</h1>
+        <p>Please wait while we connect you to the meeting room.</p>
       </div>
     );
   }
@@ -274,40 +272,16 @@ export default function MeetingRoom() {
   // If error occurred before joining
   if (error && !isConnected) {
     return (
-      <div style={{
-        padding: '20px',
-        maxWidth: '500px',
-        margin: '100px auto',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderRadius: '16px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-      }}>
-        <h1 style={{ color: '#ef4444', textAlign: 'center', marginBottom: '20px' }}>
+      <div className="meeting-room-state-card meeting-room-state-error">
+        <h1>
           Unable to Join Meeting
         </h1>
-        <div style={{
-          padding: '12px',
-          marginBottom: '20px',
-          backgroundColor: '#fee',
-          color: '#c33',
-          borderRadius: '8px',
-          border: '1px solid #fcc',
-        }}>
+        <div className="state-alert">
           {error}
         </div>
         <button
           onClick={() => navigate('/dashboard/meetings')}
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '16px',
-            backgroundColor: '#667eea',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '600',
-          }}
+          className="btn btn-primary state-action"
         >
           Back to Meetings
         </button>
@@ -317,107 +291,63 @@ export default function MeetingRoom() {
 
   // Main room interface
   return (
-    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', color: 'white' }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        padding: '20px',
-        borderRadius: '12px',
-      }}>
+    <div className="meeting-room-page">
+      <div className="meeting-room-status-card">
         <div>
-          <h1 style={{ margin: '0 0 10px 0' }}>
+          <h1>
             {tokenData?.roomName ? `Room: ${tokenData.roomName}` : 'Meeting Room'}
           </h1>
-          <p style={{ margin: 0 }}>
+          <p className="meeting-room-meta">
             <strong>Status:</strong>{' '}
-            {isConnected ? (
-              <span style={{ color: '#4ade80' }}>
-                Connected as {tokenData?.participantName || 'Guest'}
-              </span>
-            ) : (
-              <span style={{ color: '#fbbf24' }}>Connecting...</span>
-            )}
+            <span className={`meeting-status ${isConnected ? 'connected' : 'pending'}`}>
+              {isConnected
+                ? `Connected as ${tokenData?.participantName || 'Guest'}`
+                : 'Connecting...'}
+            </span>
           </p>
-          <p style={{ margin: '5px 0 0 0' }}>
+          <p className="meeting-room-meta">
             <strong>Participants:</strong> {participants.size + 1}
           </p>
           {activeSpeakers.length > 0 && (
-            <p style={{ margin: '5px 0 0 0' }}>
+            <p className="meeting-room-meta">
               <strong>Speaking:</strong>{' '}
               {activeSpeakers.map(s => s.identity || s.sid).join(', ')}
             </p>
           )}
           {tokenData?.forceEndAt && (
-            <p style={{ margin: '5px 0 0 0', color: '#fbbf24' }}>
-              <strong>Meeting will end at:</strong> {new Date(tokenData.forceEndAt).toLocaleString(undefined, { hour12: false })}
+            <p className="meeting-room-meta meeting-warning">
+              <strong>Meeting will end at:</strong>{' '}
+              {new Date(tokenData.forceEndAt).toLocaleString(undefined, { hour12: false })}
             </p>
           )}
         </div>
 
         <button
           onClick={handleLeaveRoom}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            backgroundColor: '#ef4444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '600',
-          }}
+          className="btn btn-danger meeting-leave-btn"
         >
           Leave Room
         </button>
       </div>
 
       {error && (
-        <div style={{
-          padding: '12px',
-          marginBottom: '20px',
-          backgroundColor: 'rgba(254, 226, 226, 0.95)',
-          color: '#991b1b',
-          borderRadius: '8px',
-        }}>
+        <div className="alert alert-error meeting-room-inline-alert">
           {error}
         </div>
       )}
 
-      <div style={{ marginBottom: '20px' }}>
+      <div className="meeting-room-controls">
         <button
           onClick={enableBoth}
-          style={{
-            padding: '12px 24px',
-            marginRight: '10px',
-            cursor: 'pointer',
-            backgroundColor: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: '600',
-            fontSize: '16px',
-          }}
+          className="btn btn-success meeting-control-btn"
           disabled={!isConnected}
         >
-          Enable Camera & Mic
+          Enable Camera &amp; Mic
         </button>
 
         <button
           onClick={toggleCamera}
-          style={{
-            padding: '12px 24px',
-            marginRight: '10px',
-            cursor: 'pointer',
-            backgroundColor: isCameraEnabled ? '#ef4444' : '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: '600',
-            fontSize: '16px',
-          }}
+          className={`btn meeting-control-btn ${isCameraEnabled ? 'btn-danger' : 'btn-primary'}`}
           disabled={!isConnected}
         >
           {isCameraEnabled ? '📹 Disable Camera' : '📹 Enable Camera'}
@@ -425,82 +355,39 @@ export default function MeetingRoom() {
 
         <button
           onClick={toggleMicrophone}
-          style={{
-            padding: '12px 24px',
-            cursor: 'pointer',
-            backgroundColor: isMicEnabled ? '#ef4444' : '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: '600',
-            fontSize: '16px',
-          }}
+          className={`btn meeting-control-btn ${isMicEnabled ? 'btn-danger' : 'btn-primary'}`}
           disabled={!isConnected}
         >
           {isMicEnabled ? '🎤 Disable Mic' : '🎤 Enable Mic'}
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px' }}>
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          padding: '20px',
-          borderRadius: '12px',
-        }}>
-          <h2 style={{ marginTop: 0 }}>Your Video</h2>
-          <div
-            style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              minHeight: '250px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-          >
+      <div className="meeting-panels">
+        <div className="meeting-panel">
+          <h2 className="panel-heading">Your Video</h2>
+          <div className={`video-surface ${!isCameraEnabled ? 'video-surface-muted' : ''}`}>
             {!isCameraEnabled && (
-              <p style={{
-                position: 'absolute',
-                margin: 0,
-                color: 'white',
-                zIndex: 1
-              }}>
+              <p className="video-placeholder">
                 Camera is off
               </p>
             )}
             <div
               ref={localVideoRef}
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              className="video-feed"
             />
           </div>
         </div>
 
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          padding: '20px',
-          borderRadius: '12px',
-          gridColumn: participants.size > 0 ? 'auto' : '1 / -1',
-        }}>
-          <h2 style={{ marginTop: 0 }}>
+        <div className={`meeting-panel ${participants.size === 0 ? 'meeting-panel-full' : ''}`}>
+          <h2 className="panel-heading">
             Remote Participants {participants.size > 0 && `(${participants.size})`}
           </h2>
           <div
             ref={videoContainerRef}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '20px',
-            }}
+            className="remote-participants-grid"
           >
             {participants.size === 0 && (
-              <p style={{ color: '#9ca3af' }}>Waiting for other participants to join...</p>
+              <p className="empty-participants-text">Waiting for other participants to join...</p>
             )}
           </div>
         </div>

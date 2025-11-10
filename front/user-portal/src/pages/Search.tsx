@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export const Search: React.FC = () => {
   const { t } = useTranslation();
+
+  // Set page title
+  useEffect(() => {
+    document.title = `Recontext - ${t('nav.search')}`;
+  }, [t]);
 
   return (
     <div className="page-container">

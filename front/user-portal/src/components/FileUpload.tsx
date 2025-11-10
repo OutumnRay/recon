@@ -160,7 +160,7 @@ export const FileUpload: React.FC = () => {
           type="file"
           onChange={handleFileChange}
           accept="audio/*,video/*"
-          style={{ display: 'none' }}
+          className="file-input-hidden"
         />
 
         {file ? (

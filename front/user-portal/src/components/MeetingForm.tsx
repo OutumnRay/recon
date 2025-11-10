@@ -15,7 +15,7 @@ import type {
 } from '../types/meeting';
 import { SearchableSelect } from './SearchableSelect';
 import { MultiSelectWithSearch } from './MultiSelectWithSearch';
-import { LuUsers, LuMic, LuVideo, LuClock } from 'react-icons/lu';
+import { LuUsers, LuMic, LuVideo, LuClock, LuInfo, LuLoader } from 'react-icons/lu';
 import './MeetingForm.css';
 
 interface MeetingFormProps {
@@ -281,7 +281,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
     return (
       <div className="meeting-form-container">
         <div className="loading-state">
-          <div className="loading-spinner"></div>
+          <LuLoader className="spinner spinner-lg" />
           <p>{t('meetings.loadingForm')}</p>
         </div>
       </div>
@@ -295,8 +295,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
       </h2>
 
       {error && (
-        <div className="error-message">
-          <span className="error-icon">⚠️</span>
+        <div className="alert alert-error">
+          <LuInfo />
           <span>{error}</span>
         </div>
       )}

@@ -1,11 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  LuCalendar,
+  LuClock,
+  LuUsers,
+  LuVideo,
+  LuMic,
+  LuBookOpen,
+  LuRotateCcw,
+  LuInfo,
+  LuPlus,
+  LuArrowLeft,
+  LuPencil,
+  LuTrash2,
+  LuPlay,
+  LuCircle,
+  LuCheck,
+  LuX,
+} from 'react-icons/lu';
+import {
   listMyMeetings,
   formatMeetingDate,
   formatDuration,
   getMeetingStatusInfo,
-  getMeetingTypeInfo,
   isMeetingUpcoming,
   isMeetingNow,
   isMeetingPast,
@@ -23,6 +40,11 @@ import './Meetings.css';
 
 export const Meetings: React.FC = () => {
   const { t } = useTranslation();
+
+  // Set page title
+  useEffect(() => {
+    document.title = `Recontext - ${t('nav.meetings')}`;
+  }, [t]);
 
   // State for meetings list
   const [meetings, setMeetings] = useState<MeetingWithDetails[]>([]);
@@ -197,8 +219,8 @@ export const Meetings: React.FC = () => {
     return (
       <div className="page-container">
         <div className="meeting-details-header">
-          <button onClick={handleBackToList} className="back-btn">
-            ← {t('meetings.backToList')}
+          <button onClick={handleBackToList} className="btn btn-ghost">
+            <LuArrowLeft /> {t('meetings.backToList')}
           </button>
           <h1 className="page-title">{selectedMeeting.title}</h1>
         </div>
@@ -210,7 +232,6 @@ export const Meetings: React.FC = () => {
               <div className="detail-item">
                 <span className="detail-label">{t('meetings.details.type')}:</span>
                 <span className="detail-value">
-                  {getMeetingTypeInfo(selectedMeeting.type).icon}{' '}
                   {t(`meetings.type.${selectedMeeting.type}`)}
                 </span>
               </div>
@@ -238,11 +259,23 @@ export const Meetings: React.FC = () => {
               </div>
               <div className="detail-item">
                 <span className="detail-label">{t('meetings.details.videoRecording')}:</span>
-                <span className="detail-value">{selectedMeeting.needs_video_record ? `✓ ${t('common.yes')}` : `✗ ${t('common.no')}`}</span>
+                <span className="detail-value">
+                  {selectedMeeting.needs_video_record ? (
+                    <><LuCheck className="icon-success" /> {t('common.yes')}</>
+                  ) : (
+                    <><LuX className="icon-muted" /> {t('common.no')}</>
+                  )}
+                </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">{t('meetings.details.audioRecording')}:</span>
-                <span className="detail-value">{selectedMeeting.needs_audio_record ? `✓ ${t('common.yes')}` : `✗ ${t('common.no')}`}</span>
+                <span className="detail-value">
+                  {selectedMeeting.needs_audio_record ? (
+                    <><LuCheck className="icon-success" /> {t('common.yes')}</>
+                  ) : (
+                    <><LuX className="icon-muted" /> {t('common.no')}</>
+                  )}
+                </span>
               </div>
             </div>
           </div>
@@ -267,7 +300,11 @@ export const Meetings: React.FC = () => {
                   </div>
                   <div className="participant-badges">
                     <span className={`role-badge role-${participant.role}`}>
-                      {participant.role === 'speaker' ? '🎤 ' + t('meetings.type.presentation') : '👤 ' + t('meetings.details.participants')}
+                      {participant.role === 'speaker' ? (
+                        <><LuMic /> {t('meetings.type.presentation')}</>
+                      ) : (
+                        <><LuUsers /> {t('meetings.details.participants')}</>
+                      )}
                     </span>
                     <span className={`status-badge ${participant.status}`}>
                       {t(`meetings.participantStatus.${participant.status}`)}
@@ -295,20 +332,20 @@ export const Meetings: React.FC = () => {
             <h3>{t('meetings.details.actions')}</h3>
             <div className="meeting-actions">
               {selectedMeeting.status !== 'cancelled' && (
-                <button className="action-btn join-btn" onClick={handleJoinMeeting}>
-                  🎥 {t('meetings.details.joinMeeting')}
+                <button className="btn btn-primary" onClick={handleJoinMeeting}>
+                  <LuPlay /> {t('meetings.details.joinMeeting')}
                 </button>
               )}
               {isMeetingUpcoming(selectedMeeting) && (
-                <button className="action-btn calendar-btn">
-                  📅 {t('meetings.details.addToCalendar')}
+                <button className="btn btn-secondary">
+                  <LuCalendar /> {t('meetings.details.addToCalendar')}
                 </button>
               )}
-              <button className="action-btn edit-btn" onClick={handleEditMeeting}>
-                ✏️ {t('meetings.details.editMeeting')}
+              <button className="btn btn-secondary" onClick={handleEditMeeting}>
+                <LuPencil /> {t('meetings.details.editMeeting')}
               </button>
-              <button className="action-btn delete-btn" onClick={handleDeleteMeeting}>
-                🗑️ {t('meetings.details.cancelMeeting')}
+              <button className="btn btn-danger" onClick={handleDeleteMeeting}>
+                <LuTrash2 /> {t('meetings.details.cancelMeeting')}
               </button>
             </div>
           </div>
@@ -357,8 +394,8 @@ export const Meetings: React.FC = () => {
               className="filter-select"
             >
               <option value="">{t('meetings.filters.allTypes')}</option>
-              <option value="presentation">🎤 {t('meetings.type.presentation')}</option>
-              <option value="conference">👥 {t('meetings.type.conference')}</option>
+              <option value="presentation">{t('meetings.type.presentation')}</option>
+              <option value="conference">{t('meetings.type.conference')}</option>
             </select>
           </div>
 
@@ -412,16 +449,16 @@ export const Meetings: React.FC = () => {
         </div>
 
         {hasActiveFilters && (
-          <button onClick={handleResetFilters} className="reset-filters-btn">
-            🔄 {t('meetings.filters.resetFilters')}
+          <button onClick={handleResetFilters} className="btn btn-ghost">
+            <LuRotateCcw /> {t('meetings.filters.resetFilters')}
           </button>
         )}
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="error-message">
-          <span className="error-icon">⚠️</span>
+        <div className="alert alert-error">
+          <LuInfo />
           <span>{error}</span>
         </div>
       )}
@@ -443,8 +480,8 @@ export const Meetings: React.FC = () => {
               ? t('meetings.noMeetingsFiltered')
               : t('meetings.noMeetingsDescription')}
           </p>
-          <button className="create-meeting-btn" onClick={handleCreateMeeting}>
-            ➕ {t('meetings.createNew')}
+          <button className="btn btn-primary" onClick={handleCreateMeeting}>
+            <LuPlus /> {t('meetings.createNew')}
           </button>
         </div>
       )}
@@ -455,7 +492,6 @@ export const Meetings: React.FC = () => {
           <div className="meetings-list">
             {meetings.map((meeting) => {
               const statusInfo = getMeetingStatusInfo(meeting.status);
-              const typeInfo = getMeetingTypeInfo(meeting.type);
               const isNow = isMeetingNow(meeting);
               const isPast = isMeetingPast(meeting);
 
@@ -470,11 +506,11 @@ export const Meetings: React.FC = () => {
                       <h3 className="meeting-title">{meeting.title}</h3>
                       <div className="meeting-meta">
                         <span className="meeting-type">
-                          {typeInfo.icon} {t(`meetings.type.${meeting.type}`)}
+                          {t(`meetings.type.${meeting.type}`)}
                         </span>
                         {meeting.subject && (
                           <span className="meeting-subject">
-                            📚 {meeting.subject.name}
+                            <LuBookOpen /> {meeting.subject.name}
                           </span>
                         )}
                       </div>
@@ -487,20 +523,20 @@ export const Meetings: React.FC = () => {
                   <div className="meeting-card-body">
                     <div className="meeting-info-grid">
                       <div className="info-item">
-                        <span className="info-icon">📅</span>
+                        <LuCalendar className="info-icon" />
                         <span className="info-text">{formatMeetingDate(meeting.scheduled_at)}</span>
                       </div>
                       <div className="info-item">
-                        <span className="info-icon">⏱️</span>
+                        <LuClock className="info-icon" />
                         <span className="info-text">{formatDuration(meeting.duration)}</span>
                       </div>
                       <div className="info-item">
-                        <span className="info-icon">👥</span>
+                        <LuUsers className="info-icon" />
                         <span className="info-text">{t('meetings.card.participants', { count: meeting.participants.length })}</span>
                       </div>
                       {meeting.needs_video_record && (
                         <div className="info-item">
-                          <span className="info-icon">🎥</span>
+                          <LuVideo className="info-icon" />
                           <span className="info-text">{t('meetings.card.videoRecording')}</span>
                         </div>
                       )}
@@ -508,7 +544,7 @@ export const Meetings: React.FC = () => {
 
                     {isNow && (
                       <div className="meeting-now-badge">
-                        🔴 {t('meetings.meetingInProgress')}
+                        <LuCircle className="pulse-icon" /> {t('meetings.meetingInProgress')}
                       </div>
                     )}
                   </div>
@@ -565,7 +601,7 @@ export const Meetings: React.FC = () => {
 
       {/* Floating Action Button */}
       <button className="fab" title={t('meetings.createNew')} onClick={handleCreateMeeting}>
-        ➕
+        <LuPlus />
       </button>
     </div>
   );

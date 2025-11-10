@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut } from 'react-icons/lu';
+import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import './Dashboard.css';
 
@@ -9,6 +9,7 @@ export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [hasFilePermission, setHasFilePermission] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     checkFilePermission();
@@ -55,10 +56,10 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-layout">
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <img src="/logo.png" alt="Recontext Logo" className="sidebar-logo" />
-          <h1 className="sidebar-title">{t('login.title')}</h1>
+          <h1 className="sidebar-title">Recontext</h1>
         </div>
 
         <nav className="sidebar-nav">
@@ -105,10 +106,17 @@ export const Dashboard: React.FC = () => {
         </div>
       </aside>
 
-      <div className="main-content">
+      <div className={`main-content ${isSidebarCollapsed ? 'expanded' : ''}`}>
         <header className="top-header">
           <div className="header-left">
-            <h2 className="page-current-title">{t('login.title')}</h2>
+            <button
+              className="sidebar-toggle"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title={isSidebarCollapsed ? t('common.expand') : t('common.collapse')}
+            >
+              {isSidebarCollapsed ? <LuMenu /> : <LuX />}
+            </button>
+            <h2 className="page-current-title">Recontext</h2>
           </div>
           <div className="header-right">
             <div className="language-switcher-wrapper">

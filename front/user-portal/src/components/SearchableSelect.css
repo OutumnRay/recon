@@ -7,10 +7,10 @@
 
 .searchable-select-label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #2d3748;
-  font-size: 0.875rem;
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
 }
 
 .searchable-select {
@@ -23,26 +23,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
-  background: white;
-  border: 1px solid #cbd5e0;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: #2d3748;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   text-align: left;
 }
 
 .searchable-select-trigger:hover {
-  border-color: #a0aec0;
+  border-color: var(--border-medium);
 }
 
 .searchable-select-trigger:focus,
 .searchable-select-trigger.open {
   outline: none;
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px var(--color-primary-50);
 }
 
 .searchable-select-value {
@@ -50,42 +50,42 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #2d3748;
+  color: var(--text-primary);
 }
 
 .searchable-select-value:empty::before {
   content: attr(placeholder);
-  color: #a0aec0;
+  color: var(--text-tertiary);
 }
 
 .searchable-select-icons {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-left: 0.5rem;
+  gap: var(--space-sm);
+  margin-left: var(--space-sm);
 }
 
 .searchable-select-clear {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem;
+  padding: var(--space-xs);
   background: none;
   border: none;
-  color: #718096;
+  color: var(--text-secondary);
   cursor: pointer;
-  border-radius: 3px;
-  transition: all 0.2s;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-base);
 }
 
 .searchable-select-clear:hover {
-  background: #f7fafc;
-  color: #2d3748;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .searchable-select-chevron {
-  color: #718096;
-  transition: transform 0.2s;
+  color: var(--color-primary-500);
+  transition: transform var(--transition-base);
 }
 
 .searchable-select-chevron.rotate {
@@ -94,14 +94,14 @@
 
 .searchable-select-dropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-xs));
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid #cbd5e0;
-  border-radius: 6px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
   max-height: 320px;
   display: flex;
   flex-direction: column;
@@ -110,35 +110,35 @@
 
 .searchable-select-search {
   position: relative;
-  padding: 0.75rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f7fafc;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--surface-panel);
 }
 
 .search-icon {
   position: absolute;
-  left: 1.25rem;
+  left: calc(var(--space-md) + var(--space-sm));
   top: 50%;
   transform: translateY(-50%);
-  color: #718096;
+  color: var(--color-primary-500);
   pointer-events: none;
 }
 
 .search-input {
   width: 100%;
-  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  color: #2d3748;
-  background: white;
-  transition: all 0.2s;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) calc(var(--space-2xl) + var(--space-sm));
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--surface-card);
+  transition: all var(--transition-base);
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #4299e1;
-  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.1);
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 2px var(--color-primary-50);
 }
 
 .searchable-select-options {
@@ -150,37 +150,37 @@
   width: 100%;
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: var(--space-md);
   border: none;
-  background: white;
+  background: var(--surface-card);
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.875rem;
-  color: #2d3748;
+  transition: all var(--transition-fast);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
 }
 
 .searchable-select-option:hover:not(.disabled) {
-  background: #f7fafc;
+  background: var(--bg-secondary);
 }
 
 .searchable-select-option.selected {
-  background: #ebf8ff;
-  color: #2c5282;
-  font-weight: 500;
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+  font-weight: var(--font-weight-medium);
 }
 
 .searchable-select-option.selected::after {
   content: '✓';
   margin-left: auto;
-  color: #4299e1;
-  font-weight: 600;
+  color: var(--color-primary-500);
+  font-weight: var(--font-weight-semibold);
 }
 
 .searchable-select-option.disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  color: #a0aec0;
+  color: var(--text-tertiary);
 }
 
 .option-label {
@@ -191,10 +191,10 @@
 }
 
 .searchable-select-empty {
-  padding: 1.5rem 1rem;
+  padding: var(--space-2xl) var(--space-lg);
   text-align: center;
-  color: #718096;
-  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 /* Scrollbar styling for dropdown */
@@ -203,16 +203,16 @@
 }
 
 .searchable-select-options::-webkit-scrollbar-track {
-  background: #f7fafc;
+  background: var(--bg-secondary);
 }
 
 .searchable-select-options::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
-  border-radius: 3px;
+  background: var(--color-gray-300);
+  border-radius: var(--radius-sm);
 }
 
 .searchable-select-options::-webkit-scrollbar-thumb:hover {
-  background: #a0aec0;
+  background: var(--color-gray-400);
 }
 
 /* Responsive adjustments */

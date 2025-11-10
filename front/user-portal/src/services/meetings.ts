@@ -245,11 +245,11 @@ export const getMeetingStatusInfo = (status: string): { label: string; className
 export const getMeetingTypeInfo = (type: string): { label: string; icon: string } => {
   switch (type) {
     case 'presentation':
-      return { label: 'Presentation', icon: '🎤' };
+      return { label: 'Presentation', icon: '' };
     case 'conference':
-      return { label: 'Conference', icon: '👥' };
+      return { label: 'Conference', icon: '' };
     default:
-      return { label: type, icon: '📅' };
+      return { label: type, icon: '' };
   }
 };
 
