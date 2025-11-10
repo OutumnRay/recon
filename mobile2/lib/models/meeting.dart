@@ -137,6 +137,7 @@ class MeetingParticipant {
   final String role;
   final String status;
   final DateTime createdAt;
+  final ParticipantUser? user;
 
   MeetingParticipant({
     required this.id,
@@ -145,6 +146,7 @@ class MeetingParticipant {
     required this.role,
     required this.status,
     required this.createdAt,
+    this.user,
   });
 
   factory MeetingParticipant.fromJson(Map<String, dynamic> json) {
@@ -155,7 +157,22 @@ class MeetingParticipant {
       role: json['role'] as String,
       status: json['status'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      user: json['user'] != null
+          ? ParticipantUser.fromJson(json['user'] as Map<String, dynamic>)
+          : null,
     );
+  }
+
+  String get displayName {
+    if (user != null) {
+      if (user!.username.isNotEmpty) {
+        return user!.username;
+      }
+      if (user!.email.isNotEmpty) {
+        return user!.email;
+      }
+    }
+    return userId;
   }
 
   Map<String, dynamic> toJson() {
@@ -166,6 +183,39 @@ class MeetingParticipant {
       'role': role,
       'status': status,
       'created_at': createdAt.toIso8601String(),
+      if (user != null) 'user': user!.toJson(),
+    };
+  }
+}
+
+class ParticipantUser {
+  final String id;
+  final String username;
+  final String email;
+  final String? role;
+
+  ParticipantUser({
+    required this.id,
+    required this.username,
+    required this.email,
+    this.role,
+  });
+
+  factory ParticipantUser.fromJson(Map<String, dynamic> json) {
+    return ParticipantUser(
+      id: json['id'] as String,
+      username: json['username'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      role: json['role'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'email': email,
+      if (role != null) 'role': role,
     };
   }
 }

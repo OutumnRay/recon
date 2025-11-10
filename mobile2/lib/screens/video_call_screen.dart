@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import '../utils/logger.dart';
+import '../models/meeting.dart';
 
 class VideoCallScreen extends StatefulWidget {
   final String token;
   final String url;
   final String meetingTitle;
+  final List<MeetingParticipant> participants;
 
   const VideoCallScreen({
     super.key,
     required this.token,
     required this.url,
     required this.meetingTitle,
+    this.participants = const [],
   });
 
   @override
@@ -25,6 +28,20 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   bool _isCameraEnabled = true;
   bool _isConnecting = true;
   String? _error;
+
+  // Маппинг userId -> displayName
+  Map<String, String> get _participantNames {
+    final map = <String, String>{};
+    for (final p in widget.participants) {
+      map[p.userId] = p.displayName;
+    }
+    return map;
+  }
+
+  String _getDisplayName(String identity) {
+    // identity в LiveKit это userId
+    return _participantNames[identity] ?? identity;
+  }
 
   @override
   void initState() {
@@ -414,7 +431,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   Text(
                     participantTrack.isLocal
                         ? 'You'
-                        : participantTrack.participant.identity,
+                        : _getDisplayName(participantTrack.participant.identity),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,

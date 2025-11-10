@@ -57,6 +57,7 @@ export const UserForm: React.FC = () => {
     can_approve_recordings: false,
   });
   const [isActive, setIsActive] = useState(true);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -168,31 +169,49 @@ export const UserForm: React.FC = () => {
       return;
     }
 
+    if (isEditMode && showPasswordReset && !password) {
+      setError(t('users.form.passwordRequired'));
+      return;
+    }
+
+    if (isEditMode && password && password.length < 8) {
+      setError(t('users.form.passwordTooShort'));
+      return;
+    }
+
     try {
       setLoading(true);
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
       if (isEditMode) {
         // Update user
+        const updateData: any = {
+          email,
+          role,
+          department_id: departmentId || null,
+          groups: selectedGroups,
+          permissions,
+          language,
+          is_active: isActive,
+        };
+
+        // Include password only if it's being reset
+        if (showPasswordReset && password) {
+          updateData.password = password;
+        }
+
         const response = await fetch(`/api/v1/users/${id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            email,
-            role,
-            department_id: departmentId || null,
-            groups: selectedGroups,
-            permissions,
-            language,
-            is_active: isActive,
-          }),
+          body: JSON.stringify(updateData),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to update user');
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update user');
         }
       } else {
         // Create user
@@ -316,7 +335,7 @@ export const UserForm: React.FC = () => {
             />
           </div>
 
-          {!isEditMode && (
+          {!isEditMode ? (
             <div className="form-group">
               <label htmlFor="password">
                 {t('users.form.password')} {t('users.form.required')}
@@ -341,6 +360,57 @@ export const UserForm: React.FC = () => {
                   {t('users.form.generatePassword')}
                 </button>
               </div>
+            </div>
+          ) : (
+            <div className="form-group">
+              <label>{t('users.form.resetPassword')}</label>
+              {!showPasswordReset ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordReset(true);
+                    setPassword('');
+                  }}
+                  className="btn btn-secondary"
+                  style={{ width: '100%' }}
+                >
+                  {t('users.form.setNewPassword')}
+                </button>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <input
+                      type="text"
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      minLength={8}
+                      placeholder={t('users.form.passwordPlaceholder')}
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={generatePassword}
+                      className="btn btn-secondary"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {t('users.form.generatePassword')}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordReset(false);
+                      setPassword('');
+                    }}
+                    className="btn btn-ghost"
+                    style={{ width: '100%' }}
+                  >
+                    {t('users.form.cancelPasswordReset')}
+                  </button>
+                </>
+              )}
+              <p className="form-hint">{t('users.form.passwordResetHint')}</p>
             </div>
           )}
 

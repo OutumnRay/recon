@@ -232,18 +232,176 @@
   color: var(--text-secondary);
 }
 
+@media (max-width: 1024px) {
+  .files-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .files-table {
+    min-width: 600px;
+  }
+}
+
 @media (max-width: 768px) {
   .files-list-container {
-    padding: var(--space-xl);
+    padding: var(--space-lg);
+  }
+
+  .files-list-header h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  .files-list-header {
+    flex-wrap: wrap;
+  }
+
+  .refresh-btn {
+    font-size: var(--font-size-xs);
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  .files-table {
+    min-width: 500px;
+    font-size: var(--font-size-sm);
   }
 
   .files-table td,
   .files-table th {
-    padding: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .files-table th {
+    font-size: 10px;
+  }
+
+  .filename-cell {
+    gap: var(--space-sm);
+  }
+
+  .file-icon {
+    font-size: 18px;
+  }
+
+  .filename {
+    font-size: var(--font-size-sm);
+  }
+
+  .status-badge {
+    font-size: 10px;
+    padding: 3px 10px;
   }
 
   .pagination {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--space-md);
+  }
+
+  .pagination-btn {
+    width: 100%;
+  }
+
+  .pagination-info {
+    text-align: center;
+    order: -1;
+  }
+
+  .empty-state {
+    padding: var(--space-2xl) var(--space-md);
+  }
+
+  .empty-icon {
+    font-size: 40px;
+  }
+
+  .empty-text {
+    font-size: var(--font-size-base);
+  }
+
+  .empty-hint {
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .files-list-container {
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+
+  .files-list-header h2 {
+    font-size: var(--font-size-lg);
+  }
+
+  .files-table {
+    min-width: 450px;
+  }
+
+  .files-table td,
+  .files-table th {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .files-table th {
+    font-size: 9px;
+  }
+
+  .files-table td {
+    font-size: var(--font-size-xs);
+  }
+
+  .filename-cell {
+    gap: var(--space-xs);
+  }
+
+  .file-icon {
+    font-size: 16px;
+  }
+
+  .filename {
+    font-size: var(--font-size-xs);
+  }
+
+  .status-badge {
+    font-size: 9px;
+    padding: 2px 8px;
+  }
+
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border-width: 3px;
+  }
+
+  .error-message {
+    font-size: var(--font-size-xs);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .empty-state {
+    padding: var(--space-xl) var(--space-sm);
+  }
+
+  .empty-icon {
+    font-size: 36px;
+    margin-bottom: var(--space-sm);
+  }
+
+  .empty-text {
+    font-size: var(--font-size-sm);
+  }
+
+  .empty-hint {
+    font-size: 11px;
+  }
+
+  .pagination-btn {
+    font-size: var(--font-size-xs);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .pagination-info {
+    font-size: var(--font-size-xs);
   }
 }

@@ -100,6 +100,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
             token: liveKitToken.token,
             url: liveKitToken.url,
             meetingTitle: _meeting!.title,
+            participants: _meeting!.participants,
           ),
         ),
       );
@@ -272,7 +273,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
                                     radius: 20,
                                     backgroundColor: const Color(0xFF46afba).withValues(alpha: 0.2),
                                     child: Text(
-                                      participant.userId.substring(0, 1).toUpperCase(),
+                                      participant.displayName.substring(0, 1).toUpperCase(),
                                       style: const TextStyle(
                                         color: Color(0xFF46afba),
                                         fontWeight: FontWeight.bold,
@@ -285,7 +286,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          participant.userId,
+                                          participant.displayName,
                                           style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
