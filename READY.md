@@ -499,6 +499,78 @@
   - Added Status, ProcessedAt, DurationSecs fields
   - Enhanced for worker integration
 
+### Phase 8: API Documentation & Quality Assurance (Completed)
+
+#### Swagger/OpenAPI Documentation
+- ✅ Added Swagger documentation to both portals
+  - User Portal: http://localhost:20081/swagger/index.html
+  - Managing Portal: http://localhost:20080/swagger/index.html
+  - Complete API specification with all 47 endpoints
+  - Request/response schemas, authentication details
+  - BearerAuth security scheme
+- ✅ Installed swaggo dependencies:
+  - github.com/swaggo/swag for documentation generation
+  - github.com/swaggo/http-swagger for UI serving
+  - Automatic docs generation from code annotations
+- ✅ Generated comprehensive API specifications:
+  - `/cmd/user-portal/docs/` - User Portal OpenAPI spec
+  - `/cmd/managing-portal/docs/` - Managing Portal OpenAPI spec
+  - JSON and YAML formats available
+
+#### Password Reset Feature (Completed)
+- ✅ Implemented complete password reset flow
+  - `POST /api/v1/auth/password-reset/request` - Request reset code
+  - `POST /api/v1/auth/password-reset/verify` - Verify 6-digit code
+  - `POST /api/v1/auth/password-reset/reset` - Set new password
+- ✅ Email integration with existing SMTP service
+  - HTML email templates (English/Russian)
+  - 6-digit verification codes
+  - 15-minute code expiration
+  - Security warnings in emails
+- ✅ Frontend pages (User Portal):
+  - ForgotPassword.tsx - Email input and code request
+  - ResetPassword.tsx - Code verification and password reset
+  - Full i18n support (en/ru translations)
+  - Responsive design with validation
+
+#### GORM Migration System (Completed)
+- ✅ Replaced SQL migrations with GORM AutoMigrate
+  - All 16 tables automatically created/updated
+  - Explicit column name mapping for consistency
+  - pgvector extension enabled
+  - Default data insertion (departments, groups)
+- ✅ Created comprehensive GORM models (`pkg/database/models.go`):
+  - User, Department, Group, Meeting, MeetingSubject
+  - MeetingParticipant, MeetingDepartment
+  - LiveKitRoom, LiveKitParticipant, LiveKitTrack
+  - LiveKitWebhookEvent, PasswordResetToken
+  - Recording, Transcript, RAGDocument, RAGChunk
+  - Total: 16 models with proper relationships
+- ✅ Converted database operations to GORM:
+  - UserRepository.GetByEmail uses GORM queries
+  - All new repositories use GORM by default
+  - Compatibility wrappers for legacy SQL code
+- ✅ Applied to both portals:
+  - User Portal uses GORM migrations
+  - Managing Portal uses GORM migrations
+  - Single source of truth for schema
+
+#### Frontend-Backend Correspondence Audit (Completed)
+- ✅ Comprehensive API audit (`API_FRONTEND_BACKEND_AUDIT.md`)
+  - Verified all 47 backend endpoints
+  - Checked all frontend API calls (19 files total)
+  - Confirmed 100% correspondence
+  - Documented all API usage patterns
+- ✅ Fixed frontend issues:
+  - Removed TODO comments from MeetingForm.tsx
+  - Confirmed `/api/v1/users` and `/api/v1/departments` work correctly
+  - Verified authentication consistency across both portals
+- ✅ Statistics:
+  - Backend endpoints: 47
+  - Frontend usage: ~35 endpoints (74%)
+  - Unused endpoints: system/monitoring APIs (expected)
+  - All critical user-facing endpoints implemented
+
 ### Phase 7: Video Meetings System (Completed)
 
 #### Backend

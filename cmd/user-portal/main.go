@@ -12,14 +12,18 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"Recontext.online/internal/config"
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/database"
+	"Recontext.online/pkg/email"
 	"Recontext.online/pkg/embeddings"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
+
+	_ "Recontext.online/cmd/user-portal/docs" // Import generated docs
 )
 
 //go:embed dist/*
@@ -58,6 +62,12 @@ type UserPortal struct {
 	recordings        map[string]*models.Recording   // In-memory recordings store
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
 	embeddingsClient  *embeddings.EmbeddingsClient   // Embeddings client for RAG
+	emailService      EmailServiceInterface          // Email service for sending emails
+}
+
+// EmailServiceInterface defines the interface for email services
+type EmailServiceInterface interface {
+	SendPasswordResetEmail(toEmail string, data email.PasswordResetEmailData) error
 }
 
 func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) {
@@ -97,6 +107,10 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 	// Initialize embeddings client for RAG
 	embeddingsClient := embeddings.NewEmbeddingsClient()
 
+	// Initialize email service using unified mailer
+	emailConfig := email.LoadConfigFromEnv()
+	mailer := email.NewMailer(emailConfig)
+
 	return &UserPortal{
 		config:            cfg,
 		logger:            log,
@@ -108,6 +122,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		recordings:        make(map[string]*models.Recording),
 		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
 		embeddingsClient:  embeddingsClient,
+		emailService:      mailer,
 	}, nil
 }
 
@@ -742,9 +757,17 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	// Prometheus metrics endpoint (no auth required for scraping)
 	mux.Handle("/metrics", promhttp.Handler())
 
+	// Swagger documentation endpoint
+	mux.HandleFunc("/swagger/", httpSwagger.WrapHandler)
+
 	// Public endpoints
 	mux.HandleFunc("/health", up.healthHandler)
 	mux.HandleFunc("/api/v1/auth/login", up.loginHandler)
+
+	// Password reset endpoints (public)
+	mux.HandleFunc("/api/v1/auth/password-reset/request", up.requestPasswordResetHandler)
+	mux.HandleFunc("/api/v1/auth/password-reset/verify", up.verifyResetCodeHandler)
+	mux.HandleFunc("/api/v1/auth/password-reset/reset", up.resetPasswordHandler)
 
 	// Protected endpoints
 	authMiddleware := auth.AuthMiddleware(up.jwtManager)

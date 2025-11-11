@@ -119,6 +119,60 @@ func (r *LiveKitRepository) GetRoomBySID(sid string) (*models.Room, error) {
 	return room, nil
 }
 
+// GetRoomByName retrieves a room by name
+func (r *LiveKitRepository) GetRoomByName(name string) (*models.Room, error) {
+	query := `
+		SELECT id, sid, name, empty_timeout, departure_timeout,
+			creation_time, creation_time_ms, turn_password, enabled_codecs,
+			status, started_at, finished_at, created_at, updated_at
+		FROM livekit_rooms
+		WHERE name = $1
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+
+	room := &models.Room{}
+	var finishedAt sql.NullTime
+	var codecsJSON []byte
+
+	err := r.db.QueryRow(query, name).Scan(
+		&room.ID,
+		&room.SID,
+		&room.Name,
+		&room.EmptyTimeout,
+		&room.DepartureTimeout,
+		&room.CreationTime,
+		&room.CreationTimeMs,
+		&room.TurnPassword,
+		&codecsJSON,
+		&room.Status,
+		&room.StartedAt,
+		&finishedAt,
+		&room.CreatedAtDB,
+		&room.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("room not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get room: %w", err)
+	}
+
+	if finishedAt.Valid {
+		room.FinishedAt = &finishedAt.Time
+	}
+
+	// Unmarshal enabled codecs
+	if len(codecsJSON) > 0 {
+		if err := json.Unmarshal(codecsJSON, &room.EnabledCodecs); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal enabled codecs: %w", err)
+		}
+	}
+
+	return room, nil
+}
+
 // FinishRoom marks a room as finished
 func (r *LiveKitRepository) FinishRoom(sid string) error {
 	query := `

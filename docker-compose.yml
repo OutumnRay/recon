@@ -25,6 +25,9 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - LIVEKIT_URL=wss://video.recontext.online
+      - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
+      - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
       # SMTP Configuration for email sending
       - SMTP_HOST=smtp.timeweb.ru
       - SMTP_PORT=465
@@ -51,24 +54,19 @@ services:
       - "20081:8081"
     environment:
       - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8081
+      - SERVER_PORT=8080
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=recontext
       - DB_PASSWORD=recontext
       - DB_NAME=recontext
-      - MANAGING_PORTAL_URL=http://managing-portal:8080
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
       - MINIO_ENDPOINT=minio:9000
-      # Embeddings configuration - supports both OpenAI and self-hosted models
-      # For OpenAI (default):
-      # - EMBEDDINGS_API_URL=https://api.openai.com/v1/embeddings
-      # - EMBEDDINGS_API_KEY=your-openai-api-key
-      # - EMBEDDINGS_MODEL=text-embedding-3-small
-      # For self-hosted (Ollama example):
-      - EMBEDDINGS_API_URL=http://ollama:11434/api/embeddings
-      - EMBEDDINGS_API_KEY=local
-      - EMBEDDINGS_MODEL=nomic-embed-text
-      # LiveKit Configuration
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
       - LIVEKIT_URL=wss://video.recontext.online
       - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
       - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA

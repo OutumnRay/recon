@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"Recontext.online/internal/models"
+	"Recontext.online/pkg/database"
 	"github.com/google/uuid"
 )
 
@@ -158,7 +160,18 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 		}
 	}
 
-	return mp.liveKitRepo.CreateRoom(room)
+	// Save room to database
+	if err := mp.liveKitRepo.CreateRoom(room); err != nil {
+		return err
+	}
+
+	// Auto-start room composite recording if egressClient is configured
+	if mp.egressClient != nil && room.Name != "" {
+		mp.logger.Infof("Auto-starting room composite recording for room: %s", room.Name)
+		go mp.autoStartRoomRecording(room.SID, room.Name)
+	}
+
+	return nil
 }
 
 func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) error {
@@ -349,6 +362,12 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 		roomSID = sid
 	} else {
 		return fmt.Errorf("room SID is missing")
+	}
+
+	// Stop all active egress sessions for this room
+	if mp.egressClient != nil {
+		mp.logger.Infof("Auto-stopping active recordings for room: %s", roomSID)
+		go mp.autoStopRoomRecordings(roomSID)
 	}
 
 	return mp.liveKitRepo.FinishRoom(roomSID)
@@ -545,4 +564,78 @@ func (mp *ManagingPortal) listWebhookEventsHandler(w http.ResponseWriter, r *htt
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// ============================================================================
+// Auto-recording helper functions
+// ============================================================================
+
+// autoStartRoomRecording automatically starts recording when a room starts
+func (mp *ManagingPortal) autoStartRoomRecording(roomSID string, roomName string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	mp.logger.Infof("Starting automatic room recording for: %s (%s)", roomName, roomSID)
+
+	// Start room composite egress (audio + video)
+	egressInfo, err := mp.egressClient.StartRoomCompositeEgress(ctx, roomName, false)
+	if err != nil {
+		mp.logger.Errorf("Failed to auto-start room recording: %v", err)
+		return
+	}
+
+	mp.logger.Infof("Room recording started successfully. Egress ID: %s", egressInfo.EgressId)
+
+	// Store egress info in database
+	egress := &database.LiveKitEgress{
+		ID:        egressInfo.EgressId,
+		RoomSID:   roomSID,
+		RoomName:  roomName,
+		Type:      "room_composite",
+		Status:    "pending",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	if err := mp.egressRepo.Create(egress); err != nil {
+		mp.logger.Errorf("Failed to store egress in database: %v", err)
+	}
+}
+
+// autoStopRoomRecordings automatically stops all active recordings when room ends
+func (mp *ManagingPortal) autoStopRoomRecordings(roomSID string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	mp.logger.Infof("Stopping active recordings for room: %s", roomSID)
+
+	// Get all active egress sessions for this room
+	egresses, err := mp.egressRepo.GetActiveByRoomSID(roomSID)
+	if err != nil {
+		mp.logger.Errorf("Failed to get active egress sessions: %v", err)
+		return
+	}
+
+	if len(egresses) == 0 {
+		mp.logger.Infof("No active recordings found for room: %s", roomSID)
+		return
+	}
+
+	// Stop each egress session
+	for _, egress := range egresses {
+		mp.logger.Infof("Stopping egress: %s", egress.ID)
+
+		_, err := mp.egressClient.StopEgress(ctx, egress.ID)
+		if err != nil {
+			mp.logger.Errorf("Failed to stop egress %s: %v", egress.ID, err)
+			continue
+		}
+
+		// Update status in database
+		if err := mp.egressRepo.UpdateStatus(egress.ID, "finishing"); err != nil {
+			mp.logger.Errorf("Failed to update egress status: %v", err)
+		}
+
+		mp.logger.Infof("Egress %s stopped successfully", egress.ID)
+	}
 }

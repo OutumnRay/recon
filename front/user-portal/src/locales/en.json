@@ -13,7 +13,54 @@
     "reset": "Reset",
     "confirm": "Confirm",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "login": "Login",
+    "backToLogin": "Back to Login"
+  },
+  "forgotPassword": {
+    "title": "Reset Password",
+    "description": "Enter your email address and we'll send you a verification code to reset your password.",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "your@email.com",
+    "sendCode": "Send Verification Code",
+    "sending": "Sending...",
+    "successTitle": "Code Sent!",
+    "successMessage": "We've sent a 6-digit verification code to {{email}}",
+    "checkEmail": "Please check your email and enter the code on the next page.",
+    "codeValidity": "The code is valid for 15 minutes.",
+    "enterCode": "Enter Code",
+    "rememberPassword": "Remember your password?",
+    "errors": {
+      "requestFailed": "Failed to request password reset",
+      "invalidEmail": "Please enter a valid email address"
+    }
+  },
+  "resetPassword": {
+    "title": "Reset Your Password",
+    "description": "Enter the verification code sent to {{email}}",
+    "codeLabel": "Verification Code",
+    "codeHint": "Enter the 6-digit code from your email",
+    "newPasswordLabel": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPasswordLabel": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter new password",
+    "verify": "Verify",
+    "verifying": "Verifying...",
+    "verified": "Verified",
+    "resetButton": "Reset Password",
+    "resetting": "Resetting...",
+    "successTitle": "Password Reset!",
+    "successMessage": "Your password has been successfully reset. You can now log in with your new password.",
+    "didntReceive": "Didn't receive the code?",
+    "resendCode": "Send again",
+    "errors": {
+      "codeLength": "Code must be exactly 6 digits",
+      "verifyFailed": "Failed to verify code",
+      "resetFailed": "Failed to reset password",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "codeNotVerified": "Please verify your code first"
+    }
   },
   "settings": {
     "title": "User Settings",

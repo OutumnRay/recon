@@ -50,7 +50,7 @@ write_files:
       webhook:
           api_key: "APIBj3yrXtyPRNq"
           urls:
-            - "https://webhook.site/c9cd001a-fafa-4a41-bc11-f0a70097fbdb"
+            - "https://manage.recontext.online/webhook/meet"
 
   - path: /opt/livekit/caddy.yaml
     content: |
