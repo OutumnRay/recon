@@ -73,6 +73,7 @@ export const Departments = () => {
         description: formData.description,
         parent_id: formData.parent_id || undefined,
       });
+      setShowCreateForm(false);
       setEditingDepartment(null);
       setFormData({ name: '', description: '', parent_id: '' });
       loadDepartments();

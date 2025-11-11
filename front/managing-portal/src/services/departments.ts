@@ -70,7 +70,9 @@ export const departmentsApi = {
       throw new Error(`Failed to fetch departments: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    // API returns {items: [], total: n, ...} structure
+    return data.items || [];
   },
 
   /**

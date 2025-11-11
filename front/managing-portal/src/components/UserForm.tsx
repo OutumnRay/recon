@@ -231,7 +231,10 @@ export const UserForm: React.FC = () => {
 
         if (!registerResponse.ok) {
           const errorData = await registerResponse.json();
-          throw new Error(errorData.message || 'Failed to create user');
+          if (registerResponse.status === 409) {
+            throw new Error(errorData.error || 'User with this username or email already exists');
+          }
+          throw new Error(errorData.error || errorData.message || 'Failed to create user');
         }
 
         // Get the created user to get their ID

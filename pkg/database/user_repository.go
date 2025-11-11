@@ -48,7 +48,7 @@ func (r *UserRepository) Create(user *models.User) error {
 // GetByID retrieves a user by ID
 func (r *UserRepository) GetByID(id string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password, role, first_name, last_name, phone, bio, avatar,
+		SELECT id, username, email, password, role, first_name, last_name, phone, bio, avatar_url,
 		       groups, language, is_active, last_login, created_at, updated_at
 		FROM users
 		WHERE id = $1
@@ -56,7 +56,7 @@ func (r *UserRepository) GetByID(id string) (*models.User, error) {
 
 	user := &models.User{}
 	var lastLogin sql.NullTime
-	var firstName, lastName, phone, bio, avatar sql.NullString
+	var firstName, lastName, phone, bio, avatarURL sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&user.ID,
@@ -68,7 +68,7 @@ func (r *UserRepository) GetByID(id string) (*models.User, error) {
 		&lastName,
 		&phone,
 		&bio,
-		&avatar,
+		&avatarURL,
 		pq.Array(&user.Groups),
 		&user.Language,
 		&user.IsActive,
@@ -96,8 +96,8 @@ func (r *UserRepository) GetByID(id string) (*models.User, error) {
 	if bio.Valid {
 		user.Bio = bio.String
 	}
-	if avatar.Valid {
-		user.Avatar = avatar.String
+	if avatarURL.Valid {
+		user.Avatar = avatarURL.String
 	}
 	if lastLogin.Valid {
 		user.LastLogin = &lastLogin.Time
@@ -259,7 +259,7 @@ func (r *UserRepository) List(role string, isActive *bool) ([]*models.User, erro
 func (r *UserRepository) Update(user *models.User) error {
 	query := `
 		UPDATE users
-		SET email = $2, role = $3, first_name = $4, last_name = $5, phone = $6, bio = $7, avatar = $8,
+		SET email = $2, role = $3, first_name = $4, last_name = $5, phone = $6, bio = $7, avatar_url = $8,
 		    groups = $9, language = $10, is_active = $11, updated_at = $12
 		WHERE id = $1
 	`
@@ -302,7 +302,7 @@ func (r *UserRepository) Update(user *models.User) error {
 func (r *UserRepository) UpdateAvatar(userID, avatarURL string) error {
 	query := `
 		UPDATE users
-		SET avatar = $2, updated_at = $3
+		SET avatar_url = $2, updated_at = $3
 		WHERE id = $1
 	`
 
