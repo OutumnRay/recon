@@ -13,7 +13,54 @@
     "reset": "Сбросить",
     "confirm": "Подтвердить",
     "yes": "Да",
-    "no": "Нет"
+    "no": "Нет",
+    "login": "Войти",
+    "backToLogin": "Вернуться к входу"
+  },
+  "forgotPassword": {
+    "title": "Сброс пароля",
+    "description": "Введите ваш email адрес и мы отправим вам код подтверждения для сброса пароля.",
+    "emailLabel": "Email адрес",
+    "emailPlaceholder": "your@email.com",
+    "sendCode": "Отправить код",
+    "sending": "Отправка...",
+    "successTitle": "Код отправлен!",
+    "successMessage": "Мы отправили 6-значный код подтверждения на {{email}}",
+    "checkEmail": "Пожалуйста, проверьте вашу почту и введите код на следующей странице.",
+    "codeValidity": "Код действителен в течение 15 минут.",
+    "enterCode": "Ввести код",
+    "rememberPassword": "Вспомнили пароль?",
+    "errors": {
+      "requestFailed": "Не удалось запросить сброс пароля",
+      "invalidEmail": "Пожалуйста, введите корректный email адрес"
+    }
+  },
+  "resetPassword": {
+    "title": "Сброс пароля",
+    "description": "Введите код подтверждения, отправленный на {{email}}",
+    "codeLabel": "Код подтверждения",
+    "codeHint": "Введите 6-значный код из письма",
+    "newPasswordLabel": "Новый пароль",
+    "newPasswordPlaceholder": "Введите новый пароль",
+    "confirmPasswordLabel": "Подтвердите пароль",
+    "confirmPasswordPlaceholder": "Введите пароль повторно",
+    "verify": "Проверить",
+    "verifying": "Проверка...",
+    "verified": "Проверен",
+    "resetButton": "Сбросить пароль",
+    "resetting": "Сброс...",
+    "successTitle": "Пароль сброшен!",
+    "successMessage": "Ваш пароль был успешно сброшен. Теперь вы можете войти с новым паролем.",
+    "didntReceive": "Не получили код?",
+    "resendCode": "Отправить снова",
+    "errors": {
+      "codeLength": "Код должен содержать ровно 6 цифр",
+      "verifyFailed": "Не удалось проверить код",
+      "resetFailed": "Не удалось сбросить пароль",
+      "passwordTooShort": "Пароль должен содержать минимум 8 символов",
+      "passwordMismatch": "Пароли не совпадают",
+      "codeNotVerified": "Пожалуйста, сначала проверьте ваш код"
+    }
   },
   "settings": {
     "title": "Настройки пользователя",

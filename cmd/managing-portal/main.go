@@ -12,15 +12,19 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"Recontext.online/internal/config"
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/database"
 	"Recontext.online/pkg/email"
+	"Recontext.online/pkg/livekit"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 	"Recontext.online/pkg/prometheus"
+
+	_ "Recontext.online/cmd/managing-portal/docs" // Import generated docs
 )
 
 //go:embed dist/*
@@ -59,7 +63,9 @@ type ManagingPortal struct {
 	departmentRepo    *database.DepartmentRepository // Department repository
 	meetingRepo       *database.MeetingRepository    // Meeting repository
 	liveKitRepo       *database.LiveKitRepository    // LiveKit repository
+	egressRepo        *database.EgressRepository     // LiveKit Egress repository
 	mailer            *email.Mailer                  // Email service
+	egressClient      *livekit.EgressClient          // LiveKit Egress client
 	metricsData       []models.Metric                // In-memory metrics store
 	logs              []models.LogEntry              // In-memory logs store
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
@@ -101,10 +107,14 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 	departmentRepo := database.NewDepartmentRepository(db)
 	meetingRepo := database.NewMeetingRepository(db)
 	liveKitRepo := database.NewLiveKitRepository(db)
+	egressRepo := database.NewEgressRepository(db)
 
 	// Initialize email mailer
 	emailConfig := email.LoadConfigFromEnv()
 	mailer := email.NewMailer(emailConfig)
+
+	// Initialize LiveKit Egress client from environment variables
+	egressClient := livekit.NewEgressClientFromEnv()
 
 	// Initialize Prometheus client (uses internal Docker network)
 	prometheusClient := prometheus.NewClient("http://prometheus:9090")
@@ -120,7 +130,9 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 		departmentRepo:    departmentRepo,
 		meetingRepo:       meetingRepo,
 		liveKitRepo:       liveKitRepo,
+		egressRepo:        egressRepo,
 		mailer:            mailer,
+		egressClient:      egressClient,
 		metricsData:       make([]models.Metric, 0),
 		logs:              make([]models.LogEntry, 0),
 		prometheusMetrics: metrics.NewServiceMetrics("managing_portal"),
@@ -479,6 +491,9 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 	// Prometheus metrics endpoint (no auth required for scraping)
 	mux.Handle("/metrics", promhttp.Handler())
 
+	// Swagger documentation endpoint
+	mux.HandleFunc("/swagger/", httpSwagger.WrapHandler)
+
 	// Public endpoints
 	mux.HandleFunc("/health", mp.healthHandler)
 	mux.HandleFunc("/api/v1/auth/login", mp.loginHandler)
@@ -725,6 +740,27 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/livekit/webhook-events", chainMiddleware(
 		http.HandlerFunc(mp.listWebhookEventsHandler),
+		authMiddleware,
+	))
+
+	// LiveKit Egress endpoints (authenticated)
+	mux.Handle("/api/v1/livekit/egress/room/start", chainMiddleware(
+		http.HandlerFunc(mp.startRoomRecordingHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/livekit/egress/track/start", chainMiddleware(
+		http.HandlerFunc(mp.startTrackRecordingHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/livekit/egress/stop", chainMiddleware(
+		http.HandlerFunc(mp.stopRoomRecordingHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/livekit/egress", chainMiddleware(
+		http.HandlerFunc(mp.listEgressHandler),
 		authMiddleware,
 	))
 

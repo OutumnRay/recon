@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import './Login.css';
@@ -24,6 +25,7 @@ interface ErrorResponse {
 
 export const Login: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   // Set page title
   React.useEffect(() => {
@@ -164,9 +166,14 @@ export const Login: React.FC = () => {
               />
               <span>{t('login.rememberMe')}</span>
             </label>
-            <a href="#forgot-password" className="form-link">
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              className="form-link"
+              disabled={loading}
+            >
               {t('login.forgotPassword')}
-            </a>
+            </button>
           </div>
 
           <button

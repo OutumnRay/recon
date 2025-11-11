@@ -45,6 +45,13 @@ type WelcomeEmailData struct {
 	LoginURL string
 }
 
+// PasswordResetEmailData holds data for password reset email template
+type PasswordResetEmailData struct {
+	Email    string
+	Code     string
+	Language string
+}
+
 // SendWelcomeEmail sends a welcome email to a newly registered user
 func (m *Mailer) SendWelcomeEmail(to string, data WelcomeEmailData) error {
 	m.logger.Printf("Starting to send welcome email to %s (language: %s)", to, data.Language)
@@ -93,11 +100,74 @@ func (m *Mailer) SendWelcomeEmail(to string, data WelcomeEmailData) error {
 	return nil
 }
 
+// SendPasswordResetEmail sends a password reset email with verification code
+func (m *Mailer) SendPasswordResetEmail(to string, data PasswordResetEmailData) error {
+	m.logger.Printf("Starting to send password reset email to %s (language: %s)", to, data.Language)
+
+	// Determine template based on language
+	templateName := fmt.Sprintf("password_reset_%s.html", data.Language)
+	templatePath := filepath.Join("pkg", "email", "templates", templateName)
+	m.logger.Printf("Looking for template at: %s", templatePath)
+
+	// Fallback to English if language template doesn't exist
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		m.logger.Printf("Template not found, falling back to English template")
+		data.Language = "en"
+		templatePath = filepath.Join("pkg", "email", "templates", "password_reset_en.html")
+	}
+
+	// Read template
+	m.logger.Printf("Parsing email template from: %s", templatePath)
+	tmpl, err := template.ParseFiles(templatePath)
+	if err != nil {
+		m.logger.Printf("ERROR: Failed to parse email template: %v", err)
+		return fmt.Errorf("failed to parse email template: %w", err)
+	}
+
+	// Execute template
+	m.logger.Printf("Executing email template with reset code for: %s", data.Email)
+	var body bytes.Buffer
+	if err := tmpl.Execute(&body, data); err != nil {
+		m.logger.Printf("ERROR: Failed to execute email template: %v", err)
+		return fmt.Errorf("failed to execute email template: %w", err)
+	}
+
+	// Get subject based on language
+	subject := m.getPasswordResetSubject(data.Language)
+	m.logger.Printf("Email subject: %s", subject)
+
+	// Send email
+	m.logger.Printf("Attempting to send password reset email to %s via SMTP", to)
+	err = m.sendEmail(to, subject, body.String())
+	if err != nil {
+		m.logger.Printf("ERROR: Failed to send email: %v", err)
+		return err
+	}
+
+	m.logger.Printf("SUCCESS: Password reset email sent successfully to %s", to)
+	return nil
+}
+
 // getWelcomeSubject returns the subject line for welcome email based on language
 func (m *Mailer) getWelcomeSubject(language string) string {
 	subjects := map[string]string{
 		"en": "Welcome to Recontext!",
 		"ru": "Добро пожаловать в Recontext!",
+	}
+
+	subject, ok := subjects[language]
+	if !ok {
+		subject = subjects["en"] // Default to English
+	}
+
+	return subject
+}
+
+// getPasswordResetSubject returns the subject line for password reset email based on language
+func (m *Mailer) getPasswordResetSubject(language string) string {
+	subjects := map[string]string{
+		"en": "Password Reset - Recontext",
+		"ru": "Сброс пароля - Recontext",
 	}
 
 	subject, ok := subjects[language]

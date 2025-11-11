@@ -145,62 +145,49 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 	return user, nil
 }
 
-// GetByEmail retrieves a user by email
+// GetByEmail retrieves a user by email using GORM
 func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
-	query := `
-		SELECT id, username, email, password, role, first_name, last_name, phone, bio, avatar,
-		       groups, language, is_active, last_login, created_at, updated_at
-		FROM users
-		WHERE email = $1
-	`
+	var dbUser User
+	err := r.db.Where("email = ?", email).First(&dbUser).Error
 
-	user := &models.User{}
-	var lastLogin sql.NullTime
-	var firstName, lastName, phone, bio, avatar sql.NullString
-
-	err := r.db.QueryRow(query, email).Scan(
-		&user.ID,
-		&user.Username,
-		&user.Email,
-		&user.Password,
-		&user.Role,
-		&firstName,
-		&lastName,
-		&phone,
-		&bio,
-		&avatar,
-		pq.Array(&user.Groups),
-		&user.Language,
-		&user.IsActive,
-		&lastLogin,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("user not found")
-	}
 	if err != nil {
+		if err.Error() == "record not found" {
+			return nil, fmt.Errorf("user not found")
+		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	if firstName.Valid {
-		user.FirstName = firstName.String
+	// Convert database model to API model
+	user := &models.User{
+		ID:           dbUser.ID,
+		Username:     dbUser.Username,
+		Email:        dbUser.Email,
+		Password:     dbUser.Password,
+		Role:         models.UserRole(dbUser.Role),
+		Groups:       dbUser.Groups,
+		Language:     dbUser.Language,
+		IsActive:     dbUser.IsActive,
+		LastLogin:    dbUser.LastLogin,
+		CreatedAt:    dbUser.CreatedAt,
+		UpdatedAt:    dbUser.UpdatedAt,
+		DepartmentID: dbUser.DepartmentID,
 	}
-	if lastName.Valid {
-		user.LastName = lastName.String
+
+	// Convert pointer fields to string fields
+	if dbUser.FirstName != nil {
+		user.FirstName = *dbUser.FirstName
 	}
-	if phone.Valid {
-		user.Phone = phone.String
+	if dbUser.LastName != nil {
+		user.LastName = *dbUser.LastName
 	}
-	if bio.Valid {
-		user.Bio = bio.String
+	if dbUser.Phone != nil {
+		user.Phone = *dbUser.Phone
 	}
-	if avatar.Valid {
-		user.Avatar = avatar.String
+	if dbUser.Bio != nil {
+		user.Bio = *dbUser.Bio
 	}
-	if lastLogin.Valid {
-		user.LastLogin = &lastLogin.Time
+	if dbUser.AvatarURL != nil {
+		user.Avatar = *dbUser.AvatarURL
 	}
 
 	return user, nil

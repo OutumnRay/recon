@@ -146,8 +146,6 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   };
 
   const fetchUsers = async () => {
-    // TODO: Replace with actual API call to get users
-    // For now, using placeholder
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const response = await fetch('/api/v1/users', {
@@ -168,7 +166,6 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   };
 
   const fetchDepartments = async () => {
-    // TODO: Replace with actual API call to get departments
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const response = await fetch('/api/v1/departments', {

@@ -91,3 +91,49 @@ type TokenClaims struct {
 type RefreshTokenRequest struct {
 	Token string `json:"token" binding:"required"`
 }
+
+// PasswordResetToken represents a password reset token
+type PasswordResetToken struct {
+	ID        string    `json:"id" db:"id"`
+	UserID    string    `json:"user_id" db:"user_id"`
+	Email     string    `json:"email" db:"email"`
+	Code      string    `json:"-" db:"code"` // 6-digit code, never expose in JSON
+	ExpiresAt time.Time `json:"expires_at" db:"expires_at"`
+	Used      bool      `json:"used" db:"used"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+// RequestPasswordResetRequest represents a password reset request
+type RequestPasswordResetRequest struct {
+	Email string `json:"email" binding:"required,email" example:"user@example.com"`
+}
+
+// RequestPasswordResetResponse represents the response after requesting password reset
+type RequestPasswordResetResponse struct {
+	Message string `json:"message" example:"Password reset code sent to your email"`
+	TokenID string `json:"token_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+}
+
+// VerifyResetCodeRequest represents a request to verify reset code
+type VerifyResetCodeRequest struct {
+	TokenID string `json:"token_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Code    string `json:"code" binding:"required,len=6" example:"123456"`
+}
+
+// VerifyResetCodeResponse represents the response after verifying reset code
+type VerifyResetCodeResponse struct {
+	Valid   bool   `json:"valid" example:"true"`
+	Message string `json:"message" example:"Code verified successfully"`
+}
+
+// ResetPasswordRequest represents a request to reset password with code
+type ResetPasswordRequest struct {
+	TokenID     string `json:"token_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Code        string `json:"code" binding:"required,len=6" example:"123456"`
+	NewPassword string `json:"new_password" binding:"required,min=8" example:"newpassword123"`
+}
+
+// ResetPasswordResponse represents the response after resetting password
+type ResetPasswordResponse struct {
+	Message string `json:"message" example:"Password reset successfully"`
+}

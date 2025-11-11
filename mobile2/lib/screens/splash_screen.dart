@@ -80,93 +80,56 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final logoSize = screenWidth / 4; // 1/4 ширины экрана
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF4DD0E1), // Светло-бирюзовый
-              Color(0xFF26C6DA), // Бирюзовый
-              Color(0xFF00ACC1), // Глубокий бирюзовый
-            ],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Логотип приложения с тенью и скруглением
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    'assets/icon/app_icon.png',
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Логотип - квадратный, 1/4 ширины экрана, без тени
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'assets/icon/app_icon.png',
+                width: logoSize,
+                height: logoSize,
+                fit: BoxFit.cover,
               ),
-              const SizedBox(height: 32),
-              const Text(
-                'Recontext',
-                style: TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 1.2,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black26,
-                      offset: Offset(0, 2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              'Recontext',
+              style: TextStyle(
+                fontSize: 38,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF26C6DA),
+                letterSpacing: 1.2,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Your conversations, reimagined',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: 0.5,
-                ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your conversations, reimagined',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w300,
+                letterSpacing: 0.5,
               ),
-              const SizedBox(height: 60),
-              // Индикатор загрузки с контейнером
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 3,
-                  ),
-                ),
+            ),
+            const SizedBox(height: 60),
+            // Индикатор загрузки
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                color: Color(0xFF26C6DA),
+                strokeWidth: 3,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -9,12 +9,17 @@ import Search from './pages/Search';
 import Documents from './pages/Documents';
 import Management from './pages/Management';
 import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<Dashboard />}>
           <Route index element={<Navigate to="/dashboard/meetings" replace />} />
           <Route path="meetings" element={<Meetings />} />
