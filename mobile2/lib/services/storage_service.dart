@@ -6,6 +6,7 @@ class StorageService {
   static const String _usernameKey = 'username';
   static const String _emailKey = 'email';
   static const String _roleKey = 'role';
+  static const String _localeKey = 'app_locale';
 
   Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -63,5 +64,15 @@ class StorageService {
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
+  }
+
+  Future<void> saveLocale(String languageCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_localeKey, languageCode);
+  }
+
+  Future<String?> getLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_localeKey);
   }
 }

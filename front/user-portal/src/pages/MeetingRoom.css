@@ -481,11 +481,12 @@
 }
 
 @media (max-width: 768px) {
-  /* Mobile optimizations */
+  /* Mobile optimizations - Ultra simplified */
   .meeting-room-page {
     padding: 0;
     min-height: 100vh;
     background: #000;
+    overflow: hidden;
   }
 
   .meeting-room-header {
@@ -496,10 +497,9 @@
     z-index: 200;
     border-radius: 0;
     border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: var(--space-md);
-    background: rgba(17, 49, 51, 0.95);
-    backdrop-filter: blur(16px);
+    padding: var(--space-sm) var(--space-md);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+    backdrop-filter: blur(8px);
   }
 
   .meeting-room-header h1 {
@@ -615,6 +615,29 @@
     background: rgba(194, 101, 95, 0.6);
   }
 
+  .icon-circle-button.refresh-button {
+    background: rgba(70, 175, 186, 0.2);
+    border-color: rgba(70, 175, 186, 0.4);
+  }
+
+  .icon-circle-button.refresh-button:hover {
+    background: rgba(70, 175, 186, 0.3);
+    border-color: rgba(70, 175, 186, 0.5);
+  }
+
+  .icon-circle-button.refresh-button:active {
+    animation: spin 0.5s ease-in-out;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   /* Local preview - larger and better positioned */
   .local-preview {
     position: fixed;
@@ -646,50 +669,48 @@
     display: none;
   }
 
-  /* Participant sidebar - swipeable drawer from bottom */
+  /* Participant sidebar - simplified compact version */
   .participant-sidebar {
     position: fixed;
-    bottom: 80px;
+    bottom: 70px;
     left: 0;
     right: 0;
     width: 100%;
-    max-height: 200px;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 140px;
+    border-radius: 0;
     z-index: 140;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: rgba(17, 49, 51, 0.98);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+    transition: transform 0.25s ease-out;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .participant-sidebar.collapsed {
-    transform: translateY(calc(100% - 56px));
+    transform: translateY(100%);
   }
 
   .participant-sidebar-header {
-    padding: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
     cursor: pointer;
     position: relative;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--text-inverse);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
   }
 
   .participant-sidebar-header::before {
     content: '';
     position: absolute;
-    top: var(--space-xs);
+    top: 6px;
     left: 50%;
     transform: translateX(-50%);
-    width: 36px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.4);
+    width: 32px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
     border-radius: 2px;
-    transition: width 0.2s ease, background 0.2s ease;
-  }
-
-  .participant-sidebar-header:active::before {
-    width: 48px;
-    background: rgba(255, 255, 255, 0.6);
   }
 
   .participant-sidebar-header .icon-circle-button {
@@ -740,26 +761,27 @@
   }
 
   .remote-participant-tile {
-    min-width: 100px;
-    max-width: 100px;
-    height: 120px;
+    min-width: 80px;
+    max-width: 80px;
+    height: 100px;
     flex-shrink: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    padding: var(--space-xs);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
+    overflow: hidden;
   }
 
   .remote-participant-tile:active {
-    transform: scale(0.97);
-    background: rgba(0, 0, 0, 0.5);
+    transform: scale(0.95);
   }
 
   .remote-participant-tile.active {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(70, 175, 186, 0.3);
-    background: rgba(70, 175, 186, 0.1);
+    box-shadow: 0 0 8px rgba(70, 175, 186, 0.5);
+    background: rgba(70, 175, 186, 0.15);
   }
 
   .remote-participant-header {

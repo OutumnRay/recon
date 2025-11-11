@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'screens/splash_screen.dart';
+import 'services/locale_service.dart';
+import 'l10n/app_localizations.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const RecontextApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LocaleService(),
+      child: const RecontextApp(),
+    ),
+  );
 }
 
 class RecontextApp extends StatefulWidget {
@@ -39,15 +48,27 @@ class _RecontextAppState extends State<RecontextApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Recontext',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF46afba), // Seafoam color from design
-        ),
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(),
+    return Consumer<LocaleService>(
+      builder: (context, localeService, child) {
+        return MaterialApp(
+          title: 'Recontext',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF46afba), // Seafoam color from design
+            ),
+            useMaterial3: true,
+          ),
+          locale: localeService.locale,
+          localizationsDelegates: [
+            ...AppLocalizations.localizationsDelegates,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const SplashScreen(),
+        );
+      },
     );
   }
 }

@@ -1,0 +1,276 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Recontext",
+  "@appTitle": {
+    "description": "Application title"
+  },
+
+  "login": "Login",
+  "email": "Email",
+  "password": "Password",
+  "username": "Username",
+  "logout": "Logout",
+  "loginButton": "Login",
+  "loggingIn": "Logging in...",
+  "loginError": "Login failed. Please check your credentials.",
+
+  "meetings": "Meetings",
+  "documents": "Documents",
+  "search": "Search",
+  "settings": "Settings",
+
+  "newMeeting": "New Meeting",
+  "createMeeting": "Create Meeting",
+  "meetingTitle": "Meeting Title",
+  "meetingSubject": "Subject",
+  "meetingType": "Type",
+  "meetingDate": "Date",
+  "meetingTime": "Time",
+  "meetingDuration": "Duration",
+  "meetingRecurrence": "Recurrence",
+  "meetingSpeaker": "Speaker",
+  "meetingParticipants": "Participants",
+  "meetingDepartments": "Departments",
+  "meetingNotes": "Additional Notes",
+  "meetingVideoRecord": "Video Recording",
+  "meetingAudioRecord": "Audio Recording",
+  "recordingOptions": "Recording Options",
+
+  "typeConference": "Conference",
+  "typePresentation": "Presentation",
+  "typeTraining": "Training",
+  "typeDiscussion": "Discussion",
+
+  "recurrenceNone": "No repeat",
+  "recurrenceDaily": "Daily",
+  "recurrenceWeekly": "Weekly",
+  "recurrenceMonthly": "Monthly",
+
+  "duration15": "15 minutes",
+  "duration30": "30 minutes",
+  "duration45": "45 minutes",
+  "duration60": "1 hour",
+  "duration90": "1.5 hours",
+  "duration120": "2 hours",
+  "duration180": "3 hours",
+
+  "statusScheduled": "Scheduled",
+  "statusInProgress": "In Progress",
+  "statusCompleted": "Completed",
+  "statusCancelled": "Cancelled",
+
+  "filterAll": "All",
+  "filterScheduled": "Scheduled",
+  "filterInProgress": "In Progress",
+  "filterCompleted": "Completed",
+
+  "selectParticipants": "Select Participants",
+  "selectDepartments": "Select Departments",
+  "selectSpeaker": "Select Speaker",
+  "noSpeaker": "No speaker",
+  "searchUsers": "Search users...",
+
+  "participantsSelected": "{count} selected",
+  "@participantsSelected": {
+    "description": "Number of participants selected",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "departmentsSelected": "{count} selected",
+  "@departmentsSelected": {
+    "description": "Number of departments selected",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "minutes": "min",
+
+  "required": "*",
+  "optional": "(optional)",
+
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "edit": "Edit",
+  "refresh": "Refresh",
+  "retry": "Retry",
+  "close": "Close",
+  "select": "Select",
+
+  "loading": "Loading...",
+  "error": "Error",
+  "success": "Success",
+
+  "noMeetingsFound": "No meetings found",
+  "createFirstMeeting": "Create your first meeting",
+  "tryChangingFilter": "Try changing the filter",
+
+  "meetingCreatedSuccess": "Meeting created successfully",
+  "meetingCreatedError": "Failed to create meeting",
+  "meetingUpdatedSuccess": "Meeting updated successfully",
+  "meetingDeletedSuccess": "Meeting deleted successfully",
+
+  "failedToLoadMeetings": "Failed to load meetings",
+  "failedToLoadFormData": "Failed to load form data",
+  "pleaseEnterTitle": "Please enter a title",
+  "pleaseSelectSubject": "Please select a subject",
+
+  "apiError": "API Error",
+  "connectionError": "Connection Error",
+  "unexpectedError": "Unexpected Error",
+  "checkNetwork": "Please check:\n• Network connection\n• API server is running\n• You are logged in",
+
+  "language": "Language",
+  "changeLanguage": "Change Language",
+  "english": "English",
+  "russian": "Russian",
+
+  "serverUrl": "Server URL",
+  "videoServerUrl": "Video Server URL",
+  "about": "About",
+  "version": "Version",
+
+  "joinMeeting": "Join Meeting",
+  "leaveMeeting": "Leave Meeting",
+  "meetingDetails": "Meeting Details",
+
+  "enterTitle": "Enter meeting title",
+  "enterNotes": "Enter any additional information",
+
+  "documentsTitle": "Documents",
+  "noDocumentsFound": "No documents found",
+  "uploadFirstDocument": "Upload your first document",
+  "upload": "Upload",
+  "download": "Download",
+  "share": "Share",
+  "details": "Details",
+  "documentDetails": "Document Details",
+  "name": "Name",
+  "type": "Type",
+  "size": "Size",
+  "uploaded": "Uploaded",
+  "uploadedBy": "Uploaded by",
+  "deleteDocument": "Delete Document",
+  "deleteDocumentConfirm": "Are you sure you want to delete \"{name}\"?",
+  "@deleteDocumentConfirm": {
+    "description": "Confirm document deletion",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleted": "Deleted {name}",
+  "@deleted": {
+    "description": "Document deleted message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "Undo",
+  "downloading": "Downloading {name}...",
+  "@downloading": {
+    "description": "Downloading document",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filterVideo": "Video",
+  "filterAudio": "Audio",
+  "filterTranscripts": "Transcripts",
+  "filterOther": "Other",
+  "uploadDocumentComingSoon": "Upload document - Coming soon",
+
+  "searchTitle": "Search",
+  "searchHint": "Search meetings, transcripts, documents...",
+  "semanticSearch": "Semantic Search",
+  "searchDescription": "Search across meetings, transcripts, and documents using natural language",
+  "trySearching": "Try searching for:",
+  "budgetDiscussion": "budget discussion",
+  "projectDeadlines": "project deadlines",
+  "whoTalkedAbout": "who talked about...",
+  "noResultsFound": "No results found",
+  "tryDifferentKeywords": "Try different keywords",
+  "searchButton": "Search",
+  "match": "match",
+  "meeting": "Meeting",
+  "transcript": "Transcript",
+  "document": "Document",
+  "searchFailed": "Search failed",
+
+  "meetingDetailsTitle": "Meeting Details",
+  "dateAndTime": "Date & Time",
+  "participants": "Participants",
+  "noParticipants": "No participants",
+  "departments": "Departments",
+  "settingsTitle": "Settings",
+  "videoRecording": "Video Recording",
+  "audioRecording": "Audio Recording",
+  "roomId": "Room ID",
+  "notes": "Notes",
+  "metadata": "Metadata",
+  "created": "Created",
+  "updated": "Updated",
+  "createdBy": "Created By",
+  "active": "Active",
+  "scheduled": "Scheduled",
+  "completed": "Completed",
+  "cancelled": "Cancelled",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "connectingToMeeting": "Connecting to meeting...",
+  "connectionFailed": "Connection Failed",
+  "failedToJoin": "Failed to join",
+  "waitingForParticipants": "Waiting for participants...",
+  "participantsInRoom": "{count} participant(s) in room",
+  "@participantsInRoom": {
+    "description": "Number of participants in room",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "you": "You",
+  "mic": "Mic",
+  "camera": "Camera",
+  "leave": "Leave",
+  "switchCamera": "Switch Camera",
+
+  "userRoleUser": "User",
+  "userRoleAdmin": "Administrator",
+  "userRoleManager": "Manager",
+  "unknownUser": "Unknown User",
+  "serverConfiguration": "Server Configuration",
+  "apiUrl": "API URL",
+  "defaultButton": "Default",
+  "restartNote": "Note: You need to restart the app after changing the API URL.",
+  "apiUrlEmpty": "API URL cannot be empty",
+  "apiUrlSaved": "API URL saved. Please restart the app.",
+  "notifications": "Notifications",
+  "privacySecurity": "Privacy & Security",
+  "helpSupport": "Help & Support",
+  "termsConditions": "Terms & Conditions",
+  "comingSoon": "Coming soon",
+  "notificationsComingSoon": "Notification settings - Coming soon",
+  "privacyComingSoon": "Privacy settings - Coming soon",
+  "helpComingSoon": "Help & Support - Coming soon",
+  "termsComingSoon": "Terms & Conditions - Coming soon",
+  "logoutConfirm": "Are you sure you want to logout?",
+  "appDescription": "Video conferences & meeting management platform",
+  "allRightsReserved": "© 2025 Recontext. All rights reserved."
+}

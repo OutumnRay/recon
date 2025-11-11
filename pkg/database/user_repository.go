@@ -48,13 +48,15 @@ func (r *UserRepository) Create(user *models.User) error {
 // GetByID retrieves a user by ID
 func (r *UserRepository) GetByID(id string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password, role, groups, language, is_active, last_login, created_at, updated_at
+		SELECT id, username, email, password, role, first_name, last_name, phone, bio, avatar,
+		       groups, language, is_active, last_login, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
 
 	user := &models.User{}
 	var lastLogin sql.NullTime
+	var firstName, lastName, phone, bio, avatar sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&user.ID,
@@ -62,6 +64,11 @@ func (r *UserRepository) GetByID(id string) (*models.User, error) {
 		&user.Email,
 		&user.Password,
 		&user.Role,
+		&firstName,
+		&lastName,
+		&phone,
+		&bio,
+		&avatar,
 		pq.Array(&user.Groups),
 		&user.Language,
 		&user.IsActive,
@@ -77,6 +84,21 @@ func (r *UserRepository) GetByID(id string) (*models.User, error) {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	if firstName.Valid {
+		user.FirstName = firstName.String
+	}
+	if lastName.Valid {
+		user.LastName = lastName.String
+	}
+	if phone.Valid {
+		user.Phone = phone.String
+	}
+	if bio.Valid {
+		user.Bio = bio.String
+	}
+	if avatar.Valid {
+		user.Avatar = avatar.String
+	}
 	if lastLogin.Valid {
 		user.LastLogin = &lastLogin.Time
 	}
@@ -126,13 +148,15 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 // GetByEmail retrieves a user by email
 func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password, role, groups, language, is_active, last_login, created_at, updated_at
+		SELECT id, username, email, password, role, first_name, last_name, phone, bio, avatar,
+		       groups, language, is_active, last_login, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
 
 	user := &models.User{}
 	var lastLogin sql.NullTime
+	var firstName, lastName, phone, bio, avatar sql.NullString
 
 	err := r.db.QueryRow(query, email).Scan(
 		&user.ID,
@@ -140,6 +164,11 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 		&user.Email,
 		&user.Password,
 		&user.Role,
+		&firstName,
+		&lastName,
+		&phone,
+		&bio,
+		&avatar,
 		pq.Array(&user.Groups),
 		&user.Language,
 		&user.IsActive,
@@ -155,6 +184,21 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	if firstName.Valid {
+		user.FirstName = firstName.String
+	}
+	if lastName.Valid {
+		user.LastName = lastName.String
+	}
+	if phone.Valid {
+		user.Phone = phone.String
+	}
+	if bio.Valid {
+		user.Bio = bio.String
+	}
+	if avatar.Valid {
+		user.Avatar = avatar.String
+	}
 	if lastLogin.Valid {
 		user.LastLogin = &lastLogin.Time
 	}
@@ -228,7 +272,8 @@ func (r *UserRepository) List(role string, isActive *bool) ([]*models.User, erro
 func (r *UserRepository) Update(user *models.User) error {
 	query := `
 		UPDATE users
-		SET email = $2, role = $3, groups = $4, language = $5, is_active = $6, updated_at = $7
+		SET email = $2, role = $3, first_name = $4, last_name = $5, phone = $6, bio = $7, avatar = $8,
+		    groups = $9, language = $10, is_active = $11, updated_at = $12
 		WHERE id = $1
 	`
 
@@ -239,6 +284,11 @@ func (r *UserRepository) Update(user *models.User) error {
 		user.ID,
 		user.Email,
 		user.Role,
+		user.FirstName,
+		user.LastName,
+		user.Phone,
+		user.Bio,
+		user.Avatar,
 		pq.Array(user.Groups),
 		user.Language,
 		user.IsActive,
@@ -247,6 +297,31 @@ func (r *UserRepository) Update(user *models.User) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// UpdateAvatar updates a user's avatar
+func (r *UserRepository) UpdateAvatar(userID, avatarURL string) error {
+	query := `
+		UPDATE users
+		SET avatar = $2, updated_at = $3
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(query, userID, avatarURL, time.Now())
+	if err != nil {
+		return fmt.Errorf("failed to update avatar: %w", err)
 	}
 
 	rows, err := result.RowsAffected()

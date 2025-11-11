@@ -171,10 +171,18 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		Token:     token,
 		ExpiresAt: expiresAt,
 		User: models.UserInfo{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			Role:     user.Role,
+			ID:           user.ID,
+			Username:     user.Username,
+			Email:        user.Email,
+			Role:         user.Role,
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Phone:        user.Phone,
+			Bio:          user.Bio,
+			Avatar:       user.Avatar,
+			DepartmentID: user.DepartmentID,
+			Permissions:  user.Permissions,
+			Language:     user.Language,
 		},
 	}
 
@@ -819,17 +827,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
-	// Helper endpoints for meeting form
-	mux.Handle("/api/v1/users", chainMiddleware(
-		http.HandlerFunc(up.listUsersHandler),
-		authMiddleware,
-	))
-
-	mux.Handle("/api/v1/departments", chainMiddleware(
-		http.HandlerFunc(up.listDepartmentsHandler),
-		authMiddleware,
-	))
-
 	// RAG endpoints
 	mux.Handle("/api/v1/rag/search", chainMiddleware(
 		http.HandlerFunc(up.ragSearchHandler),
@@ -846,6 +843,51 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
+	// Profile endpoints - MUST come before /api/v1/users to avoid conflicts
+	mux.Handle("/api/v1/users/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Extract path after /api/v1/users/
+			pathAfterUsers := strings.TrimPrefix(r.URL.Path, "/api/v1/users/")
+
+			// Check if this is the list endpoint (empty path after users/)
+			if pathAfterUsers == "" {
+				if r.Method == http.MethodGet {
+					up.listUsersHandler(w, r)
+				} else {
+					http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				}
+				return
+			}
+
+			// Check if this is an avatar upload request
+			if strings.HasSuffix(r.URL.Path, "/avatar") && r.Method == http.MethodPost {
+				up.uploadAvatarHandler(w, r)
+				return
+			}
+
+			// Handle profile GET/PUT for specific user ID
+			switch r.Method {
+			case http.MethodGet:
+				up.getProfileHandler(w, r)
+			case http.MethodPut:
+				up.updateProfileHandler(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+	))
+
+	// Departments endpoint
+	mux.Handle("/api/v1/departments", chainMiddleware(
+		http.HandlerFunc(up.listDepartmentsHandler),
+		authMiddleware,
+	))
+
+	// Serve uploaded avatars
+	avatarsFS := http.FileServer(http.Dir("uploads"))
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", avatarsFS))
+
 	// Serve React frontend for all other routes
 	mux.Handle("/", serveStaticFiles())
 
@@ -855,9 +897,10 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 func (up *UserPortal) Start() error {
 	mux := up.setupRoutes()
 
-	// Wrap with metrics middleware
+	// Wrap with recovery and metrics middleware
+	handler := recoveryMiddleware(mux)
 	metricsMiddleware := metrics.HTTPMetricsMiddleware(up.prometheusMetrics)
-	handler := metricsMiddleware(mux)
+	handler = metricsMiddleware(handler)
 
 	addr := fmt.Sprintf("%s:%d", up.config.Server.Host, up.config.Server.Port)
 	up.logger.Infof("User Portal starting on %s", addr)

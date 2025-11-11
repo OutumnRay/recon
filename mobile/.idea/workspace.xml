@@ -5,39 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1273dfdb-98cb-4594-90f5-fd761679fda6" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../cmd/managing-portal/handlers_users.go" beforeDir="false" afterPath="$PROJECT_DIR$/../cmd/managing-portal/handlers_users.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/managing-portal/src/components/UserForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../front/managing-portal/src/components/UserForm.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/managing-portal/src/locales/en.json" beforeDir="false" afterPath="$PROJECT_DIR$/../front/managing-portal/src/locales/en.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/managing-portal/src/locales/ru.json" beforeDir="false" afterPath="$PROJECT_DIR$/../front/managing-portal/src/locales/ru.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/Dashboard.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/Dashboard.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/Dashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/Dashboard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/FileUpload.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/FileUpload.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/FilesList.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/FilesList.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/LanguageSwitcher.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/LanguageSwitcher.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/Login.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/Login.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/MeetingForm.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/MeetingForm.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/MultiSelectWithSearch.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/MultiSelectWithSearch.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/SearchableSelect.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/SearchableSelect.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/components/UserSettings.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/components/UserSettings.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/pages/MeetingRoom.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/pages/MeetingRoom.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/pages/MeetingRoom.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/pages/MeetingRoom.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/pages/Meetings.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/pages/Meetings.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../front/user-portal/src/styles/components.css" beforeDir="false" afterPath="$PROJECT_DIR$/../front/user-portal/src/styles/components.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../internal/models/user_crud.go" beforeDir="false" afterPath="$PROJECT_DIR$/../internal/models/user_crud.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/ios/Podfile.lock" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/ios/Podfile.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/ios/Runner.xcodeproj/project.pbxproj" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/ios/Runner.xcodeproj/project.pbxproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/lib/models/meeting.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/lib/models/meeting.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/lib/screens/meeting_detail_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/lib/screens/meeting_detail_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/lib/screens/video_call_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/lib/screens/video_call_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/pubspec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mobile2/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/../mobile2/windows/flutter/generated_plugins.cmake" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,21 +38,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Volumes/ExternalData/source/Team21/Recontext.online/mobile&quot;,
-    &quot;show.migrate.to.gradle.popup&quot;: &quot;false&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Volumes/ExternalData/source/Team21/Recontext.online/mobile",
+    "show.migrate.to.gradle.popup": "false"
   }
-}</component>
+}]]></component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="1273dfdb-98cb-4594-90f5-fd761679fda6" name="Changes" comment="" />

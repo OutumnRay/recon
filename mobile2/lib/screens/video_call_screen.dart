@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import 'package:livekit_client/livekit_client.dart';
 import '../utils/logger.dart';
 import '../models/meeting.dart';
@@ -240,6 +241,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -250,20 +253,20 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           IconButton(
             icon: const Icon(Icons.flip_camera_ios),
             onPressed: _switchCamera,
-            tooltip: 'Switch Camera',
+            tooltip: l10n.switchCamera,
           ),
         ],
       ),
       body: _isConnecting
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Colors.white),
-                  SizedBox(height: 16),
+                  const CircularProgressIndicator(color: Colors.white),
+                  const SizedBox(height: 16),
                   Text(
-                    'Connecting to meeting...',
-                    style: TextStyle(color: Colors.white),
+                    l10n.connectingToMeeting,
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ],
               ),
@@ -281,9 +284,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                           size: 64,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Connection Failed',
-                          style: TextStyle(
+                        Text(
+                          l10n.connectionFailed,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -298,7 +301,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         const SizedBox(height: 24),
                         ElevatedButton(
                           onPressed: _connectToRoom,
-                          child: const Text('Retry'),
+                          child: Text(l10n.retry),
                         ),
                       ],
                     ),
@@ -314,19 +317,19 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 children: [
                   _buildControlButton(
                     icon: _isMicEnabled ? Icons.mic : Icons.mic_off,
-                    label: 'Mic',
+                    label: l10n.mic,
                     color: _isMicEnabled ? Colors.white : Colors.red,
                     onPressed: _toggleMicrophone,
                   ),
                   _buildControlButton(
                     icon: _isCameraEnabled ? Icons.videocam : Icons.videocam_off,
-                    label: 'Camera',
+                    label: l10n.camera,
                     color: _isCameraEnabled ? Colors.white : Colors.red,
                     onPressed: _toggleCamera,
                   ),
                   _buildControlButton(
                     icon: Icons.call_end,
-                    label: 'Leave',
+                    label: l10n.leave,
                     color: Colors.red,
                     onPressed: _disconnect,
                   ),
@@ -338,6 +341,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   Widget _buildVideoGrid() {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_participantTracks.isEmpty) {
       return Center(
         child: Column(
@@ -350,7 +355,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Waiting for participants...',
+              l10n.waitingForParticipants,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 16,
@@ -358,7 +363,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '${_room?.remoteParticipants.length ?? 0} participant(s) in room',
+              l10n.participantsInRoom(_room?.remoteParticipants.length ?? 0),
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
@@ -388,16 +393,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   Widget _buildParticipantView(ParticipantTrack participantTrack) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Stack(
         children: [
           // Video
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(20),
             child: VideoTrackRenderer(
               participantTrack.track as VideoTrack,
               fit: VideoViewFit.cover,
@@ -414,7 +421,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               ),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -430,7 +437,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     ),
                   Text(
                     participantTrack.isLocal
-                        ? 'You'
+                        ? l10n.you
                         : _getDisplayName(participantTrack.participant.identity),
                     style: const TextStyle(
                       color: Colors.white,
@@ -475,23 +482,35 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
+          width: 64,
+          height: 64,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: color == Colors.red
+                ? Colors.red.withOpacity(0.9)
+                : const Color(0xFF4CAF50).withOpacity(0.15),
             shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: IconButton(
             icon: Icon(icon),
-            color: color,
+            color: color == Colors.red ? Colors.white : color,
             iconSize: 32,
             onPressed: onPressed,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
           label,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 12,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

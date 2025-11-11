@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_client.dart';
 import '../widgets/error_display.dart';
 
@@ -118,11 +119,11 @@ class _DocumentsScreenState extends State<DocumentsScreen>
   Color _getDocumentColor(String type) {
     switch (type) {
       case 'video':
-        return Colors.purple;
+        return const Color(0xFF9C27B0); // Purple
       case 'audio':
-        return Colors.orange;
+        return const Color(0xFFFF9800); // Orange
       case 'transcript':
-        return Colors.blue;
+        return const Color(0xFF26C6DA); // Cyan
       default:
         return Colors.grey;
     }
@@ -153,39 +154,56 @@ class _DocumentsScreenState extends State<DocumentsScreen>
   }
 
   void _showDocumentOptions(Document document) {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             ListTile(
-              leading: const Icon(Icons.download),
-              title: const Text('Download'),
+              leading: const Icon(Icons.download, color: Color(0xFF26C6DA)),
+              title: Text(l10n.download),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Downloading ${document.name}...'),
+                    content: Text(l10n.downloading(document.name)),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('Share'),
+              leading: const Icon(Icons.share, color: Color(0xFF26C6DA)),
+              title: Text(l10n.share),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Share ${document.name}'),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('Details'),
+              leading: const Icon(Icons.info_outline, color: Color(0xFF26C6DA)),
+              title: Text(l10n.details),
               onTap: () {
                 Navigator.pop(context);
                 _showDocumentDetails(document);
@@ -194,7 +212,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
             ListTile(
               leading: Icon(Icons.delete, color: Colors.red.shade700),
               title:
-                  Text('Delete', style: TextStyle(color: Colors.red.shade700)),
+                  Text(l10n.delete, style: TextStyle(color: Colors.red.shade700)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmDelete(document);
@@ -207,29 +225,36 @@ class _DocumentsScreenState extends State<DocumentsScreen>
   }
 
   void _showDocumentDetails(Document document) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Document Details'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: Text(l10n.documentDetails),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow('Name', document.name),
+            _buildDetailRow(l10n.name, document.name),
             const SizedBox(height: 8),
-            _buildDetailRow('Type', document.type.toUpperCase()),
+            _buildDetailRow(l10n.type, document.type.toUpperCase()),
             const SizedBox(height: 8),
-            _buildDetailRow('Size', _formatFileSize(document.size)),
+            _buildDetailRow(l10n.size, _formatFileSize(document.size)),
             const SizedBox(height: 8),
-            _buildDetailRow('Uploaded', _formatDate(document.uploadedAt)),
+            _buildDetailRow(l10n.uploaded, _formatDate(document.uploadedAt)),
             const SizedBox(height: 8),
-            _buildDetailRow('Uploaded by', document.uploadedBy),
+            _buildDetailRow(l10n.uploadedBy, document.uploadedBy),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF26C6DA),
+            ),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -255,31 +280,46 @@ class _DocumentsScreenState extends State<DocumentsScreen>
   }
 
   void _confirmDelete(Document document) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Document'),
-        content: Text('Are you sure you want to delete "${document.name}"?'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: Text(l10n.deleteDocument),
+        content: Text(l10n.deleteDocumentConfirm(document.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey.shade700,
+            ),
+            child: Text(l10n.cancel),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Deleted ${document.name}'),
+                  content: Text(l10n.deleted(document.name)),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   action: SnackBarAction(
-                    label: 'Undo',
+                    label: l10n.undo,
+                    textColor: Colors.white,
                     onPressed: () {},
                   ),
                 ),
               );
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -289,17 +329,23 @@ class _DocumentsScreenState extends State<DocumentsScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
+    final l10n = AppLocalizations.of(context)!;
 
     final filteredDocuments = _getFilteredDocuments();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Documents'),
+        title: Text(l10n.documentsTitle),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF26C6DA),
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.1),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadDocuments,
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
         ],
         bottom: PreferredSize(
@@ -309,22 +355,26 @@ class _DocumentsScreenState extends State<DocumentsScreen>
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
               children: [
-                _buildFilterChip('All', 'all'),
+                _buildFilterChip(l10n.filterAll, 'all'),
                 const SizedBox(width: 8),
-                _buildFilterChip('Video', 'video'),
+                _buildFilterChip(l10n.filterVideo, 'video'),
                 const SizedBox(width: 8),
-                _buildFilterChip('Audio', 'audio'),
+                _buildFilterChip(l10n.filterAudio, 'audio'),
                 const SizedBox(width: 8),
-                _buildFilterChip('Transcripts', 'transcript'),
+                _buildFilterChip(l10n.filterTranscripts, 'transcript'),
                 const SizedBox(width: 8),
-                _buildFilterChip('Other', 'other'),
+                _buildFilterChip(l10n.filterOther, 'other'),
               ],
             ),
           ),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF26C6DA),
+              ),
+            )
           : _error != null
               ? FullScreenError(
                   error: _error!,
@@ -340,14 +390,14 @@ class _DocumentsScreenState extends State<DocumentsScreen>
                               size: 64, color: Colors.grey.shade400),
                           const SizedBox(height: 16),
                           Text(
-                            'No documents found',
+                            l10n.noDocumentsFound,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             _filter == 'all'
-                                ? 'Upload your first document'
-                                : 'Try changing the filter',
+                                ? l10n.uploadFirstDocument
+                                : l10n.tryChangingFilter,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
@@ -362,17 +412,27 @@ class _DocumentsScreenState extends State<DocumentsScreen>
                           final document = filteredDocuments[index];
                           return Card(
                             margin: const EdgeInsets.symmetric(
-                              vertical: 4,
-                              horizontal: 8,
+                              vertical: 8,
+                              horizontal: 12,
                             ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            elevation: 2,
                             child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               leading: CircleAvatar(
+                                radius: 28,
                                 backgroundColor:
                                     _getDocumentColor(document.type)
-                                        .withValues(alpha: 0.1),
+                                        .withValues(alpha: 0.15),
                                 child: Icon(
                                   _getDocumentIcon(document.type),
                                   color: _getDocumentColor(document.type),
+                                  size: 26,
                                 ),
                               ),
                               title: Text(
@@ -447,11 +507,17 @@ class _DocumentsScreenState extends State<DocumentsScreen>
         onPressed: () {
           // TODO: Navigate to upload document screen
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Upload document - Coming soon')),
+            SnackBar(content: Text(l10n.uploadDocumentComingSoon)),
           );
         },
+        backgroundColor: const Color(0xFF26C6DA),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         icon: const Icon(Icons.upload_file),
-        label: const Text('Upload'),
+        label: Text(l10n.upload),
       ),
     );
   }
@@ -469,6 +535,19 @@ class _DocumentsScreenState extends State<DocumentsScreen>
         }
       },
       showCheckmark: false,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      backgroundColor: Colors.white,
+      selectedColor: const Color(0xFF26C6DA).withOpacity(0.15),
+      side: BorderSide(
+        color: isSelected ? const Color(0xFF26C6DA) : Colors.grey.shade300,
+        width: 1.5,
+      ),
+      labelStyle: TextStyle(
+        color: isSelected ? const Color(0xFF00ACC1) : Colors.grey.shade700,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      ),
     );
   }
 }

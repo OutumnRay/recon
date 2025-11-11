@@ -15,6 +15,7 @@ import type {
 } from '../types/meeting';
 import { SearchableSelect } from './SearchableSelect';
 import { MultiSelectWithSearch } from './MultiSelectWithSearch';
+import { DateTimePicker } from './DateTimePicker';
 import { LuUsers, LuMic, LuVideo, LuClock, LuInfo, LuLoader } from 'react-icons/lu';
 import './MeetingForm.css';
 
@@ -366,12 +367,11 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
               <label htmlFor="scheduled-at" className="form-label required">
                 {t('meetings.form.scheduledAt')}
               </label>
-              <input
+              <DateTimePicker
                 id="scheduled-at"
                 type="datetime-local"
                 value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                className="form-input"
+                onChange={(value) => setScheduledAt(value)}
                 required
               />
             </div>
