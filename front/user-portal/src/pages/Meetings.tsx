@@ -36,6 +36,7 @@ import type {
   MeetingSubject,
 } from '../types/meeting';
 import MeetingForm from '../components/MeetingForm';
+import { DateTimePicker } from '../components/DateTimePicker';
 import './Meetings.css';
 
 export const Meetings: React.FC = () => {
@@ -418,29 +419,27 @@ export const Meetings: React.FC = () => {
 
           <div className="filter-group">
             <label htmlFor="date-from-filter">{t('meetings.filters.dateFrom')}</label>
-            <input
+            <DateTimePicker
               id="date-from-filter"
               type="datetime-local"
               value={dateFromFilter}
-              onChange={(e) => {
-                setDateFromFilter(e.target.value);
+              onChange={(value) => {
+                setDateFromFilter(value);
                 setPage(1);
               }}
-              className="filter-input"
             />
           </div>
 
           <div className="filter-group">
             <label htmlFor="date-to-filter">{t('meetings.filters.dateTo')}</label>
-            <input
+            <DateTimePicker
               id="date-to-filter"
               type="datetime-local"
               value={dateToFilter}
-              onChange={(e) => {
-                setDateToFilter(e.target.value);
+              onChange={(value) => {
+                setDateToFilter(value);
                 setPage(1);
               }}
-              className="filter-input"
             />
           </div>
         </div>

@@ -5,11 +5,32 @@ type UpdateUserRequest struct {
 	Email        string           `json:"email,omitempty" example:"newemail@example.com"`
 	Password     string           `json:"password,omitempty" example:"newpassword123"`
 	Role         UserRole         `json:"role,omitempty" example:"operator"`
+	FirstName    string           `json:"first_name,omitempty" example:"John"`
+	LastName     string           `json:"last_name,omitempty" example:"Doe"`
+	Phone        string           `json:"phone,omitempty" example:"+1234567890"`
+	Bio          string           `json:"bio,omitempty" example:"Software developer"`
+	Avatar       string           `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
 	DepartmentID *string          `json:"department_id,omitempty" example:"dept-001"`
 	Groups       []string         `json:"groups,omitempty"`
 	Permissions  *UserPermissions `json:"permissions,omitempty"`
 	Language     string           `json:"language,omitempty" example:"en"`
 	IsActive     *bool            `json:"is_active,omitempty" example:"true"`
+}
+
+// UpdateProfileRequest represents a request to update user profile (limited fields for self-update)
+type UpdateProfileRequest struct {
+	FirstName string `json:"first_name,omitempty" example:"John"`
+	LastName  string `json:"last_name,omitempty" example:"Doe"`
+	Phone     string `json:"phone,omitempty" example:"+1234567890"`
+	Bio       string `json:"bio,omitempty" example:"Software developer"`
+	Avatar    string `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
+	Language  string `json:"language,omitempty" example:"en"`
+}
+
+// UploadAvatarResponse represents a response after avatar upload
+type UploadAvatarResponse struct {
+	AvatarURL string `json:"avatar_url" example:"https://example.com/avatars/user-123.jpg"`
+	Message   string `json:"message" example:"Avatar uploaded successfully"`
 }
 
 // ChangePasswordRequest represents a password change request

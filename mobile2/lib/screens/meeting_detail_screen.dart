@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import '../models/meeting.dart';
 import '../services/api_client.dart';
@@ -26,6 +27,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
   MeetingWithDetails? _meeting;
   bool _isLoading = true;
   String? _error;
+  bool _isParticipantsExpanded = false;
 
   @override
   void initState() {
@@ -79,7 +81,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+          color: Color(0xFF26C6DA),
+        ),
       ),
     );
 
@@ -110,12 +114,14 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
 
+      final l10n = AppLocalizations.of(context)!;
+
       // Close loading dialog
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to join: ${e.message}'),
+          content: Text('${l10n.failedToJoin}: ${e.message}'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),
@@ -123,12 +129,14 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
     } catch (e) {
       if (!mounted) return;
 
+      final l10n = AppLocalizations.of(context)!;
+
       // Close loading dialog
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text('${l10n.error}: $e'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),
@@ -138,39 +146,56 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Meeting Details'),
-        backgroundColor: const Color(0xFF46afba),
-        foregroundColor: Colors.white,
+        title: Text(l10n.meetingDetailsTitle),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF26C6DA),
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.1),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF26C6DA),
+              ),
+            )
           : _error != null
               ? FullScreenError(
                   error: _error!,
                   onRetry: _loadMeeting,
-                  title: 'Failed to Load Meeting',
+                  title: l10n.failedToLoadMeetings,
                 )
               : _meeting == null
-                  ? const Center(child: Text('Meeting not found'))
+                  ? Center(child: Text(l10n.noMeetingsFound))
                   : _buildMeetingContent(),
       floatingActionButton: _meeting != null &&
               (_meeting!.status == 'active' || _meeting!.status == 'scheduled')
           ? FloatingActionButton.extended(
               onPressed: _joinMeeting,
-              backgroundColor: const Color(0xFF46afba),
+              backgroundColor: const Color(0xFF26C6DA),
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               icon: const Icon(Icons.video_call),
-              label: const Text('Join Meeting'),
+              label: Text(l10n.joinMeeting),
             )
           : null,
     );
   }
 
   Widget _buildMeetingContent() {
+    final l10n = AppLocalizations.of(context)!;
     final meeting = _meeting!;
-    final dateFormat = DateFormat('MMM d, y');
-    final timeFormat = DateFormat('HH:mm');
+    // Локализованные форматы даты и времени
+    final locale = Localizations.localeOf(context).toString();
+    final dateFormat = DateFormat.yMMMd(locale);
+    final timeFormat = DateFormat.Hm(locale);
 
     return SingleChildScrollView(
       child: Column(
@@ -183,8 +208,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF46afba),
-                  const Color(0xFF46afba).withValues(alpha: 0.7),
+                  const Color(0xFF4DD0E1),
+                  const Color(0xFF26C6DA),
+                  const Color(0xFF00ACC1),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -225,7 +251,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
               children: [
                 _buildInfoSection(
                   icon: Icons.calendar_today,
-                  title: 'Date & Time',
+                  title: l10n.dateAndTime,
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -234,16 +260,17 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
                         style: const TextStyle(fontSize: 16),
                       ),
                       Text(
-                        '${timeFormat.format(meeting.scheduledAt)} (${meeting.duration} min)',
+                        '${timeFormat.format(meeting.scheduledAt)} (${meeting.duration} ${l10n.minutes})',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
                         ),
                       ),
-                      if (meeting.recurrence != null) ...[
+                      // Показываем recurrence только если он не null и не "none"
+                      if (meeting.recurrence != null && meeting.recurrence!.toLowerCase() != 'none') ...[
                         const SizedBox(height: 4),
                         Text(
-                          'Recurrence: ${meeting.recurrence}',
+                          '${l10n.meetingRecurrence}: ${_getRecurrenceText(meeting.recurrence!)}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -255,72 +282,125 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
                 ),
                 const Divider(height: 32),
 
-                _buildInfoSection(
-                  icon: Icons.people,
-                  title: 'Participants (${meeting.participants.length})',
-                  content: meeting.participants.isEmpty
-                      ? Text(
-                          'No participants',
-                          style: TextStyle(color: Colors.grey[600]),
-                        )
-                      : Column(
-                          children: meeting.participants.map((participant) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 20,
-                                    backgroundColor: const Color(0xFF46afba).withValues(alpha: 0.2),
-                                    child: Text(
-                                      participant.displayName.substring(0, 1).toUpperCase(),
-                                      style: const TextStyle(
-                                        color: Color(0xFF46afba),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                // Участники - сворачиваемые
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _isParticipantsExpanded = !_isParticipantsExpanded;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.people,
+                              size: 20,
+                              color: const Color(0xFF26C6DA),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${l10n.participants} (${meeting.participants.length})',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            Icon(
+                              _isParticipantsExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                              color: Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_isParticipantsExpanded) ...[
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 28),
+                        child: meeting.participants.isEmpty
+                            ? Text(
+                                l10n.noParticipants,
+                                style: TextStyle(color: Colors.grey[600]),
+                              )
+                            : Column(
+                                children: meeting.participants.map((participant) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          participant.displayName,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
+                                        CircleAvatar(
+                                          radius: 20,
+                                          backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
+                                          child: Text(
+                                            participant.displayName.substring(0, 1).toUpperCase(),
+                                            style: const TextStyle(
+                                              color: Color(0xFF00ACC1),
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
-                                        Text(
-                                          '${participant.role} • ${participant.status}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                participant.displayName,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              Text(
+                                                '${participant.role} • ${participant.status}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                  );
+                                }).toList(),
                               ),
-                            );
-                          }).toList(),
-                        ),
+                      ),
+                    ],
+                  ],
                 ),
 
                 if (meeting.departments.isNotEmpty) ...[
                   const Divider(height: 32),
                   _buildInfoSection(
                     icon: Icons.business,
-                    title: 'Departments',
+                    title: l10n.departments,
                     content: Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: meeting.departments.map((dept) {
                         return Chip(
                           label: Text(dept),
-                          backgroundColor: Colors.grey[200],
+                          backgroundColor: const Color(0xFF26C6DA).withOpacity(0.15),
+                          side: BorderSide(
+                            color: const Color(0xFF26C6DA).withOpacity(0.3),
+                            width: 1,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          labelStyle: const TextStyle(
+                            color: Color(0xFF00ACC1),
+                            fontWeight: FontWeight.w500,
+                          ),
                         );
                       }).toList(),
                     ),
@@ -331,66 +411,37 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
 
                 _buildInfoSection(
                   icon: Icons.settings,
-                  title: 'Settings',
+                  title: l10n.settingsTitle,
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSettingRow(
-                        'Type',
-                        meeting.type,
+                        l10n.type,
+                        _getMeetingTypeText(meeting.type),
                       ),
                       _buildSettingRow(
-                        'Video Recording',
-                        meeting.needsVideoRecord ? 'Enabled' : 'Disabled',
+                        l10n.videoRecording,
+                        meeting.needsVideoRecord ? l10n.enabled : l10n.disabled,
                       ),
                       _buildSettingRow(
-                        'Audio Recording',
-                        meeting.needsAudioRecord ? 'Enabled' : 'Disabled',
+                        l10n.audioRecording,
+                        meeting.needsAudioRecord ? l10n.enabled : l10n.disabled,
                       ),
-                      if (meeting.liveKitRoomId != null)
-                        _buildSettingRow(
-                          'Room ID',
-                          meeting.liveKitRoomId!,
-                        ),
                     ],
                   ),
                 ),
 
-                if (meeting.additionalNotes != null) ...[
+                if (meeting.additionalNotes != null && meeting.additionalNotes!.isNotEmpty) ...[
                   const Divider(height: 32),
                   _buildInfoSection(
                     icon: Icons.notes,
-                    title: 'Notes',
+                    title: l10n.notes,
                     content: Text(
                       meeting.additionalNotes!,
                       style: const TextStyle(fontSize: 14),
                     ),
                   ),
                 ],
-
-                const Divider(height: 32),
-
-                _buildInfoSection(
-                  icon: Icons.info_outline,
-                  title: 'Metadata',
-                  content: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSettingRow(
-                        'Created',
-                        dateFormat.format(meeting.createdAt),
-                      ),
-                      _buildSettingRow(
-                        'Updated',
-                        dateFormat.format(meeting.updatedAt),
-                      ),
-                      _buildSettingRow(
-                        'Created By',
-                        meeting.createdBy,
-                      ),
-                    ],
-                  ),
-                ),
 
                 const SizedBox(height: 80), // Space for FAB
               ],
@@ -402,6 +453,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
   }
 
   Widget _buildStatusChip(String status) {
+    final l10n = AppLocalizations.of(context)!;
     Color backgroundColor;
     Color textColor;
     String label;
@@ -410,22 +462,22 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
       case 'active':
         backgroundColor = Colors.green;
         textColor = Colors.white;
-        label = 'Active';
+        label = l10n.active;
         break;
       case 'scheduled':
         backgroundColor = Colors.blue;
         textColor = Colors.white;
-        label = 'Scheduled';
+        label = l10n.scheduled;
         break;
       case 'completed':
         backgroundColor = Colors.grey;
         textColor = Colors.white;
-        label = 'Completed';
+        label = l10n.completed;
         break;
       case 'cancelled':
         backgroundColor = Colors.red;
         textColor = Colors.white;
-        label = 'Cancelled';
+        label = l10n.cancelled;
         break;
       default:
         backgroundColor = Colors.grey;
@@ -434,10 +486,10 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
@@ -463,7 +515,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
             Icon(
               icon,
               size: 20,
-              color: const Color(0xFF46afba),
+              color: const Color(0xFF26C6DA),
             ),
             const SizedBox(width: 8),
             Text(
@@ -512,5 +564,37 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
         ],
       ),
     );
+  }
+
+  String _getMeetingTypeText(String type) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (type.toLowerCase()) {
+      case 'conference':
+        return l10n.typeConference;
+      case 'presentation':
+        return l10n.typePresentation;
+      case 'training':
+        return l10n.typeTraining;
+      case 'discussion':
+        return l10n.typeDiscussion;
+      default:
+        return type;
+    }
+  }
+
+  String _getRecurrenceText(String recurrence) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (recurrence.toLowerCase()) {
+      case 'daily':
+        return l10n.recurrenceDaily;
+      case 'weekly':
+        return l10n.recurrenceWeekly;
+      case 'monthly':
+        return l10n.recurrenceMonthly;
+      case 'none':
+        return l10n.recurrenceNone;
+      default:
+        return recurrence;
+    }
   }
 }

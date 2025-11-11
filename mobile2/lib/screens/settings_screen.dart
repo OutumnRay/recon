@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/config_service.dart';
 import '../services/storage_service.dart';
+import '../services/locale_service.dart';
 import 'login_screen.dart';
+import '../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ApiClient apiClient;
@@ -80,10 +83,11 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _saveApiUrl() async {
+    final l10n = AppLocalizations.of(context)!;
     final url = _apiUrlController.text.trim();
     if (url.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API URL cannot be empty')),
+        SnackBar(content: Text(l10n.apiUrlEmpty)),
       );
       return;
     }
@@ -96,29 +100,46 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('API URL saved. Please restart the app.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(l10n.apiUrlSaved),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
   }
 
   Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.logout, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(
+              l10n.logout,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Text(l10n.logoutConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF26C6DA),
+            ),
+            child: Text(l10n.cancel),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Logout'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(l10n.logout),
           ),
         ],
       ),
@@ -138,26 +159,81 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   String _getRoleDisplayName(String? role) {
-    if (role == null) return 'User';
+    final l10n = AppLocalizations.of(context)!;
+    if (role == null) return l10n.userRoleUser;
     switch (role.toLowerCase()) {
       case 'admin':
-        return 'Administrator';
+        return l10n.userRoleAdmin;
       case 'manager':
-        return 'Manager';
+        return l10n.userRoleManager;
       case 'user':
-        return 'User';
+        return l10n.userRoleUser;
       default:
         return role;
+    }
+  }
+
+  Future<void> _showLanguageDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final localeService = Provider.of<LocaleService>(context, listen: false);
+
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          l10n.changeLanguage,
+          style: const TextStyle(color: Color(0xFF26C6DA), fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: Text(l10n.english),
+              value: 'en',
+              groupValue: localeService.locale.languageCode,
+              activeColor: const Color(0xFF26C6DA),
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+            RadioListTile<String>(
+              title: Text(l10n.russian),
+              value: 'ru',
+              groupValue: localeService.locale.languageCode,
+              activeColor: const Color(0xFF26C6DA),
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF26C6DA),
+            ),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+
+    if (selected != null && selected != localeService.locale.languageCode) {
+      await localeService.setLocale(Locale(selected));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.settingsTitle),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF26C6DA),
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.1),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -166,25 +242,26 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // User Profile Section
                 Card(
                   margin: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  elevation: 2,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
                         CircleAvatar(
-                          radius: 40,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primaryContainer,
-                          child: Icon(
+                          radius: 50,
+                          backgroundColor: const Color(0xFF26C6DA).withOpacity(0.15),
+                          child: const Icon(
                             Icons.person,
-                            size: 40,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
+                            size: 50,
+                            color: Color(0xFF00ACC1),
                           ),
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _username ?? 'Unknown User',
+                          _username ?? l10n.unknownUser,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 4),
@@ -209,25 +286,39 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // Server Configuration Section
                 Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 2,
                   child: Column(
                     children: [
                       ListTile(
-                        leading: Icon(
-                          Icons.dns,
-                          color: Theme.of(context).colorScheme.primary,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.dns, color: Color(0xFF26C6DA)),
                         ),
-                        title: const Text('Server Configuration'),
+                        title: Text(
+                          l10n.serverConfiguration,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
                         subtitle: Text(
                           _currentApiUrl,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         trailing: Icon(
                           _showApiConfig
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
+                          color: const Color(0xFF26C6DA),
                         ),
                         onTap: () {
                           setState(() {
@@ -245,11 +336,23 @@ class _SettingsScreenState extends State<SettingsScreen>
                               const SizedBox(height: 8),
                               TextFormField(
                                 controller: _apiUrlController,
-                                decoration: const InputDecoration(
-                                  labelText: 'API URL',
+                                decoration: InputDecoration(
+                                  labelText: l10n.apiUrl,
                                   hintText: 'https://portal.recontext.online',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.link),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  prefixIcon: const Icon(Icons.link, color: Color(0xFF26C6DA)),
                                 ),
                                 keyboardType: TextInputType.url,
                               ),
@@ -262,21 +365,36 @@ class _SettingsScreenState extends State<SettingsScreen>
                                         _apiUrlController.text =
                                             _configService.getDefaultApiUrl();
                                       },
-                                      child: const Text('Default'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFF26C6DA),
+                                        side: const BorderSide(color: Color(0xFF26C6DA), width: 1.5),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: Text(l10n.defaultButton),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: FilledButton(
                                       onPressed: _saveApiUrl,
-                                      child: const Text('Save'),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: const Color(0xFF26C6DA),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: Text(l10n.save),
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Note: You need to restart the app after changing the API URL.',
+                                l10n.restartNote,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.orange[700],
@@ -292,44 +410,77 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // App Settings Section
                 Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 2,
                   child: Column(
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.language),
-                        title: const Text('Language'),
-                        subtitle: const Text('English'),
-                        trailing: const Icon(Icons.chevron_right),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.language, color: Color(0xFF26C6DA)),
+                        ),
+                        title: Text(
+                          AppLocalizations.of(context)!.language,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(
+                          Provider.of<LocaleService>(context).isRussian
+                              ? AppLocalizations.of(context)!.russian
+                              : AppLocalizations.of(context)!.english,
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
+                        onTap: () => _showLanguageDialog(),
+                      ),
+                      const Divider(height: 1, indent: 72, endIndent: 16),
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.notifications, color: Color(0xFF26C6DA)),
+                        ),
+                        title: Text(
+                          l10n.notifications,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Language settings - Coming soon'),
+                            SnackBar(
+                              content: Text(l10n.notificationsComingSoon),
+                              backgroundColor: const Color(0xFF26C6DA),
                             ),
                           );
                         },
                       ),
-                      const Divider(height: 1),
+                      const Divider(height: 1, indent: 72, endIndent: 16),
                       ListTile(
-                        leading: const Icon(Icons.notifications),
-                        title: const Text('Notifications'),
-                        trailing: const Icon(Icons.chevron_right),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.security, color: Color(0xFF26C6DA)),
+                        ),
+                        title: Text(
+                          l10n.privacySecurity,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                                  Text('Notification settings - Coming soon'),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.security),
-                        title: const Text('Privacy & Security'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Privacy settings - Coming soon'),
+                            SnackBar(
+                              content: Text(l10n.privacyComingSoon),
+                              backgroundColor: const Color(0xFF26C6DA),
                             ),
                           );
                         },
@@ -341,48 +492,89 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // About Section
                 Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 2,
                   child: Column(
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.info_outline),
-                        title: const Text('About'),
-                        trailing: const Icon(Icons.chevron_right),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.info_outline, color: Color(0xFF26C6DA)),
+                        ),
+                        title: Text(
+                          l10n.about,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
                         onTap: () {
                           showAboutDialog(
                             context: context,
                             applicationName: 'Recontext',
                             applicationVersion: '1.0.0',
-                            applicationIcon: const Icon(Icons.video_call, size: 48),
-                            children: [
-                              const Text(
-                                'Video conferences & meeting management platform',
+                            applicationIcon: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF26C6DA).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(16),
                               ),
+                              child: const Icon(Icons.video_call, size: 48, color: Color(0xFF26C6DA)),
+                            ),
+                            children: [
+                              Text(l10n.appDescription),
                             ],
                           );
                         },
                       ),
-                      const Divider(height: 1),
+                      const Divider(height: 1, indent: 72, endIndent: 16),
                       ListTile(
-                        leading: const Icon(Icons.help_outline),
-                        title: const Text('Help & Support'),
-                        trailing: const Icon(Icons.chevron_right),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.help_outline, color: Color(0xFF26C6DA)),
+                        ),
+                        title: Text(
+                          l10n.helpSupport,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Help & Support - Coming soon'),
+                            SnackBar(
+                              content: Text(l10n.helpComingSoon),
+                              backgroundColor: const Color(0xFF26C6DA),
                             ),
                           );
                         },
                       ),
-                      const Divider(height: 1),
+                      const Divider(height: 1, indent: 72, endIndent: 16),
                       ListTile(
-                        leading: const Icon(Icons.description_outlined),
-                        title: const Text('Terms & Conditions'),
-                        trailing: const Icon(Icons.chevron_right),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.description_outlined, color: Color(0xFF26C6DA)),
+                        ),
+                        title: Text(
+                          l10n.termsConditions,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Terms & Conditions - Coming soon'),
+                            SnackBar(
+                              content: Text(l10n.termsComingSoon),
+                              backgroundColor: const Color(0xFF26C6DA),
                             ),
                           );
                         },
@@ -396,14 +588,23 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // Logout Button
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: OutlinedButton.icon(
-                    onPressed: _logout,
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Logout'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _logout,
+                      icon: const Icon(Icons.logout),
+                      label: Text(
+                        l10n.logout,
+                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red, width: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -413,7 +614,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // Version Info
                 Center(
                   child: Text(
-                    'Version 1.0.0',
+                    '${l10n.version} 1.0.0',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -422,7 +623,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    '© 2025 Recontext. All rights reserved.',
+                    l10n.allRightsReserved,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),

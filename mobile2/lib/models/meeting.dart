@@ -250,9 +250,15 @@ class CreateMeetingRequest {
   });
 
   Map<String, dynamic> toJson() {
+    // Convert to UTC and format as ISO 8601 with Z suffix
+    // Backend expects format: "2025-01-15T10:00:00Z"
+    final utcTime = scheduledAt.toUtc();
+    // Remove milliseconds and ensure Z suffix
+    final formattedTime = utcTime.toIso8601String().split('.').first + 'Z';
+
     return {
       'title': title,
-      'scheduled_at': scheduledAt.toIso8601String(),
+      'scheduled_at': formattedTime,
       'duration': duration,
       if (recurrence != null) 'recurrence': recurrence,
       'type': type,

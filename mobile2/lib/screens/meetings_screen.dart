@@ -5,6 +5,8 @@ import '../services/meetings_service.dart';
 import '../models/meeting.dart';
 import '../widgets/error_display.dart';
 import 'meeting_detail_screen.dart';
+import 'create_meeting_screen.dart';
+import '../l10n/app_localizations.dart';
 
 class MeetingsScreen extends StatefulWidget {
   final ApiClient apiClient;
@@ -75,15 +77,16 @@ class _MeetingsScreenState extends State<MeetingsScreen>
     }
   }
 
-  String _formatDateTime(DateTime dateTime) {
+  String _formatDateTime(DateTime dateTime, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final meetingDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
     if (meetingDate == today) {
-      return 'Today, ${DateFormat.Hm().format(dateTime)}';
+      return '${l10n.today}, ${DateFormat.Hm().format(dateTime)}';
     } else if (meetingDate == today.add(const Duration(days: 1))) {
-      return 'Tomorrow, ${DateFormat.Hm().format(dateTime)}';
+      return '${l10n.tomorrow}, ${DateFormat.Hm().format(dateTime)}';
     } else if (meetingDate.isAfter(today) &&
         meetingDate.isBefore(today.add(const Duration(days: 7)))) {
       return '${DateFormat.E().format(dateTime)}, ${DateFormat.Hm().format(dateTime)}';
@@ -120,16 +123,17 @@ class _MeetingsScreenState extends State<MeetingsScreen>
     }
   }
 
-  String _getStatusText(String status) {
+  String _getStatusText(String status, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (status) {
       case 'scheduled':
-        return 'Scheduled';
+        return l10n.statusScheduled;
       case 'in_progress':
-        return 'In Progress';
+        return l10n.statusInProgress;
       case 'completed':
-        return 'Completed';
+        return l10n.statusCompleted;
       case 'cancelled':
-        return 'Cancelled';
+        return l10n.statusCancelled;
       default:
         return status;
     }
@@ -138,15 +142,21 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Meetings'),
+        title: Text(l10n.meetings),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF26C6DA),
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.1),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadMeetings,
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
         ],
         bottom: PreferredSize(
@@ -156,13 +166,13 @@ class _MeetingsScreenState extends State<MeetingsScreen>
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
               children: [
-                _buildFilterChip('All', 'all'),
+                _buildFilterChip(l10n.filterAll, 'all'),
                 const SizedBox(width: 8),
-                _buildFilterChip('Scheduled', 'scheduled'),
+                _buildFilterChip(l10n.filterScheduled, 'scheduled'),
                 const SizedBox(width: 8),
-                _buildFilterChip('In Progress', 'in_progress'),
+                _buildFilterChip(l10n.filterInProgress, 'in_progress'),
                 const SizedBox(width: 8),
-                _buildFilterChip('Completed', 'completed'),
+                _buildFilterChip(l10n.filterCompleted, 'completed'),
               ],
             ),
           ),
@@ -174,7 +184,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
               ? FullScreenError(
                   error: _error!,
                   onRetry: _loadMeetings,
-                  title: 'Failed to load meetings',
+                  title: l10n.failedToLoadMeetings,
                 )
               : _meetings == null || _meetings!.isEmpty
                   ? Center(
@@ -185,14 +195,14 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                               size: 64, color: Colors.grey.shade400),
                           const SizedBox(height: 16),
                           Text(
-                            'No meetings found',
+                            l10n.noMeetingsFound,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             _filter == 'all'
-                                ? 'Create your first meeting'
-                                : 'Try changing the filter',
+                                ? l10n.createFirstMeeting
+                                : l10n.tryChangingFilter,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
@@ -207,10 +217,18 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                           final meeting = _meetings![index];
                           return Card(
                             margin: const EdgeInsets.symmetric(
-                              vertical: 4,
-                              horizontal: 8,
+                              vertical: 8,
+                              horizontal: 12,
                             ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            elevation: 2,
                             child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -222,14 +240,12 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                                 );
                               },
                               leading: CircleAvatar(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
+                                radius: 28,
+                                backgroundColor: const Color(0xFF26C6DA).withOpacity(0.15),
                                 child: Icon(
                                   _getMeetingIcon(meeting.type),
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onPrimaryContainer,
+                                  color: const Color(0xFF00ACC1),
+                                  size: 26,
                                 ),
                               ),
                               title: Text(
@@ -248,7 +264,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
-                                          _formatDateTime(meeting.scheduledAt),
+                                          _formatDateTime(meeting.scheduledAt, context),
                                           style: TextStyle(
                                               fontSize: 13,
                                               color: Colors.grey[600]),
@@ -263,7 +279,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                                           size: 14, color: Colors.grey[600]),
                                       const SizedBox(width: 4),
                                       Text(
-                                        '${meeting.duration} min',
+                                        '${meeting.duration} ${l10n.minutes}',
                                         style: TextStyle(
                                             fontSize: 13,
                                             color: Colors.grey[600]),
@@ -282,19 +298,24 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                                   ),
                                 ],
                               ),
-                              trailing: Chip(
-                                label: Text(
-                                  _getStatusText(meeting.status),
-                                  style: const TextStyle(fontSize: 11),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(meeting.status).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: _getStatusColor(meeting.status).withOpacity(0.3),
+                                    width: 1,
+                                  ),
                                 ),
-                                backgroundColor:
-                                    _getStatusColor(meeting.status).withValues(alpha: 0.1),
-                                side: BorderSide(
-                                  color: _getStatusColor(meeting.status),
-                                  width: 1,
+                                child: Text(
+                                  _getStatusText(meeting.status, context),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _getStatusColor(meeting.status),
+                                  ),
                                 ),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
                               ),
                               isThreeLine: true,
                             ),
@@ -304,14 +325,29 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                     ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'meetings_fab',
-        onPressed: () {
-          // TODO: Navigate to create meeting screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Create meeting - Coming soon')),
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreateMeetingScreen(
+                apiClient: widget.apiClient,
+              ),
+            ),
           );
+
+          // Reload meetings if a meeting was created
+          if (result == true) {
+            _loadMeetings();
+          }
         },
+        backgroundColor: const Color(0xFF26C6DA),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         icon: const Icon(Icons.add),
-        label: const Text('New Meeting'),
+        label: Text(l10n.newMeeting),
       ),
     );
   }
@@ -330,6 +366,19 @@ class _MeetingsScreenState extends State<MeetingsScreen>
         }
       },
       showCheckmark: false,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      backgroundColor: Colors.white,
+      selectedColor: const Color(0xFF26C6DA).withOpacity(0.15),
+      side: BorderSide(
+        color: isSelected ? const Color(0xFF26C6DA) : Colors.grey.shade300,
+        width: 1.5,
+      ),
+      labelStyle: TextStyle(
+        color: isSelected ? const Color(0xFF00ACC1) : Colors.grey.shade700,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      ),
     );
   }
 }

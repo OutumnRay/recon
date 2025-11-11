@@ -4,19 +4,24 @@ import "time"
 
 // User represents a user in the system
 type User struct {
-	ID           string         `json:"id" db:"id"`
-	Username     string         `json:"username" db:"username"`
-	Email        string         `json:"email" db:"email"`
-	Password     string         `json:"-" db:"password"` // Never expose password in JSON
-	Role         UserRole       `json:"role" db:"role"`
-	DepartmentID *string        `json:"department_id,omitempty" db:"department_id"` // Department user belongs to
-	Groups       []string       `json:"groups,omitempty" db:"groups"`                // Group IDs user belongs to
+	ID           string          `json:"id" db:"id"`
+	Username     string          `json:"username" db:"username"`
+	Email        string          `json:"email" db:"email"`
+	Password     string          `json:"-" db:"password"` // Never expose password in JSON
+	Role         UserRole        `json:"role" db:"role"`
+	FirstName    string          `json:"first_name,omitempty" db:"first_name"` // User's first name
+	LastName     string          `json:"last_name,omitempty" db:"last_name"`   // User's last name
+	Phone        string          `json:"phone,omitempty" db:"phone"`           // User's phone number
+	Bio          string          `json:"bio,omitempty" db:"bio"`               // User's biography
+	Avatar       string          `json:"avatar,omitempty" db:"avatar"`         // Avatar URL or base64
+	DepartmentID *string         `json:"department_id,omitempty" db:"department_id"` // Department user belongs to
+	Groups       []string        `json:"groups,omitempty" db:"groups"`                // Group IDs user belongs to
 	Permissions  UserPermissions `json:"permissions" db:"permissions"`                // User-specific permissions
-	Language     string         `json:"language" db:"language"`                      // User's preferred language (ru, en, etc.)
-	IsActive     bool           `json:"is_active" db:"is_active"`
-	LastLogin    *time.Time     `json:"last_login,omitempty" db:"last_login"`
-	CreatedAt    time.Time      `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at" db:"updated_at"`
+	Language     string          `json:"language" db:"language"`                      // User's preferred language (ru, en, etc.)
+	IsActive     bool            `json:"is_active" db:"is_active"`
+	LastLogin    *time.Time      `json:"last_login,omitempty" db:"last_login"`
+	CreatedAt    time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at" db:"updated_at"`
 }
 
 // UserPermissions represents user-specific permissions
@@ -55,6 +60,11 @@ type UserInfo struct {
 	Username     string          `json:"username" example:"admin"`
 	Email        string          `json:"email" example:"admin@recontext.online"`
 	Role         UserRole        `json:"role" example:"admin"`
+	FirstName    string          `json:"first_name,omitempty" example:"John"`
+	LastName     string          `json:"last_name,omitempty" example:"Doe"`
+	Phone        string          `json:"phone,omitempty" example:"+1234567890"`
+	Bio          string          `json:"bio,omitempty" example:"Software developer"`
+	Avatar       string          `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
 	DepartmentID *string         `json:"department_id,omitempty" example:"dept-001"`
 	Permissions  UserPermissions `json:"permissions"`
 	Language     string          `json:"language" example:"en"`

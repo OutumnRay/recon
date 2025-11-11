@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_client.dart';
 import '../widgets/error_display.dart';
 
@@ -101,24 +102,25 @@ class _SearchScreenState extends State<SearchScreen>
   Color _getResultColor(String type) {
     switch (type) {
       case 'meeting':
-        return Colors.blue;
+        return const Color(0xFF26C6DA); // Cyan
       case 'transcript':
-        return Colors.green;
+        return const Color(0xFF66BB6A); // Green
       case 'document':
-        return Colors.orange;
+        return const Color(0xFFFF9800); // Orange
       default:
         return Colors.grey;
     }
   }
 
   String _getResultTypeLabel(String type) {
+    final l10n = AppLocalizations.of(context)!;
     switch (type) {
       case 'meeting':
-        return 'Meeting';
+        return l10n.meeting;
       case 'transcript':
-        return 'Transcript';
+        return l10n.transcript;
       case 'document':
-        return 'Document';
+        return l10n.document;
       default:
         return type;
     }
@@ -127,10 +129,16 @@ class _SearchScreenState extends State<SearchScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Search'),
+        title: Text(l10n.searchTitle),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF26C6DA),
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.1),
       ),
       body: Column(
         children: [
@@ -153,8 +161,8 @@ class _SearchScreenState extends State<SearchScreen>
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search meetings, transcripts, documents...',
-                      prefixIcon: const Icon(Icons.search),
+                      hintText: l10n.searchHint,
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF26C6DA)),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),
@@ -168,12 +176,18 @@ class _SearchScreenState extends State<SearchScreen>
                             )
                           : null,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
                       ),
                       filled: true,
-                      fillColor: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
+                      fillColor: Colors.grey.shade50,
                     ),
                     onSubmitted: (_) => _performSearch(),
                     onChanged: (value) => setState(() {}),
@@ -182,13 +196,20 @@ class _SearchScreenState extends State<SearchScreen>
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _isSearching ? null : _performSearch,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF26C6DA),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   child: _isSearching
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('Search'),
+                      : Text(l10n.searchButton),
                 ),
               ],
             ),
@@ -200,7 +221,7 @@ class _SearchScreenState extends State<SearchScreen>
                 ? FullScreenError(
                     error: _error!,
                     onRetry: _performSearch,
-                    title: 'Search failed',
+                    title: l10n.searchFailed,
                   )
                 : _results == null
                     ? Center(
@@ -211,7 +232,7 @@ class _SearchScreenState extends State<SearchScreen>
                                 size: 80, color: Colors.grey.shade400),
                             const SizedBox(height: 16),
                             Text(
-                              'Semantic Search',
+                              l10n.semanticSearch,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 8),
@@ -219,7 +240,7 @@ class _SearchScreenState extends State<SearchScreen>
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 32),
                               child: Text(
-                                'Search across meetings, transcripts, and documents using natural language',
+                                l10n.searchDescription,
                                 style: Theme.of(context).textTheme.bodyMedium,
                                 textAlign: TextAlign.center,
                               ),
@@ -232,7 +253,7 @@ class _SearchScreenState extends State<SearchScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Try searching for:',
+                                    l10n.trySearching,
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelLarge
@@ -241,11 +262,11 @@ class _SearchScreenState extends State<SearchScreen>
                                         ),
                                   ),
                                   const SizedBox(height: 8),
-                                  _buildExampleChip('budget discussion'),
+                                  _buildExampleChip(l10n.budgetDiscussion),
                                   const SizedBox(height: 4),
-                                  _buildExampleChip('project deadlines'),
+                                  _buildExampleChip(l10n.projectDeadlines),
                                   const SizedBox(height: 4),
-                                  _buildExampleChip('who talked about...'),
+                                  _buildExampleChip(l10n.whoTalkedAbout),
                                 ],
                               ),
                             ),
@@ -261,13 +282,13 @@ class _SearchScreenState extends State<SearchScreen>
                                     size: 64, color: Colors.grey.shade400),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'No results found',
+                                  l10n.noResultsFound,
                                   style:
                                       Theme.of(context).textTheme.titleLarge,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Try different keywords',
+                                  l10n.tryDifferentKeywords,
                                   style:
                                       Theme.of(context).textTheme.bodyMedium,
                                 ),
@@ -281,16 +302,26 @@ class _SearchScreenState extends State<SearchScreen>
                               final result = _results![index];
                               return Card(
                                 margin: const EdgeInsets.symmetric(
-                                  vertical: 4,
-                                  horizontal: 8,
+                                  vertical: 8,
+                                  horizontal: 12,
                                 ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                elevation: 2,
                                 child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
                                   leading: CircleAvatar(
+                                    radius: 28,
                                     backgroundColor: _getResultColor(result.type)
-                                        .withValues(alpha: 0.1),
+                                        .withValues(alpha: 0.15),
                                     child: Icon(
                                       _getResultIcon(result.type),
                                       color: _getResultColor(result.type),
+                                      size: 26,
                                     ),
                                   ),
                                   title: Text(
@@ -318,18 +349,23 @@ class _SearchScreenState extends State<SearchScreen>
                                           Chip(
                                             label: Text(
                                               _getResultTypeLabel(result.type),
-                                              style:
-                                                  const TextStyle(fontSize: 10),
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w500,
+                                              ),
                                             ),
                                             backgroundColor:
                                                 _getResultColor(result.type)
-                                                    .withValues(alpha: 0.1),
+                                                    .withValues(alpha: 0.15),
                                             side: BorderSide(
-                                              color:
-                                                  _getResultColor(result.type),
+                                              color: _getResultColor(result.type)
+                                                  .withOpacity(0.3),
                                               width: 1,
                                             ),
-                                            padding: EdgeInsets.zero,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
                                             visualDensity:
                                                 VisualDensity.compact,
                                           ),
@@ -360,7 +396,7 @@ class _SearchScreenState extends State<SearchScreen>
                                         ),
                                       ),
                                       Text(
-                                        'match',
+                                        l10n.match,
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: Colors.grey[500],
@@ -395,25 +431,30 @@ class _SearchScreenState extends State<SearchScreen>
         _performSearch();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
+          color: const Color(0xFF26C6DA).withOpacity(0.15),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF26C6DA).withOpacity(0.3),
+            width: 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.lightbulb_outline,
-              size: 14,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              size: 16,
+              color: Color(0xFF00ACC1),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
               text,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF00ACC1),
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -423,15 +464,16 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   String _formatDate(DateTime date) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inDays == 0) {
-      return 'Today';
+      return l10n.today;
     } else if (difference.inDays == 1) {
-      return 'Yesterday';
+      return 'Yesterday'; // TODO: Add to localization
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
+      return '${difference.inDays} days ago'; // TODO: Add to localization
     } else {
       return '${date.day}.${date.month}.${date.year}';
     }

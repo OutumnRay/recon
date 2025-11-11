@@ -24,6 +24,7 @@ import {
   LuMinimize2,
   LuMenu,
   LuLogOut,
+  LuRefreshCw,
 } from 'react-icons/lu';
 import './MeetingRoom.css';
 
@@ -622,6 +623,100 @@ export default function MeetingRoom() {
     navigate('/dashboard/meetings');
   };
 
+  // Aggressive track subscription - force subscribe to all tracks
+  const forceSubscribeToAllTracks = useCallback(async () => {
+    if (!isConnected) return;
+
+    console.log('[Force Subscribe] Starting aggressive track subscription...');
+
+    room.remoteParticipants.forEach(async (participant) => {
+      const displayName = getParticipantDisplayName(participant);
+
+      participant.trackPublications.forEach(async (publication) => {
+        // Skip if already subscribed or not a valid track
+        if (publication.isSubscribed || publication.kind === Track.Kind.Unknown) {
+          return;
+        }
+
+        console.log(`[Force Subscribe] Subscribing ${displayName} to ${publication.kind} track`);
+
+        try {
+          await publication.setSubscribed(true);
+          console.log(`[Force Subscribe] ✓ Successfully subscribed to ${publication.kind} track`);
+
+          // Wait a bit for track to be ready
+          setTimeout(() => {
+            if (publication.track) {
+              const track = publication.track as RemoteTrack;
+              const element = track.attach();
+              element.id = `${participant.sid}-${track.kind}`;
+
+              if (track.kind === Track.Kind.Video) {
+                console.log(`[Force Subscribe] Attaching video for ${displayName}`);
+                participantVideoTracks.current.set(participant.sid, track);
+                element.classList.add('meeting-video-element');
+                attachTrackToTile(participant, element);
+
+                if (stageParticipantId === participant.sid) {
+                  renderStageVideo(participant.sid);
+                }
+              } else if (track.kind === Track.Kind.Audio) {
+                console.log(`[Force Subscribe] Attaching audio for ${displayName}`);
+                if (element instanceof HTMLAudioElement) {
+                  element.volume = volumeRef.current / 100;
+                }
+                element.style.display = 'none';
+                attachTrackToTile(participant, element);
+              }
+            }
+          }, 500);
+        } catch (err) {
+          console.error(`[Force Subscribe] ✗ Failed to subscribe to ${publication.kind} track:`, err);
+        }
+      });
+    });
+  }, [isConnected, room, stageParticipantId, renderStageVideo]);
+
+  // Periodically check and force subscribe to tracks
+  useEffect(() => {
+    if (!isConnected) return;
+
+    // Initial force subscription after 1 second
+    const initialTimer = setTimeout(() => {
+      console.log('[Force Subscribe] Running initial check...');
+      forceSubscribeToAllTracks();
+    }, 1000);
+
+    // Second check after 2 seconds
+    const secondTimer = setTimeout(() => {
+      console.log('[Force Subscribe] Running second check...');
+      forceSubscribeToAllTracks();
+    }, 2000);
+
+    // Periodic check every 5 seconds
+    const intervalTimer = setInterval(() => {
+      console.log('[Force Subscribe] Running periodic check...');
+      forceSubscribeToAllTracks();
+    }, 5000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearTimeout(secondTimer);
+      clearInterval(intervalTimer);
+    };
+  }, [isConnected, forceSubscribeToAllTracks]);
+
+  // Force subscribe when participants change
+  useEffect(() => {
+    if (isConnected && participants.size > 0) {
+      console.log('[Force Subscribe] Participants changed, running check...');
+      const timer = setTimeout(() => {
+        forceSubscribeToAllTracks();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [participants.size, isConnected, forceSubscribeToAllTracks]);
+
   // Touch handlers for swipe gesture on participant sidebar
   const minSwipeDistance = 50;
 
@@ -883,6 +978,17 @@ export default function MeetingRoom() {
               >
                 {isMicEnabled ? <LuMic /> : <LuMicOff />}
               </button>
+              {isMobile && (
+                <button
+                  onClick={forceSubscribeToAllTracks}
+                  className="icon-circle-button refresh-button"
+                  aria-label="Refresh participants"
+                  title="Refresh participants video"
+                  disabled={!isConnected}
+                >
+                  <LuRefreshCw />
+                </button>
+              )}
               <div className="volume-control">
                 <label htmlFor="volume-slider" style={{ fontSize: '14px', marginRight: '8px' }}>
                   🔊 {volume}%

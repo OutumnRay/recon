@@ -26,11 +26,39 @@
     "saveSuccess": "Настройки успешно сохранены",
     "saveError": "Не удалось сохранить настройки"
   },
+  "profile": {
+    "title": "Профиль",
+    "subtitle": "Управление информацией профиля и аватаром",
+    "accountInfo": "Информация об аккаунте",
+    "personalInfo": "Личная информация",
+    "username": "Имя пользователя",
+    "email": "Email",
+    "firstName": "Имя",
+    "firstNamePlaceholder": "Введите ваше имя",
+    "lastName": "Фамилия",
+    "lastNamePlaceholder": "Введите вашу фамилию",
+    "phone": "Телефон",
+    "phonePlaceholder": "Введите ваш номер телефона",
+    "bio": "О себе",
+    "bioPlaceholder": "Расскажите о себе...",
+    "changeAvatar": "Сменить аватар",
+    "removeAvatar": "Удалить аватар",
+    "saveSuccess": "Профиль успешно обновлен",
+    "saveError": "Не удалось обновить профиль",
+    "errors": {
+      "invalidImageType": "Пожалуйста, выберите изображение (JPG, PNG, GIF)",
+      "imageSizeLimit": "Размер изображения должен быть менее 5МБ",
+      "avatarUploadFailed": "Не удалось загрузить аватар. Используется локальное изображение.",
+      "serverError": "Произошла ошибка сервера. Пожалуйста, попробуйте позже.",
+      "invalidResponse": "Сервер вернул некорректный ответ"
+    }
+  },
   "nav": {
     "meetings": "Встречи",
     "search": "Поиск",
     "documents": "Документы",
-    "management": "Управление"
+    "management": "Управление",
+    "profile": "Профиль"
   },
   "login": {
     "title": "Портал пользователя",

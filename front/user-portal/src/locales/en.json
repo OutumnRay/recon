@@ -26,11 +26,39 @@
     "saveSuccess": "Settings saved successfully",
     "saveError": "Failed to save settings"
   },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your profile information and avatar",
+    "accountInfo": "Account Information",
+    "personalInfo": "Personal Information",
+    "username": "Username",
+    "email": "Email",
+    "firstName": "First Name",
+    "firstNamePlaceholder": "Enter your first name",
+    "lastName": "Last Name",
+    "lastNamePlaceholder": "Enter your last name",
+    "phone": "Phone",
+    "phonePlaceholder": "Enter your phone number",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us about yourself...",
+    "changeAvatar": "Change Avatar",
+    "removeAvatar": "Remove Avatar",
+    "saveSuccess": "Profile updated successfully",
+    "saveError": "Failed to update profile",
+    "errors": {
+      "invalidImageType": "Please select an image file (JPG, PNG, GIF)",
+      "imageSizeLimit": "Image size must be less than 5MB",
+      "avatarUploadFailed": "Failed to upload avatar. Using local image instead.",
+      "serverError": "Server error occurred. Please try again later.",
+      "invalidResponse": "Server returned invalid response"
+    }
+  },
   "nav": {
     "meetings": "Meetings",
     "search": "Search",
     "documents": "Documents",
-    "management": "Management"
+    "management": "Management",
+    "profile": "Profile"
   },
   "login": {
     "title": "User Portal",

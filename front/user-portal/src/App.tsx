@@ -8,6 +8,7 @@ import MeetingRoom from './pages/MeetingRoom';
 import Search from './pages/Search';
 import Documents from './pages/Documents';
 import Management from './pages/Management';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="search" element={<Search />} />
           <Route path="documents" element={<Documents />} />
           <Route path="management" element={<Management />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="/meeting/:meetingId" element={<MeetingRoom />} />
       </Routes>
