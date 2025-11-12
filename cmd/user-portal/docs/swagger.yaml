@@ -1,51 +1,5 @@
 basePath: /
 definitions:
-  main.DashboardStats:
-    properties:
-      groups:
-        properties:
-          total:
-            type: integer
-        type: object
-      recordings:
-        properties:
-          processing:
-            type: integer
-          total:
-            type: integer
-        type: object
-      storage:
-        properties:
-          total:
-            type: integer
-          used:
-            type: integer
-        type: object
-      users:
-        properties:
-          active:
-            type: integer
-          total:
-            type: integer
-        type: object
-      workers:
-        properties:
-          summarization:
-            properties:
-              active:
-                type: integer
-              total:
-                type: integer
-            type: object
-          transcription:
-            properties:
-              active:
-                type: integer
-              total:
-                type: integer
-            type: object
-        type: object
-    type: object
   main.GetMeetingTokenResponse:
     properties:
       duration:
@@ -65,112 +19,68 @@ definitions:
       url:
         type: string
     type: object
-  models.AddUserToGroupRequest:
-    properties:
-      group_id:
-        example: group-001
-        type: string
-      user_id:
-        example: user-001
-        type: string
-    required:
-    - group_id
-    - user_id
-    type: object
-  models.ChangePasswordRequest:
-    properties:
-      new_password:
-        example: newpass123
-        minLength: 8
-        type: string
-      old_password:
-        example: oldpass123
-        type: string
-    required:
-    - new_password
-    - old_password
-    type: object
-  models.CreateDepartmentRequest:
-    properties:
-      description:
-        example: Information Technology Department
-        type: string
-      name:
-        example: IT Department
-        type: string
-      parent_id:
-        example: dept-001
-        type: string
-    required:
-    - name
-    type: object
-  models.CreateGroupRequest:
-    properties:
-      description:
-        example: Users who can edit recordings
-        type: string
-      name:
-        example: Editors
-        type: string
-      permissions:
-        additionalProperties: true
-        type: object
-    required:
-    - name
-    - permissions
-    type: object
   models.CreateMeetingRequest:
     properties:
       additional_notes:
+        description: AdditionalNotes - дополнительные заметки
         example: Подготовить отчеты
         type: string
       department_ids:
+        description: DepartmentIDs - идентификаторы отделов
         example:
-        - dept-001
-        - dept-002
+        - '["550e8400-e29b-41d4-a716-446655440000"]'
         items:
           type: string
         type: array
       duration:
+        description: Duration - длительность в минутах
         example: 60
         type: integer
       force_end_at_duration:
-        description: Force end meeting after duration
+        description: ForceEndAtDuration - принудительно завершить встречу после истечения
+          времени
         example: true
         type: boolean
       needs_audio_record:
+        description: NeedsAudioRecord - требуется ли аудиозапись
         example: true
         type: boolean
       needs_video_record:
+        description: NeedsVideoRecord - требуется ли видеозапись
         example: true
         type: boolean
       participant_ids:
+        description: ParticipantIDs - идентификаторы участников
         example:
-        - user-002
-        - user-003
+        - '["550e8400-e29b-41d4-a716-446655440000"]'
         items:
           type: string
         type: array
       recurrence:
         allOf:
         - $ref: '#/definitions/models.MeetingRecurrence'
+        description: Recurrence - частота повторения
         example: weekly
       scheduled_at:
+        description: ScheduledAt - запланированное время начала
         example: "2025-01-15T10:00:00Z"
         type: string
       speaker_id:
-        description: For presentations
-        example: user-001
+        description: SpeakerID - идентификатор докладчика (для презентаций)
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       subject_id:
-        example: subj-001
+        description: SubjectID - идентификатор темы
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       title:
+        description: Title - название встречи
         example: Еженедельное совещание
         type: string
       type:
         allOf:
         - $ref: '#/definitions/models.MeetingType'
+        description: Type - тип встречи
         example: conference
     required:
     - duration
@@ -179,222 +89,128 @@ definitions:
     - title
     - type
     type: object
-  models.CreateMeetingSubjectRequest:
-    properties:
-      department_ids:
-        example:
-        - dept-001
-        - dept-002
-        items:
-          type: string
-        type: array
-      description:
-        example: Обсуждение технических вопросов разработки
-        type: string
-      name:
-        example: Техническое обсуждение
-        type: string
-    required:
-    - name
-    type: object
   models.Department:
     properties:
       created_at:
+        description: CreatedAt - время создания отдела
         type: string
       description:
+        description: Description - описание отдела
         type: string
       id:
+        description: ID - уникальный идентификатор отдела
         type: string
       is_active:
+        description: IsActive - активен ли отдел
         type: boolean
       level:
-        description: Depth in hierarchy (0 for root)
+        description: Level - глубина в иерархии (0 для корневого)
         type: integer
       name:
+        description: Name - название отдела
         type: string
       parent_id:
-        description: NULL for root departments
+        description: ParentID - идентификатор родительского отдела (NULL для корневых
+          отделов)
         type: string
       path:
-        description: Full path like "root/child/grandchild"
+        description: Path - полный путь вида "root/child/grandchild"
         type: string
       updated_at:
-        type: string
-    type: object
-  models.DepartmentTreeNode:
-    properties:
-      children:
-        items:
-          $ref: '#/definitions/models.DepartmentTreeNode'
-        type: array
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      is_active:
-        type: boolean
-      level:
-        description: Depth in hierarchy (0 for root)
-        type: integer
-      name:
-        type: string
-      parent_id:
-        description: NULL for root departments
-        type: string
-      path:
-        description: Full path like "root/child/grandchild"
-        type: string
-      updated_at:
-        type: string
-    type: object
-  models.DepartmentWithStats:
-    properties:
-      child_count:
-        type: integer
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      is_active:
-        type: boolean
-      level:
-        description: Depth in hierarchy (0 for root)
-        type: integer
-      name:
-        type: string
-      parent_id:
-        description: NULL for root departments
-        type: string
-      path:
-        description: Full path like "root/child/grandchild"
-        type: string
-      total_users_count:
-        description: Including all sub-departments
-        type: integer
-      updated_at:
-        type: string
-      user_count:
-        type: integer
-    type: object
-  models.EnabledCodec:
-    properties:
-      mime:
+        description: UpdatedAt - время последнего обновления отдела
         type: string
     type: object
   models.ErrorResponse:
     properties:
       code:
+        description: Code - HTTP код ошибки
         type: integer
       error:
+        description: Error - код ошибки
         type: string
       message:
+        description: Message - сообщение об ошибке
         type: string
       timestamp:
+        description: Timestamp - время возникновения ошибки
         type: string
     type: object
   models.FileUploadResponse:
     properties:
       file_size:
+        description: FileSize - размер файла в байтах
         type: integer
       filename:
+        description: Filename - имя файла
         type: string
       id:
+        description: ID - уникальный идентификатор загруженного файла
         type: string
       original_name:
+        description: OriginalName - оригинальное имя файла
         type: string
       status:
-        $ref: '#/definitions/models.TranscriptionStatus'
+        allOf:
+        - $ref: '#/definitions/models.TranscriptionStatus'
+        description: Status - статус обработки
       uploaded_at:
+        description: UploadedAt - время загрузки
         type: string
     type: object
   models.HealthResponse:
     properties:
       status:
+        description: Status - статус здоровья
         type: string
       timestamp:
+        description: Timestamp - время проверки
         type: string
       version:
+        description: Version - версия сервиса
         type: string
     type: object
   models.ListFilesResponse:
     properties:
       files:
+        description: Files - список файлов
         items:
           $ref: '#/definitions/models.UploadedFile'
         type: array
       page:
+        description: Page - номер текущей страницы
         type: integer
       pageSize:
+        description: PageSize - размер страницы
         type: integer
       total:
-        type: integer
-    type: object
-  models.ListGroupsResponse:
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/models.UserGroup'
-        type: array
-      offset:
-        type: integer
-      page_size:
-        type: integer
-      total:
+        description: Total - общее количество файлов
         type: integer
     type: object
   models.ListRecordingsResponse:
     properties:
       page:
+        description: Page - номер текущей страницы
         type: integer
       page_size:
+        description: PageSize - размер страницы
         type: integer
       recordings:
+        description: Recordings - список записей
         items:
           $ref: '#/definitions/models.Recording'
         type: array
       total:
+        description: Total - общее количество записей
         type: integer
-    type: object
-  models.ListUsersResponse:
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/models.UserInfo'
-        type: array
-      offset:
-        type: integer
-      page_size:
-        type: integer
-      total:
-        type: integer
-    type: object
-  models.LogEntry:
-    properties:
-      context:
-        additionalProperties: true
-        type: object
-      id:
-        type: string
-      level:
-        description: debug, info, warn, error
-        type: string
-      message:
-        type: string
-      service_id:
-        type: string
-      timestamp:
-        type: string
     type: object
   models.LoginRequest:
     properties:
       password:
+        description: Password - пароль пользователя
         example: password123
         type: string
       username:
+        description: Username - имя пользователя или email для входа
         example: admin@recontext.online
         type: string
     required:
@@ -404,34 +220,47 @@ definitions:
   models.LoginResponse:
     properties:
       expires_at:
+        description: ExpiresAt - время истечения срока действия токена
         type: string
       token:
+        description: Token - JWT токен аутентификации
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
       user:
-        $ref: '#/definitions/models.UserInfo'
+        allOf:
+        - $ref: '#/definitions/models.UserInfo'
+        description: User - информация об аутентифицированном пользователе
     type: object
   models.MeetingParticipantInfo:
     properties:
       created_at:
+        description: CreatedAt - время создания записи
         type: string
       id:
+        description: ID - уникальный идентификатор участника
         type: string
       joined_at:
+        description: JoinedAt - время присоединения к встрече
         type: string
       left_at:
+        description: LeftAt - время выхода из встречи
         type: string
       meeting_id:
+        description: MeetingID - идентификатор встречи
         type: string
       role:
-        description: '"speaker", "participant"'
+        description: Role - роль участника ("speaker", "participant")
         type: string
       status:
-        description: '"invited", "accepted", "declined", "attended"'
+        description: Status - статус участника ("invited", "accepted", "declined",
+          "attended")
         type: string
       user:
-        $ref: '#/definitions/models.UserInfo'
+        allOf:
+        - $ref: '#/definitions/models.UserInfo'
+        description: User - информация о пользователе
       user_id:
+        description: UserID - идентификатор пользователя
         type: string
     type: object
   models.MeetingRecurrence:
@@ -481,34 +310,44 @@ definitions:
   models.MeetingSubject:
     properties:
       created_at:
+        description: CreatedAt - время создания
         type: string
       department_ids:
-        description: Departments this subject is linked to
+        description: DepartmentIDs - отделы, с которыми связана эта тема
         items:
           type: string
         type: array
       description:
+        description: Description - описание темы
         type: string
       id:
+        description: ID - уникальный идентификатор темы
         type: string
       is_active:
+        description: IsActive - активна ли тема
         type: boolean
       name:
+        description: Name - название темы
         type: string
       updated_at:
+        description: UpdatedAt - время последнего обновления
         type: string
     type: object
   models.MeetingSubjectsResponse:
     properties:
       items:
+        description: Items - список тем
         items:
           $ref: '#/definitions/models.MeetingSubject'
         type: array
       offset:
+        description: Offset - смещение от начала
         type: integer
       page_size:
+        description: PageSize - размер страницы
         type: integer
       total:
+        description: Total - общее количество тем
         type: integer
     type: object
   models.MeetingType:
@@ -528,146 +367,103 @@ definitions:
   models.MeetingWithDetails:
     properties:
       additional_notes:
+        description: AdditionalNotes - дополнительные заметки
         type: string
       created_at:
+        description: CreatedAt - время создания
         type: string
       created_by:
-        description: User ID who created the meeting
+        description: CreatedBy - идентификатор пользователя, создавшего встречу
         type: string
       created_by_user:
-        $ref: '#/definitions/models.UserInfo'
+        allOf:
+        - $ref: '#/definitions/models.UserInfo'
+        description: CreatedByUser - пользователь, создавший встречу
       departments:
+        description: Departments - список отделов
         items:
           $ref: '#/definitions/models.Department'
         type: array
       duration:
-        description: Duration in minutes
+        description: Duration - длительность в минутах
         type: integer
       force_end_at_duration:
-        description: Force end meeting after duration
+        description: ForceEndAtDuration - принудительно завершить встречу после истечения
+          времени
         type: boolean
       id:
+        description: ID - уникальный идентификатор встречи
         type: string
       livekit_room_id:
-        description: Link to LiveKit room if started
+        description: LiveKitRoomID - ссылка на комнату LiveKit если встреча начата
         type: string
       needs_audio_record:
+        description: NeedsAudioRecord - требуется ли аудиозапись
         type: boolean
       needs_video_record:
+        description: NeedsVideoRecord - требуется ли видеозапись
         type: boolean
       participants:
+        description: Participants - список участников
         items:
           $ref: '#/definitions/models.MeetingParticipantInfo'
         type: array
       recurrence:
-        $ref: '#/definitions/models.MeetingRecurrence'
+        allOf:
+        - $ref: '#/definitions/models.MeetingRecurrence'
+        description: Recurrence - частота повторения
       scheduled_at:
+        description: ScheduledAt - запланированное время начала
         type: string
       status:
-        $ref: '#/definitions/models.MeetingStatus'
+        allOf:
+        - $ref: '#/definitions/models.MeetingStatus'
+        description: Status - текущий статус встречи
       subject:
-        $ref: '#/definitions/models.MeetingSubject'
+        allOf:
+        - $ref: '#/definitions/models.MeetingSubject'
+        description: Subject - тема встречи
       subject_id:
+        description: SubjectID - идентификатор темы встречи
         type: string
       title:
+        description: Title - название встречи
         type: string
       type:
-        $ref: '#/definitions/models.MeetingType'
+        allOf:
+        - $ref: '#/definitions/models.MeetingType'
+        description: Type - тип встречи
       updated_at:
+        description: UpdatedAt - время последнего обновления
         type: string
     type: object
   models.MeetingsResponse:
     properties:
       items:
+        description: Items - список встреч
         items:
           $ref: '#/definitions/models.MeetingWithDetails'
         type: array
       offset:
+        description: Offset - смещение от начала
         type: integer
       page_size:
+        description: PageSize - размер страницы
         type: integer
       total:
+        description: Total - общее количество встреч
         type: integer
-    type: object
-  models.Metric:
-    properties:
-      id:
-        type: string
-      labels:
-        additionalProperties:
-          type: string
-        type: object
-      metadata:
-        additionalProperties: true
-        type: object
-      name:
-        type: string
-      service_id:
-        type: string
-      timestamp:
-        type: string
-      type:
-        $ref: '#/definitions/models.MetricType'
-      unit:
-        type: string
-      value:
-        type: number
-    type: object
-  models.MetricType:
-    enum:
-    - counter
-    - gauge
-    - histogram
-    - summary
-    type: string
-    x-enum-varnames:
-    - MetricTypeCounter
-    - MetricTypeGauge
-    - MetricTypeHistogram
-    - MetricTypeSummary
-  models.MetricsQueryResponse:
-    properties:
-      metrics:
-        items:
-          $ref: '#/definitions/models.Metric'
-        type: array
-      total:
-        type: integer
-    type: object
-  models.PermissionCheckRequest:
-    properties:
-      action:
-        example: write
-        type: string
-      resource:
-        example: recordings
-        type: string
-      user_id:
-        example: user-001
-        type: string
-    required:
-    - action
-    - resource
-    - user_id
-    type: object
-  models.PermissionCheckResponse:
-    properties:
-      allowed:
-        example: true
-        type: boolean
-      reason:
-        example: User has write access to recordings
-        type: string
     type: object
   models.RAGSearchRequest:
     properties:
       query:
+        description: Query - текст запроса
         type: string
       threshold:
-        description: 'Similarity threshold (default: 0.7)'
+        description: 'Threshold - порог схожести (по умолчанию: 0.7)'
         type: number
       top_k:
-        description: 'Number of results to return (default: 5)'
+        description: 'TopK - количество возвращаемых результатов (по умолчанию: 5)'
         type: integer
     required:
     - query
@@ -675,10 +471,13 @@ definitions:
   models.RAGSearchResponse:
     properties:
       count:
+        description: Count - количество найденных результатов
         type: integer
       query:
+        description: Query - исходный запрос
         type: string
       results:
+        description: Results - список результатов
         items:
           $ref: '#/definitions/models.RAGSearchResult'
         type: array
@@ -686,55 +485,77 @@ definitions:
   models.RAGSearchResult:
     properties:
       chunk_id:
+        description: ChunkID - идентификатор фрагмента
         type: string
       chunk_index:
+        description: ChunkIndex - индекс фрагмента
         type: integer
       chunk_text:
+        description: ChunkText - текст фрагмента
         type: string
       file_id:
+        description: FileID - идентификатор файла
         type: string
       file_name:
+        description: FileName - имя файла
         type: string
       similarity:
+        description: Similarity - уровень схожести с запросом
         type: number
       uploaded_at:
+        description: UploadedAt - время загрузки файла
         type: string
     type: object
   models.RAGStatusResponse:
     properties:
       indexed_files:
+        description: IndexedFiles - количество проиндексированных файлов
         type: integer
       is_ready:
+        description: IsReady - готова ли система к работе
         type: boolean
       total_chunks:
+        description: TotalChunks - общее количество фрагментов
         type: integer
     type: object
   models.Recording:
     properties:
       duration:
-        description: in seconds
+        description: Duration - длительность в секундах
         type: number
       file_name:
+        description: FileName - имя файла
         type: string
       file_size:
+        description: FileSize - размер файла в байтах
         type: integer
       id:
+        description: ID - уникальный идентификатор записи
         type: string
       mime_type:
+        description: MimeType - MIME тип файла
         type: string
       processed_at:
+        description: ProcessedAt - время завершения обработки
         type: string
       status:
-        $ref: '#/definitions/models.RecordingStatus'
+        allOf:
+        - $ref: '#/definitions/models.RecordingStatus'
+        description: Status - статус обработки записи
       storage_path:
+        description: StoragePath - путь к файлу в хранилище
         type: string
       title:
+        description: Title - название записи
         type: string
       transcript_id:
+        description: TranscriptID - идентификатор транскрипции (если есть)
         type: string
       uploaded_at:
+        description: UploadedAt - время загрузки
         type: string
       user_id:
+        description: UserID - идентификатор пользователя
         type: string
     type: object
   models.RecordingStatus:
@@ -745,36 +566,28 @@ definitions:
     - completed
     - failed
     type: string
+    x-enum-comments:
+      RecordingStatusCompleted: Завершено
+      RecordingStatusFailed: Ошибка
+      RecordingStatusQueued: В очереди
+      RecordingStatusTranscribing: Транскрибируется
+      RecordingStatusUploading: Загружается
+    x-enum-descriptions:
+    - Загружается
+    - В очереди
+    - Транскрибируется
+    - Завершено
+    - Ошибка
     x-enum-varnames:
     - RecordingStatusUploading
     - RecordingStatusQueued
     - RecordingStatusTranscribing
     - RecordingStatusCompleted
     - RecordingStatusFailed
-  models.RegisterRequest:
-    properties:
-      email:
-        example: user@example.com
-        type: string
-      language:
-        description: Optional language preference
-        example: en
-        type: string
-      password:
-        example: password123
-        minLength: 8
-        type: string
-      username:
-        example: newuser
-        type: string
-    required:
-    - email
-    - password
-    - username
-    type: object
   models.RequestPasswordResetRequest:
     properties:
       email:
+        description: Email - адрес электронной почты для отправки кода сброса
         example: user@example.com
         type: string
     required:
@@ -783,22 +596,27 @@ definitions:
   models.RequestPasswordResetResponse:
     properties:
       message:
+        description: Message - статусное сообщение
         example: Password reset code sent to your email
         type: string
       token_id:
+        description: TokenID - идентификатор сгенерированного токена сброса
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
   models.ResetPasswordRequest:
     properties:
       code:
+        description: Code - 6-значный код подтверждения
         example: "123456"
         type: string
       new_password:
+        description: NewPassword - новый пароль (минимум 8 символов)
         example: newpassword123
         minLength: 8
         type: string
       token_id:
+        description: TokenID - идентификатор токена сброса
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     required:
@@ -809,186 +627,46 @@ definitions:
   models.ResetPasswordResponse:
     properties:
       message:
+        description: Message - статусное сообщение
         example: Password reset successfully
-        type: string
-    type: object
-  models.Room:
-    properties:
-      creationTime:
-        type: string
-      creationTimeMs:
-        type: string
-      departureTimeout:
-        type: integer
-      emptyTimeout:
-        type: integer
-      enabledCodecs:
-        items:
-          $ref: '#/definitions/models.EnabledCodec'
-        type: array
-      finishedAt:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      sid:
-        type: string
-      startedAt:
-        type: string
-      status:
-        description: active, finished
-        type: string
-      turnPassword:
         type: string
     type: object
   models.SearchResponse:
     properties:
       page:
+        description: Page - номер текущей страницы
         type: integer
       page_size:
+        description: PageSize - размер страницы
         type: integer
       results:
+        description: Results - список результатов
         items:
           $ref: '#/definitions/models.SearchResult'
         type: array
       total:
+        description: Total - общее количество результатов
         type: integer
     type: object
   models.SearchResult:
     properties:
       recording_id:
+        description: RecordingID - идентификатор записи
         type: string
       relevance:
+        description: Relevance - релевантность результата
         type: number
       snippet:
+        description: Snippet - фрагмент текста с совпадением
         type: string
       timestamp:
+        description: Timestamp - временная метка в секундах
         type: number
       title:
+        description: Title - название записи
         type: string
       uploaded_at:
-        type: string
-    type: object
-  models.SendLogsRequest:
-    properties:
-      logs:
-        items:
-          $ref: '#/definitions/models.LogEntry'
-        type: array
-      service_id:
-        example: user-portal
-        type: string
-    required:
-    - logs
-    - service_id
-    type: object
-  models.SendMetricsRequest:
-    properties:
-      metrics:
-        items:
-          $ref: '#/definitions/models.Metric'
-        type: array
-      service_id:
-        example: transcription-worker-1
-        type: string
-    required:
-    - metrics
-    - service_id
-    type: object
-  models.ServiceInfo:
-    properties:
-      id:
-        type: string
-      last_heartbeat:
-        type: string
-      metadata:
-        additionalProperties: true
-        type: object
-      name:
-        type: string
-      started_at:
-        type: string
-      status:
-        $ref: '#/definitions/models.ServiceStatus'
-      type:
-        $ref: '#/definitions/models.ServiceType'
-      version:
-        type: string
-    type: object
-  models.ServiceMetricsSummary:
-    properties:
-      average_latency_ms:
-        type: number
-      custom_metrics:
-        additionalProperties:
-          format: float64
-          type: number
-        type: object
-      failed_requests:
-        type: integer
-      last_reported_at:
-        type: string
-      service_id:
-        type: string
-      total_requests:
-        type: integer
-    type: object
-  models.ServiceStatus:
-    enum:
-    - running
-    - stopped
-    - error
-    - unknown
-    type: string
-    x-enum-varnames:
-    - ServiceStatusRunning
-    - ServiceStatusStopped
-    - ServiceStatusError
-    - ServiceStatusUnknown
-  models.ServiceType:
-    enum:
-    - managing-portal
-    - user-portal
-    - transcription-worker
-    - summarization-worker
-    - jitsi-agent
-    type: string
-    x-enum-varnames:
-    - ServiceTypeManagingPortal
-    - ServiceTypeUserPortal
-    - ServiceTypeTranscriptionWorker
-    - ServiceTypeSummarizationWorker
-    - ServiceTypeJitsiAgent
-  models.SystemMetrics:
-    properties:
-      active_services:
-        type: integer
-      average_latency_ms:
-        type: number
-      services_summaries:
-        additionalProperties:
-          $ref: '#/definitions/models.ServiceMetricsSummary'
-        type: object
-      timestamp:
-        type: string
-      total_errors:
-        type: integer
-      total_requests:
-        type: integer
-    type: object
-  models.SystemStatus:
-    properties:
-      infrastructure:
-        additionalProperties: true
-        type: object
-      services:
-        additionalProperties:
-          $ref: '#/definitions/models.ServiceInfo'
-        type: object
-      status:
-        type: string
-      timestamp:
+        description: UploadedAt - время загрузки
         type: string
     type: object
   models.TranscriptionStatus:
@@ -998,292 +676,249 @@ definitions:
     - completed
     - failed
     type: string
+    x-enum-comments:
+      StatusCompleted: Завершено
+      StatusFailed: Ошибка
+      StatusPending: Ожидает обработки
+      StatusProcessing: В процессе обработки
+    x-enum-descriptions:
+    - Ожидает обработки
+    - В процессе обработки
+    - Завершено
+    - Ошибка
     x-enum-varnames:
     - StatusPending
     - StatusProcessing
     - StatusCompleted
     - StatusFailed
-  models.UpdateDepartmentRequest:
-    properties:
-      description:
-        example: Updated description
-        type: string
-      is_active:
-        example: true
-        type: boolean
-      name:
-        example: IT Department
-        type: string
-      parent_id:
-        example: dept-001
-        type: string
-    type: object
-  models.UpdateGroupRequest:
-    properties:
-      description:
-        type: string
-      name:
-        example: Senior Editors
-        type: string
-      permissions:
-        additionalProperties: true
-        type: object
-    type: object
   models.UpdateMeetingRequest:
     properties:
       additional_notes:
+        description: AdditionalNotes - дополнительные заметки
         example: Обновленные комментарии
         type: string
       department_ids:
+        description: DepartmentIDs - идентификаторы отделов
         example:
-        - dept-001
+        - '["550e8400-e29b-41d4-a716-446655440000"]'
         items:
           type: string
         type: array
       duration:
+        description: Duration - длительность в минутах
         example: 90
         type: integer
       force_end_at_duration:
+        description: ForceEndAtDuration - принудительно завершить встречу после истечения
+          времени
         example: true
         type: boolean
       needs_audio_record:
+        description: NeedsAudioRecord - требуется ли аудиозапись
         example: true
         type: boolean
       needs_video_record:
+        description: NeedsVideoRecord - требуется ли видеозапись
         example: true
         type: boolean
       participant_ids:
+        description: ParticipantIDs - идентификаторы участников
         example:
-        - user-002
-        - user-003
+        - '["550e8400-e29b-41d4-a716-446655440000"]'
         items:
           type: string
         type: array
       recurrence:
         allOf:
         - $ref: '#/definitions/models.MeetingRecurrence'
+        description: Recurrence - частота повторения
         example: weekly
       scheduled_at:
+        description: ScheduledAt - запланированное время начала
         example: "2025-01-15T10:00:00Z"
         type: string
       speaker_id:
-        example: user-001
+        description: SpeakerID - идентификатор докладчика
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       status:
         allOf:
         - $ref: '#/definitions/models.MeetingStatus'
+        description: Status - статус встречи
         example: in_progress
       subject_id:
-        example: subj-001
+        description: SubjectID - идентификатор темы
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       title:
+        description: Title - название встречи
         example: Обновленное название
         type: string
       type:
         allOf:
         - $ref: '#/definitions/models.MeetingType'
+        description: Type - тип встречи
         example: conference
-    type: object
-  models.UpdateMeetingSubjectRequest:
-    properties:
-      department_ids:
-        example:
-        - dept-001
-        - dept-002
-        items:
-          type: string
-        type: array
-      description:
-        example: Обновленное описание
-        type: string
-      is_active:
-        example: true
-        type: boolean
-      name:
-        example: Техническое обсуждение
-        type: string
     type: object
   models.UpdateProfileRequest:
     properties:
       avatar:
+        description: Avatar - URL аватара
         example: https://example.com/avatar.jpg
         type: string
       bio:
+        description: Bio - биография
         example: Software developer
         type: string
       first_name:
+        description: FirstName - имя
         example: John
         type: string
       language:
+        description: Language - предпочитаемый язык
         example: en
         type: string
       last_name:
+        description: LastName - фамилия
         example: Doe
         type: string
       phone:
+        description: Phone - номер телефона
         example: "+1234567890"
         type: string
-    type: object
-  models.UpdateUserRequest:
-    properties:
-      avatar:
-        example: https://example.com/avatar.jpg
-        type: string
-      bio:
-        example: Software developer
-        type: string
-      department_id:
-        example: dept-001
-        type: string
-      email:
-        example: newemail@example.com
-        type: string
-      first_name:
-        example: John
-        type: string
-      groups:
-        items:
-          type: string
-        type: array
-      is_active:
-        example: true
-        type: boolean
-      language:
-        example: en
-        type: string
-      last_name:
-        example: Doe
-        type: string
-      password:
-        example: newpassword123
-        type: string
-      permissions:
-        $ref: '#/definitions/models.UserPermissions'
-      phone:
-        example: "+1234567890"
-        type: string
-      role:
-        allOf:
-        - $ref: '#/definitions/models.UserRole'
-        example: operator
     type: object
   models.UploadAvatarResponse:
     properties:
       avatar_url:
+        description: AvatarURL - URL загруженного аватара
         example: https://example.com/avatars/user-123.jpg
         type: string
       message:
+        description: Message - статусное сообщение
         example: Avatar uploaded successfully
         type: string
     type: object
   models.UploadResponse:
     properties:
       message:
+        description: Message - статусное сообщение
         example: File uploaded successfully
         type: string
       recording_id:
-        example: rec-123456
+        description: RecordingID - идентификатор созданной записи
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       upload_url:
-        example: https://minio:9000/recontext/uploads/rec-123456.mp4
+        description: UploadURL - URL для загрузки файла
+        example: https://minio:9000/recontext/uploads/550e8400-e29b-41d4-a716-446655440000.mp4
         type: string
     type: object
   models.UploadedFile:
     properties:
       file_size:
+        description: FileSize - размер файла в байтах
         type: integer
       filename:
+        description: Filename - имя файла в хранилище
         type: string
       group_id:
+        description: GroupID - идентификатор группы
         type: string
       id:
+        description: ID - уникальный идентификатор файла
         type: string
       metadata:
         additionalProperties: true
+        description: Metadata - дополнительные метаданные файла
         type: object
       mime_type:
+        description: MimeType - MIME тип файла
         type: string
       original_name:
+        description: OriginalName - оригинальное имя файла
         type: string
       processed_at:
+        description: ProcessedAt - время завершения обработки файла
         type: string
       status:
-        $ref: '#/definitions/models.TranscriptionStatus'
+        allOf:
+        - $ref: '#/definitions/models.TranscriptionStatus'
+        description: Status - статус обработки файла
       storage_path:
+        description: StoragePath - путь к файлу в хранилище
         type: string
       transcription_id:
+        description: TranscriptionID - идентификатор транскрипции (если есть)
         type: string
       uploaded_at:
+        description: UploadedAt - время загрузки файла
         type: string
       user_id:
-        type: string
-    type: object
-  models.UserGroup:
-    properties:
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      permissions:
-        additionalProperties: true
-        description: JSON-based dynamic permissions
-        type: object
-      updated_at:
+        description: UserID - идентификатор пользователя, загрузившего файл
         type: string
     type: object
   models.UserInfo:
     properties:
       avatar:
+        description: Avatar - URL аватара или base64 изображение
         example: https://example.com/avatar.jpg
         type: string
       bio:
+        description: Bio - биография пользователя
         example: Software developer
         type: string
       department_id:
-        example: dept-001
+        description: DepartmentID - идентификатор отдела, к которому принадлежит пользователь
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       email:
+        description: Email - адрес электронной почты пользователя
         example: admin@recontext.online
         type: string
       first_name:
+        description: FirstName - имя пользователя
         example: John
         type: string
       id:
+        description: ID - уникальный идентификатор пользователя
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       language:
+        description: Language - предпочитаемый язык пользователя
         example: en
         type: string
       last_name:
+        description: LastName - фамилия пользователя
         example: Doe
         type: string
       permissions:
-        $ref: '#/definitions/models.UserPermissions'
+        allOf:
+        - $ref: '#/definitions/models.UserPermissions'
+        description: Permissions - специфические разрешения пользователя
       phone:
+        description: Phone - номер телефона пользователя
         example: "+1234567890"
         type: string
       role:
         allOf:
         - $ref: '#/definitions/models.UserRole'
+        description: Role - роль пользователя в системе
         example: admin
       username:
+        description: Username - имя пользователя для входа
         example: admin
         type: string
     type: object
   models.UserPermissions:
     properties:
       can_approve_recordings:
-        description: Permission to approve recordings
+        description: CanApproveRecordings - разрешение на утверждение записей
         type: boolean
       can_manage_department:
-        description: Permission to manage department
+        description: CanManageDepartment - разрешение на управление отделом
         type: boolean
       can_schedule_meetings:
-        description: Permission to schedule video meetings
+        description: CanScheduleMeetings - разрешение на планирование видеовстреч
         type: boolean
     type: object
   models.UserRole:
@@ -1308,9 +943,11 @@ definitions:
   models.VerifyResetCodeRequest:
     properties:
       code:
+        description: Code - 6-значный код подтверждения
         example: "123456"
         type: string
       token_id:
+        description: TokenID - идентификатор токена сброса для проверки
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     required:
@@ -1320,38 +957,13 @@ definitions:
   models.VerifyResetCodeResponse:
     properties:
       message:
+        description: Message - дополнительная информация о проверке
         example: Code verified successfully
         type: string
       valid:
+        description: Valid - валиден ли код
         example: true
         type: boolean
-    type: object
-  models.WebhookRequest:
-    properties:
-      createdAt:
-        type: string
-      event:
-        type: string
-      id:
-        type: string
-      participant:
-        additionalProperties: true
-        type: object
-      room:
-        additionalProperties: true
-        type: object
-      track:
-        additionalProperties: true
-        type: object
-    required:
-    - event
-    type: object
-  models.WebhookResponse:
-    properties:
-      message:
-        type: string
-      status:
-        type: string
     type: object
 host: localhost:8081
 info:
@@ -1372,7 +984,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticate user and receive JWT token
+      description: Аутентификация пользователя и получение JWT токена
       parameters:
       - description: Login credentials
         in: body
@@ -1395,14 +1007,14 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/models.ErrorResponse'
-      summary: User login
+      summary: Вход в систему
       tags:
       - Authentication
   /api/v1/auth/password-reset/request:
     post:
       consumes:
       - application/json
-      description: Request a password reset code to be sent via email
+      description: Запросить код сброса пароля для отправки по электронной почте
       parameters:
       - description: Email address
         in: body
@@ -1429,14 +1041,14 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
-      summary: Request password reset
+      summary: Запросить сброс пароля
       tags:
       - Auth
   /api/v1/auth/password-reset/reset:
     post:
       consumes:
       - application/json
-      description: Reset user password using verified code
+      description: Сбросить пароль пользователя с использованием проверенного кода
       parameters:
       - description: Reset password data
         in: body
@@ -1463,14 +1075,14 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
-      summary: Reset password with code
+      summary: Сбросить пароль с кодом
       tags:
       - Auth
   /api/v1/auth/password-reset/verify:
     post:
       consumes:
       - application/json
-      description: Verify that the provided reset code is valid
+      description: Проверить, что предоставленный код сброса действителен
       parameters:
       - description: Token ID and code
         in: body
@@ -1493,64 +1105,12 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/models.ErrorResponse'
-      summary: Verify password reset code
+      summary: Проверить код сброса пароля
       tags:
       - Auth
-  /api/v1/auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Register a new user account (admin only)
-      parameters:
-      - description: Registration details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.UserInfo'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Register new user
-      tags:
-      - Authentication
-  /api/v1/dashboard/stats:
-    get:
-      description: Get comprehensive dashboard statistics including users, workers,
-        storage, and recordings
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/main.DashboardStats'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get dashboard statistics
-      tags:
-      - Dashboard
   /api/v1/departments:
     get:
-      description: Get list of departments for bulk participant selection
+      description: Получить список отделов для массового выбора участников
       produces:
       - application/json
       responses:
@@ -1561,173 +1121,12 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: List departments for meeting invitations
+      summary: Список отделов для приглашений на встречи
       tags:
       - Helpers
-    post:
-      consumes:
-      - application/json
-      description: Create a new department in the organizational hierarchy
-      parameters:
-      - description: Department creation data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.CreateDepartmentRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.Department'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a new department
-      tags:
-      - Departments
-  /api/v1/departments/{id}:
-    delete:
-      description: Soft delete a department (marks as inactive). Cannot delete department
-        with active users.
-      parameters:
-      - description: Department ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete department
-      tags:
-      - Departments
-    get:
-      description: Get detailed information about a specific department including
-        statistics
-      parameters:
-      - description: Department ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - default: false
-        description: Include statistics (user count, child count)
-        in: query
-        name: stats
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: When stats=true
-          schema:
-            $ref: '#/definitions/models.DepartmentWithStats'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get department by ID
-      tags:
-      - Departments
-    put:
-      consumes:
-      - application/json
-      description: Update department information (admin only). Automatically recalculates
-        paths for all child departments.
-      parameters:
-      - description: Department ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateDepartmentRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Department'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update department
-      tags:
-      - Departments
-  /api/v1/departments/{id}/children:
-    get:
-      description: Get all direct child departments of a given department
-      parameters:
-      - description: Parent Department ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Department'
-            type: array
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get child departments
-      tags:
-      - Departments
   /api/v1/files:
     get:
-      description: Get a paginated list of user's uploaded files
+      description: Получить постраничный список загруженных файлов пользователя
       parameters:
       - default: 1
         description: Page number
@@ -1752,12 +1151,13 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List uploaded files
+      summary: Список загруженных файлов
       tags:
       - Files
   /api/v1/files/permission:
     get:
-      description: Check if the current user has permission to upload files
+      description: Проверить, имеет ли текущий пользователь разрешение на загрузку
+        файлов
       produces:
       - application/json
       responses:
@@ -1773,15 +1173,15 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Check file upload permission
+      summary: Проверить разрешение на загрузку файлов
       tags:
       - Files
   /api/v1/files/upload:
     post:
       consumes:
       - multipart/form-data
-      description: Upload an audio or video file for transcription (requires file
-        upload permission)
+      description: Загрузить аудио или видео файл для транскрибации (требуется разрешение
+        на загрузку файлов)
       parameters:
       - description: Audio/video file
         in: formData
@@ -1813,402 +1213,12 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Upload a file for transcription
+      summary: Загрузить файл для транскрибации
       tags:
       - Files
-  /api/v1/groups:
-    get:
-      description: Get a list of all user groups
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.ListGroupsResponse'
-      security:
-      - BearerAuth: []
-      summary: List all groups
-      tags:
-      - Groups
-    post:
-      consumes:
-      - application/json
-      description: Create a new user group with permissions (admin only)
-      parameters:
-      - description: Group data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.CreateGroupRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.UserGroup'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a new group
-      tags:
-      - Groups
-  /api/v1/groups/{id}:
-    delete:
-      description: Delete a user group (admin only)
-      parameters:
-      - description: Group ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete group
-      tags:
-      - Groups
-    get:
-      description: Get detailed information about a specific group
-      parameters:
-      - description: Group ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.UserGroup'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get group by ID
-      tags:
-      - Groups
-    put:
-      consumes:
-      - application/json
-      description: Update group information and permissions (admin only)
-      parameters:
-      - description: Group ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateGroupRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.UserGroup'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update group
-      tags:
-      - Groups
-  /api/v1/groups/add-user:
-    post:
-      consumes:
-      - application/json
-      description: Add a user to a specific group (admin only)
-      parameters:
-      - description: User and group IDs
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.AddUserToGroupRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Add user to group
-      tags:
-      - Groups
-  /api/v1/groups/check-permission:
-    post:
-      consumes:
-      - application/json
-      description: Check if a user has permission to perform an action on a resource
-      parameters:
-      - description: Permission check data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.PermissionCheckRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.PermissionCheckResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Check user permission
-      tags:
-      - Groups
-  /api/v1/groups/remove-user:
-    post:
-      consumes:
-      - application/json
-      description: Remove a user from a specific group (admin only)
-      parameters:
-      - description: User and group IDs
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.AddUserToGroupRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Remove user from group
-      tags:
-      - Groups
-  /api/v1/livekit/participants:
-    get:
-      description: Get all participants for a specific room
-      parameters:
-      - description: Room SID
-        in: query
-        name: room_sid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get room participants
-      tags:
-      - LiveKit
-  /api/v1/livekit/rooms:
-    get:
-      description: Get a list of LiveKit rooms with optional status filter
-      parameters:
-      - description: Filter by status (active, finished)
-        in: query
-        name: status
-        type: string
-      - default: 50
-        description: Limit results
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Offset for pagination
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get LiveKit rooms
-      tags:
-      - LiveKit
-  /api/v1/livekit/rooms/{sid}:
-    get:
-      description: Get detailed information about a specific room
-      parameters:
-      - description: Room SID
-        in: path
-        name: sid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Room'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get LiveKit room details
-      tags:
-      - LiveKit
-  /api/v1/livekit/tracks:
-    get:
-      description: Get all tracks for a specific room
-      parameters:
-      - description: Room SID
-        in: query
-        name: room_sid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get room tracks
-      tags:
-      - LiveKit
-  /api/v1/livekit/webhook-events:
-    get:
-      description: Get a list of webhook events with optional filters
-      parameters:
-      - description: Filter by event type
-        in: query
-        name: event_type
-        type: string
-      - description: Filter by room SID
-        in: query
-        name: room_sid
-        type: string
-      - default: 100
-        description: Limit results
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Offset for pagination
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get webhook event logs
-      tags:
-      - LiveKit
-  /api/v1/logs:
-    post:
-      consumes:
-      - application/json
-      description: Services send log entries to the managing portal
-      parameters:
-      - description: Log entries
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.SendLogsRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Send logs
-      tags:
-      - Metrics
   /api/v1/meeting-subjects:
     get:
-      description: Get a paginated list of active meeting subjects
+      description: Получить постраничный список активных тем встреч
       parameters:
       - default: 1
         description: Page number
@@ -2238,126 +1248,13 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List meeting subjects
+      summary: Список тем встреч
       tags:
       - Meetings
-    post:
-      consumes:
-      - application/json
-      description: Create a new meeting subject/topic category (admin only)
-      parameters:
-      - description: Subject creation data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.CreateMeetingSubjectRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.MeetingSubject'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a new meeting subject
-      tags:
-      - Meeting Subjects
-  /api/v1/meeting-subjects/{id}:
-    delete:
-      description: Soft delete a meeting subject (admin only)
-      parameters:
-      - description: Subject ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete meeting subject
-      tags:
-      - Meeting Subjects
-    get:
-      description: Get detailed information about a specific meeting subject
-      parameters:
-      - description: Subject ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.MeetingSubject'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get meeting subject by ID
-      tags:
-      - Meeting Subjects
-    put:
-      consumes:
-      - application/json
-      description: Update meeting subject information (admin only)
-      parameters:
-      - description: Subject ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateMeetingSubjectRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.MeetingSubject'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update meeting subject
-      tags:
-      - Meeting Subjects
   /api/v1/meetings:
     get:
-      description: Get a paginated list of meetings where user is participant or speaker
+      description: Получить постраничный список встреч, где пользователь является
+        участником или докладчиком
       parameters:
       - default: 1
         description: Page number
@@ -2410,14 +1307,14 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List my meetings
+      summary: Список моих встреч
       tags:
       - Meetings
     post:
       consumes:
       - application/json
-      description: Create a new meeting (requires can_schedule_meetings permission
-        or admin/operator role)
+      description: Создать новую встречу (требуется разрешение can_schedule_meetings
+        или роль admin/operator)
       parameters:
       - description: Meeting data
         in: body
@@ -2446,12 +1343,12 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Create a new meeting
+      summary: Создать новую встречу
       tags:
       - Meetings
   /api/v1/meetings/{id}:
     delete:
-      description: Delete a meeting (must be creator or admin)
+      description: Удалить встречу (должен быть создателем или администратором)
       parameters:
       - description: Meeting ID
         in: path
@@ -2481,12 +1378,12 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Delete meeting
+      summary: Удалить встречу
       tags:
       - Meetings
     get:
-      description: Get detailed information about a specific meeting (must be participant/speaker
-        or admin)
+      description: Получить детальную информацию о конкретной встрече (должен быть
+        участником/докладчиком или администратором)
       parameters:
       - description: Meeting ID
         in: path
@@ -2514,13 +1411,13 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get meeting details
+      summary: Получить детали встречи
       tags:
       - Meetings
     put:
       consumes:
       - application/json
-      description: Update meeting information (must be creator or admin)
+      description: Обновить информацию о встрече (должен быть создателем или администратором)
       parameters:
       - description: Meeting ID
         in: path
@@ -2558,15 +1455,15 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Update meeting
+      summary: Обновить встречу
       tags:
       - Meetings
   /api/v1/meetings/{meetingId}/token:
     get:
       consumes:
       - application/json
-      description: Get LiveKit access token for joining a meeting room (can join 10
-        minutes before start)
+      description: Получить токен доступа LiveKit для присоединения к комнате встречи
+        (можно присоединиться за 10 минут до начала)
       parameters:
       - description: Meeting ID
         in: path
@@ -2598,85 +1495,13 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get LiveKit token for joining a meeting
+      summary: Получить токен LiveKit для присоединения к встрече
       tags:
       - Meetings
-  /api/v1/metrics:
-    get:
-      description: Query metrics with optional filters
-      parameters:
-      - description: Filter by service ID
-        in: query
-        name: service_id
-        type: string
-      - description: Filter by metric name
-        in: query
-        name: name
-        type: string
-      - default: 100
-        description: Limit results
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.MetricsQueryResponse'
-      security:
-      - BearerAuth: []
-      summary: Query metrics
-      tags:
-      - Metrics
-    post:
-      consumes:
-      - application/json
-      description: Services send telemetry metrics to the managing portal
-      parameters:
-      - description: Metrics data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.SendMetricsRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Send metrics
-      tags:
-      - Metrics
-  /api/v1/metrics/system:
-    get:
-      description: Get aggregated system-wide metrics
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SystemMetrics'
-      security:
-      - BearerAuth: []
-      summary: Get system metrics
-      tags:
-      - Metrics
   /api/v1/rag/permission:
     get:
-      description: Check if the current user has permission to use RAG search
+      description: Проверить, имеет ли текущий пользователь разрешение на использование
+        RAG поиска
       produces:
       - application/json
       responses:
@@ -2692,14 +1517,14 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Check RAG permission
+      summary: Проверить разрешение на RAG
       tags:
       - RAG
   /api/v1/rag/search:
     post:
       consumes:
       - application/json
-      description: Perform semantic search using RAG over transcriptions
+      description: Выполнить семантический поиск с использованием RAG по транскрипциям
       parameters:
       - description: Search query
         in: body
@@ -2728,12 +1553,12 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Semantic search through transcriptions
+      summary: Семантический поиск по транскрипциям
       tags:
       - RAG
   /api/v1/rag/status:
     get:
-      description: Get statistics about the RAG system
+      description: Получить статистику о системе RAG
       produces:
       - application/json
       responses:
@@ -2751,12 +1576,12 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get RAG system status
+      summary: Получить статус системы RAG
       tags:
       - RAG
   /api/v1/recordings:
     get:
-      description: Get a paginated list of user's recordings
+      description: Получить постраничный список записей пользователя
       parameters:
       - default: 1
         description: Page number
@@ -2785,12 +1610,12 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List user recordings
+      summary: Список записей пользователя
       tags:
       - Recordings
   /api/v1/recordings/{id}:
     get:
-      description: Get detailed information about a specific recording
+      description: Получить детальную информацию о конкретной записи
       parameters:
       - description: Recording ID
         in: path
@@ -2814,14 +1639,14 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get recording details
+      summary: Получить детали записи
       tags:
       - Recordings
   /api/v1/recordings/upload:
     post:
       consumes:
       - multipart/form-data
-      description: Upload an audio or video file for transcription
+      description: Загрузить аудио или видео файл для транскрибации
       parameters:
       - description: Recording title
         in: formData
@@ -2850,12 +1675,13 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Upload a recording
+      summary: Загрузить запись
       tags:
       - Recordings
   /api/v1/search:
     get:
-      description: Search through transcripts using semantic or keyword search
+      description: Поиск по транскриптам с использованием семантического или ключевого
+        поиска
       parameters:
       - description: Search query
         in: query
@@ -2889,111 +1715,12 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Search transcripts
+      summary: Поиск по транскриптам
       tags:
       - Search
-  /api/v1/services:
-    get:
-      description: Get list of all registered services
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              $ref: '#/definitions/models.ServiceInfo'
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List all services
-      tags:
-      - Services
-  /api/v1/services/heartbeat:
-    post:
-      consumes:
-      - application/json
-      description: Update service heartbeat to indicate it's still alive
-      parameters:
-      - description: Heartbeat data
-        in: body
-        name: heartbeat
-        required: true
-        schema:
-          properties:
-            service_id:
-              type: string
-            status:
-              type: string
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Service heartbeat
-      tags:
-      - Services
-  /api/v1/services/register:
-    post:
-      consumes:
-      - application/json
-      description: Register a new service with the managing portal
-      parameters:
-      - description: Service information
-        in: body
-        name: service
-        required: true
-        schema:
-          $ref: '#/definitions/models.ServiceInfo'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.ServiceInfo'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Register a service
-      tags:
-      - Services
-  /api/v1/status:
-    get:
-      description: Get overall system status and service health
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SystemStatus'
-      security:
-      - BearerAuth: []
-      summary: Get system status
-      tags:
-      - Monitoring
   /api/v1/users:
     get:
-      description: Get list of users for participant selection in meetings
+      description: Получить список пользователей для выбора участников встречи
       produces:
       - application/json
       responses:
@@ -3004,40 +1731,12 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: List users for meeting participants
+      summary: Список пользователей для участников встречи
       tags:
       - Helpers
   /api/v1/users/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a user from the system (admin only)
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete user
-      tags:
-      - Users
     get:
-      description: Get user profile information
+      description: Получить информацию о профиле пользователя
       parameters:
       - description: User ID
         in: path
@@ -3061,13 +1760,13 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get user profile
+      summary: Получить профиль пользователя
       tags:
       - Profile
     put:
       consumes:
       - application/json
-      description: Update user profile information (self-service)
+      description: Обновить информацию профиля пользователя (самообслуживание)
       parameters:
       - description: User ID
         in: path
@@ -3101,14 +1800,14 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Update user profile
+      summary: Обновить профиль пользователя
       tags:
       - Profile
   /api/v1/users/{id}/avatar:
     post:
       consumes:
       - multipart/form-data
-      description: Upload a user avatar image
+      description: Загрузить изображение аватара пользователя
       parameters:
       - description: Avatar image file
         in: formData
@@ -3132,46 +1831,12 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Upload user avatar
+      summary: Загрузить аватар пользователя
       tags:
       - Profile
-  /api/v1/users/password:
-    put:
-      consumes:
-      - application/json
-      description: Change password for the authenticated user
-      parameters:
-      - description: Password change request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.ChangePasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Change user password
-      tags:
-      - Users
   /health:
     get:
-      description: Check if the service is healthy
+      description: Проверка, работает ли сервис
       produces:
       - application/json
       responses:
@@ -3179,50 +1844,9 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/models.HealthResponse'
-      summary: Health check
+      summary: Проверка здоровья
       tags:
       - Monitoring
-  /status:
-    get:
-      description: Get current status and statistics of the transcription worker
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get worker status
-      tags:
-      - Status
-  /webhook/meet:
-    post:
-      consumes:
-      - application/json
-      description: Receives webhook events from LiveKit server (room_started, participant_joined,
-        track_published, track_unpublished, participant_left, room_finished)
-      parameters:
-      - description: Webhook payload
-        in: body
-        name: webhook
-        required: true
-        schema:
-          $ref: '#/definitions/models.WebhookRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.WebhookResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      summary: LiveKit webhook endpoint
-      tags:
-      - LiveKit
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

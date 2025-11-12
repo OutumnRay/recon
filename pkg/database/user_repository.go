@@ -6,6 +6,7 @@ import (
 
 	"Recontext.online/internal/models"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -292,7 +293,7 @@ func (r *UserRepository) Update(user *models.User) error {
 		for i, g := range user.Groups {
 			groupStrings[i] = g.String()
 		}
-		updates["groups"] = groupStrings
+		updates["groups"] = pq.StringArray(groupStrings)
 	}
 
 	// Handle optional fields

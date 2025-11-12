@@ -44,6 +44,14 @@ func (mp *ManagingPortal) liveKitWebhookHandler(w http.ResponseWriter, r *http.R
 
 	mp.logger.Infof("Received LiveKit webhook event: %s (ID: %s)", webhookReq.Event, webhookReq.ID)
 
+	// Print webhook payload to console for debugging
+	fmt.Printf("\n=== LiveKit Webhook ===\n")
+	fmt.Printf("Event: %s\n", webhookReq.Event)
+	fmt.Printf("ID: %s\n", webhookReq.ID)
+	fmt.Printf("CreatedAt: %s\n", webhookReq.CreatedAt)
+	fmt.Printf("Payload:\n%s\n", string(body))
+	fmt.Printf("=======================\n\n")
+
 	// Log the raw event to database
 	eventLog := &models.WebhookEventLog{
 		ID:        uuid.New(),

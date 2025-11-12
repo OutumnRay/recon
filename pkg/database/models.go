@@ -219,7 +219,7 @@ type LiveKitRoom struct {
 	// ID - уникальный идентификатор комнаты
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	// Sid - уникальный идентификатор комнаты в LiveKit
-	Sid string `gorm:"uniqueIndex;type:varchar(255);not null" json:"sid"`
+	Sid string `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid"`
 	// Name - название комнаты
 	Name string `gorm:"type:varchar(255);not null" json:"name"`
 	// EmptyTimeout - таймаут закрытия пустой комнаты (в секундах)
@@ -253,9 +253,9 @@ type LiveKitParticipant struct {
 	// ID - уникальный идентификатор участника
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	// Sid - уникальный идентификатор участника в LiveKit
-	Sid string `gorm:"uniqueIndex;type:varchar(255);not null" json:"sid"`
+	Sid string `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid"`
 	// RoomSid - идентификатор комнаты, в которой находится участник
-	RoomSid string `gorm:"type:varchar(255);not null" json:"room_sid"`
+	RoomSid string `gorm:"column:room_sid;type:varchar(255);not null" json:"room_sid"`
 	// Identity - уникальный идентификатор личности участника
 	Identity string `gorm:"type:varchar(255);not null" json:"identity"`
 	// Name - отображаемое имя участника
@@ -293,11 +293,11 @@ type LiveKitTrack struct {
 	// ID - уникальный идентификатор трека
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	// Sid - уникальный идентификатор трека в LiveKit
-	Sid string `gorm:"uniqueIndex;type:varchar(255);not null" json:"sid"`
+	Sid string `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid"`
 	// ParticipantSid - идентификатор участника, которому принадлежит трек
-	ParticipantSid string `gorm:"type:varchar(255);not null" json:"participant_sid"`
+	ParticipantSid string `gorm:"column:participant_sid;type:varchar(255);not null" json:"participant_sid"`
 	// RoomSid - идентификатор комнаты, в которой находится трек
-	RoomSid string `gorm:"type:varchar(255);not null" json:"room_sid"`
+	RoomSid string `gorm:"column:room_sid;type:varchar(255);not null" json:"room_sid"`
 	// Type - тип трека (audio, video)
 	Type string `gorm:"type:varchar(50)" json:"type"`
 	// Source - источник трека (camera, microphone, screen_share и т.д.)
@@ -353,11 +353,11 @@ type LiveKitWebhookEvent struct {
 	// EventID - уникальный идентификатор события от LiveKit
 	EventID string `gorm:"type:varchar(255);not null" json:"event_id"`
 	// RoomSid - идентификатор комнаты, к которой относится событие
-	RoomSid *uuid.UUID `gorm:"type:uuid" json:"room_sid"`
+	RoomSid *uuid.UUID `gorm:"column:room_sid;type:uuid" json:"room_sid"`
 	// ParticipantSid - идентификатор участника, к которому относится событие
-	ParticipantSid *uuid.UUID `gorm:"type:uuid" json:"participant_sid"`
+	ParticipantSid *uuid.UUID `gorm:"column:participant_sid;type:uuid" json:"participant_sid"`
 	// TrackSid - идентификатор трека, к которому относится событие
-	TrackSid *uuid.UUID `gorm:"type:uuid" json:"track_sid"`
+	TrackSid *uuid.UUID `gorm:"column:track_sid;type:uuid" json:"track_sid"`
 	// Payload - JSON с полными данными события от LiveKit
 	Payload string `gorm:"type:jsonb;not null" json:"payload"`
 	// CreatedAt - время получения события

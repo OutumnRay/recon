@@ -26,3 +26,5 @@ cmd/user-portal/dist/
 
 # Android release keystore (local signing credentials)
 mobile2/android/keystore.jks
+
+.cache
