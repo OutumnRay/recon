@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"Recontext.online/internal/models"
+	"Recontext.online/pkg/auth"
 )
 
 // ListGroups godoc
@@ -54,7 +56,7 @@ func (mp *ManagingPortal) listGroupsHandler(w http.ResponseWriter, r *http.Reque
 func (mp *ManagingPortal) getGroupHandler(w http.ResponseWriter, r *http.Request) {
 	groupID := strings.TrimPrefix(r.URL.Path, "/api/v1/groups/")
 
-	group, err := mp.groupRepo.GetByID(groupID)
+	group, err := mp.groupRepo.GetByID(uuid.Must(uuid.Parse(groupID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Group not found", err.Error())
 		return
@@ -88,9 +90,8 @@ func (mp *ManagingPortal) createGroupHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	groupID := fmt.Sprintf("group-%d", time.Now().Unix())
 	group := &models.UserGroup{
-		ID:          groupID,
+		ID:          uuid.New(),
 		Name:        req.Name,
 		Description: req.Description,
 		Permissions: req.Permissions,
@@ -132,7 +133,7 @@ func (mp *ManagingPortal) updateGroupHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	group, err := mp.groupRepo.GetByID(groupID)
+	group, err := mp.groupRepo.GetByID(uuid.Must(uuid.Parse(groupID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Group not found", err.Error())
 		return
@@ -174,13 +175,13 @@ func (mp *ManagingPortal) deleteGroupHandler(w http.ResponseWriter, r *http.Requ
 	groupID := strings.TrimPrefix(r.URL.Path, "/api/v1/groups/")
 
 	// Get group first to log the name
-	group, err := mp.groupRepo.GetByID(groupID)
+	group, err := mp.groupRepo.GetByID(uuid.Must(uuid.Parse(groupID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Group not found", err.Error())
 		return
 	}
 
-	if err := mp.groupRepo.Delete(groupID); err != nil {
+	if err := mp.groupRepo.Delete(uuid.Must(uuid.Parse(groupID))); err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to delete group", err.Error())
 		return
 	}
@@ -235,18 +236,21 @@ func (mp *ManagingPortal) addUserToGroupHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Add user to group
-	if err := mp.groupRepo.AddUserToGroup(req.UserID, req.GroupID, "admin"); err != nil {
+	// Get the current admin's ID from context
+	claims, _ := auth.GetUserFromContext(r.Context())
+	addedByID := claims.UserID
+	if err := mp.groupRepo.AddUserToGroup(req.UserID, req.GroupID, &addedByID); err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to add user to group", err.Error())
 		return
 	}
 
-	mp.logger.Infof("User %s added to group %s", user.Username, req.GroupID)
+	mp.logger.Infof("User %s added to group %s", user.Username, req.GroupID.String())
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"message":  "User added to group successfully",
-		"user_id":  req.UserID,
-		"group_id": req.GroupID,
+		"user_id":  req.UserID.String(),
+		"group_id": req.GroupID.String(),
 	})
 }
 
@@ -288,13 +292,13 @@ func (mp *ManagingPortal) removeUserFromGroupHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	mp.logger.Infof("User %s removed from group %s", user.Username, req.GroupID)
+	mp.logger.Infof("User %s removed from group %s", user.Username, req.GroupID.String())
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"message":  "User removed from group successfully",
-		"user_id":  req.UserID,
-		"group_id": req.GroupID,
+		"user_id":  req.UserID.String(),
+		"group_id": req.GroupID.String(),
 	})
 }
 

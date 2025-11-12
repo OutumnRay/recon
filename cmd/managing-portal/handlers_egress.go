@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"Recontext.online/pkg/database"
 )
 
@@ -61,8 +62,14 @@ func (mp *ManagingPortal) startRoomRecordingHandler(w http.ResponseWriter, r *ht
 	}
 
 	// Store egress info in database
+	egressID, err := uuid.Parse(egressInfo.EgressId)
+	if err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Invalid egress ID format", err.Error())
+		return
+	}
+
 	egress := &database.LiveKitEgress{
-		ID:        egressInfo.EgressId,
+		ID:        egressID,
 		RoomSID:   room.SID,
 		RoomName:  req.RoomName,
 		Type:      "room_composite",
@@ -120,7 +127,7 @@ func (mp *ManagingPortal) stopRoomRecordingHandler(w http.ResponseWriter, r *htt
 	}
 
 	// Update status in database
-	if err := mp.egressRepo.UpdateStatus(req.EgressID, "finishing"); err != nil {
+	if err := mp.egressRepo.UpdateStatus(uuid.Must(uuid.Parse(req.EgressID)), "finishing"); err != nil {
 		log.Printf("Warning: Failed to update egress status in database: %v", err)
 	}
 
@@ -185,8 +192,14 @@ func (mp *ManagingPortal) startTrackRecordingHandler(w http.ResponseWriter, r *h
 	}
 
 	// Store egress info in database
+	egressID, err := uuid.Parse(egressInfo.EgressId)
+	if err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Invalid egress ID format", err.Error())
+		return
+	}
+
 	egress := &database.LiveKitEgress{
-		ID:       egressInfo.EgressId,
+		ID:       egressID,
 		RoomSID:  room.SID,
 		RoomName: req.RoomName,
 		Type:     "track_composite",

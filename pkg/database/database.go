@@ -280,20 +280,18 @@ func (db *DB) insertDefaultData() error {
 	hashedAdminPassword := auth.HashPassword(adminPassword)
 	hashedUserPassword := auth.HashPassword(userPassword)
 
-	// Insert default root department
+	// Insert default root department (UUID will be auto-generated)
 	dept := Department{
-		ID:          "dept-root",
 		Name:        "Organization",
 		Description: "Root department",
 		Level:       0,
 		Path:        "Organization",
 		IsActive:    true,
 	}
-	db.Where(Department{ID: dept.ID}).FirstOrCreate(&dept)
+	db.Where(Department{Name: dept.Name}).FirstOrCreate(&dept)
 
-	// Insert default admin user
+	// Insert default admin user (UUID will be auto-generated)
 	adminUser := User{
-		ID:          "admin-001",
 		Username:    "admin",
 		Email:       adminEmail,
 		Password:    hashedAdminPassword,
@@ -304,9 +302,8 @@ func (db *DB) insertDefaultData() error {
 	}
 	db.Where(User{Username: adminUser.Username}).Assign(&adminUser).FirstOrCreate(&adminUser)
 
-	// Insert default regular user
+	// Insert default regular user (UUID will be auto-generated)
 	regularUser := User{
-		ID:          "user-001",
 		Username:    "user",
 		Email:       "user@recontext.online",
 		Password:    hashedUserPassword,
@@ -317,28 +314,24 @@ func (db *DB) insertDefaultData() error {
 	}
 	db.Where(User{Username: regularUser.Username}).FirstOrCreate(&regularUser)
 
-	// Insert default groups
+	// Insert default groups (UUID will be auto-generated)
 	groups := []Group{
 		{
-			ID:          "group-editors",
 			Name:        "Editors",
 			Description: "Users who can view and edit recordings",
 			Permissions: `{"recordings": {"actions": ["read", "write"], "scope": "all"}, "transcripts": {"actions": ["read"], "scope": "all"}}`,
 		},
 		{
-			ID:          "group-viewers",
 			Name:        "Viewers",
 			Description: "Users who can only view recordings",
 			Permissions: `{"recordings": {"actions": ["read"], "scope": "all"}, "transcripts": {"actions": ["read"], "scope": "all"}}`,
 		},
 		{
-			ID:          "group-file-uploaders",
 			Name:        "File Uploaders",
 			Description: "Users who can upload and transcribe files",
 			Permissions: `{"files": {"actions": ["read", "write", "delete"], "scope": "own"}, "transcriptions": {"actions": ["read"], "scope": "own"}}`,
 		},
 		{
-			ID:          "group-rag-users",
 			Name:        "RAG Users",
 			Description: "Users who can use RAG semantic search on transcriptions",
 			Permissions: `{"rag": {"actions": ["read", "search"], "scope": "all"}, "transcriptions": {"actions": ["read"], "scope": "all"}}`,

@@ -85,7 +85,6 @@ export const ForgotPassword = () => {
 
         <div className="forgot-password-card">
           <div className="card-header">
-            <div className="lock-icon">🔐</div>
             <h1 className="card-title">{t('forgotPassword.title')}</h1>
             <p className="card-description">{t('forgotPassword.description')}</p>
           </div>

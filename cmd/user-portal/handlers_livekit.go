@@ -9,6 +9,7 @@ import (
 
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
+	"github.com/google/uuid"
 	lkauth "github.com/livekit/protocol/auth"
 )
 
@@ -61,7 +62,7 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	fmt.Printf("INFO: User %s requesting token for meeting %s\n", claims.UserID, meetingID)
 
 	// Get meeting with details
-	meeting, err := up.meetingRepo.GetMeetingByID(meetingID)
+	meeting, err := up.meetingRepo.GetMeetingByID(func() uuid.UUID { id, _ := uuid.Parse(meetingID); return id }())
 	if err != nil {
 		fmt.Printf("ERROR: Meeting %s not found: %v\n", meetingID, err)
 		up.respondWithError(w, http.StatusNotFound, "Meeting not found", err.Error())
@@ -85,7 +86,7 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Check if user is a participant
-	participants, err := up.meetingRepo.GetMeetingParticipants(meetingID)
+	participants, err := up.meetingRepo.GetMeetingParticipants(uuid.Must(uuid.Parse(meetingID)))
 	if err != nil {
 		fmt.Printf("ERROR: Failed to get participants for meeting %s: %v\n", meetingID, err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to get participants", err.Error())
@@ -172,9 +173,9 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 
 	// Get room ID (should be set during meeting creation)
 	fmt.Printf("DEBUG: Checking LiveKit room ID...\n")
-	roomID := ""
+	var roomID string
 	if meeting.LiveKitRoomID != nil {
-		roomID = *meeting.LiveKitRoomID
+		roomID = meeting.LiveKitRoomID.String()
 		fmt.Printf("DEBUG: Found LiveKit room ID: %s\n", roomID)
 	} else {
 		fmt.Printf("ERROR: Meeting %s has no LiveKit room ID assigned\n", meetingID)
@@ -185,10 +186,10 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	fmt.Printf("INFO: Using LiveKit room: %s\n", roomID)
 
 	// Get user info for participant name
-	fmt.Printf("DEBUG: Getting user info for user ID: %s\n", claims.UserID)
+	fmt.Printf("DEBUG: Getting user info for user ID: %s\n", claims.UserID.String())
 	user, err := up.userRepo.GetByID(claims.UserID)
 	if err != nil {
-		fmt.Printf("ERROR: Failed to get user info for %s: %v\n", claims.UserID, err)
+		fmt.Printf("ERROR: Failed to get user info for %s: %v\n", claims.UserID.String(), err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to get user info", err.Error())
 		return
 	}
@@ -240,7 +241,7 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	fmt.Printf("DEBUG: Setting token metadata: %s\n", metadata)
 
 	at.SetVideoGrant(grant).
-		SetIdentity(claims.UserID).
+		SetIdentity(claims.UserID.String()).
 		SetName(participantName).
 		SetValidFor(tokenValidity).
 		SetMetadata(metadata)

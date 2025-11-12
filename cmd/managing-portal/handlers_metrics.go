@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"Recontext.online/internal/models"
 )
 
@@ -27,9 +28,16 @@ func (mp *ManagingPortal) sendMetricsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Parse service ID
+	serviceID, err := uuid.Parse(req.ServiceID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusBadRequest, "Invalid service ID format", err.Error())
+		return
+	}
+
 	// Store metrics
 	for _, metric := range req.Metrics {
-		metric.ServiceID = req.ServiceID
+		metric.ServiceID = serviceID
 		metric.Timestamp = time.Now()
 
 		mp.metricsData = append(mp.metricsData, metric)
@@ -56,12 +64,24 @@ func (mp *ManagingPortal) sendMetricsHandler(w http.ResponseWriter, r *http.Requ
 // @Security BearerAuth
 // @Router /api/v1/metrics [get]
 func (mp *ManagingPortal) queryMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	serviceID := r.URL.Query().Get("service_id")
+	serviceIDStr := r.URL.Query().Get("service_id")
 	name := r.URL.Query().Get("name")
+
+	var serviceID uuid.UUID
+	var hasServiceIDFilter bool
+	if serviceIDStr != "" {
+		parsedID, err := uuid.Parse(serviceIDStr)
+		if err != nil {
+			mp.respondWithError(w, http.StatusBadRequest, "Invalid service ID format", err.Error())
+			return
+		}
+		serviceID = parsedID
+		hasServiceIDFilter = true
+	}
 
 	var filteredMetrics []models.Metric
 	for _, metric := range mp.metricsData {
-		if serviceID != "" && metric.ServiceID != serviceID {
+		if hasServiceIDFilter && metric.ServiceID != serviceID {
 			continue
 		}
 		if name != "" && metric.Name != name {
@@ -97,7 +117,8 @@ func (mp *ManagingPortal) getSystemMetricsHandler(w http.ResponseWriter, r *http
 	serviceSummaries := make(map[string]models.ServiceMetricsSummary)
 
 	for _, metric := range mp.metricsData {
-		summary, exists := serviceSummaries[metric.ServiceID]
+		serviceIDStr := metric.ServiceID.String()
+		summary, exists := serviceSummaries[serviceIDStr]
 		if !exists {
 			summary = models.ServiceMetricsSummary{
 				ServiceID:      metric.ServiceID,
@@ -126,7 +147,7 @@ func (mp *ManagingPortal) getSystemMetricsHandler(w http.ResponseWriter, r *http
 			summary.LastReportedAt = metric.Timestamp
 		}
 
-		serviceSummaries[metric.ServiceID] = summary
+		serviceSummaries[serviceIDStr] = summary
 	}
 
 	// Calculate system-wide totals
@@ -178,9 +199,16 @@ func (mp *ManagingPortal) sendLogsHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Parse service ID
+	serviceID, err := uuid.Parse(req.ServiceID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusBadRequest, "Invalid service ID format", err.Error())
+		return
+	}
+
 	// Store logs
 	for _, logEntry := range req.Logs {
-		logEntry.ServiceID = req.ServiceID
+		logEntry.ServiceID = serviceID
 		logEntry.Timestamp = time.Now()
 
 		mp.logs = append(mp.logs, logEntry)

@@ -3,6 +3,8 @@ package models
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // LiveKitWebhookEvent represents the top-level webhook event from LiveKit
@@ -11,13 +13,13 @@ type LiveKitWebhookEvent struct {
 	Room      json.RawMessage `json:"room,omitempty"`
 	Participant json.RawMessage `json:"participant,omitempty"`
 	Track     json.RawMessage `json:"track,omitempty"`
-	ID        string          `json:"id"`
+	ID        uuid.UUID       `json:"id"`
 	CreatedAt string          `json:"createdAt"`
 }
 
 // Room represents a LiveKit room
 type Room struct {
-	ID                string         `json:"id" db:"id"`
+	ID                uuid.UUID      `json:"id" db:"id"`
 	SID               string         `json:"sid" db:"sid"`
 	Name              string         `json:"name" db:"name"`
 	EmptyTimeout      int            `json:"emptyTimeout" db:"empty_timeout"`
@@ -41,7 +43,7 @@ type EnabledCodec struct {
 
 // Participant represents a participant in a LiveKit room
 type Participant struct {
-	ID              string          `json:"id" db:"id"`
+	ID              uuid.UUID       `json:"id" db:"id"`
 	SID             string          `json:"sid" db:"sid"`
 	RoomSID         string          `json:"-" db:"room_sid"`
 	Identity        string          `json:"identity" db:"identity"`
@@ -60,7 +62,7 @@ type Participant struct {
 
 // Track represents an audio or video track
 type Track struct {
-	ID               string          `json:"id" db:"id"`
+	ID               uuid.UUID       `json:"id" db:"id"`
 	SID              string          `json:"sid" db:"sid"`
 	ParticipantSID   string          `json:"-" db:"participant_sid"`
 	RoomSID          string          `json:"-" db:"room_sid"`
@@ -87,7 +89,7 @@ type Track struct {
 
 // WebhookEventLog represents a log of all webhook events received
 type WebhookEventLog struct {
-	ID          string          `json:"id" db:"id"`
+	ID          uuid.UUID       `json:"id" db:"id"`
 	EventType   string          `json:"event_type" db:"event_type"`
 	EventID     string          `json:"event_id" db:"event_id"`
 	RoomSID     string          `json:"room_sid,omitempty" db:"room_sid"`
@@ -111,4 +113,24 @@ type WebhookRequest struct {
 type WebhookResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
+}
+
+// TableName overrides the table name used by Room
+func (Room) TableName() string {
+	return "livekit_rooms"
+}
+
+// TableName overrides the table name used by Participant
+func (Participant) TableName() string {
+	return "livekit_participants"
+}
+
+// TableName overrides the table name used by Track
+func (Track) TableName() string {
+	return "livekit_tracks"
+}
+
+// TableName overrides the table name used by WebhookEventLog
+func (WebhookEventLog) TableName() string {
+	return "livekit_webhook_events"
 }

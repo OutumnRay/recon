@@ -1,10 +1,14 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // User represents a user in the system
 type User struct {
-	ID           string          `json:"id" db:"id"`
+	ID           uuid.UUID       `json:"id" db:"id"`
 	Username     string          `json:"username" db:"username"`
 	Email        string          `json:"email" db:"email"`
 	Password     string          `json:"-" db:"password"` // Never expose password in JSON
@@ -14,8 +18,8 @@ type User struct {
 	Phone        string          `json:"phone,omitempty" db:"phone"`           // User's phone number
 	Bio          string          `json:"bio,omitempty" db:"bio"`               // User's biography
 	Avatar       string          `json:"avatar,omitempty" db:"avatar"`         // Avatar URL or base64
-	DepartmentID *string         `json:"department_id,omitempty" db:"department_id"` // Department user belongs to
-	Groups       []string        `json:"groups,omitempty" db:"groups"`                // Group IDs user belongs to
+	DepartmentID *uuid.UUID      `json:"department_id,omitempty" db:"department_id"` // Department user belongs to
+	Groups       []uuid.UUID     `json:"groups,omitempty" db:"groups"`                // Group IDs user belongs to
 	Permissions  UserPermissions `json:"permissions" db:"permissions"`                // User-specific permissions
 	Language     string          `json:"language" db:"language"`                      // User's preferred language (ru, en, etc.)
 	IsActive     bool            `json:"is_active" db:"is_active"`
@@ -56,7 +60,7 @@ type LoginResponse struct {
 
 // UserInfo represents public user information
 type UserInfo struct {
-	ID           string          `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ID           uuid.UUID       `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Username     string          `json:"username" example:"admin"`
 	Email        string          `json:"email" example:"admin@recontext.online"`
 	Role         UserRole        `json:"role" example:"admin"`
@@ -65,7 +69,7 @@ type UserInfo struct {
 	Phone        string          `json:"phone,omitempty" example:"+1234567890"`
 	Bio          string          `json:"bio,omitempty" example:"Software developer"`
 	Avatar       string          `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
-	DepartmentID *string         `json:"department_id,omitempty" example:"dept-001"`
+	DepartmentID *uuid.UUID      `json:"department_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Permissions  UserPermissions `json:"permissions"`
 	Language     string          `json:"language" example:"en"`
 }
@@ -80,11 +84,11 @@ type RegisterRequest struct {
 
 // TokenClaims represents JWT token claims
 type TokenClaims struct {
-	UserID   string   `json:"user_id"`
-	Username string   `json:"username"`
-	Role     UserRole `json:"role"`
-	IssuedAt int64    `json:"iat"`
-	ExpiresAt int64   `json:"exp"`
+	UserID   uuid.UUID `json:"user_id"`
+	Username string    `json:"username"`
+	Role     UserRole  `json:"role"`
+	IssuedAt int64     `json:"iat"`
+	ExpiresAt int64    `json:"exp"`
 }
 
 // RefreshTokenRequest represents a token refresh request
@@ -94,8 +98,8 @@ type RefreshTokenRequest struct {
 
 // PasswordResetToken represents a password reset token
 type PasswordResetToken struct {
-	ID        string    `json:"id" db:"id"`
-	UserID    string    `json:"user_id" db:"user_id"`
+	ID        uuid.UUID `json:"id" db:"id"`
+	UserID    uuid.UUID `json:"user_id" db:"user_id"`
 	Email     string    `json:"email" db:"email"`
 	Code      string    `json:"-" db:"code"` // 6-digit code, never expose in JSON
 	ExpiresAt time.Time `json:"expires_at" db:"expires_at"`
@@ -110,14 +114,14 @@ type RequestPasswordResetRequest struct {
 
 // RequestPasswordResetResponse represents the response after requesting password reset
 type RequestPasswordResetResponse struct {
-	Message string `json:"message" example:"Password reset code sent to your email"`
-	TokenID string `json:"token_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Message string    `json:"message" example:"Password reset code sent to your email"`
+	TokenID uuid.UUID `json:"token_id" example:"550e8400-e29b-41d4-a716-446655440000"`
 }
 
 // VerifyResetCodeRequest represents a request to verify reset code
 type VerifyResetCodeRequest struct {
-	TokenID string `json:"token_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
-	Code    string `json:"code" binding:"required,len=6" example:"123456"`
+	TokenID uuid.UUID `json:"token_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Code    string    `json:"code" binding:"required,len=6" example:"123456"`
 }
 
 // VerifyResetCodeResponse represents the response after verifying reset code
@@ -128,9 +132,9 @@ type VerifyResetCodeResponse struct {
 
 // ResetPasswordRequest represents a request to reset password with code
 type ResetPasswordRequest struct {
-	TokenID     string `json:"token_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
-	Code        string `json:"code" binding:"required,len=6" example:"123456"`
-	NewPassword string `json:"new_password" binding:"required,min=8" example:"newpassword123"`
+	TokenID     uuid.UUID `json:"token_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Code        string    `json:"code" binding:"required,len=6" example:"123456"`
+	NewPassword string    `json:"new_password" binding:"required,min=8" example:"newpassword123"`
 }
 
 // ResetPasswordResponse represents the response after resetting password

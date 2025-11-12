@@ -12,7 +12,6 @@ type Config struct {
 	Database DatabaseConfig
 	RabbitMQ RabbitMQConfig
 	MinIO    MinIOConfig
-	Jitsi    JitsiConfig
 }
 
 // ServerConfig holds server-related configuration
@@ -48,12 +47,6 @@ type MinIOConfig struct {
 	BucketName      string
 }
 
-// JitsiConfig holds Jitsi Meet server configuration
-type JitsiConfig struct {
-	ServerURL string
-	APIKey    string
-}
-
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	cfg := &Config{
@@ -81,10 +74,6 @@ func Load() (*Config, error) {
 			SecretAccessKey: getEnv("MINIO_SECRET_KEY", "minioadmin"),
 			UseSSL:          getEnvAsBool("MINIO_USE_SSL", false),
 			BucketName:      getEnv("MINIO_BUCKET", "recontext"),
-		},
-		Jitsi: JitsiConfig{
-			ServerURL: getEnv("JITSI_SERVER_URL", "https://meet.jit.si"),
-			APIKey:    getEnv("JITSI_API_KEY", ""),
 		},
 	}
 

@@ -37,7 +37,12 @@ func (mp *ManagingPortal) createDepartmentHandler(w http.ResponseWriter, r *http
 	}
 
 	// Check if department name already exists at the same level
-	exists, err := mp.departmentRepo.NameExists(req.Name, req.ParentID, "")
+	var parentIDStr *string
+	if req.ParentID != nil {
+		str := req.ParentID.String()
+		parentIDStr = &str
+	}
+	exists, err := mp.departmentRepo.NameExists(req.Name, parentIDStr, "")
 	if err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to check department name", err.Error())
 		return
@@ -49,7 +54,7 @@ func (mp *ManagingPortal) createDepartmentHandler(w http.ResponseWriter, r *http
 
 	// Create new department
 	dept := &models.Department{
-		ID:          fmt.Sprintf("dept-%s", uuid.New().String()[:8]),
+		ID:          uuid.New(),
 		Name:        req.Name,
 		Description: req.Description,
 		ParentID:    req.ParentID,
@@ -149,7 +154,7 @@ func (mp *ManagingPortal) getDepartmentHandler(w http.ResponseWriter, r *http.Re
 
 	if includeStats {
 		// Get department with statistics
-		deptStats, err := mp.departmentRepo.GetWithStats(departmentID)
+		deptStats, err := mp.departmentRepo.GetWithStats(uuid.Must(uuid.Parse(departmentID)))
 		if err != nil {
 			mp.respondWithError(w, http.StatusNotFound, "Department not found", err.Error())
 			return
@@ -161,7 +166,7 @@ func (mp *ManagingPortal) getDepartmentHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Get basic department info
-	dept, err := mp.departmentRepo.GetByID(departmentID)
+	dept, err := mp.departmentRepo.GetByID(uuid.Must(uuid.Parse(departmentID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Department not found", err.Error())
 		return
@@ -195,7 +200,7 @@ func (mp *ManagingPortal) updateDepartmentHandler(w http.ResponseWriter, r *http
 	}
 
 	// Find department
-	dept, err := mp.departmentRepo.GetByID(departmentID)
+	dept, err := mp.departmentRepo.GetByID(uuid.Must(uuid.Parse(departmentID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Department not found", err.Error())
 		return
@@ -204,7 +209,12 @@ func (mp *ManagingPortal) updateDepartmentHandler(w http.ResponseWriter, r *http
 	// Update fields
 	if req.Name != "" {
 		// Check if name already exists at the same level (excluding current department)
-		exists, err := mp.departmentRepo.NameExists(req.Name, dept.ParentID, departmentID)
+		var parentIDStr *string
+		if dept.ParentID != nil {
+			str := dept.ParentID.String()
+			parentIDStr = &str
+		}
+		exists, err := mp.departmentRepo.NameExists(req.Name, parentIDStr, departmentID)
 		if err != nil {
 			mp.respondWithError(w, http.StatusInternalServerError, "Failed to check department name", err.Error())
 			return
@@ -259,7 +269,7 @@ func (mp *ManagingPortal) deleteDepartmentHandler(w http.ResponseWriter, r *http
 	departmentID := strings.TrimPrefix(r.URL.Path, "/api/v1/departments/")
 
 	// Check if department exists and get stats
-	deptStats, err := mp.departmentRepo.GetWithStats(departmentID)
+	deptStats, err := mp.departmentRepo.GetWithStats(uuid.Must(uuid.Parse(departmentID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Department not found", err.Error())
 		return
@@ -274,7 +284,7 @@ func (mp *ManagingPortal) deleteDepartmentHandler(w http.ResponseWriter, r *http
 	}
 
 	// Soft delete (mark as inactive)
-	if err := mp.departmentRepo.Delete(departmentID); err != nil {
+	if err := mp.departmentRepo.Delete(uuid.Must(uuid.Parse(departmentID))); err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to delete department", err.Error())
 		return
 	}
@@ -304,14 +314,14 @@ func (mp *ManagingPortal) getDepartmentChildrenHandler(w http.ResponseWriter, r 
 	departmentID := strings.TrimSuffix(path, "/children")
 
 	// Verify parent department exists
-	_, err := mp.departmentRepo.GetByID(departmentID)
+	_, err := mp.departmentRepo.GetByID(uuid.Must(uuid.Parse(departmentID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Department not found", err.Error())
 		return
 	}
 
 	// Get children
-	children, err := mp.departmentRepo.GetChildren(departmentID)
+	children, err := mp.departmentRepo.GetChildren(uuid.Must(uuid.Parse(departmentID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to get child departments", err.Error())
 		return

@@ -50,7 +50,7 @@ func NewEgressClientFromEnv() *EgressClient {
 		APISecret: getEnv("LIVEKIT_API_SECRET", ""),
 		S3Config: S3Config{
 			Endpoint:       getEnv("S3_ENDPOINT", "https://api.storage.recontext.online"),
-			Bucket:         getEnv("S3_BUCKET", "jitsi-recordings"),
+			Bucket:         getEnv("S3_BUCKET", "livekit-recordings"),
 			Region:         getEnv("S3_REGION", ""),
 			AccessKey:      getEnv("S3_ACCESS_KEY", "minioadmin"),
 			SecretKey:      getEnv("S3_SECRET_KEY", "minioadmin"),

@@ -1,5 +1,7 @@
 package models
 
+import "github.com/google/uuid"
+
 // UpdateUserRequest represents a request to update user information
 type UpdateUserRequest struct {
 	Email        string           `json:"email,omitempty" example:"newemail@example.com"`
@@ -10,8 +12,8 @@ type UpdateUserRequest struct {
 	Phone        string           `json:"phone,omitempty" example:"+1234567890"`
 	Bio          string           `json:"bio,omitempty" example:"Software developer"`
 	Avatar       string           `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
-	DepartmentID *string          `json:"department_id,omitempty" example:"dept-001"`
-	Groups       []string         `json:"groups,omitempty"`
+	DepartmentID *uuid.UUID       `json:"department_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Groups       []uuid.UUID      `json:"groups,omitempty"`
 	Permissions  *UserPermissions `json:"permissions,omitempty"`
 	Language     string           `json:"language,omitempty" example:"en"`
 	IsActive     *bool            `json:"is_active,omitempty" example:"true"`
@@ -41,12 +43,12 @@ type ChangePasswordRequest struct {
 
 // ListUsersRequest represents parameters for listing users
 type ListUsersRequest struct {
-	Page         int    `json:"page" form:"page" example:"1"`
-	PageSize     int    `json:"page_size" form:"page_size" example:"20"`
-	Role         string `json:"role" form:"role" example:"user"`
-	DepartmentID string `json:"department_id" form:"department_id" example:"dept-001"`
-	GroupID      string `json:"group_id" form:"group_id" example:"group-001"`
-	IsActive     *bool  `json:"is_active" form:"is_active" example:"true"`
+	Page         int        `json:"page" form:"page" example:"1"`
+	PageSize     int        `json:"page_size" form:"page_size" example:"20"`
+	Role         string     `json:"role" form:"role" example:"user"`
+	DepartmentID *uuid.UUID `json:"department_id" form:"department_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	GroupID      *uuid.UUID `json:"group_id" form:"group_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	IsActive     *bool      `json:"is_active" form:"is_active" example:"true"`
 }
 
 // ListUsersResponse represents a paginated list of users
@@ -59,6 +61,6 @@ type ListUsersResponse struct {
 
 // DeleteUserRequest represents a user deletion request
 type DeleteUserRequest struct {
-	UserID string `json:"user_id" binding:"required" example:"user-123"`
-	Reason string `json:"reason,omitempty" example:"Account requested deletion"`
+	UserID uuid.UUID `json:"user_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Reason string    `json:"reason,omitempty" example:"Account requested deletion"`
 }

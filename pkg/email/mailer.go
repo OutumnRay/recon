@@ -191,6 +191,15 @@ func (m *Mailer) sendEmail(to, subject, htmlBody string) error {
 	headers["MIME-Version"] = "1.0"
 	headers["Content-Type"] = "text/html; charset=UTF-8"
 
+	// Log all email headers
+	m.logger.Printf("=== EMAIL HEADERS ===")
+	m.logger.Printf("From: %s", from)
+	m.logger.Printf("To: %s", to)
+	m.logger.Printf("Subject: %s", subject)
+	m.logger.Printf("FromName config: '%s'", m.config.FromName)
+	m.logger.Printf("FromAddress config: '%s'", m.config.FromAddress)
+	m.logger.Printf("=====================")
+
 	message := ""
 	for k, v := range headers {
 		message += fmt.Sprintf("%s: %s\r\n", k, v)

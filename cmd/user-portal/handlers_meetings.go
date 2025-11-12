@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -68,7 +67,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		up.respondWithError(w, http.StatusBadRequest, "Type is required", "")
 		return
 	}
-	if req.SubjectID == "" {
+	if req.SubjectID == uuid.Nil {
 		up.respondWithError(w, http.StatusBadRequest, "Subject ID is required", "")
 		return
 	}
@@ -81,7 +80,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Create meeting
-	meetingID := fmt.Sprintf("meeting-%s", uuid.New().String())
+	meetingID := uuid.New()
 
 	// Don't assign LiveKit room ID yet - it will be created when meeting starts
 	meeting := &models.Meeting{
@@ -104,7 +103,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Create LiveKit room ID immediately
-	livekitRoomID := fmt.Sprintf("meeting-%s", meetingID)
+	livekitRoomID := uuid.New()
 	meeting.LiveKitRoomID = &livekitRoomID
 
 	if err := up.meetingRepo.CreateMeeting(meeting); err != nil {
@@ -114,7 +113,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 
 	// Add the creator as an organizer participant
 	creatorParticipant := &models.MeetingParticipant{
-		ID:        fmt.Sprintf("participant-%s", uuid.New().String()),
+		ID:        uuid.New(),
 		MeetingID: meetingID,
 		UserID:    claims.UserID,
 		Role:      "organizer",
@@ -126,9 +125,9 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Add speaker if provided (for presentations)
-	if req.SpeakerID != nil && *req.SpeakerID != "" {
+	if req.SpeakerID != nil && *req.SpeakerID != uuid.Nil {
 		participant := &models.MeetingParticipant{
-			ID:        fmt.Sprintf("participant-%s", uuid.New().String()),
+			ID:        uuid.New(),
 			MeetingID: meetingID,
 			UserID:    *req.SpeakerID,
 			Role:      "speaker",
@@ -143,7 +142,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 	// Add participants
 	for _, userID := range req.ParticipantIDs {
 		participant := &models.MeetingParticipant{
-			ID:        fmt.Sprintf("participant-%s", uuid.New().String()),
+			ID:        uuid.New(),
 			MeetingID: meetingID,
 			UserID:    userID,
 			Role:      "participant",
@@ -158,7 +157,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 	// Add departments
 	for _, deptID := range req.DepartmentIDs {
 		meetingDept := &models.MeetingDepartment{
-			ID:           fmt.Sprintf("meeting-dept-%s", uuid.New().String()),
+			ID:           uuid.New(),
 			MeetingID:    meetingID,
 			DepartmentID: deptID,
 			CreatedAt:    time.Now(),
@@ -239,7 +238,9 @@ func (up *UserPortal) listMyMeetingsHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	if subjectID := r.URL.Query().Get("subject_id"); subjectID != "" {
-		req.SubjectID = &subjectID
+		if subjectUUID, err := uuid.Parse(subjectID); err == nil {
+			req.SubjectID = &subjectUUID
+		}
 	}
 
 	if dateFrom := r.URL.Query().Get("date_from"); dateFrom != "" {
@@ -288,7 +289,7 @@ func (up *UserPortal) getMeetingHandler(w http.ResponseWriter, r *http.Request) 
 	meetingID := strings.TrimPrefix(r.URL.Path, "/api/v1/meetings/")
 
 	// Get meeting details
-	meeting, err := up.meetingRepo.GetMeetingWithDetails(meetingID)
+	meeting, err := up.meetingRepo.GetMeetingWithDetails(uuid.Must(uuid.Parse(meetingID)))
 	if err != nil {
 		up.respondWithError(w, http.StatusNotFound, "Meeting not found", err.Error())
 		return
@@ -348,7 +349,7 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Get existing meeting
-	meeting, err := up.meetingRepo.GetMeetingByID(meetingID)
+	meeting, err := up.meetingRepo.GetMeetingByID(func() uuid.UUID { id, _ := uuid.Parse(meetingID); return id }())
 	if err != nil {
 		up.respondWithError(w, http.StatusNotFound, "Meeting not found", err.Error())
 		return
@@ -411,19 +412,20 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	// Handle participant updates if provided
 	if req.ParticipantIDs != nil || req.SpeakerID != nil {
 		// Get current participants to remove old ones (except the creator/organizer)
-		currentParticipants, _ := up.meetingRepo.GetMeetingParticipants(meetingID)
+		currentParticipants, _ := up.meetingRepo.GetMeetingParticipants(uuid.Must(uuid.Parse(meetingID)))
 		for _, participant := range currentParticipants {
 			// Don't remove the meeting creator
 			if participant.UserID != meeting.CreatedBy {
-				up.meetingRepo.RemoveParticipant(meetingID, participant.UserID)
+				up.meetingRepo.RemoveParticipant(uuid.Must(uuid.Parse(meetingID)), participant.UserID)
 			}
 		}
 
 		// Add new speaker if provided
-		if req.SpeakerID != nil && *req.SpeakerID != "" {
+		if req.SpeakerID != nil && *req.SpeakerID != uuid.Nil {
+			meetingUUID, _ := uuid.Parse(meetingID)
 			participant := &models.MeetingParticipant{
-				ID:        fmt.Sprintf("participant-%s", uuid.New().String()),
-				MeetingID: meetingID,
+				ID:        uuid.New(),
+				MeetingID: meetingUUID,
 				UserID:    *req.SpeakerID,
 				Role:      "speaker",
 				Status:    "invited",
@@ -436,10 +438,11 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 
 		// Add new participants
 		if req.ParticipantIDs != nil {
+			meetingUUID, _ := uuid.Parse(meetingID)
 			for _, userID := range req.ParticipantIDs {
 				participant := &models.MeetingParticipant{
-					ID:        fmt.Sprintf("participant-%s", uuid.New().String()),
-					MeetingID: meetingID,
+					ID:        uuid.New(),
+					MeetingID: meetingUUID,
 					UserID:    userID,
 					Role:      "participant",
 					Status:    "invited",
@@ -455,16 +458,17 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	// Handle department updates if provided
 	if req.DepartmentIDs != nil {
 		// Get current departments to remove old ones
-		currentDepts, _ := up.meetingRepo.GetMeetingDepartments(meetingID)
+		currentDepts, _ := up.meetingRepo.GetMeetingDepartments(uuid.Must(uuid.Parse(meetingID)))
 		for _, dept := range currentDepts {
-			up.meetingRepo.RemoveDepartment(meetingID, dept.ID)
+			up.meetingRepo.RemoveDepartment(uuid.Must(uuid.Parse(meetingID)), dept.ID)
 		}
 
 		// Add new departments
+		meetingUUID, _ := uuid.Parse(meetingID)
 		for _, deptID := range req.DepartmentIDs {
 			meetingDept := &models.MeetingDepartment{
-				ID:           fmt.Sprintf("meeting-dept-%s", uuid.New().String()),
-				MeetingID:    meetingID,
+				ID:           uuid.New(),
+				MeetingID:    meetingUUID,
 				DepartmentID: deptID,
 				CreatedAt:    time.Now(),
 			}
@@ -477,7 +481,7 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	up.logger.Infof("Meeting updated: %s by user %s", meetingID, claims.Username)
 
 	// Get full meeting details to return
-	details, err := up.meetingRepo.GetMeetingWithDetails(meetingID)
+	details, err := up.meetingRepo.GetMeetingWithDetails(uuid.Must(uuid.Parse(meetingID)))
 	if err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to get meeting details", err.Error())
 		return
@@ -510,7 +514,7 @@ func (up *UserPortal) deleteMeetingHandler(w http.ResponseWriter, r *http.Reques
 	meetingID := strings.TrimPrefix(r.URL.Path, "/api/v1/meetings/")
 
 	// Get existing meeting
-	meeting, err := up.meetingRepo.GetMeetingByID(meetingID)
+	meeting, err := up.meetingRepo.GetMeetingByID(func() uuid.UUID { id, _ := uuid.Parse(meetingID); return id }())
 	if err != nil {
 		up.respondWithError(w, http.StatusNotFound, "Meeting not found", err.Error())
 		return
@@ -523,7 +527,7 @@ func (up *UserPortal) deleteMeetingHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Delete meeting
-	if err := up.meetingRepo.DeleteMeeting(meetingID); err != nil {
+	if err := up.meetingRepo.DeleteMeeting(uuid.Must(uuid.Parse(meetingID))); err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to delete meeting", err.Error())
 		return
 	}

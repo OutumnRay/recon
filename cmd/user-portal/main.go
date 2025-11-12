@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 
@@ -264,9 +265,8 @@ func (up *UserPortal) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	// Create recording
-	recordingID := fmt.Sprintf("rec-%d", time.Now().Unix())
 	recording := &models.Recording{
-		ID:          recordingID,
+		ID:          uuid.New(),
 		UserID:      claims.UserID,
 		Title:       title,
 		FileName:    header.Filename,
@@ -277,14 +277,14 @@ func (up *UserPortal) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		UploadedAt:  time.Now(),
 	}
 
-	up.recordings[recordingID] = recording
-	up.logger.Infof("Recording uploaded: %s by user %s", recordingID, claims.Username)
+	up.recordings[recording.ID.String()] = recording
+	up.logger.Infof("Recording uploaded: %s by user %s", recording.ID, claims.Username)
 
 	// TODO: Upload file to MinIO
 	// TODO: Send message to RabbitMQ for processing
 
 	response := models.UploadResponse{
-		RecordingID: recordingID,
+		RecordingID: recording.ID,
 		UploadURL:   fmt.Sprintf("https://storage.recontext.online/%s", recording.StoragePath),
 		Message:     "File uploaded successfully and queued for processing",
 	}
@@ -449,7 +449,8 @@ func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) 
 	defer file.Close()
 
 	// Create file record
-	fileID := fmt.Sprintf("file-%d", time.Now().UnixNano())
+	fileID := uuid.New()
+	groupFileUploadersID := uuid.Must(uuid.Parse("00000000-0000-0000-0000-000000000001")) // Use a fixed UUID for the file uploaders group
 	uploadedFile := &models.UploadedFile{
 		ID:           fileID,
 		Filename:     fmt.Sprintf("%d-%s", time.Now().Unix(), header.Filename),
@@ -458,7 +459,7 @@ func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) 
 		MimeType:     header.Header.Get("Content-Type"),
 		StoragePath:  fmt.Sprintf("files/%s/%s", claims.UserID, fileID),
 		UserID:       claims.UserID,
-		GroupID:      "group-file-uploaders",
+		GroupID:      groupFileUploadersID,
 		Status:       models.StatusPending,
 		UploadedAt:   time.Now(),
 	}

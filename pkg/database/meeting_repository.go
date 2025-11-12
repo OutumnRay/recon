@@ -1,13 +1,14 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"Recontext.online/internal/models"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // MeetingRepository handles database operations for meetings
@@ -20,27 +21,42 @@ func NewMeetingRepository(db *DB) *MeetingRepository {
 	return &MeetingRepository{db: db}
 }
 
+// Helper functions for UUID conversion
+func uuidSliceToStringSlice(uuids []uuid.UUID) pq.StringArray {
+	strs := make(pq.StringArray, len(uuids))
+	for i, u := range uuids {
+		strs[i] = u.String()
+	}
+	return strs
+}
+
+func stringSliceToUUIDSlice(strs []string) ([]uuid.UUID, error) {
+	uuids := make([]uuid.UUID, len(strs))
+	for i, s := range strs {
+		u, parseErr := uuid.Parse(s)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		uuids[i] = u
+	}
+	return uuids, nil
+}
+
 // ============= Meeting Subjects =============
 
 // CreateSubject creates a new meeting subject
 func (r *MeetingRepository) CreateSubject(subject *models.MeetingSubject) error {
-	query := `
-		INSERT INTO meeting_subjects (id, name, description, department_ids, is_active, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
+	dbSubject := &MeetingSubject{
+		ID:            subject.ID,
+		Name:          subject.Name,
+		Description:   subject.Description,
+		DepartmentIDs: uuidSliceToStringSlice(subject.DepartmentIDs),
+		IsActive:      subject.IsActive,
+		CreatedAt:     subject.CreatedAt,
+		UpdatedAt:     subject.UpdatedAt,
+	}
 
-	_, err := r.db.Exec(
-		query,
-		subject.ID,
-		subject.Name,
-		subject.Description,
-		pq.Array(subject.DepartmentIDs),
-		subject.IsActive,
-		subject.CreatedAt,
-		subject.UpdatedAt,
-	)
-
-	if err != nil {
+	if err := r.db.DB.Create(dbSubject).Error; err != nil {
 		return fmt.Errorf("failed to create meeting subject: %w", err)
 	}
 
@@ -48,34 +64,30 @@ func (r *MeetingRepository) CreateSubject(subject *models.MeetingSubject) error 
 }
 
 // GetSubjectByID retrieves a meeting subject by ID
-func (r *MeetingRepository) GetSubjectByID(id string) (*models.MeetingSubject, error) {
-	query := `
-		SELECT id, name, description, department_ids, is_active, created_at, updated_at
-		FROM meeting_subjects
-		WHERE id = $1
-	`
+func (r *MeetingRepository) GetSubjectByID(id uuid.UUID) (*models.MeetingSubject, error) {
+	var dbSubject MeetingSubject
 
-	subject := &models.MeetingSubject{}
-	var departmentIDs pq.StringArray
-
-	err := r.db.QueryRow(query, id).Scan(
-		&subject.ID,
-		&subject.Name,
-		&subject.Description,
-		&departmentIDs,
-		&subject.IsActive,
-		&subject.CreatedAt,
-		&subject.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("meeting subject not found")
-	}
-	if err != nil {
+	if err := r.db.DB.Where("id = ?", id).First(&dbSubject).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("meeting subject not found")
+		}
 		return nil, fmt.Errorf("failed to get meeting subject: %w", err)
 	}
 
-	subject.DepartmentIDs = departmentIDs
+	departmentIDs, err := stringSliceToUUIDSlice(dbSubject.DepartmentIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	subject := &models.MeetingSubject{
+		ID:            dbSubject.ID,
+		Name:          dbSubject.Name,
+		Description:   dbSubject.Description,
+		DepartmentIDs: departmentIDs,
+		IsActive:      dbSubject.IsActive,
+		CreatedAt:     dbSubject.CreatedAt,
+		UpdatedAt:     dbSubject.UpdatedAt,
+	}
 
 	return subject, nil
 }
@@ -84,78 +96,52 @@ func (r *MeetingRepository) GetSubjectByID(id string) (*models.MeetingSubject, e
 func (r *MeetingRepository) ListSubjects(page, pageSize int, departmentID *string, includeInactive bool) (*models.MeetingSubjectsResponse, error) {
 	offset := (page - 1) * pageSize
 
-	// Build WHERE conditions
-	conditions := []string{}
-	args := []interface{}{}
-	argIdx := 1
+	// Build query
+	query := r.db.DB.Model(&MeetingSubject{})
 
 	if !includeInactive {
-		conditions = append(conditions, "is_active = true")
+		query = query.Where("is_active = ?", true)
 	}
 
 	if departmentID != nil && *departmentID != "" {
-		conditions = append(conditions, fmt.Sprintf("$%d = ANY(department_ids)", argIdx))
-		args = append(args, *departmentID)
-		argIdx++
-	}
-
-	whereClause := ""
-	if len(conditions) > 0 {
-		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+		query = query.Where("? = ANY(department_ids)", *departmentID)
 	}
 
 	// Count total
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM meeting_subjects %s", whereClause)
-	var total int
-	err := r.db.QueryRow(countQuery, args...).Scan(&total)
-	if err != nil {
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
 		return nil, fmt.Errorf("failed to count subjects: %w", err)
 	}
 
 	// Get page data
-	query := fmt.Sprintf(`
-		SELECT id, name, description, department_ids, is_active, created_at, updated_at
-		FROM meeting_subjects
-		%s
-		ORDER BY name ASC
-		LIMIT $%d OFFSET $%d
-	`, whereClause, argIdx, argIdx+1)
-
-	args = append(args, pageSize, offset)
-
-	rows, err := r.db.Query(query, args...)
-	if err != nil {
+	var dbSubjects []MeetingSubject
+	if err := query.Order("name ASC").Limit(pageSize).Offset(offset).Find(&dbSubjects).Error; err != nil {
 		return nil, fmt.Errorf("failed to list subjects: %w", err)
 	}
-	defer rows.Close()
 
-	subjects := []models.MeetingSubject{}
-	for rows.Next() {
-		subject := models.MeetingSubject{}
-		var departmentIDs pq.StringArray
-
-		err := rows.Scan(
-			&subject.ID,
-			&subject.Name,
-			&subject.Description,
-			&departmentIDs,
-			&subject.IsActive,
-			&subject.CreatedAt,
-			&subject.UpdatedAt,
-		)
+	subjects := make([]models.MeetingSubject, len(dbSubjects))
+	for i, dbSubject := range dbSubjects {
+		departmentIDs, err := stringSliceToUUIDSlice(dbSubject.DepartmentIDs)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan subject: %w", err)
+			return nil, err
 		}
 
-		subject.DepartmentIDs = departmentIDs
-		subjects = append(subjects, subject)
+		subjects[i] = models.MeetingSubject{
+			ID:            dbSubject.ID,
+			Name:          dbSubject.Name,
+			Description:   dbSubject.Description,
+			DepartmentIDs: departmentIDs,
+			IsActive:      dbSubject.IsActive,
+			CreatedAt:     dbSubject.CreatedAt,
+			UpdatedAt:     dbSubject.UpdatedAt,
+		}
 	}
 
 	return &models.MeetingSubjectsResponse{
 		Items:    subjects,
 		Offset:   offset,
 		PageSize: pageSize,
-		Total:    total,
+		Total:    int(total),
 	}, nil
 }
 
@@ -163,32 +149,19 @@ func (r *MeetingRepository) ListSubjects(page, pageSize int, departmentID *strin
 func (r *MeetingRepository) UpdateSubject(subject *models.MeetingSubject) error {
 	subject.UpdatedAt = time.Now()
 
-	query := `
-		UPDATE meeting_subjects
-		SET name = $2, description = $3, department_ids = $4, is_active = $5, updated_at = $6
-		WHERE id = $1
-	`
+	result := r.db.DB.Model(&MeetingSubject{}).Where("id = ?", subject.ID).Updates(map[string]interface{}{
+		"name":           subject.Name,
+		"description":    subject.Description,
+		"department_ids": uuidSliceToStringSlice(subject.DepartmentIDs),
+		"is_active":      subject.IsActive,
+		"updated_at":     subject.UpdatedAt,
+	})
 
-	result, err := r.db.Exec(
-		query,
-		subject.ID,
-		subject.Name,
-		subject.Description,
-		pq.Array(subject.DepartmentIDs),
-		subject.IsActive,
-		subject.UpdatedAt,
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to update subject: %w", err)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update subject: %w", result.Error)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("meeting subject not found")
 	}
 
@@ -196,24 +169,17 @@ func (r *MeetingRepository) UpdateSubject(subject *models.MeetingSubject) error 
 }
 
 // DeleteSubject soft deletes a meeting subject
-func (r *MeetingRepository) DeleteSubject(id string) error {
-	query := `
-		UPDATE meeting_subjects
-		SET is_active = false, updated_at = $2
-		WHERE id = $1
-	`
+func (r *MeetingRepository) DeleteSubject(id uuid.UUID) error {
+	result := r.db.DB.Model(&MeetingSubject{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"is_active":  false,
+		"updated_at": time.Now(),
+	})
 
-	result, err := r.db.Exec(query, id, time.Now())
-	if err != nil {
-		return fmt.Errorf("failed to delete subject: %w", err)
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete subject: %w", result.Error)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("meeting subject not found")
 	}
 
@@ -224,35 +190,25 @@ func (r *MeetingRepository) DeleteSubject(id string) error {
 
 // CreateMeeting creates a new meeting
 func (r *MeetingRepository) CreateMeeting(meeting *models.Meeting) error {
-	query := `
-		INSERT INTO meetings (
-			id, title, scheduled_at, duration, recurrence, type, subject_id, status,
-			needs_video_record, needs_audio_record, additional_notes, livekit_room_id,
-			created_by, created_at, updated_at
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-	`
+	dbMeeting := &Meeting{
+		ID:               meeting.ID,
+		Title:            meeting.Title,
+		ScheduledAt:      meeting.ScheduledAt,
+		Duration:         meeting.Duration,
+		Recurrence:       string(meeting.Recurrence),
+		Type:             string(meeting.Type),
+		SubjectID:        meeting.SubjectID,
+		Status:           string(meeting.Status),
+		NeedsVideoRecord: meeting.NeedsVideoRecord,
+		NeedsAudioRecord: meeting.NeedsAudioRecord,
+		AdditionalNotes:  meeting.AdditionalNotes,
+		LiveKitRoomID:    meeting.LiveKitRoomID,
+		CreatedBy:        meeting.CreatedBy,
+		CreatedAt:        meeting.CreatedAt,
+		UpdatedAt:        meeting.UpdatedAt,
+	}
 
-	_, err := r.db.Exec(
-		query,
-		meeting.ID,
-		meeting.Title,
-		meeting.ScheduledAt,
-		meeting.Duration,
-		meeting.Recurrence,
-		meeting.Type,
-		meeting.SubjectID,
-		meeting.Status,
-		meeting.NeedsVideoRecord,
-		meeting.NeedsAudioRecord,
-		meeting.AdditionalNotes,
-		meeting.LiveKitRoomID,
-		meeting.CreatedBy,
-		meeting.CreatedAt,
-		meeting.UpdatedAt,
-	)
-
-	if err != nil {
+	if err := r.db.DB.Create(dbMeeting).Error; err != nil {
 		return fmt.Errorf("failed to create meeting: %w", err)
 	}
 
@@ -260,52 +216,40 @@ func (r *MeetingRepository) CreateMeeting(meeting *models.Meeting) error {
 }
 
 // GetMeetingByID retrieves a meeting by ID
-func (r *MeetingRepository) GetMeetingByID(id string) (*models.Meeting, error) {
-	query := `
-		SELECT id, title, scheduled_at, duration, recurrence, type, subject_id, status,
-			   needs_video_record, needs_audio_record, additional_notes, livekit_room_id,
-			   created_by, created_at, updated_at
-		FROM meetings
-		WHERE id = $1
-	`
+func (r *MeetingRepository) GetMeetingByID(id uuid.UUID) (*models.Meeting, error) {
+	var dbMeeting Meeting
 
-	meeting := &models.Meeting{}
-	var liveKitRoomID sql.NullString
-
-	err := r.db.QueryRow(query, id).Scan(
-		&meeting.ID,
-		&meeting.Title,
-		&meeting.ScheduledAt,
-		&meeting.Duration,
-		&meeting.Recurrence,
-		&meeting.Type,
-		&meeting.SubjectID,
-		&meeting.Status,
-		&meeting.NeedsVideoRecord,
-		&meeting.NeedsAudioRecord,
-		&meeting.AdditionalNotes,
-		&liveKitRoomID,
-		&meeting.CreatedBy,
-		&meeting.CreatedAt,
-		&meeting.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("meeting not found")
-	}
-	if err != nil {
+	if err := r.db.DB.Where("id = ?", id).First(&dbMeeting).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("meeting not found")
+		}
 		return nil, fmt.Errorf("failed to get meeting: %w", err)
 	}
 
-	if liveKitRoomID.Valid {
-		meeting.LiveKitRoomID = &liveKitRoomID.String
+	// No parsing needed - dbMeeting fields are already uuid.UUID
+	meeting := &models.Meeting{
+		ID:               dbMeeting.ID,
+		Title:            dbMeeting.Title,
+		ScheduledAt:      dbMeeting.ScheduledAt,
+		Duration:         dbMeeting.Duration,
+		Recurrence:       models.MeetingRecurrence(dbMeeting.Recurrence),
+		Type:             models.MeetingType(dbMeeting.Type),
+		SubjectID:        dbMeeting.SubjectID,
+		Status:           models.MeetingStatus(dbMeeting.Status),
+		NeedsVideoRecord: dbMeeting.NeedsVideoRecord,
+		NeedsAudioRecord: dbMeeting.NeedsAudioRecord,
+		AdditionalNotes:  dbMeeting.AdditionalNotes,
+		LiveKitRoomID:    dbMeeting.LiveKitRoomID,
+		CreatedBy:        dbMeeting.CreatedBy,
+		CreatedAt:        dbMeeting.CreatedAt,
+		UpdatedAt:        dbMeeting.UpdatedAt,
 	}
 
 	return meeting, nil
 }
 
 // GetMeetingWithDetails retrieves a meeting with all related information
-func (r *MeetingRepository) GetMeetingWithDetails(id string) (*models.MeetingWithDetails, error) {
+func (r *MeetingRepository) GetMeetingWithDetails(id uuid.UUID) (*models.MeetingWithDetails, error) {
 	meeting, err := r.GetMeetingByID(id)
 	if err != nil {
 		return nil, err
@@ -361,39 +305,27 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 
 	offset := (req.Page - 1) * req.PageSize
 
-	// Build WHERE conditions
-	conditions := []string{}
-	args := []interface{}{}
-	argIdx := 1
+	// Build query
+	query := r.db.DB.Model(&Meeting{})
 
 	if req.Status != nil {
-		conditions = append(conditions, fmt.Sprintf("m.status = $%d", argIdx))
-		args = append(args, *req.Status)
-		argIdx++
+		query = query.Where("status = ?", *req.Status)
 	}
 
 	if req.Type != nil {
-		conditions = append(conditions, fmt.Sprintf("m.type = $%d", argIdx))
-		args = append(args, *req.Type)
-		argIdx++
+		query = query.Where("type = ?", *req.Type)
 	}
 
 	if req.SubjectID != nil {
-		conditions = append(conditions, fmt.Sprintf("m.subject_id = $%d", argIdx))
-		args = append(args, *req.SubjectID)
-		argIdx++
+		query = query.Where("subject_id = ?", *req.SubjectID)
 	}
 
 	if req.DateFrom != nil {
-		conditions = append(conditions, fmt.Sprintf("m.scheduled_at >= $%d", argIdx))
-		args = append(args, *req.DateFrom)
-		argIdx++
+		query = query.Where("scheduled_at >= ?", *req.DateFrom)
 	}
 
 	if req.DateTo != nil {
-		conditions = append(conditions, fmt.Sprintf("m.scheduled_at <= $%d", argIdx))
-		args = append(args, *req.DateTo)
-		argIdx++
+		query = query.Where("scheduled_at <= ?", *req.DateTo)
 	}
 
 	// Filter by speaker or participant
@@ -403,81 +335,53 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 			userID = req.UserID
 		}
 
-		conditions = append(conditions, fmt.Sprintf(`
-			m.id IN (
-				SELECT meeting_id FROM meeting_participants WHERE user_id = $%d
-			)
-		`, argIdx))
-		args = append(args, *userID)
-		argIdx++
-	}
-
-	whereClause := ""
-	if len(conditions) > 0 {
-		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+		query = query.Where("id IN (?)",
+			r.db.DB.Table("meeting_participants").Select("meeting_id").Where("user_id = ?", *userID),
+		)
 	}
 
 	// Count total
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM meetings m %s", whereClause)
-	var total int
-	err := r.db.QueryRow(countQuery, args...).Scan(&total)
-	if err != nil {
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
 		return nil, fmt.Errorf("failed to count meetings: %w", err)
 	}
 
 	// Get page data
-	query := fmt.Sprintf(`
-		SELECT m.id, m.title, m.scheduled_at, m.duration, m.recurrence, m.type, m.subject_id,
-			   m.status, m.needs_video_record, m.needs_audio_record, m.additional_notes,
-			   m.livekit_room_id, m.created_by, m.created_at, m.updated_at
-		FROM meetings m
-		%s
-		ORDER BY m.scheduled_at DESC
-		LIMIT $%d OFFSET $%d
-	`, whereClause, argIdx, argIdx+1)
-
-	args = append(args, req.PageSize, offset)
-
-	rows, err := r.db.Query(query, args...)
-	if err != nil {
+	var dbMeetings []Meeting
+	if err := query.Order("scheduled_at DESC").Limit(req.PageSize).Offset(offset).Find(&dbMeetings).Error; err != nil {
 		return nil, fmt.Errorf("failed to list meetings: %w", err)
 	}
-	defer rows.Close()
 
-	meetingIDs := []string{}
-	meetingsMap := make(map[string]*models.MeetingWithDetails)
+	meetingIDs := make([]uuid.UUID, len(dbMeetings))
+	meetingsMap := make(map[uuid.UUID]*models.MeetingWithDetails)
 
-	for rows.Next() {
-		meeting := models.Meeting{}
-		var liveKitRoomID sql.NullString
+	for i, dbMeeting := range dbMeetings {
+		// No parsing needed - fields are already uuid.UUID
+		meetingID := dbMeeting.ID
+		subjectID := dbMeeting.SubjectID
+		createdBy := dbMeeting.CreatedBy
+		liveKitRoomID := dbMeeting.LiveKitRoomID
 
-		err := rows.Scan(
-			&meeting.ID,
-			&meeting.Title,
-			&meeting.ScheduledAt,
-			&meeting.Duration,
-			&meeting.Recurrence,
-			&meeting.Type,
-			&meeting.SubjectID,
-			&meeting.Status,
-			&meeting.NeedsVideoRecord,
-			&meeting.NeedsAudioRecord,
-			&meeting.AdditionalNotes,
-			&liveKitRoomID,
-			&meeting.CreatedBy,
-			&meeting.CreatedAt,
-			&meeting.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan meeting: %w", err)
+		meeting := models.Meeting{
+			ID:               meetingID,
+			Title:            dbMeeting.Title,
+			ScheduledAt:      dbMeeting.ScheduledAt,
+			Duration:         dbMeeting.Duration,
+			Recurrence:       models.MeetingRecurrence(dbMeeting.Recurrence),
+			Type:             models.MeetingType(dbMeeting.Type),
+			SubjectID:        subjectID,
+			Status:           models.MeetingStatus(dbMeeting.Status),
+			NeedsVideoRecord: dbMeeting.NeedsVideoRecord,
+			NeedsAudioRecord: dbMeeting.NeedsAudioRecord,
+			AdditionalNotes:  dbMeeting.AdditionalNotes,
+			LiveKitRoomID:    liveKitRoomID,
+			CreatedBy:        createdBy,
+			CreatedAt:        dbMeeting.CreatedAt,
+			UpdatedAt:        dbMeeting.UpdatedAt,
 		}
 
-		if liveKitRoomID.Valid {
-			meeting.LiveKitRoomID = &liveKitRoomID.String
-		}
-
-		meetingIDs = append(meetingIDs, meeting.ID)
-		meetingsMap[meeting.ID] = &models.MeetingWithDetails{
+		meetingIDs[i] = dbMeeting.ID
+		meetingsMap[dbMeeting.ID] = &models.MeetingWithDetails{
 			Meeting:      meeting,
 			Participants: []models.MeetingParticipantInfo{},
 			Departments:  []models.Department{},
@@ -500,60 +404,55 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 	}
 
 	// Convert map to slice
-	meetings := []models.MeetingWithDetails{}
-	for _, id := range meetingIDs {
-		meetings = append(meetings, *meetingsMap[id])
+	meetings := make([]models.MeetingWithDetails, len(meetingIDs))
+	for i, id := range meetingIDs {
+		meetings[i] = *meetingsMap[id]
 	}
 
 	return &models.MeetingsResponse{
 		Items:    meetings,
 		Offset:   offset,
 		PageSize: req.PageSize,
-		Total:    total,
+		Total:    int(total),
 	}, nil
 }
 
 // Helper methods for loading related data
-func (r *MeetingRepository) loadMeetingSubjects(meetingsMap map[string]*models.MeetingWithDetails, meetingIDs []string) {
+func (r *MeetingRepository) loadMeetingSubjects(meetingsMap map[uuid.UUID]*models.MeetingWithDetails, meetingIDs []uuid.UUID) {
 	subjectIDs := []string{}
 	for _, meeting := range meetingsMap {
-		subjectIDs = append(subjectIDs, meeting.SubjectID)
+		subjectIDs = append(subjectIDs, meeting.SubjectID.String())
 	}
 
 	if len(subjectIDs) == 0 {
 		return
 	}
 
-	query := `
-		SELECT id, name, description, department_ids, is_active, created_at, updated_at
-		FROM meeting_subjects
-		WHERE id = ANY($1)
-	`
-
-	rows, err := r.db.Query(query, pq.Array(subjectIDs))
-	if err != nil {
+	var dbSubjects []MeetingSubject
+	if err := r.db.DB.Where("id IN ?", subjectIDs).Find(&dbSubjects).Error; err != nil {
 		return
 	}
-	defer rows.Close()
 
-	subjectsMap := make(map[string]*models.MeetingSubject)
-	for rows.Next() {
-		subject := &models.MeetingSubject{}
-		var departmentIDs pq.StringArray
+	subjectsMap := make(map[uuid.UUID]*models.MeetingSubject)
+	for _, dbSubject := range dbSubjects {
+		subjectID := dbSubject.ID
 
-		err := rows.Scan(
-			&subject.ID,
-			&subject.Name,
-			&subject.Description,
-			&departmentIDs,
-			&subject.IsActive,
-			&subject.CreatedAt,
-			&subject.UpdatedAt,
-		)
-		if err == nil {
-			subject.DepartmentIDs = departmentIDs
-			subjectsMap[subject.ID] = subject
+		departmentIDs, parseErr := stringSliceToUUIDSlice(dbSubject.DepartmentIDs)
+		if parseErr != nil {
+			// Log error and skip this subject
+			continue
 		}
+
+		subject := &models.MeetingSubject{
+			ID:            subjectID,
+			Name:          dbSubject.Name,
+			Description:   dbSubject.Description,
+			DepartmentIDs: departmentIDs,
+			IsActive:      dbSubject.IsActive,
+			CreatedAt:     dbSubject.CreatedAt,
+			UpdatedAt:     dbSubject.UpdatedAt,
+		}
+		subjectsMap[dbSubject.ID] = subject
 	}
 
 	for _, meeting := range meetingsMap {
@@ -563,150 +462,153 @@ func (r *MeetingRepository) loadMeetingSubjects(meetingsMap map[string]*models.M
 	}
 }
 
-func (r *MeetingRepository) loadMeetingParticipants(meetingsMap map[string]*models.MeetingWithDetails, meetingIDs []string) {
-	query := `
-		SELECT mp.id, mp.meeting_id, mp.user_id, mp.role, mp.status, mp.joined_at, mp.left_at, mp.created_at,
-			   u.id, u.username, u.email, u.role, u.department_id
-		FROM meeting_participants mp
-		JOIN users u ON mp.user_id = u.id
-		WHERE mp.meeting_id = ANY($1)
-		ORDER BY mp.role DESC, u.username ASC
-	`
+func (r *MeetingRepository) loadMeetingParticipants(meetingsMap map[uuid.UUID]*models.MeetingWithDetails, meetingIDs []uuid.UUID) {
+	type ParticipantWithUser struct {
+		MeetingParticipant
+		Username     string  `gorm:"column:username"`
+		Email        string  `gorm:"column:email"`
+		UserRole     string  `gorm:"column:user_role"`
+		DepartmentID *string `gorm:"column:department_id"`
+	}
 
-	rows, err := r.db.Query(query, pq.Array(meetingIDs))
-	if err != nil {
+	var results []ParticipantWithUser
+	if err := r.db.DB.Table("meeting_participants mp").
+		Select("mp.id, mp.meeting_id, mp.user_id, mp.role, mp.status, mp.joined_at, mp.left_at, mp.created_at, u.username, u.email, u.role as user_role, u.department_id").
+		Joins("JOIN users u ON mp.user_id = u.id").
+		Where("mp.meeting_id IN ?", meetingIDs).
+		Order("mp.role DESC, u.username ASC").
+		Find(&results).Error; err != nil {
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
+	for _, result := range results {
+		partID := result.ID
+
+		meetingID := result.MeetingID
+
+		userID := result.UserID
+
+		var deptID *uuid.UUID
+		if result.DepartmentID != nil {
+			did, err := uuid.Parse(*result.DepartmentID)
+			if err == nil {
+				deptID = &did
+			}
+		}
+
 		participant := models.MeetingParticipantInfo{
-			User: &models.UserInfo{},
-		}
-		var joinedAt, leftAt sql.NullTime
-		var departmentID sql.NullString
-
-		err := rows.Scan(
-			&participant.ID,
-			&participant.MeetingID,
-			&participant.UserID,
-			&participant.Role,
-			&participant.Status,
-			&joinedAt,
-			&leftAt,
-			&participant.CreatedAt,
-			&participant.User.ID,
-			&participant.User.Username,
-			&participant.User.Email,
-			&participant.User.Role,
-			&departmentID,
-		)
-		if err != nil {
-			continue
+			MeetingParticipant: models.MeetingParticipant{
+				ID:        partID,
+				MeetingID: meetingID,
+				UserID:    userID,
+				Role:      result.Role,
+				Status:    result.Status,
+				JoinedAt:  result.JoinedAt,
+				LeftAt:    result.LeftAt,
+				CreatedAt: result.CreatedAt,
+			},
+			User: &models.UserInfo{
+				ID:           userID,
+				Username:     result.Username,
+				Email:        result.Email,
+				Role:         models.UserRole(result.UserRole),
+				DepartmentID: deptID,
+			},
 		}
 
-		if joinedAt.Valid {
-			participant.JoinedAt = &joinedAt.Time
-		}
-		if leftAt.Valid {
-			participant.LeftAt = &leftAt.Time
-		}
-		if departmentID.Valid {
-			participant.User.DepartmentID = &departmentID.String
-		}
-
-		if meeting, ok := meetingsMap[participant.MeetingID]; ok {
+		if meeting, ok := meetingsMap[result.MeetingID]; ok {
 			meeting.Participants = append(meeting.Participants, participant)
 		}
 	}
 }
 
-func (r *MeetingRepository) loadMeetingDepartments(meetingsMap map[string]*models.MeetingWithDetails, meetingIDs []string) {
-	query := `
-		SELECT md.meeting_id, d.id, d.name, d.description, d.parent_id, d.level, d.path, d.is_active, d.created_at, d.updated_at
-		FROM meeting_departments md
-		JOIN departments d ON md.department_id = d.id
-		WHERE md.meeting_id = ANY($1)
-		ORDER BY d.name ASC
-	`
+func (r *MeetingRepository) loadMeetingDepartments(meetingsMap map[uuid.UUID]*models.MeetingWithDetails, meetingIDs []uuid.UUID) {
+	type MeetingDeptWithInfo struct {
+		MeetingID   uuid.UUID  `gorm:"column:meeting_id"`
+		ID          uuid.UUID  `gorm:"column:id"`
+		Name        string  `gorm:"column:name"`
+		Description string  `gorm:"column:description"`
+		ParentID    *string `gorm:"column:parent_id"`
+		Level       int     `gorm:"column:level"`
+		Path        string  `gorm:"column:path"`
+		IsActive    bool    `gorm:"column:is_active"`
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+	}
 
-	rows, err := r.db.Query(query, pq.Array(meetingIDs))
-	if err != nil {
+	var results []MeetingDeptWithInfo
+	if err := r.db.DB.Table("meeting_departments md").
+		Select("md.meeting_id, d.id, d.name, d.description, d.parent_id, d.level, d.path, d.is_active, d.created_at, d.updated_at").
+		Joins("JOIN departments d ON md.department_id = d.id").
+		Where("md.meeting_id IN ?", meetingIDs).
+		Order("d.name ASC").
+		Find(&results).Error; err != nil {
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var meetingID string
-		dept := models.Department{}
-		var parentID sql.NullString
+	for _, result := range results {
+		deptID := result.ID
 
-		err := rows.Scan(
-			&meetingID,
-			&dept.ID,
-			&dept.Name,
-			&dept.Description,
-			&parentID,
-			&dept.Level,
-			&dept.Path,
-			&dept.IsActive,
-			&dept.CreatedAt,
-			&dept.UpdatedAt,
-		)
-		if err != nil {
-			continue
+		var parentID *uuid.UUID
+		if result.ParentID != nil {
+			pid, err := uuid.Parse(*result.ParentID)
+			if err == nil {
+				parentID = &pid
+			}
 		}
 
-		if parentID.Valid {
-			dept.ParentID = &parentID.String
+		dept := models.Department{
+			ID:          deptID,
+			Name:        result.Name,
+			Description: result.Description,
+			ParentID:    parentID,
+			Level:       result.Level,
+			Path:        result.Path,
+			IsActive:    result.IsActive,
+			CreatedAt:   result.CreatedAt,
+			UpdatedAt:   result.UpdatedAt,
 		}
 
-		if meeting, ok := meetingsMap[meetingID]; ok {
+		if meeting, ok := meetingsMap[result.MeetingID]; ok {
 			meeting.Departments = append(meeting.Departments, dept)
 		}
 	}
 }
 
-func (r *MeetingRepository) loadMeetingCreators(meetingsMap map[string]*models.MeetingWithDetails, meetingIDs []string) {
+func (r *MeetingRepository) loadMeetingCreators(meetingsMap map[uuid.UUID]*models.MeetingWithDetails, meetingIDs []uuid.UUID) {
 	creatorIDs := []string{}
 	for _, meeting := range meetingsMap {
-		creatorIDs = append(creatorIDs, meeting.CreatedBy)
+		creatorIDs = append(creatorIDs, meeting.CreatedBy.String())
 	}
 
 	if len(creatorIDs) == 0 {
 		return
 	}
 
-	query := `
-		SELECT id, username, email, role, department_id
-		FROM users
-		WHERE id = ANY($1)
-	`
-
-	rows, err := r.db.Query(query, pq.Array(creatorIDs))
-	if err != nil {
+	var dbUsers []User
+	if err := r.db.DB.Select("id, username, email, role, department_id").
+		Where("id IN ?", creatorIDs).
+		Find(&dbUsers).Error; err != nil {
 		return
 	}
-	defer rows.Close()
 
-	creatorsMap := make(map[string]*models.UserInfo)
-	for rows.Next() {
-		user := &models.UserInfo{}
-		var departmentID sql.NullString
+	creatorsMap := make(map[uuid.UUID]*models.UserInfo)
+	for _, dbUser := range dbUsers {
+		userID := dbUser.ID
 
-		err := rows.Scan(
-			&user.ID,
-			&user.Username,
-			&user.Email,
-			&user.Role,
-			&departmentID,
-		)
-		if err == nil {
-			if departmentID.Valid {
-				user.DepartmentID = &departmentID.String
-			}
-			creatorsMap[user.ID] = user
+		var deptID *uuid.UUID
+		if dbUser.DepartmentID != nil {
+			deptID = dbUser.DepartmentID
 		}
+
+		user := &models.UserInfo{
+			ID:           userID,
+			Username:     dbUser.Username,
+			Email:        dbUser.Email,
+			Role:         models.UserRole(dbUser.Role),
+			DepartmentID: deptID,
+		}
+		creatorsMap[dbUser.ID] = user
 	}
 
 	for _, meeting := range meetingsMap {
@@ -720,41 +622,32 @@ func (r *MeetingRepository) loadMeetingCreators(meetingsMap map[string]*models.M
 func (r *MeetingRepository) UpdateMeeting(meeting *models.Meeting) error {
 	meeting.UpdatedAt = time.Now()
 
-	query := `
-		UPDATE meetings
-		SET title = $2, scheduled_at = $3, duration = $4, recurrence = $5, type = $6,
-		    subject_id = $7, status = $8, needs_video_record = $9, needs_audio_record = $10,
-		    additional_notes = $11, livekit_room_id = $12, updated_at = $13
-		WHERE id = $1
-	`
-
-	result, err := r.db.Exec(
-		query,
-		meeting.ID,
-		meeting.Title,
-		meeting.ScheduledAt,
-		meeting.Duration,
-		meeting.Recurrence,
-		meeting.Type,
-		meeting.SubjectID,
-		meeting.Status,
-		meeting.NeedsVideoRecord,
-		meeting.NeedsAudioRecord,
-		meeting.AdditionalNotes,
-		meeting.LiveKitRoomID,
-		meeting.UpdatedAt,
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to update meeting: %w", err)
+	var liveKitRoomID *string
+	if meeting.LiveKitRoomID != nil {
+		roomIDStr := meeting.LiveKitRoomID.String()
+		liveKitRoomID = &roomIDStr
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+	result := r.db.DB.Model(&Meeting{}).Where("id = ?", meeting.ID.String()).Updates(map[string]interface{}{
+		"title":              meeting.Title,
+		"scheduled_at":       meeting.ScheduledAt,
+		"duration":           meeting.Duration,
+		"recurrence":         string(meeting.Recurrence),
+		"type":               string(meeting.Type),
+		"subject_id":         meeting.SubjectID.String(),
+		"status":             string(meeting.Status),
+		"needs_video_record": meeting.NeedsVideoRecord,
+		"needs_audio_record": meeting.NeedsAudioRecord,
+		"additional_notes":   meeting.AdditionalNotes,
+		"livekit_room_id":    liveKitRoomID,
+		"updated_at":         meeting.UpdatedAt,
+	})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to update meeting: %w", result.Error)
 	}
 
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("meeting not found")
 	}
 
@@ -762,20 +655,14 @@ func (r *MeetingRepository) UpdateMeeting(meeting *models.Meeting) error {
 }
 
 // DeleteMeeting deletes a meeting
-func (r *MeetingRepository) DeleteMeeting(id string) error {
-	query := `DELETE FROM meetings WHERE id = $1`
+func (r *MeetingRepository) DeleteMeeting(id uuid.UUID) error {
+	result := r.db.DB.Where("id = ?", id).Delete(&Meeting{})
 
-	result, err := r.db.Exec(query, id)
-	if err != nil {
-		return fmt.Errorf("failed to delete meeting: %w", err)
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete meeting: %w", result.Error)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("meeting not found")
 	}
 
@@ -786,24 +673,20 @@ func (r *MeetingRepository) DeleteMeeting(id string) error {
 
 // AddParticipant adds a participant to a meeting
 func (r *MeetingRepository) AddParticipant(participant *models.MeetingParticipant) error {
-	query := `
-		INSERT INTO meeting_participants (id, meeting_id, user_id, role, status, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (meeting_id, user_id) DO UPDATE
-		SET role = EXCLUDED.role, status = EXCLUDED.status
-	`
+	dbParticipant := &MeetingParticipant{
+		ID:        participant.ID,
+		MeetingID: participant.MeetingID,
+		UserID:    participant.UserID,
+		Role:      participant.Role,
+		Status:    participant.Status,
+		CreatedAt: participant.CreatedAt,
+	}
 
-	_, err := r.db.Exec(
-		query,
-		participant.ID,
-		participant.MeetingID,
-		participant.UserID,
-		participant.Role,
-		participant.Status,
-		participant.CreatedAt,
-	)
-
-	if err != nil {
+	// Use GORM Clauses for ON CONFLICT
+	if err := r.db.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "meeting_id"}, {Name: "user_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"role", "status"}),
+	}).Create(dbParticipant).Error; err != nil {
 		return fmt.Errorf("failed to add participant: %w", err)
 	}
 
@@ -811,20 +694,14 @@ func (r *MeetingRepository) AddParticipant(participant *models.MeetingParticipan
 }
 
 // RemoveParticipant removes a participant from a meeting
-func (r *MeetingRepository) RemoveParticipant(meetingID, userID string) error {
-	query := `DELETE FROM meeting_participants WHERE meeting_id = $1 AND user_id = $2`
+func (r *MeetingRepository) RemoveParticipant(meetingID, userID uuid.UUID) error {
+	result := r.db.DB.Where("meeting_id = ? AND user_id = ?", meetingID, userID).Delete(&MeetingParticipant{})
 
-	result, err := r.db.Exec(query, meetingID, userID)
-	if err != nil {
-		return fmt.Errorf("failed to remove participant: %w", err)
+	if result.Error != nil {
+		return fmt.Errorf("failed to remove participant: %w", result.Error)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("participant not found")
 	}
 
@@ -832,60 +709,60 @@ func (r *MeetingRepository) RemoveParticipant(meetingID, userID string) error {
 }
 
 // GetMeetingParticipants retrieves all participants of a meeting with user info
-func (r *MeetingRepository) GetMeetingParticipants(meetingID string) ([]models.MeetingParticipantInfo, error) {
-	query := `
-		SELECT mp.id, mp.meeting_id, mp.user_id, mp.role, mp.status, mp.joined_at, mp.left_at, mp.created_at,
-			   u.id, u.username, u.email, u.role, u.department_id
-		FROM meeting_participants mp
-		JOIN users u ON mp.user_id = u.id
-		WHERE mp.meeting_id = $1
-		ORDER BY mp.role DESC, u.username ASC
-	`
+func (r *MeetingRepository) GetMeetingParticipants(meetingID uuid.UUID) ([]models.MeetingParticipantInfo, error) {
+	type ParticipantWithUser struct {
+		MeetingParticipant
+		Username     string  `gorm:"column:username"`
+		Email        string  `gorm:"column:email"`
+		UserRole     string  `gorm:"column:user_role"`
+		DepartmentID *string `gorm:"column:department_id"`
+	}
 
-	rows, err := r.db.Query(query, meetingID)
-	if err != nil {
+	var results []ParticipantWithUser
+	if err := r.db.DB.Table("meeting_participants mp").
+		Select("mp.id, mp.meeting_id, mp.user_id, mp.role, mp.status, mp.joined_at, mp.left_at, mp.created_at, u.username, u.email, u.role as user_role, u.department_id").
+		Joins("JOIN users u ON mp.user_id = u.id").
+		Where("mp.meeting_id = ?", meetingID).
+		Order("mp.role DESC, u.username ASC").
+		Find(&results).Error; err != nil {
 		return nil, fmt.Errorf("failed to get participants: %w", err)
 	}
-	defer rows.Close()
 
-	participants := []models.MeetingParticipantInfo{}
-	for rows.Next() {
-		participant := models.MeetingParticipantInfo{
-			User: &models.UserInfo{},
-		}
-		var joinedAt, leftAt sql.NullTime
-		var departmentID sql.NullString
+	participants := make([]models.MeetingParticipantInfo, 0, len(results))
+	for _, result := range results {
+		partID := result.ID
 
-		err := rows.Scan(
-			&participant.ID,
-			&participant.MeetingID,
-			&participant.UserID,
-			&participant.Role,
-			&participant.Status,
-			&joinedAt,
-			&leftAt,
-			&participant.CreatedAt,
-			&participant.User.ID,
-			&participant.User.Username,
-			&participant.User.Email,
-			&participant.User.Role,
-			&departmentID,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan participant: %w", err)
+		meetID := result.MeetingID
+
+		userID := result.UserID
+
+		var deptID *uuid.UUID
+		if result.DepartmentID != nil {
+			did, err := uuid.Parse(*result.DepartmentID)
+			if err == nil {
+				deptID = &did
+			}
 		}
 
-		if joinedAt.Valid {
-			participant.JoinedAt = &joinedAt.Time
-		}
-		if leftAt.Valid {
-			participant.LeftAt = &leftAt.Time
-		}
-		if departmentID.Valid {
-			participant.User.DepartmentID = &departmentID.String
-		}
-
-		participants = append(participants, participant)
+		participants = append(participants, models.MeetingParticipantInfo{
+			MeetingParticipant: models.MeetingParticipant{
+				ID:        partID,
+				MeetingID: meetID,
+				UserID:    userID,
+				Role:      result.Role,
+				Status:    result.Status,
+				JoinedAt:  result.JoinedAt,
+				LeftAt:    result.LeftAt,
+				CreatedAt: result.CreatedAt,
+			},
+			User: &models.UserInfo{
+				ID:           userID,
+				Username:     result.Username,
+				Email:        result.Email,
+				Role:         models.UserRole(result.UserRole),
+				DepartmentID: deptID,
+			},
+		})
 	}
 
 	return participants, nil
@@ -895,21 +772,18 @@ func (r *MeetingRepository) GetMeetingParticipants(meetingID string) ([]models.M
 
 // AddDepartment adds a department to a meeting
 func (r *MeetingRepository) AddDepartment(meetingDept *models.MeetingDepartment) error {
-	query := `
-		INSERT INTO meeting_departments (id, meeting_id, department_id, created_at)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (meeting_id, department_id) DO NOTHING
-	`
+	dbMeetingDept := &MeetingDepartment{
+		ID:           meetingDept.ID,
+		MeetingID:    meetingDept.MeetingID,
+		DepartmentID: meetingDept.DepartmentID,
+		CreatedAt:    meetingDept.CreatedAt,
+	}
 
-	_, err := r.db.Exec(
-		query,
-		meetingDept.ID,
-		meetingDept.MeetingID,
-		meetingDept.DepartmentID,
-		meetingDept.CreatedAt,
-	)
-
-	if err != nil {
+	// Use GORM Clauses for ON CONFLICT DO NOTHING
+	if err := r.db.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "meeting_id"}, {Name: "department_id"}},
+		DoNothing: true,
+	}).Create(dbMeetingDept).Error; err != nil {
 		return fmt.Errorf("failed to add department: %w", err)
 	}
 
@@ -917,20 +791,14 @@ func (r *MeetingRepository) AddDepartment(meetingDept *models.MeetingDepartment)
 }
 
 // RemoveDepartment removes a department from a meeting
-func (r *MeetingRepository) RemoveDepartment(meetingID, departmentID string) error {
-	query := `DELETE FROM meeting_departments WHERE meeting_id = $1 AND department_id = $2`
+func (r *MeetingRepository) RemoveDepartment(meetingID, departmentID uuid.UUID) error {
+	result := r.db.DB.Where("meeting_id = ? AND department_id = ?", meetingID, departmentID).Delete(&MeetingDepartment{})
 
-	result, err := r.db.Exec(query, meetingID, departmentID)
-	if err != nil {
-		return fmt.Errorf("failed to remove department: %w", err)
+	if result.Error != nil {
+		return fmt.Errorf("failed to remove department: %w", result.Error)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("department not found in meeting")
 	}
 
@@ -938,46 +806,42 @@ func (r *MeetingRepository) RemoveDepartment(meetingID, departmentID string) err
 }
 
 // GetMeetingDepartments retrieves all departments invited to a meeting
-func (r *MeetingRepository) GetMeetingDepartments(meetingID string) ([]models.Department, error) {
-	query := `
-		SELECT d.id, d.name, d.description, d.parent_id, d.level, d.path, d.is_active, d.created_at, d.updated_at
-		FROM meeting_departments md
-		JOIN departments d ON md.department_id = d.id
-		WHERE md.meeting_id = $1
-		ORDER BY d.name ASC
-	`
+func (r *MeetingRepository) GetMeetingDepartments(meetingID uuid.UUID) ([]models.Department, error) {
+	type DeptInfo struct {
+		ID          uuid.UUID  `gorm:"column:id"`
+		Name        string     `gorm:"column:name"`
+		Description string     `gorm:"column:description"`
+		ParentID    *uuid.UUID `gorm:"column:parent_id"`
+		Level       int        `gorm:"column:level"`
+		Path        string     `gorm:"column:path"`
+		IsActive    bool       `gorm:"column:is_active"`
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+	}
 
-	rows, err := r.db.Query(query, meetingID)
-	if err != nil {
+	var results []DeptInfo
+	if err := r.db.DB.Table("meeting_departments md").
+		Select("d.id, d.name, d.description, d.parent_id, d.level, d.path, d.is_active, d.created_at, d.updated_at").
+		Joins("JOIN departments d ON md.department_id = d.id").
+		Where("md.meeting_id = ?", meetingID).
+		Order("d.name ASC").
+		Find(&results).Error; err != nil {
 		return nil, fmt.Errorf("failed to get departments: %w", err)
 	}
-	defer rows.Close()
 
-	departments := []models.Department{}
-	for rows.Next() {
-		dept := models.Department{}
-		var parentID sql.NullString
-
-		err := rows.Scan(
-			&dept.ID,
-			&dept.Name,
-			&dept.Description,
-			&parentID,
-			&dept.Level,
-			&dept.Path,
-			&dept.IsActive,
-			&dept.CreatedAt,
-			&dept.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan department: %w", err)
-		}
-
-		if parentID.Valid {
-			dept.ParentID = &parentID.String
-		}
-
-		departments = append(departments, dept)
+	departments := make([]models.Department, 0, len(results))
+	for _, result := range results {
+		departments = append(departments, models.Department{
+			ID:          result.ID,
+			Name:        result.Name,
+			Description: result.Description,
+			ParentID:    result.ParentID,
+			Level:       result.Level,
+			Path:        result.Path,
+			IsActive:    result.IsActive,
+			CreatedAt:   result.CreatedAt,
+			UpdatedAt:   result.UpdatedAt,
+		})
 	}
 
 	return departments, nil

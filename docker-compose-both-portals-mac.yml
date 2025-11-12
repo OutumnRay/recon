@@ -82,6 +82,8 @@ services:
       - SERVER_PORT=8081
     ports:
       - "${USER_PORTAL_PORT:-10081}:8081"
+    volumes:
+      - ./pkg/email/templates:/root/pkg/email/templates:ro
     depends_on:
       postgres:
         condition: service_healthy

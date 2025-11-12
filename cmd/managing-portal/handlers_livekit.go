@@ -46,7 +46,7 @@ func (mp *ManagingPortal) liveKitWebhookHandler(w http.ResponseWriter, r *http.R
 
 	// Log the raw event to database
 	eventLog := &models.WebhookEventLog{
-		ID:        uuid.New().String(),
+		ID:        uuid.New(),
 		EventType: webhookReq.Event,
 		EventID:   webhookReq.ID,
 		Payload:   body,
@@ -119,7 +119,7 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	}
 
 	room := &models.Room{
-		ID:     uuid.New().String(),
+		ID:     uuid.New(),
 		Status: "active",
 		StartedAt: time.Now(),
 		CreatedAtDB: time.Now(),
@@ -180,7 +180,7 @@ func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) err
 	}
 
 	participant := &models.Participant{
-		ID:    uuid.New().String(),
+		ID:    uuid.New(),
 		State: "ACTIVE",
 		CreatedAtDB: time.Now(),
 		UpdatedAt: time.Now(),
@@ -234,7 +234,7 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	}
 
 	track := &models.Track{
-		ID:     uuid.New().String(),
+		ID:     uuid.New(),
 		Status: "published",
 		PublishedAt: time.Now(),
 		CreatedAtDB: time.Now(),
@@ -587,8 +587,14 @@ func (mp *ManagingPortal) autoStartRoomRecording(roomSID string, roomName string
 	mp.logger.Infof("Room recording started successfully. Egress ID: %s", egressInfo.EgressId)
 
 	// Store egress info in database
+	egressID, err := uuid.Parse(egressInfo.EgressId)
+	if err != nil {
+		mp.logger.Errorf("Invalid egress ID format: %v", err)
+		return
+	}
+
 	egress := &database.LiveKitEgress{
-		ID:        egressInfo.EgressId,
+		ID:        egressID,
 		RoomSID:   roomSID,
 		RoomName:  roomName,
 		Type:      "room_composite",
@@ -625,7 +631,7 @@ func (mp *ManagingPortal) autoStopRoomRecordings(roomSID string) {
 	for _, egress := range egresses {
 		mp.logger.Infof("Stopping egress: %s", egress.ID)
 
-		_, err := mp.egressClient.StopEgress(ctx, egress.ID)
+		_, err := mp.egressClient.StopEgress(ctx, egress.ID.String())
 		if err != nil {
 			mp.logger.Errorf("Failed to stop egress %s: %v", egress.ID, err)
 			continue

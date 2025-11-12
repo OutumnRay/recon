@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // MetricType represents the type of metric
 type MetricType string
@@ -14,8 +18,8 @@ const (
 
 // Metric represents a telemetry metric
 type Metric struct {
-	ID         string                 `json:"id" db:"id"`
-	ServiceID  string                 `json:"service_id" db:"service_id"`
+	ID         uuid.UUID              `json:"id" db:"id"`
+	ServiceID  uuid.UUID              `json:"service_id" db:"service_id"`
 	Name       string                 `json:"name" db:"name"`
 	Type       MetricType             `json:"type" db:"type"`
 	Value      float64                `json:"value" db:"value"`
@@ -27,7 +31,7 @@ type Metric struct {
 
 // MetricsBatch represents a batch of metrics sent by a service
 type MetricsBatch struct {
-	ServiceID string    `json:"service_id" binding:"required" example:"service-001"`
+	ServiceID uuid.UUID `json:"service_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Metrics   []Metric  `json:"metrics" binding:"required"`
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -55,7 +59,7 @@ type MetricsQueryResponse struct {
 
 // ServiceMetricsSummary represents aggregated metrics for a service
 type ServiceMetricsSummary struct {
-	ServiceID        string            `json:"service_id"`
+	ServiceID        uuid.UUID         `json:"service_id"`
 	TotalRequests    int64             `json:"total_requests"`
 	FailedRequests   int64             `json:"failed_requests"`
 	AverageLatency   float64           `json:"average_latency_ms"`
@@ -75,8 +79,8 @@ type SystemMetrics struct {
 
 // LogEntry represents a log entry sent by services
 type LogEntry struct {
-	ID        string                 `json:"id" db:"id"`
-	ServiceID string                 `json:"service_id" db:"service_id"`
+	ID        uuid.UUID              `json:"id" db:"id"`
+	ServiceID uuid.UUID              `json:"service_id" db:"service_id"`
 	Level     string                 `json:"level" db:"level"` // debug, info, warn, error
 	Message   string                 `json:"message" db:"message"`
 	Context   map[string]interface{} `json:"context,omitempty" db:"context"`

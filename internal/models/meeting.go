@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // MeetingType represents the type of meeting
 type MeetingType string
@@ -32,52 +36,52 @@ const (
 
 // MeetingSubject represents a meeting subject/topic category
 type MeetingSubject struct {
-	ID            string    `json:"id" db:"id"`
-	Name          string    `json:"name" db:"name"`
-	Description   string    `json:"description" db:"description"`
-	DepartmentIDs []string  `json:"department_ids" db:"department_ids"` // Departments this subject is linked to
-	IsActive      bool      `json:"is_active" db:"is_active"`
-	CreatedAt     time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID    `json:"id" db:"id"`
+	Name          string       `json:"name" db:"name"`
+	Description   string       `json:"description" db:"description"`
+	DepartmentIDs []uuid.UUID  `json:"department_ids" db:"department_ids"` // Departments this subject is linked to
+	IsActive      bool         `json:"is_active" db:"is_active"`
+	CreatedAt     time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at" db:"updated_at"`
 }
 
 // Meeting represents a video meeting
 type Meeting struct {
-	ID                   string            `json:"id" db:"id"`
+	ID                   uuid.UUID         `json:"id" db:"id"`
 	Title                string            `json:"title" db:"title"`
 	ScheduledAt          time.Time         `json:"scheduled_at" db:"scheduled_at"`
 	Duration             int               `json:"duration" db:"duration"` // Duration in minutes
 	Recurrence           MeetingRecurrence `json:"recurrence" db:"recurrence"`
 	Type                 MeetingType       `json:"type" db:"type"`
-	SubjectID            string            `json:"subject_id" db:"subject_id"`
+	SubjectID            uuid.UUID         `json:"subject_id" db:"subject_id"`
 	Status               MeetingStatus     `json:"status" db:"status"`
 	NeedsVideoRecord     bool              `json:"needs_video_record" db:"needs_video_record"`
 	NeedsAudioRecord     bool              `json:"needs_audio_record" db:"needs_audio_record"`
 	AdditionalNotes      string            `json:"additional_notes" db:"additional_notes"`
 	ForceEndAtDuration   bool              `json:"force_end_at_duration" db:"force_end_at_duration"` // Force end meeting after duration
-	LiveKitRoomID        *string           `json:"livekit_room_id,omitempty" db:"livekit_room_id"`   // Link to LiveKit room if started
-	CreatedBy            string            `json:"created_by" db:"created_by"`                        // User ID who created the meeting
+	LiveKitRoomID        *uuid.UUID        `json:"livekit_room_id,omitempty" db:"livekit_room_id"`   // Link to LiveKit room if started
+	CreatedBy            uuid.UUID         `json:"created_by" db:"created_by"`                        // User ID who created the meeting
 	CreatedAt            time.Time         `json:"created_at" db:"created_at"`
 	UpdatedAt            time.Time         `json:"updated_at" db:"updated_at"`
 }
 
 // MeetingParticipant represents a participant in a meeting
 type MeetingParticipant struct {
-	ID          string    `json:"id" db:"id"`
-	MeetingID   string    `json:"meeting_id" db:"meeting_id"`
-	UserID      string    `json:"user_id" db:"user_id"`
-	Role        string    `json:"role" db:"role"` // "speaker", "participant"
-	Status      string    `json:"status" db:"status"` // "invited", "accepted", "declined", "attended"
+	ID          uuid.UUID  `json:"id" db:"id"`
+	MeetingID   uuid.UUID  `json:"meeting_id" db:"meeting_id"`
+	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
+	Role        string     `json:"role" db:"role"` // "speaker", "participant"
+	Status      string     `json:"status" db:"status"` // "invited", "accepted", "declined", "attended"
 	JoinedAt    *time.Time `json:"joined_at,omitempty" db:"joined_at"`
 	LeftAt      *time.Time `json:"left_at,omitempty" db:"left_at"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 }
 
 // MeetingDepartment represents a department invited to a meeting
 type MeetingDepartment struct {
-	ID           string    `json:"id" db:"id"`
-	MeetingID    string    `json:"meeting_id" db:"meeting_id"`
-	DepartmentID string    `json:"department_id" db:"department_id"`
+	ID           uuid.UUID `json:"id" db:"id"`
+	MeetingID    uuid.UUID `json:"meeting_id" db:"meeting_id"`
+	DepartmentID uuid.UUID `json:"department_id" db:"department_id"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 }
 
@@ -98,17 +102,17 @@ type MeetingParticipantInfo struct {
 
 // CreateMeetingSubjectRequest represents a request to create a meeting subject
 type CreateMeetingSubjectRequest struct {
-	Name          string   `json:"name" binding:"required" example:"Техническое обсуждение"`
-	Description   string   `json:"description" example:"Обсуждение технических вопросов разработки"`
-	DepartmentIDs []string `json:"department_ids" example:"dept-001,dept-002"`
+	Name          string       `json:"name" binding:"required" example:"Техническое обсуждение"`
+	Description   string       `json:"description" example:"Обсуждение технических вопросов разработки"`
+	DepartmentIDs []uuid.UUID  `json:"department_ids" example:"[\"550e8400-e29b-41d4-a716-446655440000\"]"`
 }
 
 // UpdateMeetingSubjectRequest represents a request to update a meeting subject
 type UpdateMeetingSubjectRequest struct {
-	Name          string   `json:"name" example:"Техническое обсуждение"`
-	Description   string   `json:"description" example:"Обновленное описание"`
-	DepartmentIDs []string `json:"department_ids" example:"dept-001,dept-002"`
-	IsActive      *bool    `json:"is_active" example:"true"`
+	Name          string       `json:"name" example:"Техническое обсуждение"`
+	Description   string       `json:"description" example:"Обновленное описание"`
+	DepartmentIDs []uuid.UUID  `json:"department_ids" example:"[\"550e8400-e29b-41d4-a716-446655440000\"]"`
+	IsActive      *bool        `json:"is_active" example:"true"`
 }
 
 // CreateMeetingRequest represents a request to create a meeting
@@ -118,14 +122,14 @@ type CreateMeetingRequest struct {
 	Duration           int               `json:"duration" binding:"required" example:"60"`
 	Recurrence         MeetingRecurrence `json:"recurrence" example:"weekly"`
 	Type               MeetingType       `json:"type" binding:"required" example:"conference"`
-	SubjectID          string            `json:"subject_id" binding:"required" example:"subj-001"`
+	SubjectID          uuid.UUID         `json:"subject_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
 	NeedsVideoRecord   bool              `json:"needs_video_record" example:"true"`
 	NeedsAudioRecord   bool              `json:"needs_audio_record" example:"true"`
 	AdditionalNotes    string            `json:"additional_notes" example:"Подготовить отчеты"`
 	ForceEndAtDuration bool              `json:"force_end_at_duration" example:"true"` // Force end meeting after duration
-	SpeakerID          *string           `json:"speaker_id,omitempty" example:"user-001"` // For presentations
-	ParticipantIDs     []string          `json:"participant_ids" example:"user-002,user-003"`
-	DepartmentIDs      []string          `json:"department_ids" example:"dept-001,dept-002"`
+	SpeakerID          *uuid.UUID        `json:"speaker_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"` // For presentations
+	ParticipantIDs     []uuid.UUID       `json:"participant_ids" example:"[\"550e8400-e29b-41d4-a716-446655440000\"]"`
+	DepartmentIDs      []uuid.UUID       `json:"department_ids" example:"[\"550e8400-e29b-41d4-a716-446655440000\"]"`
 }
 
 // UpdateMeetingRequest represents a request to update a meeting
@@ -135,15 +139,15 @@ type UpdateMeetingRequest struct {
 	Duration           *int               `json:"duration,omitempty" example:"90"`
 	Recurrence         *MeetingRecurrence `json:"recurrence,omitempty" example:"weekly"`
 	Type               *MeetingType       `json:"type,omitempty" example:"conference"`
-	SubjectID          *string            `json:"subject_id,omitempty" example:"subj-001"`
+	SubjectID          *uuid.UUID         `json:"subject_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Status             *MeetingStatus     `json:"status,omitempty" example:"in_progress"`
 	NeedsVideoRecord   *bool              `json:"needs_video_record,omitempty" example:"true"`
 	NeedsAudioRecord   *bool              `json:"needs_audio_record,omitempty" example:"true"`
 	AdditionalNotes    *string            `json:"additional_notes,omitempty" example:"Обновленные комментарии"`
 	ForceEndAtDuration *bool              `json:"force_end_at_duration,omitempty" example:"true"`
-	SpeakerID          *string            `json:"speaker_id,omitempty" example:"user-001"`
-	ParticipantIDs     []string           `json:"participant_ids,omitempty" example:"user-002,user-003"`
-	DepartmentIDs      []string           `json:"department_ids,omitempty" example:"dept-001"`
+	SpeakerID          *uuid.UUID         `json:"speaker_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ParticipantIDs     []uuid.UUID        `json:"participant_ids,omitempty" example:"[\"550e8400-e29b-41d4-a716-446655440000\"]"`
+	DepartmentIDs      []uuid.UUID        `json:"department_ids,omitempty" example:"[\"550e8400-e29b-41d4-a716-446655440000\"]"`
 }
 
 // ListMeetingsRequest represents parameters for listing meetings
@@ -152,11 +156,11 @@ type ListMeetingsRequest struct {
 	PageSize     int            `json:"page_size" form:"page_size" example:"20"`
 	Status       *MeetingStatus `json:"status" form:"status" example:"scheduled"`
 	Type         *MeetingType   `json:"type" form:"type" example:"conference"`
-	SubjectID    *string        `json:"subject_id" form:"subject_id" example:"subj-001"`
-	SpeakerID    *string        `json:"speaker_id" form:"speaker_id" example:"user-001"`
+	SubjectID    *uuid.UUID     `json:"subject_id" form:"subject_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	SpeakerID    *uuid.UUID     `json:"speaker_id" form:"speaker_id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	DateFrom     *time.Time     `json:"date_from" form:"date_from" example:"2025-01-01T00:00:00Z"`
 	DateTo       *time.Time     `json:"date_to" form:"date_to" example:"2025-12-31T23:59:59Z"`
-	UserID       *string        `json:"user_id" form:"user_id"` // Filter by participant or speaker
+	UserID       *uuid.UUID     `json:"user_id" form:"user_id"` // Filter by participant or speaker
 }
 
 // PaginatedResponse represents a paginated response

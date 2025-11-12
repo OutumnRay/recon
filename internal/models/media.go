@@ -1,21 +1,25 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // Recording represents a recorded audio/video file
 type Recording struct {
-	ID            string    `json:"id" db:"id"`
-	UserID        string    `json:"user_id" db:"user_id"`
-	Title         string    `json:"title" db:"title"`
-	FileName      string    `json:"file_name" db:"file_name"`
-	FileSize      int64     `json:"file_size" db:"file_size"`
-	Duration      float64   `json:"duration" db:"duration"` // in seconds
-	MimeType      string    `json:"mime_type" db:"mime_type"`
-	StoragePath   string    `json:"storage_path" db:"storage_path"`
+	ID            uuid.UUID       `json:"id" db:"id"`
+	UserID        uuid.UUID       `json:"user_id" db:"user_id"`
+	Title         string          `json:"title" db:"title"`
+	FileName      string          `json:"file_name" db:"file_name"`
+	FileSize      int64           `json:"file_size" db:"file_size"`
+	Duration      float64         `json:"duration" db:"duration"` // in seconds
+	MimeType      string          `json:"mime_type" db:"mime_type"`
+	StoragePath   string          `json:"storage_path" db:"storage_path"`
 	Status        RecordingStatus `json:"status" db:"status"`
-	TranscriptID  string    `json:"transcript_id,omitempty" db:"transcript_id"`
-	UploadedAt    time.Time `json:"uploaded_at" db:"uploaded_at"`
-	ProcessedAt   *time.Time `json:"processed_at,omitempty" db:"processed_at"`
+	TranscriptID  *uuid.UUID      `json:"transcript_id,omitempty" db:"transcript_id"`
+	UploadedAt    time.Time       `json:"uploaded_at" db:"uploaded_at"`
+	ProcessedAt   *time.Time      `json:"processed_at,omitempty" db:"processed_at"`
 }
 
 // RecordingStatus represents the processing status of a recording
@@ -31,8 +35,8 @@ const (
 
 // Transcript represents a transcription result
 type Transcript struct {
-	ID           string              `json:"id" db:"id"`
-	RecordingID  string              `json:"recording_id" db:"recording_id"`
+	ID           uuid.UUID           `json:"id" db:"id"`
+	RecordingID  uuid.UUID           `json:"recording_id" db:"recording_id"`
 	Text         string              `json:"text" db:"text"`
 	Language     string              `json:"language" db:"language"`
 	Segments     []TranscriptSegment `json:"segments"`
@@ -60,9 +64,9 @@ type UploadRequest struct {
 
 // UploadResponse represents a file upload response
 type UploadResponse struct {
-	RecordingID string `json:"recording_id" example:"rec-123456"`
-	UploadURL   string `json:"upload_url" example:"https://minio:9000/recontext/uploads/rec-123456.mp4"`
-	Message     string `json:"message" example:"File uploaded successfully"`
+	RecordingID uuid.UUID `json:"recording_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UploadURL   string    `json:"upload_url" example:"https://minio:9000/recontext/uploads/550e8400-e29b-41d4-a716-446655440000.mp4"`
+	Message     string    `json:"message" example:"File uploaded successfully"`
 }
 
 // ListRecordingsRequest represents parameters for listing recordings
@@ -89,7 +93,7 @@ type SearchRequest struct {
 
 // SearchResult represents a search result
 type SearchResult struct {
-	RecordingID  string    `json:"recording_id"`
+	RecordingID  uuid.UUID `json:"recording_id"`
 	Title        string    `json:"title"`
 	Snippet      string    `json:"snippet"`
 	Timestamp    float64   `json:"timestamp"`
@@ -107,27 +111,27 @@ type SearchResponse struct {
 
 // TranscriptionTask represents a task for the transcription worker
 type TranscriptionTask struct {
-	ID          string    `json:"id"`
-	RecordingID string    `json:"recording_id"`
-	AudioURL    string    `json:"audio_url"`
-	Language    string    `json:"language,omitempty"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          uuid.UUID  `json:"id"`
+	RecordingID uuid.UUID  `json:"recording_id"`
+	AudioURL    string     `json:"audio_url"`
+	Language    string     `json:"language,omitempty"`
+	Status      string     `json:"status"`
+	CreatedAt   time.Time  `json:"created_at"`
 	StartedAt   *time.Time `json:"started_at,omitempty"`
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
-	Error       string    `json:"error,omitempty"`
+	Error       string     `json:"error,omitempty"`
 }
 
 // SummarizationTask represents a task for the summarization worker
 type SummarizationTask struct {
-	ID           string    `json:"id"`
-	TranscriptID string    `json:"transcript_id"`
-	RecordingID  string    `json:"recording_id"`
-	Text         string    `json:"text"`
-	Status       string    `json:"status"`
-	Summary      string    `json:"summary,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           uuid.UUID  `json:"id"`
+	TranscriptID uuid.UUID  `json:"transcript_id"`
+	RecordingID  uuid.UUID  `json:"recording_id"`
+	Text         string     `json:"text"`
+	Status       string     `json:"status"`
+	Summary      string     `json:"summary,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
 	StartedAt    *time.Time `json:"started_at,omitempty"`
 	CompletedAt  *time.Time `json:"completed_at,omitempty"`
-	Error        string    `json:"error,omitempty"`
+	Error        string     `json:"error,omitempty"`
 }

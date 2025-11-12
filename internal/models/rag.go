@@ -1,12 +1,16 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // DocumentChunk represents a chunk of text from a transcription with its embedding
 type DocumentChunk struct {
-	ID              string                 `json:"id" db:"id"`
-	FileID          string                 `json:"file_id" db:"file_id"`
-	TranscriptionID *string                `json:"transcription_id,omitempty" db:"transcription_id"`
+	ID              uuid.UUID              `json:"id" db:"id"`
+	FileID          uuid.UUID              `json:"file_id" db:"file_id"`
+	TranscriptionID *uuid.UUID             `json:"transcription_id,omitempty" db:"transcription_id"`
 	ChunkText       string                 `json:"chunk_text" db:"chunk_text"`
 	ChunkIndex      int                    `json:"chunk_index" db:"chunk_index"`
 	Embedding       []float32              `json:"-" db:"embedding"`
@@ -23,8 +27,8 @@ type RAGSearchRequest struct {
 
 // RAGSearchResult represents a single search result
 type RAGSearchResult struct {
-	ChunkID       string    `json:"chunk_id"`
-	FileID        string    `json:"file_id"`
+	ChunkID       uuid.UUID `json:"chunk_id"`
+	FileID        uuid.UUID `json:"file_id"`
 	FileName      string    `json:"file_name"`
 	ChunkText     string    `json:"chunk_text"`
 	ChunkIndex    int       `json:"chunk_index"`

@@ -1,12 +1,13 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 	"strings"
 	"time"
 
 	"Recontext.online/internal/models"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // DepartmentRepository handles database operations for departments
@@ -34,25 +35,22 @@ func (r *DepartmentRepository) Create(dept *models.Department) error {
 		dept.Path = dept.Name
 	}
 
-	query := `
-		INSERT INTO departments (id, name, description, parent_id, level, path, is_active, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-	`
+	dbDept := &Department{
+		ID:          dept.ID,
+		Name:        dept.Name,
+		Description: dept.Description,
+		Level:       dept.Level,
+		Path:        dept.Path,
+		IsActive:    dept.IsActive,
+		CreatedAt:   dept.CreatedAt,
+		UpdatedAt:   dept.UpdatedAt,
+	}
 
-	_, err := r.db.Exec(
-		query,
-		dept.ID,
-		dept.Name,
-		dept.Description,
-		dept.ParentID,
-		dept.Level,
-		dept.Path,
-		dept.IsActive,
-		dept.CreatedAt,
-		dept.UpdatedAt,
-	)
+	if dept.ParentID != nil {
+		dbDept.ParentID = dept.ParentID
+	}
 
-	if err != nil {
+	if err := r.db.DB.Create(dbDept).Error; err != nil {
 		return fmt.Errorf("failed to create department: %w", err)
 	}
 
@@ -60,37 +58,30 @@ func (r *DepartmentRepository) Create(dept *models.Department) error {
 }
 
 // GetByID retrieves a department by ID
-func (r *DepartmentRepository) GetByID(id string) (*models.Department, error) {
-	query := `
-		SELECT id, name, description, parent_id, level, path, is_active, created_at, updated_at
-		FROM departments
-		WHERE id = $1
-	`
+func (r *DepartmentRepository) GetByID(id uuid.UUID) (*models.Department, error) {
+	var dbDept Department
+	err := r.db.DB.Where("id = ?", id).First(&dbDept).Error
 
-	dept := &models.Department{}
-	var parentID sql.NullString
-
-	err := r.db.QueryRow(query, id).Scan(
-		&dept.ID,
-		&dept.Name,
-		&dept.Description,
-		&parentID,
-		&dept.Level,
-		&dept.Path,
-		&dept.IsActive,
-		&dept.CreatedAt,
-		&dept.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("department not found")
-	}
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("department not found")
+		}
 		return nil, fmt.Errorf("failed to get department: %w", err)
 	}
 
-	if parentID.Valid {
-		dept.ParentID = &parentID.String
+	dept := &models.Department{
+		ID:          dbDept.ID,
+		Name:        dbDept.Name,
+		Description: dbDept.Description,
+		Level:       dbDept.Level,
+		Path:        dbDept.Path,
+		IsActive:    dbDept.IsActive,
+		CreatedAt:   dbDept.CreatedAt,
+		UpdatedAt:   dbDept.UpdatedAt,
+	}
+
+	if dbDept.ParentID != nil {
+		dept.ParentID = dbDept.ParentID
 	}
 
 	return dept, nil
@@ -98,56 +89,36 @@ func (r *DepartmentRepository) GetByID(id string) (*models.Department, error) {
 
 // List retrieves departments with optional filters
 func (r *DepartmentRepository) List(parentID *string, includeAll bool) ([]*models.Department, error) {
-	query := `
-		SELECT id, name, description, parent_id, level, path, is_active, created_at, updated_at
-		FROM departments
-		WHERE 1=1
-	`
-	args := []interface{}{}
-	argIdx := 1
+	var dbDepts []Department
+	query := r.db.DB.Model(&Department{})
 
 	if parentID != nil {
-		query += fmt.Sprintf(" AND parent_id = $%d", argIdx)
-		args = append(args, *parentID)
-		argIdx++
+		query = query.Where("parent_id = ?", *parentID)
 	}
 
 	if !includeAll {
-		query += " AND is_active = true"
+		query = query.Where("is_active = ?", true)
 	}
 
-	query += " ORDER BY path ASC"
-
-	rows, err := r.db.Query(query, args...)
-	if err != nil {
+	if err := query.Order("path ASC").Find(&dbDepts).Error; err != nil {
 		return nil, fmt.Errorf("failed to list departments: %w", err)
 	}
-	defer rows.Close()
 
-	departments := []*models.Department{}
-	for rows.Next() {
-		dept := &models.Department{}
-		var parentID sql.NullString
-
-		err := rows.Scan(
-			&dept.ID,
-			&dept.Name,
-			&dept.Description,
-			&parentID,
-			&dept.Level,
-			&dept.Path,
-			&dept.IsActive,
-			&dept.CreatedAt,
-			&dept.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan department: %w", err)
+	departments := make([]*models.Department, 0, len(dbDepts))
+	for _, dbDept := range dbDepts {
+		dept := &models.Department{
+			ID:          dbDept.ID,
+			Name:        dbDept.Name,
+			Description: dbDept.Description,
+			Level:       dbDept.Level,
+			Path:        dbDept.Path,
+			IsActive:    dbDept.IsActive,
+			CreatedAt:   dbDept.CreatedAt,
+			UpdatedAt:   dbDept.UpdatedAt,
 		}
-
-		if parentID.Valid {
-			dept.ParentID = &parentID.String
+		if dbDept.ParentID != nil {
+			dept.ParentID = dbDept.ParentID
 		}
-
 		departments = append(departments, dept)
 	}
 
@@ -163,7 +134,7 @@ func (r *DepartmentRepository) GetTree(rootID *string) (*models.DepartmentTreeNo
 	}
 
 	// Create a map for quick lookups
-	deptMap := make(map[string]*models.DepartmentTreeNode)
+	deptMap := make(map[uuid.UUID]*models.DepartmentTreeNode)
 	for _, dept := range allDepts {
 		node := &models.DepartmentTreeNode{
 			Department: *dept,
@@ -175,7 +146,7 @@ func (r *DepartmentRepository) GetTree(rootID *string) (*models.DepartmentTreeNo
 	// Build tree structure
 	var root *models.DepartmentTreeNode
 	for _, node := range deptMap {
-		if node.ParentID == nil || (rootID != nil && node.ID == *rootID) {
+		if node.ParentID == nil || (rootID != nil && node.ID.String() == *rootID) {
 			root = node
 		} else if parent, ok := deptMap[*node.ParentID]; ok {
 			parent.Children = append(parent.Children, node)
@@ -212,34 +183,27 @@ func (r *DepartmentRepository) Update(dept *models.Department) error {
 
 	dept.UpdatedAt = time.Now()
 
-	query := `
-		UPDATE departments
-		SET name = $2, description = $3, parent_id = $4, level = $5, path = $6, is_active = $7, updated_at = $8
-		WHERE id = $1
-	`
-
-	result, err := r.db.Exec(
-		query,
-		dept.ID,
-		dept.Name,
-		dept.Description,
-		dept.ParentID,
-		dept.Level,
-		dept.Path,
-		dept.IsActive,
-		dept.UpdatedAt,
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to update department: %w", err)
+	updates := map[string]interface{}{
+		"name":        dept.Name,
+		"description": dept.Description,
+		"level":       dept.Level,
+		"path":        dept.Path,
+		"is_active":   dept.IsActive,
+		"updated_at":  dept.UpdatedAt,
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+	if dept.ParentID != nil {
+		updates["parent_id"] = dept.ParentID
+	} else {
+		updates["parent_id"] = nil
 	}
 
-	if rows == 0 {
+	result := r.db.DB.Model(&Department{}).Where("id = ?", dept.ID).Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update department: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("department not found")
 	}
 
@@ -248,31 +212,48 @@ func (r *DepartmentRepository) Update(dept *models.Department) error {
 }
 
 // updateChildrenPaths recursively updates paths for all child departments
-func (r *DepartmentRepository) updateChildrenPaths(parentID, parentPath string) error {
-	query := `
-		UPDATE departments
-		SET path = $2 || '/' || name,
-		    level = (
-		        SELECT level + 1 FROM departments WHERE id = $1
-		    ),
-		    updated_at = NOW()
-		WHERE parent_id = $1
-		RETURNING id, path
-	`
-
-	rows, err := r.db.Query(query, parentID, parentPath)
-	if err != nil {
-		return fmt.Errorf("failed to update children paths: %w", err)
+func (r *DepartmentRepository) updateChildrenPaths(parentID uuid.UUID, parentPath string) error {
+	// Use raw SQL for this complex operation as GORM doesn't handle it well
+	// First, get parent level
+	var parentDept Department
+	if err := r.db.DB.Select("level").Where("id = ?", parentID).First(&parentDept).Error; err != nil {
+		return fmt.Errorf("failed to get parent level: %w", err)
 	}
-	defer rows.Close()
+
+	// Get all children
+	var children []Department
+	if err := r.db.DB.Where("parent_id = ?", parentID).Find(&children).Error; err != nil {
+		return fmt.Errorf("failed to get children: %w", err)
+	}
+
+	// Update each child
+	type ChildResult struct {
+		ID   uuid.UUID
+		Path string
+	}
+	var childResults []ChildResult
+
+	for _, child := range children {
+		newPath := parentPath + "/" + child.Name
+		newLevel := parentDept.Level + 1
+
+		if err := r.db.DB.Model(&child).Updates(map[string]interface{}{
+			"path":       newPath,
+			"level":      newLevel,
+			"updated_at": time.Now(),
+		}).Error; err != nil {
+			return fmt.Errorf("failed to update child path: %w", err)
+		}
+
+		childResults = append(childResults, ChildResult{
+			ID:   child.ID,
+			Path: newPath,
+		})
+	}
 
 	// Recursively update grandchildren
-	for rows.Next() {
-		var childID, childPath string
-		if err := rows.Scan(&childID, &childPath); err != nil {
-			return fmt.Errorf("failed to scan child: %w", err)
-		}
-		if err := r.updateChildrenPaths(childID, childPath); err != nil {
+	for _, child := range childResults {
+		if err := r.updateChildrenPaths(child.ID, child.Path); err != nil {
 			return err
 		}
 	}
@@ -281,24 +262,18 @@ func (r *DepartmentRepository) updateChildrenPaths(parentID, parentPath string) 
 }
 
 // Delete soft deletes a department (marks as inactive)
-func (r *DepartmentRepository) Delete(id string) error {
-	query := `
-		UPDATE departments
-		SET is_active = false, updated_at = $2
-		WHERE id = $1
-	`
-
-	result, err := r.db.Exec(query, id, time.Now())
-	if err != nil {
-		return fmt.Errorf("failed to delete department: %w", err)
+func (r *DepartmentRepository) Delete(id uuid.UUID) error {
+	updates := map[string]interface{}{
+		"is_active":  false,
+		"updated_at": time.Now(),
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+	result := r.db.DB.Model(&Department{}).Where("id = ?", id).Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete department: %w", result.Error)
 	}
 
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("department not found")
 	}
 
@@ -306,58 +281,37 @@ func (r *DepartmentRepository) Delete(id string) error {
 }
 
 // GetWithStats retrieves a department with statistics
-func (r *DepartmentRepository) GetWithStats(id string) (*models.DepartmentWithStats, error) {
-	query := `
-		SELECT
+func (r *DepartmentRepository) GetWithStats(id uuid.UUID) (*models.DepartmentWithStats, error) {
+	stats := &models.DepartmentWithStats{}
+
+	err := r.db.DB.Table("departments d").
+		Select(`
 			d.id, d.name, d.description, d.parent_id, d.level, d.path,
 			d.is_active, d.created_at, d.updated_at,
 			COUNT(DISTINCT u.id) as user_count,
 			COUNT(DISTINCT c.id) as child_count
-		FROM departments d
-		LEFT JOIN users u ON u.department_id = d.id AND u.is_active = true
-		LEFT JOIN departments c ON c.parent_id = d.id AND c.is_active = true
-		WHERE d.id = $1
-		GROUP BY d.id, d.name, d.description, d.parent_id, d.level, d.path, d.is_active, d.created_at, d.updated_at
-	`
+		`).
+		Joins("LEFT JOIN users u ON u.department_id = d.id AND u.is_active = true").
+		Joins("LEFT JOIN departments c ON c.parent_id = d.id AND c.is_active = true").
+		Where("d.id = ?", id).
+		Group("d.id, d.name, d.description, d.parent_id, d.level, d.path, d.is_active, d.created_at, d.updated_at").
+		Scan(stats).Error
 
-	stats := &models.DepartmentWithStats{}
-	var parentID sql.NullString
-
-	err := r.db.QueryRow(query, id).Scan(
-		&stats.ID,
-		&stats.Name,
-		&stats.Description,
-		&parentID,
-		&stats.Level,
-		&stats.Path,
-		&stats.IsActive,
-		&stats.CreatedAt,
-		&stats.UpdatedAt,
-		&stats.UserCount,
-		&stats.ChildCount,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("department not found")
-	}
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("department not found")
+		}
 		return nil, fmt.Errorf("failed to get department stats: %w", err)
 	}
 
-	if parentID.Valid {
-		stats.ParentID = &parentID.String
-	}
-
 	// Get total users count (including sub-departments)
-	totalUsersQuery := `
-		SELECT COUNT(DISTINCT u.id)
-		FROM users u
-		JOIN departments d ON u.department_id = d.id
-		WHERE d.path LIKE $1 AND u.is_active = true
-	`
-
 	pathPattern := stats.Path + "%"
-	err = r.db.QueryRow(totalUsersQuery, pathPattern).Scan(&stats.TotalUsersCount)
+	err = r.db.DB.Table("users u").
+		Select("COUNT(DISTINCT u.id)").
+		Joins("JOIN departments d ON u.department_id = d.id").
+		Where("d.path LIKE ? AND u.is_active = true", pathPattern).
+		Scan(&stats.TotalUsersCount).Error
+
 	if err != nil {
 		stats.TotalUsersCount = stats.UserCount // Fallback to direct count
 	}
@@ -366,44 +320,27 @@ func (r *DepartmentRepository) GetWithStats(id string) (*models.DepartmentWithSt
 }
 
 // GetChildren retrieves all child departments of a given department
-func (r *DepartmentRepository) GetChildren(parentID string) ([]*models.Department, error) {
-	query := `
-		SELECT id, name, description, parent_id, level, path, is_active, created_at, updated_at
-		FROM departments
-		WHERE parent_id = $1 AND is_active = true
-		ORDER BY name ASC
-	`
-
-	rows, err := r.db.Query(query, parentID)
-	if err != nil {
+func (r *DepartmentRepository) GetChildren(parentID uuid.UUID) ([]*models.Department, error) {
+	var dbDepts []Department
+	if err := r.db.DB.Where("parent_id = ? AND is_active = ?", parentID, true).Order("name ASC").Find(&dbDepts).Error; err != nil {
 		return nil, fmt.Errorf("failed to get children: %w", err)
 	}
-	defer rows.Close()
 
-	children := []*models.Department{}
-	for rows.Next() {
-		dept := &models.Department{}
-		var parentID sql.NullString
-
-		err := rows.Scan(
-			&dept.ID,
-			&dept.Name,
-			&dept.Description,
-			&parentID,
-			&dept.Level,
-			&dept.Path,
-			&dept.IsActive,
-			&dept.CreatedAt,
-			&dept.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan department: %w", err)
+	children := make([]*models.Department, 0, len(dbDepts))
+	for _, dbDept := range dbDepts {
+		dept := &models.Department{
+			ID:          dbDept.ID,
+			Name:        dbDept.Name,
+			Description: dbDept.Description,
+			Level:       dbDept.Level,
+			Path:        dbDept.Path,
+			IsActive:    dbDept.IsActive,
+			CreatedAt:   dbDept.CreatedAt,
+			UpdatedAt:   dbDept.UpdatedAt,
 		}
-
-		if parentID.Valid {
-			dept.ParentID = &parentID.String
+		if dbDept.ParentID != nil {
+			dept.ParentID = dbDept.ParentID
 		}
-
 		children = append(children, dept)
 	}
 
@@ -412,21 +349,19 @@ func (r *DepartmentRepository) GetChildren(parentID string) ([]*models.Departmen
 
 // NameExists checks if a department name already exists at the same level
 func (r *DepartmentRepository) NameExists(name string, parentID *string, excludeID string) (bool, error) {
-	query := `
-		SELECT EXISTS(
-			SELECT 1 FROM departments
-			WHERE name = $1
-			AND ($2::VARCHAR IS NULL AND parent_id IS NULL OR parent_id = $2)
-			AND id != $3
-			AND is_active = true
-		)
-	`
+	var count int64
+	query := r.db.DB.Model(&Department{}).Where("name = ? AND id != ? AND is_active = ?", name, excludeID, true)
 
-	var exists bool
-	err := r.db.QueryRow(query, name, parentID, excludeID).Scan(&exists)
+	if parentID != nil {
+		query = query.Where("parent_id = ?", *parentID)
+	} else {
+		query = query.Where("parent_id IS NULL")
+	}
+
+	err := query.Count(&count).Error
 	if err != nil {
 		return false, fmt.Errorf("failed to check name existence: %w", err)
 	}
 
-	return exists, nil
+	return count > 0, nil
 }

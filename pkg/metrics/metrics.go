@@ -18,7 +18,7 @@ type ServiceMetrics struct {
 	WorkerTasksProcessed *prometheus.CounterVec
 	WorkerErrors         *prometheus.CounterVec
 
-	// Conference/Meeting metrics (for Jitsi agent)
+	// Conference/Meeting metrics (for LiveKit)
 	ActiveConferences prometheus.Gauge
 	RecordingBytes    *prometheus.CounterVec
 

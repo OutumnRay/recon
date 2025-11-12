@@ -2,14 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"Recontext.online/internal/models"
 	"github.com/google/uuid"
+	"Recontext.online/internal/models"
 )
 
 // CreateMeetingSubject godoc
@@ -37,7 +36,7 @@ func (mp *ManagingPortal) createMeetingSubjectHandler(w http.ResponseWriter, r *
 	}
 
 	subject := &models.MeetingSubject{
-		ID:            fmt.Sprintf("subj-%s", uuid.New().String()[:8]),
+		ID:            uuid.New(),
 		Name:          req.Name,
 		Description:   req.Description,
 		DepartmentIDs: req.DepartmentIDs,
@@ -47,7 +46,7 @@ func (mp *ManagingPortal) createMeetingSubjectHandler(w http.ResponseWriter, r *
 	}
 
 	if subject.DepartmentIDs == nil {
-		subject.DepartmentIDs = []string{}
+		subject.DepartmentIDs = []uuid.UUID{}
 	}
 
 	if err := mp.meetingRepo.CreateSubject(subject); err != nil {
@@ -116,7 +115,7 @@ func (mp *ManagingPortal) listMeetingSubjectsHandler(w http.ResponseWriter, r *h
 func (mp *ManagingPortal) getMeetingSubjectHandler(w http.ResponseWriter, r *http.Request) {
 	subjectID := strings.TrimPrefix(r.URL.Path, "/api/v1/meeting-subjects/")
 
-	subject, err := mp.meetingRepo.GetSubjectByID(subjectID)
+	subject, err := mp.meetingRepo.GetSubjectByID(uuid.Must(uuid.Parse(subjectID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Subject not found", err.Error())
 		return
@@ -149,7 +148,7 @@ func (mp *ManagingPortal) updateMeetingSubjectHandler(w http.ResponseWriter, r *
 	}
 
 	// Find subject
-	subject, err := mp.meetingRepo.GetSubjectByID(subjectID)
+	subject, err := mp.meetingRepo.GetSubjectByID(uuid.Must(uuid.Parse(subjectID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "Subject not found", err.Error())
 		return
@@ -193,7 +192,7 @@ func (mp *ManagingPortal) updateMeetingSubjectHandler(w http.ResponseWriter, r *
 func (mp *ManagingPortal) deleteMeetingSubjectHandler(w http.ResponseWriter, r *http.Request) {
 	subjectID := strings.TrimPrefix(r.URL.Path, "/api/v1/meeting-subjects/")
 
-	if err := mp.meetingRepo.DeleteSubject(subjectID); err != nil {
+	if err := mp.meetingRepo.DeleteSubject(uuid.Must(uuid.Parse(subjectID))); err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			mp.respondWithError(w, http.StatusNotFound, "Subject not found", err.Error())
 		} else {

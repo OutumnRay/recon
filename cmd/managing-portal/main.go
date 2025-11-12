@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 
@@ -253,7 +254,7 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	newUser := &models.User{
-		ID:       fmt.Sprintf("user-%d", time.Now().Unix()),
+		ID:       uuid.New(),
 		Username: req.Username,
 		Email:    req.Email,
 		Password: auth.HashPassword(req.Password),

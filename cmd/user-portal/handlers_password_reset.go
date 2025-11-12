@@ -2,14 +2,15 @@ package main
 
 import (
 	"crypto/rand"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"Recontext.online/internal/models"
+	"Recontext.online/pkg/database"
 	"Recontext.online/pkg/email"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -47,7 +48,7 @@ func (up *UserPortal) requestPasswordResetHandler(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(models.RequestPasswordResetResponse{
 			Message: "If the email exists, a reset code has been sent",
-			TokenID: "dummy-token-id",
+			TokenID: uuid.Nil,
 		})
 		return
 	}
@@ -65,16 +66,17 @@ func (up *UserPortal) requestPasswordResetHandler(w http.ResponseWriter, r *http
 	}
 
 	// Create reset token
-	tokenID := generateUUID()
-	expiresAt := time.Now().Add(resetCodeExpiration)
+	token := &database.PasswordResetToken{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		Email:     user.Email,
+		Code:      code,
+		ExpiresAt: time.Now().Add(resetCodeExpiration),
+		Used:      false,
+		CreatedAt: time.Now(),
+	}
 
-	query := `
-		INSERT INTO password_reset_tokens (id, user_id, email, code, expires_at, used, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-
-	_, err = up.db.Exec(query, tokenID, user.ID, user.Email, code, expiresAt, false, time.Now())
-	if err != nil {
+	if err := up.db.DB.Create(token).Error; err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to create reset token", err.Error())
 		return
 	}
@@ -91,11 +93,11 @@ func (up *UserPortal) requestPasswordResetHandler(w http.ResponseWriter, r *http
 		// Don't fail the request, token is created
 	}
 
-	up.logger.Infof("Password reset code sent to %s (Token ID: %s)", user.Email, tokenID)
+	up.logger.Infof("Password reset code sent to %s (Token ID: %s)", user.Email, token.ID)
 
 	response := models.RequestPasswordResetResponse{
 		Message: "Password reset code sent to your email",
-		TokenID: tokenID,
+		TokenID: token.ID,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -121,30 +123,9 @@ func (up *UserPortal) verifyResetCodeHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Find token
-	var token models.PasswordResetToken
-	query := `
-		SELECT id, user_id, email, code, expires_at, used, created_at
-		FROM password_reset_tokens
-		WHERE id = $1
-	`
-
-	err := up.db.QueryRow(query, req.TokenID).Scan(
-		&token.ID,
-		&token.UserID,
-		&token.Email,
-		&token.Code,
-		&token.ExpiresAt,
-		&token.Used,
-		&token.CreatedAt,
-	)
-
-	if err == sql.ErrNoRows {
+	var token database.PasswordResetToken
+	if err := up.db.DB.Where("id = ?", req.TokenID.String()).First(&token).Error; err != nil {
 		up.respondWithError(w, http.StatusNotFound, "Invalid token", "Token not found")
-		return
-	}
-
-	if err != nil {
-		up.respondWithError(w, http.StatusInternalServerError, "Database error", err.Error())
 		return
 	}
 
@@ -193,30 +174,9 @@ func (up *UserPortal) resetPasswordHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Find and validate token
-	var token models.PasswordResetToken
-	query := `
-		SELECT id, user_id, email, code, expires_at, used, created_at
-		FROM password_reset_tokens
-		WHERE id = $1
-	`
-
-	err := up.db.QueryRow(query, req.TokenID).Scan(
-		&token.ID,
-		&token.UserID,
-		&token.Email,
-		&token.Code,
-		&token.ExpiresAt,
-		&token.Used,
-		&token.CreatedAt,
-	)
-
-	if err == sql.ErrNoRows {
+	var token database.PasswordResetToken
+	if err := up.db.DB.Where("id = ?", req.TokenID.String()).First(&token).Error; err != nil {
 		up.respondWithError(w, http.StatusNotFound, "Invalid token", "Token not found")
-		return
-	}
-
-	if err != nil {
-		up.respondWithError(w, http.StatusInternalServerError, "Database error", err.Error())
 		return
 	}
 
@@ -237,34 +197,35 @@ func (up *UserPortal) resetPasswordHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Hash new password
+	up.logger.Infof("=== PASSWORD RESET DEBUG ===")
+	up.logger.Infof("User ID: %s", token.UserID)
+	up.logger.Infof("Email: %s", token.Email)
+	up.logger.Infof("New password (plain): %s", req.NewPassword)
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to hash password", err.Error())
 		return
 	}
 
-	// Update user password
-	updateQuery := `
-		UPDATE users
-		SET password = $1, updated_at = $2
-		WHERE id = $3
-	`
+	up.logger.Infof("New password hash (first 20 chars): %s...", string(hashedPassword[:20]))
 
-	_, err = up.db.Exec(updateQuery, string(hashedPassword), time.Now(), token.UserID)
-	if err != nil {
+	// Update user password
+	up.logger.Infof("Executing UPDATE query for user: %s", token.UserID)
+	if err := up.db.DB.Model(&database.User{}).Where("id = ?", token.UserID).Updates(map[string]interface{}{
+		"password":   string(hashedPassword),
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		up.logger.Errorf("Failed to update password in database: %v", err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to update password", err.Error())
 		return
 	}
 
-	// Mark token as used
-	markUsedQuery := `
-		UPDATE password_reset_tokens
-		SET used = TRUE
-		WHERE id = $1
-	`
+	up.logger.Infof("✓ Password updated in database")
+	up.logger.Infof("============================")
 
-	_, err = up.db.Exec(markUsedQuery, token.ID)
-	if err != nil {
+	// Mark token as used
+	if err := up.db.DB.Model(&token).Update("used", true).Error; err != nil {
 		up.logger.Errorf("Failed to mark token as used: %v", err)
 		// Don't fail the request, password is already updated
 	}
@@ -290,11 +251,4 @@ func generateResetCode() (string, error) {
 		code += fmt.Sprintf("%d", n.Int64())
 	}
 	return code, nil
-}
-
-// generateUUID generates a simple UUID (replace with proper UUID library if needed)
-func generateUUID() string {
-	b := make([]byte, 16)
-	rand.Read(b)
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }

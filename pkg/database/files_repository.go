@@ -1,12 +1,13 @@
 package database
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"Recontext.online/internal/models"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // CreateUploadedFile creates a new file upload record
@@ -16,148 +17,185 @@ func (db *DB) CreateUploadedFile(file *models.UploadedFile) error {
 		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
-	query := `
-		INSERT INTO uploaded_files (
-			id, filename, original_name, file_size, mime_type, storage_path,
-			user_id, group_id, status, metadata, uploaded_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`
+	dbFile := &UploadedFile{
+		ID:           file.ID,
+		Filename:     file.Filename,
+		OriginalName: file.OriginalName,
+		FileSize:     file.FileSize,
+		MimeType:     file.MimeType,
+		StoragePath:  file.StoragePath,
+		UserID:       file.UserID,
+		GroupID:      file.GroupID,
+		Status:       string(file.Status),
+		Metadata:     string(metadata),
+		UploadedAt:   file.UploadedAt,
+	}
 
-	_, err = db.Exec(
-		query,
-		file.ID, file.Filename, file.OriginalName, file.FileSize, file.MimeType,
-		file.StoragePath, file.UserID, file.GroupID, file.Status, metadata, file.UploadedAt,
-	)
+	if file.TranscriptionID != nil {
+		dbFile.TranscriptionID = file.TranscriptionID
+	}
 
-	return err
+	if err := db.DB.Create(dbFile).Error; err != nil {
+		return fmt.Errorf("failed to create uploaded file: %w", err)
+	}
+
+	return nil
 }
 
 // GetUploadedFileByID retrieves a file by its ID
 func (db *DB) GetUploadedFileByID(id string) (*models.UploadedFile, error) {
-	var file models.UploadedFile
-	var metadataJSON []byte
-
-	query := `
-		SELECT id, filename, original_name, file_size, mime_type, storage_path,
-			   user_id, group_id, status, transcription_id, metadata, uploaded_at, processed_at
-		FROM uploaded_files
-		WHERE id = $1
-	`
-
-	err := db.QueryRow(query, id).Scan(
-		&file.ID, &file.Filename, &file.OriginalName, &file.FileSize, &file.MimeType,
-		&file.StoragePath, &file.UserID, &file.GroupID, &file.Status, &file.TranscriptionID,
-		&metadataJSON, &file.UploadedAt, &file.ProcessedAt,
-	)
-
+	uuidID, err := uuid.Parse(id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("file not found")
-		}
-		return nil, err
+		return nil, fmt.Errorf("invalid UUID: %w", err)
 	}
 
-	if len(metadataJSON) > 0 {
-		if err := json.Unmarshal(metadataJSON, &file.Metadata); err != nil {
+	var dbFile UploadedFile
+	err = db.DB.Where("id = ?", uuidID).First(&dbFile).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("file not found")
+		}
+		return nil, fmt.Errorf("failed to get uploaded file: %w", err)
+	}
+
+	file := &models.UploadedFile{
+		ID:           dbFile.ID,
+		Filename:     dbFile.Filename,
+		OriginalName: dbFile.OriginalName,
+		FileSize:     dbFile.FileSize,
+		MimeType:     dbFile.MimeType,
+		StoragePath:  dbFile.StoragePath,
+		UserID:       dbFile.UserID,
+		GroupID:      dbFile.GroupID,
+		Status:       models.TranscriptionStatus(dbFile.Status),
+		UploadedAt:   dbFile.UploadedAt,
+		ProcessedAt:  dbFile.ProcessedAt,
+	}
+
+	if dbFile.TranscriptionID != nil {
+		file.TranscriptionID = dbFile.TranscriptionID
+	}
+
+	if dbFile.Metadata != "" {
+		if err := json.Unmarshal([]byte(dbFile.Metadata), &file.Metadata); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
 		}
 	}
 
-	return &file, nil
+	return file, nil
 }
 
 // ListUploadedFilesByUser retrieves all files uploaded by a specific user
-func (db *DB) ListUploadedFilesByUser(userID string, page, pageSize int) ([]models.UploadedFile, int, error) {
-	var files []models.UploadedFile
-	var total int
+func (db *DB) ListUploadedFilesByUser(userID uuid.UUID, page, pageSize int) ([]models.UploadedFile, int, error) {
+	var total int64
+	var dbFiles []UploadedFile
 
 	// Get total count
-	countQuery := `SELECT COUNT(*) FROM uploaded_files WHERE user_id = $1`
-	if err := db.QueryRow(countQuery, userID).Scan(&total); err != nil {
-		return nil, 0, err
+	if err := db.DB.Model(&UploadedFile{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count files: %w", err)
 	}
 
 	// Get paginated results
 	offset := (page - 1) * pageSize
-	query := `
-		SELECT id, filename, original_name, file_size, mime_type, storage_path,
-			   user_id, group_id, status, transcription_id, metadata, uploaded_at, processed_at
-		FROM uploaded_files
-		WHERE user_id = $1
-		ORDER BY uploaded_at DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	rows, err := db.Query(query, userID, pageSize, offset)
-	if err != nil {
-		return nil, 0, err
+	if err := db.DB.Where("user_id = ?", userID).
+		Order("uploaded_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&dbFiles).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to list files: %w", err)
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var file models.UploadedFile
-		var metadataJSON []byte
-
-		if err := rows.Scan(
-			&file.ID, &file.Filename, &file.OriginalName, &file.FileSize, &file.MimeType,
-			&file.StoragePath, &file.UserID, &file.GroupID, &file.Status, &file.TranscriptionID,
-			&metadataJSON, &file.UploadedAt, &file.ProcessedAt,
-		); err != nil {
-			return nil, 0, err
+	files := make([]models.UploadedFile, 0, len(dbFiles))
+	for _, dbFile := range dbFiles {
+		file := models.UploadedFile{
+			ID:           dbFile.ID,
+			Filename:     dbFile.Filename,
+			OriginalName: dbFile.OriginalName,
+			FileSize:     dbFile.FileSize,
+			MimeType:     dbFile.MimeType,
+			StoragePath:  dbFile.StoragePath,
+			UserID:       dbFile.UserID,
+			GroupID:      dbFile.GroupID,
+			Status:       models.TranscriptionStatus(dbFile.Status),
+			UploadedAt:   dbFile.UploadedAt,
+			ProcessedAt:  dbFile.ProcessedAt,
 		}
 
-		if len(metadataJSON) > 0 {
-			json.Unmarshal(metadataJSON, &file.Metadata)
+		if dbFile.TranscriptionID != nil {
+			file.TranscriptionID = dbFile.TranscriptionID
+		}
+
+		if dbFile.Metadata != "" {
+			json.Unmarshal([]byte(dbFile.Metadata), &file.Metadata)
 		}
 
 		files = append(files, file)
 	}
 
-	return files, total, nil
+	return files, int(total), nil
 }
 
 // UpdateFileStatus updates the status of a file
 func (db *DB) UpdateFileStatus(fileID string, status models.TranscriptionStatus) error {
-	query := `
-		UPDATE uploaded_files
-		SET status = $1, processed_at = $2
-		WHERE id = $3
-	`
+	uuidID, err := uuid.Parse(fileID)
+	if err != nil {
+		return fmt.Errorf("invalid UUID: %w", err)
+	}
 
-	_, err := db.Exec(query, status, time.Now(), fileID)
-	return err
+	now := time.Now()
+	updates := map[string]interface{}{
+		"status":       string(status),
+		"processed_at": &now,
+	}
+
+	result := db.DB.Model(&UploadedFile{}).Where("id = ?", uuidID).Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update file status: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("file not found")
+	}
+
+	return nil
 }
 
 // DeleteUploadedFile deletes a file record
 func (db *DB) DeleteUploadedFile(fileID string) error {
-	query := `DELETE FROM uploaded_files WHERE id = $1`
-	_, err := db.Exec(query, fileID)
-	return err
+	uuidID, err := uuid.Parse(fileID)
+	if err != nil {
+		return fmt.Errorf("invalid UUID: %w", err)
+	}
+
+	result := db.DB.Where("id = ?", uuidID).Delete(&UploadedFile{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete file: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("file not found")
+	}
+
+	return nil
 }
 
 // CheckUserHasFilePermission checks if a user has permission to access files
-func (db *DB) CheckUserHasFilePermission(userID string, action string) (bool, error) {
-	query := `
-		SELECT g.permissions
-		FROM groups g
-		INNER JOIN group_memberships gm ON g.id = gm.group_id
-		WHERE gm.user_id = $1
-	`
+func (db *DB) CheckUserHasFilePermission(userID uuid.UUID, action string) (bool, error) {
+	var groups []Group
+	err := db.DB.Table("groups g").
+		Select("g.permissions").
+		Joins("INNER JOIN group_memberships gm ON g.id = gm.group_id").
+		Where("gm.user_id = ?", userID).
+		Find(&groups).Error
 
-	rows, err := db.Query(query, userID)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to check permission: %w", err)
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var permissionsJSON []byte
-		if err := rows.Scan(&permissionsJSON); err != nil {
-			continue
-		}
-
+	for _, group := range groups {
 		var permissions map[string]interface{}
-		if err := json.Unmarshal(permissionsJSON, &permissions); err != nil {
+		if err := json.Unmarshal([]byte(group.Permissions), &permissions); err != nil {
 			continue
 		}
 

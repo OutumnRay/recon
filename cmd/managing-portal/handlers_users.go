@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 )
@@ -75,7 +76,7 @@ func (mp *ManagingPortal) listUsersHandler(w http.ResponseWriter, r *http.Reques
 func (mp *ManagingPortal) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimPrefix(r.URL.Path, "/api/v1/users/")
 
-	user, err := mp.userRepo.GetByID(userID)
+	user, err := mp.userRepo.GetByID(uuid.Must(uuid.Parse(userID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return
@@ -118,7 +119,7 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Find user
-	foundUser, err := mp.userRepo.GetByID(userID)
+	foundUser, err := mp.userRepo.GetByID(uuid.Must(uuid.Parse(userID)))
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return
@@ -130,9 +131,15 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 	if req.Password != "" {
 		// Hash the new password
+		mp.logger.Infof("=== PASSWORD UPDATE DEBUG ===")
+		mp.logger.Infof("User: %s (%s)", foundUser.Username, foundUser.ID)
+		mp.logger.Infof("Old password hash (first 20 chars): %s...", foundUser.Password[:20])
+		mp.logger.Infof("New password (plain): %s", req.Password)
 		hashedPassword := auth.HashPassword(req.Password)
+		mp.logger.Infof("New password hash (first 20 chars): %s...", hashedPassword[:20])
 		foundUser.Password = hashedPassword
-		mp.logger.Infof("Password updated for user: %s (%s)", foundUser.Username, foundUser.ID)
+		mp.logger.Infof("Password field set in user object")
+		mp.logger.Infof("============================")
 	}
 	if req.Role != "" {
 		foundUser.Role = req.Role
@@ -153,12 +160,17 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 		foundUser.IsActive = *req.IsActive
 	}
 
+	mp.logger.Infof("Calling userRepo.Update() for user: %s", foundUser.ID)
 	if err := mp.userRepo.Update(foundUser); err != nil {
+		mp.logger.Errorf("Failed to update user in database: %v", err)
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to update user", err.Error())
 		return
 	}
 
-	mp.logger.Infof("User updated: %s (%s)", foundUser.Username, foundUser.ID)
+	mp.logger.Infof("✓ User updated successfully in database: %s (%s)", foundUser.Username, foundUser.ID)
+	if req.Password != "" {
+		mp.logger.Infof("✓ Password was changed and saved to database")
+	}
 
 	userInfo := models.UserInfo{
 		ID:           foundUser.ID,
@@ -189,14 +201,15 @@ func (mp *ManagingPortal) deleteUserHandler(w http.ResponseWriter, r *http.Reque
 	userID := strings.TrimPrefix(r.URL.Path, "/api/v1/users/")
 
 	// Get user first to log the username
-	user, err := mp.userRepo.GetByID(userID)
+	parsedUserID := uuid.Must(uuid.Parse(userID))
+	user, err := mp.userRepo.GetByID(parsedUserID)
 	if err != nil {
 		mp.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return
 	}
 
 	// Delete user
-	if err := mp.userRepo.Delete(userID); err != nil {
+	if err := mp.userRepo.Delete(parsedUserID); err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to delete user", err.Error())
 		return
 	}

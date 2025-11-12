@@ -1,10 +1,14 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // UserGroup represents a group of users with specific permissions
 type UserGroup struct {
-	ID          string                 `json:"id" db:"id"`
+	ID          uuid.UUID              `json:"id" db:"id"`
 	Name        string                 `json:"name" db:"name"`
 	Description string                 `json:"description" db:"description"`
 	Permissions map[string]interface{} `json:"permissions" db:"permissions"` // JSON-based dynamic permissions
@@ -22,7 +26,7 @@ type Permission struct {
 
 // PermissionSet represents a complete set of permissions for a group
 type PermissionSet struct {
-	GroupID     string                 `json:"group_id"`
+	GroupID     uuid.UUID              `json:"group_id"`
 	Permissions []Permission           `json:"permissions"`
 	CustomRules map[string]interface{} `json:"custom_rules,omitempty"` // Custom JSON rules for advanced permissions
 }
@@ -43,16 +47,16 @@ type UpdateGroupRequest struct {
 
 // GroupMembership represents a user's membership in a group
 type GroupMembership struct {
-	UserID    string    `json:"user_id" db:"user_id"`
-	GroupID   string    `json:"group_id" db:"group_id"`
+	UserID    uuid.UUID `json:"user_id" db:"user_id"`
+	GroupID   uuid.UUID `json:"group_id" db:"group_id"`
 	AddedAt   time.Time `json:"added_at" db:"added_at"`
-	AddedBy   string    `json:"added_by" db:"added_by"`
+	AddedBy   uuid.UUID `json:"added_by" db:"added_by"`
 }
 
 // AddUserToGroupRequest represents a request to add a user to a group
 type AddUserToGroupRequest struct {
-	UserID  string `json:"user_id" binding:"required" example:"user-001"`
-	GroupID string `json:"group_id" binding:"required" example:"group-001"`
+	UserID  uuid.UUID `json:"user_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	GroupID uuid.UUID `json:"group_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
 }
 
 // ListGroupsResponse represents a list of groups
@@ -65,9 +69,9 @@ type ListGroupsResponse struct {
 
 // PermissionCheckRequest represents a request to check permissions
 type PermissionCheckRequest struct {
-	UserID   string `json:"user_id" binding:"required" example:"user-001"`
-	Resource string `json:"resource" binding:"required" example:"recordings"`
-	Action   string `json:"action" binding:"required" example:"write"`
+	UserID   uuid.UUID `json:"user_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Resource string    `json:"resource" binding:"required" example:"recordings"`
+	Action   string    `json:"action" binding:"required" example:"write"`
 }
 
 // PermissionCheckResponse represents the result of a permission check

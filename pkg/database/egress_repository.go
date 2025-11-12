@@ -3,6 +3,8 @@ package database
 import (
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // EgressRepository handles LiveKit egress database operations
@@ -24,7 +26,7 @@ func (r *EgressRepository) Create(egress *LiveKitEgress) error {
 }
 
 // GetByID retrieves an egress by ID
-func (r *EgressRepository) GetByID(egressID string) (*LiveKitEgress, error) {
+func (r *EgressRepository) GetByID(egressID uuid.UUID) (*LiveKitEgress, error) {
 	var egress LiveKitEgress
 	if err := r.db.Where("id = ?", egressID).First(&egress).Error; err != nil {
 		return nil, fmt.Errorf("failed to get egress: %w", err)
@@ -53,7 +55,7 @@ func (r *EgressRepository) GetActiveByRoomSID(roomSID string) ([]*LiveKitEgress,
 }
 
 // UpdateStatus updates the status of an egress
-func (r *EgressRepository) UpdateStatus(egressID string, status string) error {
+func (r *EgressRepository) UpdateStatus(egressID uuid.UUID, status string) error {
 	if err := r.db.Model(&LiveKitEgress{}).
 		Where("id = ?", egressID).
 		Updates(map[string]interface{}{
@@ -66,7 +68,7 @@ func (r *EgressRepository) UpdateStatus(egressID string, status string) error {
 }
 
 // MarkStarted marks an egress as started
-func (r *EgressRepository) MarkStarted(egressID string) error {
+func (r *EgressRepository) MarkStarted(egressID uuid.UUID) error {
 	now := time.Now()
 	if err := r.db.Model(&LiveKitEgress{}).
 		Where("id = ?", egressID).
@@ -81,7 +83,7 @@ func (r *EgressRepository) MarkStarted(egressID string) error {
 }
 
 // MarkCompleted marks an egress as completed with file info
-func (r *EgressRepository) MarkCompleted(egressID string, filePath *string, fileSize *int64, duration *int64) error {
+func (r *EgressRepository) MarkCompleted(egressID uuid.UUID, filePath *string, fileSize *int64, duration *int64) error {
 	now := time.Now()
 	updates := map[string]interface{}{
 		"status":     "complete",
@@ -108,7 +110,7 @@ func (r *EgressRepository) MarkCompleted(egressID string, filePath *string, file
 }
 
 // MarkFailed marks an egress as failed with error message
-func (r *EgressRepository) MarkFailed(egressID string, errorMsg string) error {
+func (r *EgressRepository) MarkFailed(egressID uuid.UUID, errorMsg string) error {
 	now := time.Now()
 	if err := r.db.Model(&LiveKitEgress{}).
 		Where("id = ?", egressID).
@@ -151,7 +153,7 @@ func (r *EgressRepository) List(roomName *string, status *string, limit int, off
 }
 
 // Delete deletes an egress record (soft delete not needed, hard delete)
-func (r *EgressRepository) Delete(egressID string) error {
+func (r *EgressRepository) Delete(egressID uuid.UUID) error {
 	if err := r.db.Where("id = ?", egressID).Delete(&LiveKitEgress{}).Error; err != nil {
 		return fmt.Errorf("failed to delete egress: %w", err)
 	}

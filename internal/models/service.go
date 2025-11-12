@@ -20,7 +20,6 @@ const (
 	ServiceTypeUserPortal          ServiceType = "user-portal"
 	ServiceTypeTranscriptionWorker ServiceType = "transcription-worker"
 	ServiceTypeSummarizationWorker ServiceType = "summarization-worker"
-	ServiceTypeJitsiAgent          ServiceType = "jitsi-agent"
 )
 
 // ServiceInfo represents information about a service

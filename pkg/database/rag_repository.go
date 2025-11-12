@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"Recontext.online/internal/models"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -15,23 +16,32 @@ func (db *DB) CreateDocumentChunk(chunk *models.DocumentChunk) error {
 		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
-	// Convert float32 slice to PostgreSQL array format
-	embedding := pq.Array(chunk.Embedding)
+	// Convert float32 slice to PostgreSQL array format for storage
+	// Note: GORM will handle the conversion, but we need to store as string for the vector type
+	embeddingJSON, err := json.Marshal(chunk.Embedding)
+	if err != nil {
+		return fmt.Errorf("failed to marshal embedding: %w", err)
+	}
 
-	query := `
-		INSERT INTO document_chunks (
-			id, file_id, transcription_id, chunk_text, chunk_index,
-			embedding, metadata, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`
+	dbChunk := &DocumentChunk{
+		ID:         chunk.ID,
+		FileID:     chunk.FileID,
+		ChunkText:  chunk.ChunkText,
+		ChunkIndex: chunk.ChunkIndex,
+		Embedding:  string(embeddingJSON),
+		Metadata:   string(metadata),
+		CreatedAt:  chunk.CreatedAt,
+	}
 
-	_, err = db.Exec(
-		query,
-		chunk.ID, chunk.FileID, chunk.TranscriptionID, chunk.ChunkText, chunk.ChunkIndex,
-		embedding, metadata, chunk.CreatedAt,
-	)
+	if chunk.TranscriptionID != nil {
+		dbChunk.TranscriptionID = chunk.TranscriptionID
+	}
 
-	return err
+	if err := db.DB.Create(dbChunk).Error; err != nil {
+		return fmt.Errorf("failed to create document chunk: %w", err)
+	}
+
+	return nil
 }
 
 // SearchSimilarChunks performs semantic search using vector similarity
@@ -45,44 +55,25 @@ func (db *DB) SearchSimilarChunks(queryEmbedding []float32, topK int, threshold 
 
 	embedding := pq.Array(queryEmbedding)
 
-	query := `
+	var results []models.RAGSearchResult
+	err := db.DB.Raw(`
 		SELECT
 			dc.id as chunk_id,
 			dc.file_id,
 			uf.original_name as file_name,
 			dc.chunk_text,
 			dc.chunk_index,
-			1 - (dc.embedding <=> $1::vector) as similarity,
+			1 - (dc.embedding <=> ?::vector) as similarity,
 			uf.uploaded_at
 		FROM document_chunks dc
 		INNER JOIN uploaded_files uf ON dc.file_id = uf.id
-		WHERE 1 - (dc.embedding <=> $1::vector) >= $2
-		ORDER BY dc.embedding <=> $1::vector
-		LIMIT $3
-	`
+		WHERE 1 - (dc.embedding <=> ?::vector) >= ?
+		ORDER BY dc.embedding <=> ?::vector
+		LIMIT ?
+	`, embedding, embedding, threshold, embedding, topK).Scan(&results).Error
 
-	rows, err := db.Query(query, embedding, threshold, topK)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search similar chunks: %w", err)
-	}
-	defer rows.Close()
-
-	var results []models.RAGSearchResult
-	for rows.Next() {
-		var result models.RAGSearchResult
-		err := rows.Scan(
-			&result.ChunkID,
-			&result.FileID,
-			&result.FileName,
-			&result.ChunkText,
-			&result.ChunkIndex,
-			&result.Similarity,
-			&result.UploadedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan result: %w", err)
-		}
-		results = append(results, result)
 	}
 
 	return results, nil
@@ -93,19 +84,20 @@ func (db *DB) GetRAGStatus() (*models.RAGStatusResponse, error) {
 	var status models.RAGStatusResponse
 
 	// Count total chunks
-	err := db.QueryRow("SELECT COUNT(*) FROM document_chunks").Scan(&status.TotalChunks)
+	var totalChunks int64
+	err := db.DB.Model(&DocumentChunk{}).Count(&totalChunks).Error
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to count chunks: %w", err)
 	}
+	status.TotalChunks = int(totalChunks)
 
 	// Count indexed files
-	err = db.QueryRow(`
-		SELECT COUNT(DISTINCT file_id)
-		FROM document_chunks
-	`).Scan(&status.IndexedFiles)
+	var indexedFiles int64
+	err = db.DB.Model(&DocumentChunk{}).Distinct("file_id").Count(&indexedFiles).Error
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to count indexed files: %w", err)
 	}
+	status.IndexedFiles = int(indexedFiles)
 
 	status.IsReady = status.TotalChunks > 0
 
@@ -114,34 +106,33 @@ func (db *DB) GetRAGStatus() (*models.RAGStatusResponse, error) {
 
 // DeleteChunksByFileID deletes all chunks for a specific file
 func (db *DB) DeleteChunksByFileID(fileID string) error {
-	query := `DELETE FROM document_chunks WHERE file_id = $1`
-	_, err := db.Exec(query, fileID)
-	return err
+	uuidID, err := uuid.Parse(fileID)
+	if err != nil {
+		return fmt.Errorf("invalid UUID: %w", err)
+	}
+
+	if err := db.DB.Where("file_id = ?", uuidID).Delete(&DocumentChunk{}).Error; err != nil {
+		return fmt.Errorf("failed to delete chunks: %w", err)
+	}
+	return nil
 }
 
 // CheckUserHasRAGPermission checks if a user has permission to use RAG
-func (db *DB) CheckUserHasRAGPermission(userID string) (bool, error) {
-	query := `
-		SELECT g.permissions
-		FROM groups g
-		INNER JOIN group_memberships gm ON g.id = gm.group_id
-		WHERE gm.user_id = $1
-	`
+func (db *DB) CheckUserHasRAGPermission(userID uuid.UUID) (bool, error) {
+	var groups []Group
+	err := db.DB.Table("groups g").
+		Select("g.permissions").
+		Joins("INNER JOIN group_memberships gm ON g.id = gm.group_id").
+		Where("gm.user_id = ?", userID).
+		Find(&groups).Error
 
-	rows, err := db.Query(query, userID)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to check permission: %w", err)
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var permissionsJSON []byte
-		if err := rows.Scan(&permissionsJSON); err != nil {
-			continue
-		}
-
+	for _, group := range groups {
 		var permissions map[string]interface{}
-		if err := json.Unmarshal(permissionsJSON, &permissions); err != nil {
+		if err := json.Unmarshal([]byte(group.Permissions), &permissions); err != nil {
 			continue
 		}
 

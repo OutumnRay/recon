@@ -166,12 +166,9 @@ export const Login: React.FC = () => {
         </form>
 
         <div className="login-footer">
-          <p>
-            {t('login.defaultCredentials')} <strong>admin / admin123</strong>
-          </p>
           <p style={{ marginTop: '8px' }}>
             {t('login.needHelp')}{' '}
-            <a href="#support" className="login-footer-link">
+            <a href="mailto:support@recontext.ru" className="login-footer-link">
               {t('login.contactSupport')}
             </a>
           </p>

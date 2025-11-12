@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"Recontext.online/internal/models"
+	"github.com/google/uuid"
 	"Recontext.online/pkg/auth"
 )
 
@@ -49,7 +50,7 @@ func (up *UserPortal) uploadAvatarHandler(w http.ResponseWriter, r *http.Request
 	userID := pathParts[0]
 
 	// Users can only update their own avatar (unless admin)
-	if userID != claims.UserID && claims.Role != models.RoleAdmin {
+	if userID != claims.UserID.String() && claims.Role != models.RoleAdmin {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "You can only update your own avatar")
 		return
 	}
@@ -127,7 +128,7 @@ func (up *UserPortal) uploadAvatarHandler(w http.ResponseWriter, r *http.Request
 	avatarURL := fmt.Sprintf("/uploads/avatars/%s", filename)
 
 	// Update user avatar in database
-	if err := up.userRepo.UpdateAvatar(userID, avatarURL); err != nil {
+	if err := up.userRepo.UpdateAvatar(uuid.Must(uuid.Parse(userID)), avatarURL); err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to update user avatar", err.Error())
 		return
 	}
@@ -173,7 +174,7 @@ func (up *UserPortal) updateProfileHandler(w http.ResponseWriter, r *http.Reques
 	userID := pathParts[0]
 
 	// Users can only update their own profile (unless admin)
-	if userID != claims.UserID && claims.Role != models.RoleAdmin {
+	if userID != claims.UserID.String() && claims.Role != models.RoleAdmin {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "You can only update your own profile")
 		return
 	}
@@ -185,7 +186,7 @@ func (up *UserPortal) updateProfileHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Get current user
-	user, err := up.userRepo.GetByID(userID)
+	user, err := up.userRepo.GetByID(uuid.Must(uuid.Parse(userID)))
 	if err != nil {
 		up.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return
@@ -268,13 +269,13 @@ func (up *UserPortal) getProfileHandler(w http.ResponseWriter, r *http.Request) 
 	userID := pathParts[0]
 
 	// Users can view their own profile or admins can view any
-	if userID != claims.UserID && claims.Role != models.RoleAdmin {
+	if userID != claims.UserID.String() && claims.Role != models.RoleAdmin {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "You can only view your own profile")
 		return
 	}
 
 	// Get user
-	user, err := up.userRepo.GetByID(userID)
+	user, err := up.userRepo.GetByID(uuid.Must(uuid.Parse(userID)))
 	if err != nil {
 		up.respondWithError(w, http.StatusNotFound, "User not found", err.Error())
 		return

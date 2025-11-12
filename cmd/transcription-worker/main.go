@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +12,7 @@ import (
 	"Recontext.online/internal/config"
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/logger"
+	"github.com/google/uuid"
 )
 
 // @title Recontext Transcription Worker API
@@ -116,8 +116,8 @@ func (w *TranscriptionWorker) simulateTranscription(taskID, audioURL string) (*m
 	time.Sleep(2 * time.Second)
 
 	transcript := &models.Transcript{
-		ID:           fmt.Sprintf("transcript-%d", time.Now().Unix()),
-		RecordingID:  taskID,
+		ID:           uuid.New(),
+		RecordingID:  uuid.MustParse(taskID),
 		Language:     "en",
 		Status:       "completed",
 		Segments:     []models.TranscriptSegment{},

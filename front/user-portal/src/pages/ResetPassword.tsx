@@ -153,7 +153,6 @@ export const ResetPassword = () => {
 
         <div className="reset-password-card">
           <div className="card-header">
-            <div className="lock-icon">🔐</div>
             <h1 className="card-title">{t('resetPassword.title')}</h1>
             <p className="card-description">
               {emailParam && t('resetPassword.description', { email: emailParam })}

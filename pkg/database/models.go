@@ -3,16 +3,17 @@ package database
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
 // Department represents a department in the organization
 type Department struct {
-	ID          string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID          uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Name        string         `gorm:"type:varchar(255);not null" json:"name"`
 	Description string         `gorm:"type:text" json:"description"`
-	ParentID    *string        `gorm:"type:varchar(255)" json:"parent_id"`
+	ParentID    *uuid.UUID     `gorm:"type:uuid" json:"parent_id"`
 	Level       int            `gorm:"not null;default:0" json:"level"`
 	Path        string         `gorm:"type:text;not null" json:"path"`
 	IsActive    bool           `gorm:"not null;default:true" json:"is_active"`
@@ -27,7 +28,7 @@ type Department struct {
 
 // User represents a user in the system
 type User struct {
-	ID           string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID           uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Username     string         `gorm:"uniqueIndex;type:varchar(255);not null" json:"username"`
 	Email        string         `gorm:"uniqueIndex;type:varchar(255);not null" json:"email"`
 	Password     string         `gorm:"type:varchar(255);not null" json:"-"`
@@ -36,7 +37,7 @@ type User struct {
 	IsActive     bool           `gorm:"default:true" json:"is_active"`
 	LastLogin    *time.Time     `json:"last_login"`
 	Language     string         `gorm:"type:varchar(10);not null;default:'en'" json:"language"`
-	DepartmentID *string        `gorm:"type:varchar(255)" json:"department_id"`
+	DepartmentID *uuid.UUID     `gorm:"type:uuid" json:"department_id"`
 	Permissions  string         `gorm:"type:jsonb;not null;default:'{\"can_schedule_meetings\": false, \"can_manage_department\": false, \"can_approve_recordings\": false}'" json:"permissions"`
 	FirstName    *string        `gorm:"column:first_name;type:varchar(255)" json:"first_name"`
 	LastName     *string        `gorm:"column:last_name;type:varchar(255)" json:"last_name"`
@@ -53,7 +54,7 @@ type User struct {
 
 // Group represents a user group with permissions
 type Group struct {
-	ID          string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID          uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Name        string         `gorm:"uniqueIndex;type:varchar(255);not null" json:"name"`
 	Description string         `gorm:"type:text" json:"description"`
 	Permissions string         `gorm:"type:jsonb;not null;default:'{}'" json:"permissions"`
@@ -64,10 +65,10 @@ type Group struct {
 
 // GroupMembership represents the many-to-many relationship between users and groups
 type GroupMembership struct {
-	UserID  string    `gorm:"primaryKey;type:varchar(255);not null" json:"user_id"`
-	GroupID string    `gorm:"primaryKey;type:varchar(255);not null" json:"group_id"`
-	AddedAt time.Time `gorm:"not null;default:now()" json:"added_at"`
-	AddedBy *string   `gorm:"type:varchar(255)" json:"added_by"`
+	UserID  uuid.UUID  `gorm:"primaryKey;type:uuid;not null" json:"user_id"`
+	GroupID uuid.UUID  `gorm:"primaryKey;type:uuid;not null" json:"group_id"`
+	AddedAt time.Time  `gorm:"not null;default:now()" json:"added_at"`
+	AddedBy *uuid.UUID `gorm:"type:uuid" json:"added_by"`
 
 	// Relations
 	User  User  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
@@ -76,16 +77,16 @@ type GroupMembership struct {
 
 // UploadedFile represents an uploaded audio/video file
 type UploadedFile struct {
-	ID              string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID              uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Filename        string         `gorm:"type:varchar(500);not null" json:"filename"`
 	OriginalName    string         `gorm:"type:varchar(500);not null" json:"original_name"`
 	FileSize        int64          `gorm:"not null" json:"file_size"`
 	MimeType        string         `gorm:"type:varchar(255);not null" json:"mime_type"`
 	StoragePath     string         `gorm:"type:text;not null" json:"storage_path"`
-	UserID          string         `gorm:"type:varchar(255);not null" json:"user_id"`
-	GroupID         string         `gorm:"type:varchar(255);not null" json:"group_id"`
+	UserID          uuid.UUID      `gorm:"type:uuid;not null" json:"user_id"`
+	GroupID         uuid.UUID      `gorm:"type:uuid;not null" json:"group_id"`
 	Status          string         `gorm:"type:varchar(50);not null;default:'pending'" json:"status"`
-	TranscriptionID *string        `gorm:"type:varchar(255)" json:"transcription_id"`
+	TranscriptionID *uuid.UUID     `gorm:"type:uuid" json:"transcription_id"`
 	Metadata        string         `gorm:"type:jsonb;default:'{}'" json:"metadata"`
 	UploadedAt      time.Time      `gorm:"not null;default:now()" json:"uploaded_at"`
 	ProcessedAt     *time.Time     `json:"processed_at"`
@@ -98,15 +99,15 @@ type UploadedFile struct {
 
 // FileTranscription represents a transcription of an uploaded file
 type FileTranscription struct {
-	ID            string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
-	FileID        string         `gorm:"type:varchar(255);not null" json:"file_id"`
+	ID            uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	FileID        uuid.UUID      `gorm:"type:uuid;not null" json:"file_id"`
 	Text          string         `gorm:"type:text;not null" json:"text"`
 	Language      string         `gorm:"type:varchar(10);not null" json:"language"`
 	Confidence    *float64       `gorm:"type:decimal(5,4)" json:"confidence"`
 	Duration      *float64       `gorm:"type:decimal(10,2)" json:"duration"`
 	Segments      string         `gorm:"type:jsonb;default:'{}'" json:"segments"`
 	TranscribedAt time.Time      `gorm:"not null;default:now()" json:"transcribed_at"`
-	TranscribedBy string         `gorm:"type:varchar(255);not null" json:"transcribed_by"`
+	TranscribedBy uuid.UUID      `gorm:"type:uuid;not null" json:"transcribed_by"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
@@ -115,9 +116,9 @@ type FileTranscription struct {
 
 // DocumentChunk represents a chunk of a document with embeddings
 type DocumentChunk struct {
-	ID              string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
-	FileID          string         `gorm:"type:varchar(255);not null" json:"file_id"`
-	TranscriptionID *string        `gorm:"type:varchar(255)" json:"transcription_id"`
+	ID              uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	FileID          uuid.UUID      `gorm:"type:uuid;not null" json:"file_id"`
+	TranscriptionID *uuid.UUID     `gorm:"type:uuid" json:"transcription_id"`
 	ChunkText       string         `gorm:"type:text;not null" json:"chunk_text"`
 	ChunkIndex      int            `gorm:"not null" json:"chunk_index"`
 	Embedding       string         `gorm:"type:vector(1536)" json:"-"` // pgvector type
@@ -132,7 +133,7 @@ type DocumentChunk struct {
 
 // LiveKitRoom represents a LiveKit room
 type LiveKitRoom struct {
-	ID               string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID               uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Sid              string         `gorm:"uniqueIndex;type:varchar(255);not null" json:"sid"`
 	Name             string         `gorm:"type:varchar(255);not null" json:"name"`
 	EmptyTimeout     int            `gorm:"default:300" json:"empty_timeout"`
@@ -151,7 +152,7 @@ type LiveKitRoom struct {
 
 // LiveKitParticipant represents a participant in a LiveKit room
 type LiveKitParticipant struct {
-	ID               string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID               uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Sid              string         `gorm:"uniqueIndex;type:varchar(255);not null" json:"sid"`
 	RoomSid          string         `gorm:"type:varchar(255);not null" json:"room_sid"`
 	Identity         string         `gorm:"type:varchar(255);not null" json:"identity"`
@@ -174,7 +175,7 @@ type LiveKitParticipant struct {
 
 // LiveKitTrack represents a media track in a LiveKit room
 type LiveKitTrack struct {
-	ID                string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID                uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Sid               string         `gorm:"uniqueIndex;type:varchar(255);not null" json:"sid"`
 	ParticipantSid    string         `gorm:"type:varchar(255);not null" json:"participant_sid"`
 	RoomSid           string         `gorm:"type:varchar(255);not null" json:"room_sid"`
@@ -205,12 +206,12 @@ type LiveKitTrack struct {
 
 // LiveKitWebhookEvent represents a webhook event from LiveKit
 type LiveKitWebhookEvent struct {
-	ID             string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID             uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	EventType      string         `gorm:"type:varchar(100);not null" json:"event_type"`
 	EventID        string         `gorm:"type:varchar(255);not null" json:"event_id"`
-	RoomSid        *string        `gorm:"type:varchar(255)" json:"room_sid"`
-	ParticipantSid *string        `gorm:"type:varchar(255)" json:"participant_sid"`
-	TrackSid       *string        `gorm:"type:varchar(255)" json:"track_sid"`
+	RoomSid        *uuid.UUID     `gorm:"type:uuid" json:"room_sid"`
+	ParticipantSid *uuid.UUID     `gorm:"type:uuid" json:"participant_sid"`
+	TrackSid       *uuid.UUID     `gorm:"type:uuid" json:"track_sid"`
 	Payload        string         `gorm:"type:jsonb;not null" json:"payload"`
 	CreatedAt      time.Time      `gorm:"not null;default:now()" json:"created_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
@@ -218,7 +219,7 @@ type LiveKitWebhookEvent struct {
 
 // MeetingSubject represents a meeting subject/topic
 type MeetingSubject struct {
-	ID            string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID            uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Name          string         `gorm:"uniqueIndex;type:varchar(255);not null" json:"name"`
 	Description   string         `gorm:"type:text" json:"description"`
 	DepartmentIDs pq.StringArray `gorm:"type:text[];default:'{}'" json:"department_ids"`
@@ -230,20 +231,20 @@ type MeetingSubject struct {
 
 // Meeting represents a scheduled or ongoing meeting
 type Meeting struct {
-	ID                 string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ID                 uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
 	Title              string         `gorm:"type:varchar(500);not null" json:"title"`
 	ScheduledAt        time.Time      `gorm:"not null" json:"scheduled_at"`
 	Duration           int            `gorm:"not null" json:"duration"`
 	Recurrence         string         `gorm:"type:varchar(50);not null;default:'none'" json:"recurrence"`
 	Type               string         `gorm:"type:varchar(50);not null" json:"type"`
-	SubjectID          string         `gorm:"type:varchar(255);not null" json:"subject_id"`
+	SubjectID          uuid.UUID      `gorm:"type:uuid;not null" json:"subject_id"`
 	Status             string         `gorm:"type:varchar(50);not null;default:'scheduled'" json:"status"`
 	NeedsVideoRecord   bool           `gorm:"not null;default:false" json:"needs_video_record"`
 	NeedsAudioRecord   bool           `gorm:"not null;default:false" json:"needs_audio_record"`
 	ForceEndAtDuration bool           `gorm:"column:force_end_at_duration;not null;default:false" json:"force_end_at_duration"`
 	AdditionalNotes    string         `gorm:"column:additional_notes;type:text" json:"additional_notes"`
-	LiveKitRoomID      *string        `gorm:"column:livekit_room_id;type:varchar(255)" json:"livekit_room_id"`
-	CreatedBy          string         `gorm:"type:varchar(255);not null" json:"created_by"`
+	LiveKitRoomID      *uuid.UUID     `gorm:"column:livekit_room_id;type:uuid" json:"livekit_room_id"`
+	CreatedBy          uuid.UUID      `gorm:"type:uuid;not null" json:"created_by"`
 	CreatedAt          time.Time      `gorm:"not null;default:now()" json:"created_at"`
 	UpdatedAt          time.Time      `gorm:"not null;default:now()" json:"updated_at"`
 	DeletedAt          gorm.DeletedAt `gorm:"index" json:"-"`
@@ -255,9 +256,9 @@ type Meeting struct {
 
 // MeetingParticipant represents a participant in a meeting
 type MeetingParticipant struct {
-	ID        string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
-	MeetingID string         `gorm:"type:varchar(255);not null;uniqueIndex:idx_meeting_user" json:"meeting_id"`
-	UserID    string         `gorm:"type:varchar(255);not null;uniqueIndex:idx_meeting_user" json:"user_id"`
+	ID        uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	MeetingID uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:idx_meeting_user" json:"meeting_id"`
+	UserID    uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:idx_meeting_user" json:"user_id"`
 	Role      string         `gorm:"type:varchar(50);not null" json:"role"`
 	Status    string         `gorm:"type:varchar(50);not null;default:'invited'" json:"status"`
 	JoinedAt  *time.Time     `json:"joined_at"`
@@ -272,9 +273,9 @@ type MeetingParticipant struct {
 
 // MeetingDepartment represents departments invited to a meeting
 type MeetingDepartment struct {
-	ID           string         `gorm:"primaryKey;type:varchar(255)" json:"id"`
-	MeetingID    string         `gorm:"type:varchar(255);not null;uniqueIndex:idx_meeting_dept" json:"meeting_id"`
-	DepartmentID string         `gorm:"type:varchar(255);not null;uniqueIndex:idx_meeting_dept" json:"department_id"`
+	ID           uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	MeetingID    uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:idx_meeting_dept" json:"meeting_id"`
+	DepartmentID uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:idx_meeting_dept" json:"department_id"`
 	CreatedAt    time.Time      `gorm:"not null;default:now()" json:"created_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 
@@ -285,8 +286,8 @@ type MeetingDepartment struct {
 
 // PasswordResetToken represents a password reset token
 type PasswordResetToken struct {
-	ID        string    `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
-	UserID    string    `gorm:"type:varchar(255);not null" json:"user_id"`
+	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	Email     string    `gorm:"type:varchar(255);not null" json:"email"`
 	Code      string    `gorm:"type:varchar(6);not null" json:"-"`
 	ExpiresAt time.Time `gorm:"not null" json:"expires_at"`
@@ -299,7 +300,7 @@ type PasswordResetToken struct {
 
 // LiveKitEgress represents a LiveKit egress (recording) session
 type LiveKitEgress struct {
-	ID             string     `gorm:"primaryKey;type:varchar(255)" json:"id"` // EgressID from LiveKit
+	ID             uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid()" json:"id"` // EgressID from LiveKit
 	RoomSID        string     `gorm:"type:varchar(255);not null;index" json:"room_sid"`
 	RoomName       string     `gorm:"type:varchar(255);not null;index" json:"room_name"`
 	Type           string     `gorm:"type:varchar(50);not null" json:"type"` // room_composite, track_composite, track
