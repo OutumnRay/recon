@@ -12,8 +12,8 @@ import (
 )
 
 // CreateDepartment godoc
-// @Summary Create a new department
-// @Description Create a new department in the organizational hierarchy
+// @Summary Создать новый отдел
+// @Description Создать новый отдел в организационной иерархии
 // @Tags Departments
 // @Accept json
 // @Produce json
@@ -76,8 +76,8 @@ func (mp *ManagingPortal) createDepartmentHandler(w http.ResponseWriter, r *http
 }
 
 // ListDepartments godoc
-// @Summary List departments
-// @Description Get a list of departments with optional filters. Can return flat list or hierarchical tree.
+// @Summary Список отделов
+// @Description Получить список отделов с дополнительными фильтрами. Может вернуть плоский список или иерархическое дерево.
 // @Tags Departments
 // @Produce json
 // @Param parent_id query string false "Filter by parent department ID"
@@ -137,8 +137,8 @@ func (mp *ManagingPortal) listDepartmentsHandler(w http.ResponseWriter, r *http.
 }
 
 // GetDepartment godoc
-// @Summary Get department by ID
-// @Description Get detailed information about a specific department including statistics
+// @Summary Получить отдел по ID
+// @Description Получить детальную информацию о конкретном отделе, включая статистику
 // @Tags Departments
 // @Produce json
 // @Param id path string true "Department ID"
@@ -177,8 +177,8 @@ func (mp *ManagingPortal) getDepartmentHandler(w http.ResponseWriter, r *http.Re
 }
 
 // UpdateDepartment godoc
-// @Summary Update department
-// @Description Update department information (admin only). Automatically recalculates paths for all child departments.
+// @Summary Обновить отдел
+// @Description Обновить информацию об отделе (только администратор). Автоматически пересчитывает пути для всех дочерних отделов.
 // @Tags Departments
 // @Accept json
 // @Produce json
@@ -255,8 +255,8 @@ func (mp *ManagingPortal) updateDepartmentHandler(w http.ResponseWriter, r *http
 }
 
 // DeleteDepartment godoc
-// @Summary Delete department
-// @Description Soft delete a department (marks as inactive). Cannot delete department with active users.
+// @Summary Удалить отдел
+// @Description Мягкое удаление отдела (помечает как неактивный). Нельзя удалить отдел с активными пользователями.
 // @Tags Departments
 // @Produce json
 // @Param id path string true "Department ID"
@@ -299,8 +299,8 @@ func (mp *ManagingPortal) deleteDepartmentHandler(w http.ResponseWriter, r *http
 }
 
 // GetDepartmentChildren godoc
-// @Summary Get child departments
-// @Description Get all direct child departments of a given department
+// @Summary Получить дочерние отделы
+// @Description Получить все прямые дочерние отделы заданного отдела
 // @Tags Departments
 // @Produce json
 // @Param id path string true "Parent Department ID"

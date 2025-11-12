@@ -144,8 +144,8 @@ func getEnvInt(key string, defaultValue int) int {
 }
 
 // Login godoc
-// @Summary User login
-// @Description Authenticate user and receive JWT token
+// @Summary Вход в систему
+// @Description Аутентификация пользователя и получение JWT токена
 // @Tags Authentication
 // @Accept json
 // @Produce json
@@ -207,8 +207,8 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Health godoc
-// @Summary Health check
-// @Description Check if the service is healthy
+// @Summary Проверка здоровья
+// @Description Проверка, работает ли сервис
 // @Tags Monitoring
 // @Produce json
 // @Success 200 {object} models.HealthResponse
@@ -225,8 +225,8 @@ func (up *UserPortal) healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadRecording godoc
-// @Summary Upload a recording
-// @Description Upload an audio or video file for transcription
+// @Summary Загрузить запись
+// @Description Загрузить аудио или видео файл для транскрибации
 // @Tags Recordings
 // @Accept multipart/form-data
 // @Produce json
@@ -294,8 +294,8 @@ func (up *UserPortal) uploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListRecordings godoc
-// @Summary List user recordings
-// @Description Get a paginated list of user's recordings
+// @Summary Список записей пользователя
+// @Description Получить постраничный список записей пользователя
 // @Tags Recordings
 // @Produce json
 // @Param page query int false "Page number" default(1)
@@ -332,8 +332,8 @@ func (up *UserPortal) listRecordingsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // GetRecording godoc
-// @Summary Get recording details
-// @Description Get detailed information about a specific recording
+// @Summary Получить детали записи
+// @Description Получить детальную информацию о конкретной записи
 // @Tags Recordings
 // @Produce json
 // @Param id path string true "Recording ID"
@@ -369,8 +369,8 @@ func (up *UserPortal) getRecordingHandler(w http.ResponseWriter, r *http.Request
 }
 
 // SearchTranscripts godoc
-// @Summary Search transcripts
-// @Description Search through transcripts using semantic or keyword search
+// @Summary Поиск по транскриптам
+// @Description Поиск по транскриптам с использованием семантического или ключевого поиска
 // @Tags Search
 // @Produce json
 // @Param query query string true "Search query"
@@ -408,8 +408,8 @@ func (up *UserPortal) searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadFile godoc
-// @Summary Upload a file for transcription
-// @Description Upload an audio or video file for transcription (requires file upload permission)
+// @Summary Загрузить файл для транскрибации
+// @Description Загрузить аудио или видео файл для транскрибации (требуется разрешение на загрузку файлов)
 // @Tags Files
 // @Accept multipart/form-data
 // @Produce json
@@ -486,8 +486,8 @@ func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // ListFiles godoc
-// @Summary List uploaded files
-// @Description Get a paginated list of user's uploaded files
+// @Summary Список загруженных файлов
+// @Description Получить постраничный список загруженных файлов пользователя
 // @Tags Files
 // @Produce json
 // @Param page query int false "Page number" default(1)
@@ -537,8 +537,8 @@ func (up *UserPortal) listFilesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // CheckPermission godoc
-// @Summary Check file upload permission
-// @Description Check if the current user has permission to upload files
+// @Summary Проверить разрешение на загрузку файлов
+// @Description Проверить, имеет ли текущий пользователь разрешение на загрузку файлов
 // @Tags Files
 // @Produce json
 // @Success 200 {object} map[string]bool
@@ -567,8 +567,8 @@ func (up *UserPortal) checkFilePermissionHandler(w http.ResponseWriter, r *http.
 }
 
 // RAGSearch godoc
-// @Summary Semantic search through transcriptions
-// @Description Perform semantic search using RAG over transcriptions
+// @Summary Семантический поиск по транскрипциям
+// @Description Выполнить семантический поиск с использованием RAG по транскрипциям
 // @Tags RAG
 // @Accept json
 // @Produce json
@@ -637,8 +637,8 @@ func (up *UserPortal) ragSearchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // CheckRAGPermission godoc
-// @Summary Check RAG permission
-// @Description Check if the current user has permission to use RAG search
+// @Summary Проверить разрешение на RAG
+// @Description Проверить, имеет ли текущий пользователь разрешение на использование RAG поиска
 // @Tags RAG
 // @Produce json
 // @Success 200 {object} map[string]bool
@@ -667,8 +667,8 @@ func (up *UserPortal) checkRAGPermissionHandler(w http.ResponseWriter, r *http.R
 }
 
 // RAGStatus godoc
-// @Summary Get RAG system status
-// @Description Get statistics about the RAG system
+// @Summary Получить статус системы RAG
+// @Description Получить статистику о системе RAG
 // @Tags RAG
 // @Produce json
 // @Success 200 {object} models.RAGStatusResponse

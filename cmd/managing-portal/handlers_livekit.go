@@ -15,8 +15,8 @@ import (
 )
 
 // LiveKitWebhook godoc
-// @Summary LiveKit webhook endpoint
-// @Description Receives webhook events from LiveKit server (room_started, participant_joined, track_published, track_unpublished, participant_left, room_finished)
+// @Summary Конечная точка webhook LiveKit
+// @Description Получает события webhook от сервера LiveKit (room_started, participant_joined, track_published, track_unpublished, participant_left, room_finished)
 // @Tags LiveKit
 // @Accept json
 // @Produce json
@@ -374,8 +374,8 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 }
 
 // GetLiveKitRooms godoc
-// @Summary Get LiveKit rooms
-// @Description Get a list of LiveKit rooms with optional status filter
+// @Summary Получить комнаты LiveKit
+// @Description Получить список комнат LiveKit с дополнительным фильтром по статусу
 // @Tags LiveKit
 // @Produce json
 // @Param status query string false "Filter by status (active, finished)"
@@ -422,8 +422,8 @@ func (mp *ManagingPortal) listLiveKitRoomsHandler(w http.ResponseWriter, r *http
 }
 
 // GetLiveKitRoom godoc
-// @Summary Get LiveKit room details
-// @Description Get detailed information about a specific room
+// @Summary Получить детали комнаты LiveKit
+// @Description Получить детальную информацию о конкретной комнате
 // @Tags LiveKit
 // @Produce json
 // @Param sid path string true "Room SID"
@@ -449,8 +449,8 @@ func (mp *ManagingPortal) getLiveKitRoomHandler(w http.ResponseWriter, r *http.R
 }
 
 // GetLiveKitParticipants godoc
-// @Summary Get room participants
-// @Description Get all participants for a specific room
+// @Summary Получить участников комнаты
+// @Description Получить всех участников для конкретной комнаты
 // @Tags LiveKit
 // @Produce json
 // @Param room_sid query string true "Room SID"
@@ -483,8 +483,8 @@ func (mp *ManagingPortal) listLiveKitParticipantsHandler(w http.ResponseWriter, 
 }
 
 // GetLiveKitTracks godoc
-// @Summary Get room tracks
-// @Description Get all tracks for a specific room
+// @Summary Получить треки комнаты
+// @Description Получить все треки для конкретной комнаты
 // @Tags LiveKit
 // @Produce json
 // @Param room_sid query string true "Room SID"
@@ -517,8 +517,8 @@ func (mp *ManagingPortal) listLiveKitTracksHandler(w http.ResponseWriter, r *htt
 }
 
 // GetWebhookEvents godoc
-// @Summary Get webhook event logs
-// @Description Get a list of webhook events with optional filters
+// @Summary Получить логи событий webhook
+// @Description Получить список событий webhook с дополнительными фильтрами
 // @Tags LiveKit
 // @Produce json
 // @Param event_type query string false "Filter by event type"

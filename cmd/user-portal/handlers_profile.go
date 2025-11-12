@@ -23,8 +23,8 @@ const (
 )
 
 // UploadAvatar godoc
-// @Summary Upload user avatar
-// @Description Upload a user avatar image
+// @Summary Загрузить аватар пользователя
+// @Description Загрузить изображение аватара пользователя
 // @Tags Profile
 // @Accept multipart/form-data
 // @Produce json
@@ -145,8 +145,8 @@ func (up *UserPortal) uploadAvatarHandler(w http.ResponseWriter, r *http.Request
 }
 
 // UpdateProfile godoc
-// @Summary Update user profile
-// @Description Update user profile information (self-service)
+// @Summary Обновить профиль пользователя
+// @Description Обновить информацию профиля пользователя (самообслуживание)
 // @Tags Profile
 // @Accept json
 // @Produce json
@@ -243,8 +243,8 @@ func (up *UserPortal) updateProfileHandler(w http.ResponseWriter, r *http.Reques
 }
 
 // GetProfile godoc
-// @Summary Get user profile
-// @Description Get user profile information
+// @Summary Получить профиль пользователя
+// @Description Получить информацию о профиле пользователя
 // @Tags Profile
 // @Produce json
 // @Param id path string true "User ID"

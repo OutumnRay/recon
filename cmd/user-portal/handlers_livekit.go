@@ -13,7 +13,7 @@ import (
 	lkauth "github.com/livekit/protocol/auth"
 )
 
-// GetMeetingTokenResponse represents response with LiveKit token
+// GetMeetingTokenResponse represents a response containing LiveKit access token for joining a meeting
 type GetMeetingTokenResponse struct {
 	Token            string `json:"token"`
 	URL              string `json:"url"`
@@ -26,8 +26,8 @@ type GetMeetingTokenResponse struct {
 }
 
 // GetMeetingToken godoc
-// @Summary Get LiveKit token for joining a meeting
-// @Description Get LiveKit access token for joining a meeting room (can join 10 minutes before start)
+// @Summary Получить токен LiveKit для присоединения к встрече
+// @Description Получить токен доступа LiveKit для присоединения к комнате встречи (можно присоединиться за 10 минут до начала)
 // @Tags Meetings
 // @Accept json
 // @Produce json

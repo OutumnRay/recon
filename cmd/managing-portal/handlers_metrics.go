@@ -11,8 +11,8 @@ import (
 )
 
 // SendMetrics godoc
-// @Summary Send metrics
-// @Description Services send telemetry metrics to the managing portal
+// @Summary Отправить метрики
+// @Description Сервисы отправляют телеметрические метрики в управляющий портал
 // @Tags Metrics
 // @Accept json
 // @Produce json
@@ -53,8 +53,8 @@ func (mp *ManagingPortal) sendMetricsHandler(w http.ResponseWriter, r *http.Requ
 }
 
 // QueryMetrics godoc
-// @Summary Query metrics
-// @Description Query metrics with optional filters
+// @Summary Запросить метрики
+// @Description Запросить метрики с дополнительными фильтрами
 // @Tags Metrics
 // @Produce json
 // @Param service_id query string false "Filter by service ID"
@@ -105,8 +105,8 @@ func (mp *ManagingPortal) queryMetricsHandler(w http.ResponseWriter, r *http.Req
 }
 
 // GetSystemMetrics godoc
-// @Summary Get system metrics
-// @Description Get aggregated system-wide metrics
+// @Summary Получить системные метрики
+// @Description Получить агрегированные системные метрики
 // @Tags Metrics
 // @Produce json
 // @Success 200 {object} models.SystemMetrics
@@ -182,8 +182,8 @@ func (mp *ManagingPortal) getSystemMetricsHandler(w http.ResponseWriter, r *http
 }
 
 // SendLogs godoc
-// @Summary Send logs
-// @Description Services send log entries to the managing portal
+// @Summary Отправить логи
+// @Description Сервисы отправляют записи логов в управляющий портал
 // @Tags Metrics
 // @Accept json
 // @Produce json

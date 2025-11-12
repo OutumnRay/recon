@@ -13,8 +13,8 @@ import (
 )
 
 // startRoomRecordingHandler godoc
-// @Summary Start recording entire room
-// @Description Starts recording the entire room with composite view
+// @Summary Начать запись всей комнаты
+// @Description Начинает запись всей комнаты с композитным представлением
 // @Tags LiveKit Egress
 // @Accept json
 // @Produce json
@@ -93,8 +93,8 @@ func (mp *ManagingPortal) startRoomRecordingHandler(w http.ResponseWriter, r *ht
 }
 
 // stopRoomRecordingHandler godoc
-// @Summary Stop room recording
-// @Description Stops an ongoing room recording
+// @Summary Остановить запись комнаты
+// @Description Останавливает текущую запись комнаты
 // @Tags LiveKit Egress
 // @Accept json
 // @Produce json
@@ -140,8 +140,8 @@ func (mp *ManagingPortal) stopRoomRecordingHandler(w http.ResponseWriter, r *htt
 }
 
 // startTrackRecordingHandler godoc
-// @Summary Start recording specific track
-// @Description Starts recording a specific audio or video track
+// @Summary Начать запись конкретного трека
+// @Description Начинает запись конкретного аудио или видео трека
 // @Tags LiveKit Egress
 // @Accept json
 // @Produce json
@@ -230,8 +230,8 @@ func (mp *ManagingPortal) startTrackRecordingHandler(w http.ResponseWriter, r *h
 }
 
 // listEgressHandler godoc
-// @Summary List egress sessions
-// @Description List all egress sessions with optional filters
+// @Summary Список сессий egress
+// @Description Получить список всех сессий egress с дополнительными фильтрами
 // @Tags LiveKit Egress
 // @Produce json
 // @Param room_name query string false "Filter by room name"
@@ -282,17 +282,20 @@ func (mp *ManagingPortal) listEgressHandler(w http.ResponseWriter, r *http.Reque
 
 // Request/Response models
 
+// StartRoomRecordingRequest represents a request to start recording an entire room
 type StartRoomRecordingRequest struct {
 	RoomName  string `json:"room_name"`
 	AudioOnly *bool  `json:"audio_only,omitempty"`
 }
 
+// StartTrackRecordingRequest represents a request to start recording specific tracks
 type StartTrackRecordingRequest struct {
 	RoomName     string `json:"room_name"`
 	AudioTrackID string `json:"audio_track_id,omitempty"`
 	VideoTrackID string `json:"video_track_id,omitempty"`
 }
 
+// StopEgressRequest represents a request to stop an egress session
 type StopEgressRequest struct {
 	EgressID string `json:"egress_id"`
 }

@@ -11,8 +11,8 @@ import (
 )
 
 // ListUsers godoc
-// @Summary List all users
-// @Description Get a paginated list of users with optional filters
+// @Summary Список всех пользователей
+// @Description Получить постраничный список пользователей с дополнительными фильтрами
 // @Tags Users
 // @Produce json
 // @Param page query int false "Page number" default(1)
@@ -64,8 +64,8 @@ func (mp *ManagingPortal) listUsersHandler(w http.ResponseWriter, r *http.Reques
 }
 
 // GetUser godoc
-// @Summary Get user by ID
-// @Description Get detailed information about a specific user
+// @Summary Получить пользователя по ID
+// @Description Получить детальную информацию о конкретном пользователе
 // @Tags Users
 // @Produce json
 // @Param id path string true "User ID"
@@ -97,8 +97,8 @@ func (mp *ManagingPortal) getUserHandler(w http.ResponseWriter, r *http.Request)
 }
 
 // UpdateUser godoc
-// @Summary Update user
-// @Description Update user information (admin only)
+// @Summary Обновить пользователя
+// @Description Обновить информацию о пользователе (только администратор)
 // @Tags Users
 // @Accept json
 // @Produce json
@@ -187,8 +187,8 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // DeleteUser godoc
-// @Summary Delete user
-// @Description Delete a user from the system (admin only)
+// @Summary Удалить пользователя
+// @Description Удалить пользователя из системы (только администратор)
 // @Tags Users
 // @Accept json
 // @Produce json
@@ -224,8 +224,8 @@ func (mp *ManagingPortal) deleteUserHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // ChangePassword godoc
-// @Summary Change user password
-// @Description Change password for the authenticated user
+// @Summary Изменить пароль пользователя
+// @Description Изменить пароль для аутентифицированного пользователя
 // @Tags Users
 // @Accept json
 // @Produce json

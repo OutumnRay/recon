@@ -158,8 +158,8 @@ func getEnvInt(key string, defaultValue int) int {
 }
 
 // Login godoc
-// @Summary User login
-// @Description Authenticate user and receive JWT token
+// @Summary Вход в систему
+// @Description Аутентификация пользователя и получение JWT токена
 // @Tags Authentication
 // @Accept json
 // @Produce json
@@ -217,8 +217,8 @@ func (mp *ManagingPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Register godoc
-// @Summary Register new user
-// @Description Register a new user account (admin only)
+// @Summary Регистрация нового пользователя
+// @Description Зарегистрировать новую учетную запись пользователя (только администратор)
 // @Tags Authentication
 // @Accept json
 // @Produce json
@@ -311,8 +311,8 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 }
 
 // Health godoc
-// @Summary Health check
-// @Description Check if the service is healthy
+// @Summary Проверка здоровья
+// @Description Проверка, работает ли сервис
 // @Tags Monitoring
 // @Produce json
 // @Success 200 {object} models.HealthResponse
@@ -329,8 +329,8 @@ func (mp *ManagingPortal) healthHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetStatus godoc
-// @Summary Get system status
-// @Description Get overall system status and service health
+// @Summary Получить статус системы
+// @Description Получить общий статус системы и здоровье сервисов
 // @Tags Monitoring
 // @Produce json
 // @Success 200 {object} models.SystemStatus
@@ -353,8 +353,8 @@ func (mp *ManagingPortal) statusHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // ListServices godoc
-// @Summary List all services
-// @Description Get list of all registered services
+// @Summary Список всех сервисов
+// @Description Получить список всех зарегистрированных сервисов
 // @Tags Services
 // @Produce json
 // @Success 200 {object} map[string]models.ServiceInfo
@@ -366,8 +366,8 @@ func (mp *ManagingPortal) servicesHandler(w http.ResponseWriter, r *http.Request
 }
 
 // RegisterService godoc
-// @Summary Register a service
-// @Description Register a new service with the managing portal
+// @Summary Зарегистрировать сервис
+// @Description Зарегистрировать новый сервис в управляющем портале
 // @Tags Services
 // @Accept json
 // @Produce json
@@ -397,8 +397,8 @@ func (mp *ManagingPortal) registerServiceHandler(w http.ResponseWriter, r *http.
 }
 
 // Heartbeat godoc
-// @Summary Service heartbeat
-// @Description Update service heartbeat to indicate it's still alive
+// @Summary Heartbeat сервиса
+// @Description Обновить heartbeat сервиса, чтобы указать, что он все еще активен
 // @Tags Services
 // @Accept json
 // @Produce json

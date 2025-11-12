@@ -21,8 +21,8 @@ const (
 )
 
 // RequestPasswordReset godoc
-// @Summary Request password reset
-// @Description Request a password reset code to be sent via email
+// @Summary Запросить сброс пароля
+// @Description Запросить код сброса пароля для отправки по электронной почте
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -105,8 +105,8 @@ func (up *UserPortal) requestPasswordResetHandler(w http.ResponseWriter, r *http
 }
 
 // VerifyResetCode godoc
-// @Summary Verify password reset code
-// @Description Verify that the provided reset code is valid
+// @Summary Проверить код сброса пароля
+// @Description Проверить, что предоставленный код сброса действителен
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -155,8 +155,8 @@ func (up *UserPortal) verifyResetCodeHandler(w http.ResponseWriter, r *http.Requ
 }
 
 // ResetPassword godoc
-// @Summary Reset password with code
-// @Description Reset user password using verified code
+// @Summary Сбросить пароль с кодом
+// @Description Сбросить пароль пользователя с использованием проверенного кода
 // @Tags Auth
 // @Accept json
 // @Produce json

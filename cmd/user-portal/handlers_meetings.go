@@ -13,8 +13,8 @@ import (
 )
 
 // CreateMeeting godoc
-// @Summary Create a new meeting
-// @Description Create a new meeting (requires can_schedule_meetings permission or admin/operator role)
+// @Summary Создать новую встречу
+// @Description Создать новую встречу (требуется разрешение can_schedule_meetings или роль admin/operator)
 // @Tags Meetings
 // @Accept json
 // @Produce json
@@ -182,8 +182,8 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 }
 
 // ListMyMeetings godoc
-// @Summary List my meetings
-// @Description Get a paginated list of meetings where user is participant or speaker
+// @Summary Список моих встреч
+// @Description Получить постраничный список встреч, где пользователь является участником или докладчиком
 // @Tags Meetings
 // @Produce json
 // @Param page query int false "Page number" default(1)
@@ -267,8 +267,8 @@ func (up *UserPortal) listMyMeetingsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // GetMeeting godoc
-// @Summary Get meeting details
-// @Description Get detailed information about a specific meeting (must be participant/speaker or admin)
+// @Summary Получить детали встречи
+// @Description Получить детальную информацию о конкретной встрече (должен быть участником/докладчиком или администратором)
 // @Tags Meetings
 // @Produce json
 // @Param id path string true "Meeting ID"
@@ -318,8 +318,8 @@ func (up *UserPortal) getMeetingHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // UpdateMeeting godoc
-// @Summary Update meeting
-// @Description Update meeting information (must be creator or admin)
+// @Summary Обновить встречу
+// @Description Обновить информацию о встрече (должен быть создателем или администратором)
 // @Tags Meetings
 // @Accept json
 // @Produce json
@@ -492,8 +492,8 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 }
 
 // DeleteMeeting godoc
-// @Summary Delete meeting
-// @Description Delete a meeting (must be creator or admin)
+// @Summary Удалить встречу
+// @Description Удалить встречу (должен быть создателем или администратором)
 // @Tags Meetings
 // @Produce json
 // @Param id path string true "Meeting ID"
@@ -542,8 +542,8 @@ func (up *UserPortal) deleteMeetingHandler(w http.ResponseWriter, r *http.Reques
 }
 
 // ListMeetingSubjects godoc
-// @Summary List meeting subjects
-// @Description Get a paginated list of active meeting subjects
+// @Summary Список тем встреч
+// @Description Получить постраничный список активных тем встреч
 // @Tags Meetings
 // @Produce json
 // @Param page query int false "Page number" default(1)

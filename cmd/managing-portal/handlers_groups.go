@@ -13,8 +13,8 @@ import (
 )
 
 // ListGroups godoc
-// @Summary List all groups
-// @Description Get a list of all user groups
+// @Summary Список всех групп
+// @Description Получить список всех групп пользователей
 // @Tags Groups
 // @Produce json
 // @Success 200 {object} models.ListGroupsResponse
@@ -44,8 +44,8 @@ func (mp *ManagingPortal) listGroupsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // GetGroup godoc
-// @Summary Get group by ID
-// @Description Get detailed information about a specific group
+// @Summary Получить группу по ID
+// @Description Получить детальную информацию о конкретной группе
 // @Tags Groups
 // @Produce json
 // @Param id path string true "Group ID"
@@ -67,8 +67,8 @@ func (mp *ManagingPortal) getGroupHandler(w http.ResponseWriter, r *http.Request
 }
 
 // CreateGroup godoc
-// @Summary Create a new group
-// @Description Create a new user group with permissions (admin only)
+// @Summary Создать новую группу
+// @Description Создать новую группу пользователей с разрешениями (только администратор)
 // @Tags Groups
 // @Accept json
 // @Produce json
@@ -112,8 +112,8 @@ func (mp *ManagingPortal) createGroupHandler(w http.ResponseWriter, r *http.Requ
 }
 
 // UpdateGroup godoc
-// @Summary Update group
-// @Description Update group information and permissions (admin only)
+// @Summary Обновить группу
+// @Description Обновить информацию о группе и разрешения (только администратор)
 // @Tags Groups
 // @Accept json
 // @Produce json
@@ -162,8 +162,8 @@ func (mp *ManagingPortal) updateGroupHandler(w http.ResponseWriter, r *http.Requ
 }
 
 // DeleteGroup godoc
-// @Summary Delete group
-// @Description Delete a user group (admin only)
+// @Summary Удалить группу
+// @Description Удалить группу пользователей (только администратор)
 // @Tags Groups
 // @Produce json
 // @Param id path string true "Group ID"
@@ -196,8 +196,8 @@ func (mp *ManagingPortal) deleteGroupHandler(w http.ResponseWriter, r *http.Requ
 }
 
 // AddUserToGroup godoc
-// @Summary Add user to group
-// @Description Add a user to a specific group (admin only)
+// @Summary Добавить пользователя в группу
+// @Description Добавить пользователя в конкретную группу (только администратор)
 // @Tags Groups
 // @Accept json
 // @Produce json
@@ -255,8 +255,8 @@ func (mp *ManagingPortal) addUserToGroupHandler(w http.ResponseWriter, r *http.R
 }
 
 // RemoveUserFromGroup godoc
-// @Summary Remove user from group
-// @Description Remove a user from a specific group (admin only)
+// @Summary Удалить пользователя из группы
+// @Description Удалить пользователя из конкретной группы (только администратор)
 // @Tags Groups
 // @Accept json
 // @Produce json
@@ -303,8 +303,8 @@ func (mp *ManagingPortal) removeUserFromGroupHandler(w http.ResponseWriter, r *h
 }
 
 // CheckPermission godoc
-// @Summary Check user permission
-// @Description Check if a user has permission to perform an action on a resource
+// @Summary Проверить разрешение пользователя
+// @Description Проверить, имеет ли пользователь разрешение на выполнение действия с ресурсом
 // @Tags Groups
 // @Accept json
 // @Produce json

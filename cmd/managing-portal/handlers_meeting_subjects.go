@@ -12,8 +12,8 @@ import (
 )
 
 // CreateMeetingSubject godoc
-// @Summary Create a new meeting subject
-// @Description Create a new meeting subject/topic category (admin only)
+// @Summary Создать новую тему встречи
+// @Description Создать новую тему/категорию встречи (только администратор)
 // @Tags Meeting Subjects
 // @Accept json
 // @Produce json
@@ -62,8 +62,8 @@ func (mp *ManagingPortal) createMeetingSubjectHandler(w http.ResponseWriter, r *
 }
 
 // ListMeetingSubjects godoc
-// @Summary List meeting subjects
-// @Description Get a paginated list of meeting subjects with optional filters
+// @Summary Список тем встреч
+// @Description Получить постраничный список тем встреч с дополнительными фильтрами
 // @Tags Meeting Subjects
 // @Produce json
 // @Param page query int false "Page number" default(1)
@@ -103,8 +103,8 @@ func (mp *ManagingPortal) listMeetingSubjectsHandler(w http.ResponseWriter, r *h
 }
 
 // GetMeetingSubject godoc
-// @Summary Get meeting subject by ID
-// @Description Get detailed information about a specific meeting subject
+// @Summary Получить тему встречи по ID
+// @Description Получить детальную информацию о конкретной теме встречи
 // @Tags Meeting Subjects
 // @Produce json
 // @Param id path string true "Subject ID"
@@ -126,8 +126,8 @@ func (mp *ManagingPortal) getMeetingSubjectHandler(w http.ResponseWriter, r *htt
 }
 
 // UpdateMeetingSubject godoc
-// @Summary Update meeting subject
-// @Description Update meeting subject information (admin only)
+// @Summary Обновить тему встречи
+// @Description Обновить информацию о теме встречи (только администратор)
 // @Tags Meeting Subjects
 // @Accept json
 // @Produce json
@@ -180,8 +180,8 @@ func (mp *ManagingPortal) updateMeetingSubjectHandler(w http.ResponseWriter, r *
 }
 
 // DeleteMeetingSubject godoc
-// @Summary Delete meeting subject
-// @Description Soft delete a meeting subject (admin only)
+// @Summary Удалить тему встречи
+// @Description Мягкое удаление темы встречи (только администратор)
 // @Tags Meeting Subjects
 // @Produce json
 // @Param id path string true "Subject ID"

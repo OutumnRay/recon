@@ -6,8 +6,8 @@ import (
 )
 
 // listUsersHandler godoc
-// @Summary List users for meeting participants
-// @Description Get list of users for participant selection in meetings
+// @Summary Список пользователей для участников встречи
+// @Description Получить список пользователей для выбора участников встречи
 // @Tags Helpers
 // @Produce json
 // @Success 200 {object} map[string]interface{}
@@ -33,8 +33,8 @@ func (up *UserPortal) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // listDepartmentsHandler godoc
-// @Summary List departments for meeting invitations
-// @Description Get list of departments for bulk participant selection
+// @Summary Список отделов для приглашений на встречи
+// @Description Получить список отделов для массового выбора участников
 // @Tags Helpers
 // @Produce json
 // @Success 200 {object} map[string]interface{}

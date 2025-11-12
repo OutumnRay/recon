@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// DashboardStats represents aggregated statistics for the dashboard
 type DashboardStats struct {
 	Users struct {
 		Total  int `json:"total"`
@@ -35,8 +36,8 @@ type DashboardStats struct {
 }
 
 // GetDashboardStats godoc
-// @Summary Get dashboard statistics
-// @Description Get comprehensive dashboard statistics including users, workers, storage, and recordings
+// @Summary Получить статистику дашборда
+// @Description Получить комплексную статистику дашборда, включая пользователей, воркеров, хранилище и записи
 // @Tags Dashboard
 // @Produce json
 // @Success 200 {object} DashboardStats
