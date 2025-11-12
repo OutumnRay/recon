@@ -18,7 +18,7 @@ import (
 // @Tags Meetings
 // @Accept json
 // @Produce json
-// @Param request body models.CreateMeetingRequest true "Meeting data"
+// @Param request body models.CreateMeetingRequest true "Данные встречи"
 // @Success 201 {object} models.MeetingWithDetails
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -186,13 +186,13 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 // @Description Получить постраничный список встреч, где пользователь является участником или докладчиком
 // @Tags Meetings
 // @Produce json
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
-// @Param status query string false "Filter by status" Enums(scheduled, in_progress, completed, cancelled)
-// @Param type query string false "Filter by type" Enums(presentation, conference)
-// @Param subject_id query string false "Filter by subject ID"
-// @Param date_from query string false "Filter by date from (RFC3339 format)"
-// @Param date_to query string false "Filter by date to (RFC3339 format)"
+// @Param page query int false "Номер страницы" default(1)
+// @Param page_size query int false "Размер страницы" default(20)
+// @Param status query string false "Фильтр по статусу" Enums(scheduled, in_progress, completed, cancelled)
+// @Param type query string false "Фильтр по типу" Enums(presentation, conference)
+// @Param subject_id query string false "Фильтр по идентификатору темы"
+// @Param date_from query string false "Фильтр по дате начала (формат RFC3339)"
+// @Param date_to query string false "Фильтр по дате окончания (формат RFC3339)"
 // @Success 200 {object} models.MeetingsResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Security BearerAuth
@@ -271,7 +271,7 @@ func (up *UserPortal) listMyMeetingsHandler(w http.ResponseWriter, r *http.Reque
 // @Description Получить детальную информацию о конкретной встрече (должен быть участником/докладчиком или администратором)
 // @Tags Meetings
 // @Produce json
-// @Param id path string true "Meeting ID"
+// @Param id path string true "Идентификатор встречи"
 // @Success 200 {object} models.MeetingWithDetails
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 403 {object} models.ErrorResponse
@@ -323,8 +323,8 @@ func (up *UserPortal) getMeetingHandler(w http.ResponseWriter, r *http.Request) 
 // @Tags Meetings
 // @Accept json
 // @Produce json
-// @Param id path string true "Meeting ID"
-// @Param request body models.UpdateMeetingRequest true "Update data"
+// @Param id path string true "Идентификатор встречи"
+// @Param request body models.UpdateMeetingRequest true "Данные для обновления встречи"
 // @Success 200 {object} models.MeetingWithDetails
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -496,7 +496,7 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 // @Description Удалить встречу (должен быть создателем или администратором)
 // @Tags Meetings
 // @Produce json
-// @Param id path string true "Meeting ID"
+// @Param id path string true "Идентификатор встречи"
 // @Success 200 {object} map[string]string
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 403 {object} models.ErrorResponse
@@ -546,9 +546,9 @@ func (up *UserPortal) deleteMeetingHandler(w http.ResponseWriter, r *http.Reques
 // @Description Получить постраничный список активных тем встреч
 // @Tags Meetings
 // @Produce json
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(100)
-// @Param include_inactive query bool false "Include inactive subjects" default(false)
+// @Param page query int false "Номер страницы" default(1)
+// @Param page_size query int false "Размер страницы" default(100)
+// @Param include_inactive query bool false "Включать неактивные темы" default(false)
 // @Success 200 {object} models.MeetingSubjectsResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Security BearerAuth

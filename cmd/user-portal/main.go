@@ -34,7 +34,7 @@ const version = "0.1.0"
 
 // @title Recontext.online User Portal API
 // @version 0.1.0
-// @description API for users to interact with Recontext.online platform - upload recordings, view transcripts, search content
+// @description API пользовательского портала Recontext.online: загрузка записей, транскрибация, поиск и управление материалами
 // @termsOfService http://recontext.online/terms/
 
 // @contact.name API Support
@@ -149,7 +149,7 @@ func getEnvInt(key string, defaultValue int) int {
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param request body models.LoginRequest true "Login credentials"
+// @Param request body models.LoginRequest true "Учетные данные для входа"
 // @Success 200 {object} models.LoginResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -230,8 +230,8 @@ func (up *UserPortal) healthHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags Recordings
 // @Accept multipart/form-data
 // @Produce json
-// @Param title formData string true "Recording title"
-// @Param file formData file true "Audio/video file"
+// @Param title formData string true "Название записи"
+// @Param file formData file true "Аудио- или видеофайл"
 // @Success 200 {object} models.UploadResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -298,9 +298,9 @@ func (up *UserPortal) uploadHandler(w http.ResponseWriter, r *http.Request) {
 // @Description Получить постраничный список записей пользователя
 // @Tags Recordings
 // @Produce json
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
-// @Param status query string false "Filter by status"
+// @Param page query int false "Номер страницы" default(1)
+// @Param page_size query int false "Размер страницы" default(20)
+// @Param status query string false "Фильтр по статусу"
 // @Success 200 {object} models.ListRecordingsResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Security BearerAuth
@@ -336,7 +336,7 @@ func (up *UserPortal) listRecordingsHandler(w http.ResponseWriter, r *http.Reque
 // @Description Получить детальную информацию о конкретной записи
 // @Tags Recordings
 // @Produce json
-// @Param id path string true "Recording ID"
+// @Param id path string true "Идентификатор записи"
 // @Success 200 {object} models.Recording
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
@@ -373,9 +373,9 @@ func (up *UserPortal) getRecordingHandler(w http.ResponseWriter, r *http.Request
 // @Description Поиск по транскриптам с использованием семантического или ключевого поиска
 // @Tags Search
 // @Produce json
-// @Param query query string true "Search query"
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(10)
+// @Param query query string true "Поисковый запрос"
+// @Param page query int false "Номер страницы" default(1)
+// @Param page_size query int false "Размер страницы" default(10)
 // @Success 200 {object} models.SearchResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -413,8 +413,8 @@ func (up *UserPortal) searchHandler(w http.ResponseWriter, r *http.Request) {
 // @Tags Files
 // @Accept multipart/form-data
 // @Produce json
-// @Param file formData file true "Audio/video file"
-// @Param description formData string false "File description"
+// @Param file formData file true "Аудио- или видеофайл"
+// @Param description formData string false "Описание файла"
 // @Success 200 {object} models.FileUploadResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -490,8 +490,8 @@ func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) 
 // @Description Получить постраничный список загруженных файлов пользователя
 // @Tags Files
 // @Produce json
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
+// @Param page query int false "Номер страницы" default(1)
+// @Param page_size query int false "Размер страницы" default(20)
 // @Success 200 {object} models.ListFilesResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Security BearerAuth
@@ -572,7 +572,7 @@ func (up *UserPortal) checkFilePermissionHandler(w http.ResponseWriter, r *http.
 // @Tags RAG
 // @Accept json
 // @Produce json
-// @Param request body models.RAGSearchRequest true "Search query"
+// @Param request body models.RAGSearchRequest true "Параметры поискового запроса"
 // @Success 200 {object} models.RAGSearchResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse

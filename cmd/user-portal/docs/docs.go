@@ -39,7 +39,7 @@ const docTemplate = `{
                 "summary": "Вход в систему",
                 "parameters": [
                     {
-                        "description": "Login credentials",
+                        "description": "Учетные данные для входа",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -85,7 +85,7 @@ const docTemplate = `{
                 "summary": "Запросить сброс пароля",
                 "parameters": [
                     {
-                        "description": "Email address",
+                        "description": "Адрес электронной почты",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -137,7 +137,7 @@ const docTemplate = `{
                 "summary": "Сбросить пароль с кодом",
                 "parameters": [
                     {
-                        "description": "Reset password data",
+                        "description": "Данные для сброса пароля",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -189,7 +189,7 @@ const docTemplate = `{
                 "summary": "Проверить код сброса пароля",
                 "parameters": [
                     {
-                        "description": "Token ID and code",
+                        "description": "Идентификатор токена и код",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -265,14 +265,14 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 1,
-                        "description": "Page number",
+                        "description": "Номер страницы",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 20,
-                        "description": "Page size",
+                        "description": "Размер страницы",
                         "name": "page_size",
                         "in": "query"
                     }
@@ -348,14 +348,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Audio/video file",
+                        "description": "Аудио- или видеофайл",
                         "name": "file",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "File description",
+                        "description": "Описание файла",
                         "name": "description",
                         "in": "formData"
                     }
@@ -407,21 +407,21 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 1,
-                        "description": "Page number",
+                        "description": "Номер страницы",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 100,
-                        "description": "Page size",
+                        "description": "Размер страницы",
                         "name": "page_size",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
                         "default": false,
-                        "description": "Include inactive subjects",
+                        "description": "Включать неактивные темы",
                         "name": "include_inactive",
                         "in": "query"
                     }
@@ -461,14 +461,14 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 1,
-                        "description": "Page number",
+                        "description": "Номер страницы",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 20,
-                        "description": "Page size",
+                        "description": "Размер страницы",
                         "name": "page_size",
                         "in": "query"
                     },
@@ -480,7 +480,7 @@ const docTemplate = `{
                             "cancelled"
                         ],
                         "type": "string",
-                        "description": "Filter by status",
+                        "description": "Фильтр по статусу",
                         "name": "status",
                         "in": "query"
                     },
@@ -490,25 +490,25 @@ const docTemplate = `{
                             "conference"
                         ],
                         "type": "string",
-                        "description": "Filter by type",
+                        "description": "Фильтр по типу",
                         "name": "type",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by subject ID",
+                        "description": "Фильтр по идентификатору темы",
                         "name": "subject_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by date from (RFC3339 format)",
+                        "description": "Фильтр по дате начала (формат RFC3339)",
                         "name": "date_from",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by date to (RFC3339 format)",
+                        "description": "Фильтр по дате окончания (формат RFC3339)",
                         "name": "date_to",
                         "in": "query"
                     }
@@ -547,7 +547,7 @@ const docTemplate = `{
                 "summary": "Создать новую встречу",
                 "parameters": [
                     {
-                        "description": "Meeting data",
+                        "description": "Данные встречи",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -602,7 +602,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Meeting ID",
+                        "description": "Идентификатор встречи",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -655,13 +655,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Meeting ID",
+                        "description": "Идентификатор встречи",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Update data",
+                        "description": "Данные для обновления встречи",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -720,7 +720,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Meeting ID",
+                        "description": "Идентификатор встречи",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -778,7 +778,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Meeting ID",
+                        "description": "Идентификатор встречи",
                         "name": "meetingId",
                         "in": "path",
                         "required": true
@@ -872,7 +872,7 @@ const docTemplate = `{
                 "summary": "Семантический поиск по транскрипциям",
                 "parameters": [
                     {
-                        "description": "Search query",
+                        "description": "Параметры поискового запроса",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -965,20 +965,20 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 1,
-                        "description": "Page number",
+                        "description": "Номер страницы",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 20,
-                        "description": "Page size",
+                        "description": "Размер страницы",
                         "name": "page_size",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by status",
+                        "description": "Фильтр по статусу",
                         "name": "status",
                         "in": "query"
                     }
@@ -1020,14 +1020,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Recording title",
+                        "description": "Название записи",
                         "name": "title",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "Audio/video file",
+                        "description": "Аудио- или видеофайл",
                         "name": "file",
                         "in": "formData",
                         "required": true
@@ -1073,7 +1073,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Recording ID",
+                        "description": "Идентификатор записи",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1119,7 +1119,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search query",
+                        "description": "Поисковый запрос",
                         "name": "query",
                         "in": "query",
                         "required": true
@@ -1127,14 +1127,14 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 1,
-                        "description": "Page number",
+                        "description": "Номер страницы",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 10,
-                        "description": "Page size",
+                        "description": "Размер страницы",
                         "name": "page_size",
                         "in": "query"
                     }
@@ -1205,7 +1205,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID",
+                        "description": "Идентификатор пользователя",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1252,13 +1252,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID",
+                        "description": "Идентификатор пользователя",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Profile data",
+                        "description": "Данные профиля",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1316,7 +1316,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Avatar image file",
+                        "description": "Файл изображения аватара",
                         "name": "avatar",
                         "in": "formData",
                         "required": true
@@ -2720,7 +2720,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Recontext.online User Portal API",
-	Description:      "API for users to interact with Recontext.online platform - upload recordings, view transcripts, search content",
+	Description:      "API пользовательского портала Recontext.online: загрузка записей, транскрибация, поиск и управление материалами",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

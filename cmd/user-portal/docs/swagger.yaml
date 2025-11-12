@@ -971,8 +971,8 @@ info:
     email: support@recontext.online
     name: API Support
     url: http://recontext.online/support
-  description: API for users to interact with Recontext.online platform - upload recordings,
-    view transcripts, search content
+  description: 'API пользовательского портала Recontext.online: загрузка записей,
+    транскрибация, поиск и управление материалами'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -986,7 +986,7 @@ paths:
       - application/json
       description: Аутентификация пользователя и получение JWT токена
       parameters:
-      - description: Login credentials
+      - description: Учетные данные для входа
         in: body
         name: request
         required: true
@@ -1016,7 +1016,7 @@ paths:
       - application/json
       description: Запросить код сброса пароля для отправки по электронной почте
       parameters:
-      - description: Email address
+      - description: Адрес электронной почты
         in: body
         name: request
         required: true
@@ -1050,7 +1050,7 @@ paths:
       - application/json
       description: Сбросить пароль пользователя с использованием проверенного кода
       parameters:
-      - description: Reset password data
+      - description: Данные для сброса пароля
         in: body
         name: request
         required: true
@@ -1084,7 +1084,7 @@ paths:
       - application/json
       description: Проверить, что предоставленный код сброса действителен
       parameters:
-      - description: Token ID and code
+      - description: Идентификатор токена и код
         in: body
         name: request
         required: true
@@ -1129,12 +1129,12 @@ paths:
       description: Получить постраничный список загруженных файлов пользователя
       parameters:
       - default: 1
-        description: Page number
+        description: Номер страницы
         in: query
         name: page
         type: integer
       - default: 20
-        description: Page size
+        description: Размер страницы
         in: query
         name: page_size
         type: integer
@@ -1183,12 +1183,12 @@ paths:
       description: Загрузить аудио или видео файл для транскрибации (требуется разрешение
         на загрузку файлов)
       parameters:
-      - description: Audio/video file
+      - description: Аудио- или видеофайл
         in: formData
         name: file
         required: true
         type: file
-      - description: File description
+      - description: Описание файла
         in: formData
         name: description
         type: string
@@ -1221,17 +1221,17 @@ paths:
       description: Получить постраничный список активных тем встреч
       parameters:
       - default: 1
-        description: Page number
+        description: Номер страницы
         in: query
         name: page
         type: integer
       - default: 100
-        description: Page size
+        description: Размер страницы
         in: query
         name: page_size
         type: integer
       - default: false
-        description: Include inactive subjects
+        description: Включать неактивные темы
         in: query
         name: include_inactive
         type: boolean
@@ -1257,16 +1257,16 @@ paths:
         участником или докладчиком
       parameters:
       - default: 1
-        description: Page number
+        description: Номер страницы
         in: query
         name: page
         type: integer
       - default: 20
-        description: Page size
+        description: Размер страницы
         in: query
         name: page_size
         type: integer
-      - description: Filter by status
+      - description: Фильтр по статусу
         enum:
         - scheduled
         - in_progress
@@ -1275,22 +1275,22 @@ paths:
         in: query
         name: status
         type: string
-      - description: Filter by type
+      - description: Фильтр по типу
         enum:
         - presentation
         - conference
         in: query
         name: type
         type: string
-      - description: Filter by subject ID
+      - description: Фильтр по идентификатору темы
         in: query
         name: subject_id
         type: string
-      - description: Filter by date from (RFC3339 format)
+      - description: Фильтр по дате начала (формат RFC3339)
         in: query
         name: date_from
         type: string
-      - description: Filter by date to (RFC3339 format)
+      - description: Фильтр по дате окончания (формат RFC3339)
         in: query
         name: date_to
         type: string
@@ -1316,7 +1316,7 @@ paths:
       description: Создать новую встречу (требуется разрешение can_schedule_meetings
         или роль admin/operator)
       parameters:
-      - description: Meeting data
+      - description: Данные встречи
         in: body
         name: request
         required: true
@@ -1350,7 +1350,7 @@ paths:
     delete:
       description: Удалить встречу (должен быть создателем или администратором)
       parameters:
-      - description: Meeting ID
+      - description: Идентификатор встречи
         in: path
         name: id
         required: true
@@ -1385,7 +1385,7 @@ paths:
       description: Получить детальную информацию о конкретной встрече (должен быть
         участником/докладчиком или администратором)
       parameters:
-      - description: Meeting ID
+      - description: Идентификатор встречи
         in: path
         name: id
         required: true
@@ -1419,12 +1419,12 @@ paths:
       - application/json
       description: Обновить информацию о встрече (должен быть создателем или администратором)
       parameters:
-      - description: Meeting ID
+      - description: Идентификатор встречи
         in: path
         name: id
         required: true
         type: string
-      - description: Update data
+      - description: Данные для обновления встречи
         in: body
         name: request
         required: true
@@ -1465,7 +1465,7 @@ paths:
       description: Получить токен доступа LiveKit для присоединения к комнате встречи
         (можно присоединиться за 10 минут до начала)
       parameters:
-      - description: Meeting ID
+      - description: Идентификатор встречи
         in: path
         name: meetingId
         required: true
@@ -1526,7 +1526,7 @@ paths:
       - application/json
       description: Выполнить семантический поиск с использованием RAG по транскрипциям
       parameters:
-      - description: Search query
+      - description: Параметры поискового запроса
         in: body
         name: request
         required: true
@@ -1584,16 +1584,16 @@ paths:
       description: Получить постраничный список записей пользователя
       parameters:
       - default: 1
-        description: Page number
+        description: Номер страницы
         in: query
         name: page
         type: integer
       - default: 20
-        description: Page size
+        description: Размер страницы
         in: query
         name: page_size
         type: integer
-      - description: Filter by status
+      - description: Фильтр по статусу
         in: query
         name: status
         type: string
@@ -1617,7 +1617,7 @@ paths:
     get:
       description: Получить детальную информацию о конкретной записи
       parameters:
-      - description: Recording ID
+      - description: Идентификатор записи
         in: path
         name: id
         required: true
@@ -1648,12 +1648,12 @@ paths:
       - multipart/form-data
       description: Загрузить аудио или видео файл для транскрибации
       parameters:
-      - description: Recording title
+      - description: Название записи
         in: formData
         name: title
         required: true
         type: string
-      - description: Audio/video file
+      - description: Аудио- или видеофайл
         in: formData
         name: file
         required: true
@@ -1683,18 +1683,18 @@ paths:
       description: Поиск по транскриптам с использованием семантического или ключевого
         поиска
       parameters:
-      - description: Search query
+      - description: Поисковый запрос
         in: query
         name: query
         required: true
         type: string
       - default: 1
-        description: Page number
+        description: Номер страницы
         in: query
         name: page
         type: integer
       - default: 10
-        description: Page size
+        description: Размер страницы
         in: query
         name: page_size
         type: integer
@@ -1738,7 +1738,7 @@ paths:
     get:
       description: Получить информацию о профиле пользователя
       parameters:
-      - description: User ID
+      - description: Идентификатор пользователя
         in: path
         name: id
         required: true
@@ -1768,12 +1768,12 @@ paths:
       - application/json
       description: Обновить информацию профиля пользователя (самообслуживание)
       parameters:
-      - description: User ID
+      - description: Идентификатор пользователя
         in: path
         name: id
         required: true
         type: string
-      - description: Profile data
+      - description: Данные профиля
         in: body
         name: request
         required: true
@@ -1809,7 +1809,7 @@ paths:
       - multipart/form-data
       description: Загрузить изображение аватара пользователя
       parameters:
-      - description: Avatar image file
+      - description: Файл изображения аватара
         in: formData
         name: avatar
         required: true

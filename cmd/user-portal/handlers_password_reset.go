@@ -26,7 +26,7 @@ const (
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param request body models.RequestPasswordResetRequest true "Email address"
+// @Param request body models.RequestPasswordResetRequest true "Адрес электронной почты"
 // @Success 200 {object} models.RequestPasswordResetResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
@@ -110,7 +110,7 @@ func (up *UserPortal) requestPasswordResetHandler(w http.ResponseWriter, r *http
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param request body models.VerifyResetCodeRequest true "Token ID and code"
+// @Param request body models.VerifyResetCodeRequest true "Идентификатор токена и код"
 // @Success 200 {object} models.VerifyResetCodeResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
@@ -160,7 +160,7 @@ func (up *UserPortal) verifyResetCodeHandler(w http.ResponseWriter, r *http.Requ
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param request body models.ResetPasswordRequest true "Reset password data"
+// @Param request body models.ResetPasswordRequest true "Данные для сброса пароля"
 // @Success 200 {object} models.ResetPasswordResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse

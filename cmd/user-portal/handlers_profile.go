@@ -28,7 +28,7 @@ const (
 // @Tags Profile
 // @Accept multipart/form-data
 // @Produce json
-// @Param avatar formData file true "Avatar image file"
+// @Param avatar formData file true "Файл изображения аватара"
 // @Success 200 {object} models.UploadAvatarResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -150,8 +150,8 @@ func (up *UserPortal) uploadAvatarHandler(w http.ResponseWriter, r *http.Request
 // @Tags Profile
 // @Accept json
 // @Produce json
-// @Param id path string true "User ID"
-// @Param request body models.UpdateProfileRequest true "Profile data"
+// @Param id path string true "Идентификатор пользователя"
+// @Param request body models.UpdateProfileRequest true "Данные профиля"
 // @Success 200 {object} models.UserInfo
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -247,7 +247,7 @@ func (up *UserPortal) updateProfileHandler(w http.ResponseWriter, r *http.Reques
 // @Description Получить информацию о профиле пользователя
 // @Tags Profile
 // @Produce json
-// @Param id path string true "User ID"
+// @Param id path string true "Идентификатор пользователя"
 // @Success 200 {object} models.UserInfo
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse

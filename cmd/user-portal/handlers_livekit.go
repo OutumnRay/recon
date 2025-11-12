@@ -31,7 +31,7 @@ type GetMeetingTokenResponse struct {
 // @Tags Meetings
 // @Accept json
 // @Produce json
-// @Param meetingId path string true "Meeting ID"
+// @Param meetingId path string true "Идентификатор встречи"
 // @Success 200 {object} GetMeetingTokenResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
