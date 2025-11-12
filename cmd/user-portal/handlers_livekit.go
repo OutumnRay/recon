@@ -13,16 +13,24 @@ import (
 	lkauth "github.com/livekit/protocol/auth"
 )
 
-// GetMeetingTokenResponse represents a response containing LiveKit access token for joining a meeting
+// GetMeetingTokenResponse описывает ответ с токеном LiveKit для подключения к встрече
 type GetMeetingTokenResponse struct {
-	Token            string `json:"token"`
-	URL              string `json:"url"`
-	RoomName         string `json:"roomName"`
-	ParticipantName  string `json:"participantName"`
-	MeetingID        string `json:"meetingId"`
-	ScheduledAt      string `json:"scheduledAt"`
-	Duration         int    `json:"duration"`
-	ForceEndAt       string `json:"forceEndAt,omitempty"`
+	// Токен доступа LiveKit
+	Token           string `json:"token"`
+	// URL сервера LiveKit
+	URL             string `json:"url"`
+	// Название комнаты LiveKit
+	RoomName        string `json:"roomName"`
+	// Имя участника, отображаемое в комнате
+	ParticipantName string `json:"participantName"`
+	// Идентификатор встречи
+	MeetingID       string `json:"meetingId"`
+	// Запланированное время начала встречи (строка RFC3339)
+	ScheduledAt     string `json:"scheduledAt"`
+	// Длительность встречи в минутах
+	Duration        int    `json:"duration"`
+	// Время принудительного завершения встречи (если задано)
+	ForceEndAt      string `json:"forceEndAt,omitempty"`
 }
 
 // GetMeetingToken godoc

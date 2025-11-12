@@ -3,54 +3,61 @@ definitions:
   main.GetMeetingTokenResponse:
     properties:
       duration:
+        description: Длительность встречи в минутах
         type: integer
       forceEndAt:
+        description: Время принудительного завершения встречи (если задано)
         type: string
       meetingId:
+        description: Идентификатор встречи
         type: string
       participantName:
+        description: Имя участника, отображаемое в комнате
         type: string
       roomName:
+        description: Название комнаты LiveKit
         type: string
       scheduledAt:
+        description: Запланированное время начала встречи (строка RFC3339)
         type: string
       token:
+        description: Токен доступа LiveKit
         type: string
       url:
+        description: URL сервера LiveKit
         type: string
     type: object
   models.CreateMeetingRequest:
     properties:
       additional_notes:
-        description: AdditionalNotes - дополнительные заметки
+        description: Дополнительные заметки
         example: Подготовить отчеты
         type: string
       department_ids:
-        description: DepartmentIDs - идентификаторы отделов
+        description: Идентификаторы отделов
         example:
         - '["550e8400-e29b-41d4-a716-446655440000"]'
         items:
           type: string
         type: array
       duration:
-        description: Duration - длительность в минутах
+        description: Длительность в минутах
         example: 60
         type: integer
       force_end_at_duration:
-        description: ForceEndAtDuration - принудительно завершить встречу после истечения
-          времени
+        description: Принудительно завершить встречу после истечения времени
         example: true
         type: boolean
       needs_audio_record:
-        description: NeedsAudioRecord - требуется ли аудиозапись
+        description: Требуется ли аудиозапись
         example: true
         type: boolean
       needs_video_record:
-        description: NeedsVideoRecord - требуется ли видеозапись
+        description: Требуется ли видеозапись
         example: true
         type: boolean
       participant_ids:
-        description: ParticipantIDs - идентификаторы участников
+        description: Идентификаторы участников
         example:
         - '["550e8400-e29b-41d4-a716-446655440000"]'
         items:
@@ -59,28 +66,28 @@ definitions:
       recurrence:
         allOf:
         - $ref: '#/definitions/models.MeetingRecurrence'
-        description: Recurrence - частота повторения
+        description: Частота повторения
         example: weekly
       scheduled_at:
-        description: ScheduledAt - запланированное время начала
+        description: Запланированное время начала
         example: "2025-01-15T10:00:00Z"
         type: string
       speaker_id:
-        description: SpeakerID - идентификатор докладчика (для презентаций)
+        description: Идентификатор докладчика (для презентаций)
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       subject_id:
-        description: SubjectID - идентификатор темы
+        description: Идентификатор темы
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       title:
-        description: Title - название встречи
+        description: Название встречи
         example: Еженедельное совещание
         type: string
       type:
         allOf:
         - $ref: '#/definitions/models.MeetingType'
-        description: Type - тип встречи
+        description: Тип встречи
         example: conference
     required:
     - duration
@@ -92,125 +99,124 @@ definitions:
   models.Department:
     properties:
       created_at:
-        description: CreatedAt - время создания отдела
+        description: Время создания отдела
         type: string
       description:
-        description: Description - описание отдела
+        description: Описание отдела
         type: string
       id:
-        description: ID - уникальный идентификатор отдела
+        description: Уникальный идентификатор отдела
         type: string
       is_active:
-        description: IsActive - активен ли отдел
+        description: Активен ли отдел
         type: boolean
       level:
-        description: Level - глубина в иерархии (0 для корневого)
+        description: Глубина в иерархии (0 для корневого)
         type: integer
       name:
-        description: Name - название отдела
+        description: Название отдела
         type: string
       parent_id:
-        description: ParentID - идентификатор родительского отдела (NULL для корневых
-          отделов)
+        description: Идентификатор родительского отдела (NULL для корневых отделов)
         type: string
       path:
-        description: Path - полный путь вида "root/child/grandchild"
+        description: Полный путь вида "root/child/grandchild"
         type: string
       updated_at:
-        description: UpdatedAt - время последнего обновления отдела
+        description: Время последнего обновления отдела
         type: string
     type: object
   models.ErrorResponse:
     properties:
       code:
-        description: Code - HTTP код ошибки
+        description: HTTP код ошибки
         type: integer
       error:
-        description: Error - код ошибки
+        description: Код ошибки
         type: string
       message:
-        description: Message - сообщение об ошибке
+        description: Сообщение об ошибке
         type: string
       timestamp:
-        description: Timestamp - время возникновения ошибки
+        description: Время возникновения ошибки
         type: string
     type: object
   models.FileUploadResponse:
     properties:
       file_size:
-        description: FileSize - размер файла в байтах
+        description: Размер файла в байтах
         type: integer
       filename:
-        description: Filename - имя файла
+        description: Имя файла
         type: string
       id:
-        description: ID - уникальный идентификатор загруженного файла
+        description: Уникальный идентификатор загруженного файла
         type: string
       original_name:
-        description: OriginalName - оригинальное имя файла
+        description: Оригинальное имя файла
         type: string
       status:
         allOf:
         - $ref: '#/definitions/models.TranscriptionStatus'
-        description: Status - статус обработки
+        description: Статус обработки
       uploaded_at:
-        description: UploadedAt - время загрузки
+        description: Время загрузки
         type: string
     type: object
   models.HealthResponse:
     properties:
       status:
-        description: Status - статус здоровья
+        description: Статус здоровья
         type: string
       timestamp:
-        description: Timestamp - время проверки
+        description: Время проверки
         type: string
       version:
-        description: Version - версия сервиса
+        description: Версия сервиса
         type: string
     type: object
   models.ListFilesResponse:
     properties:
       files:
-        description: Files - список файлов
+        description: Список файлов
         items:
           $ref: '#/definitions/models.UploadedFile'
         type: array
       page:
-        description: Page - номер текущей страницы
+        description: Номер текущей страницы
         type: integer
       pageSize:
-        description: PageSize - размер страницы
+        description: Размер страницы
         type: integer
       total:
-        description: Total - общее количество файлов
+        description: Общее количество файлов
         type: integer
     type: object
   models.ListRecordingsResponse:
     properties:
       page:
-        description: Page - номер текущей страницы
+        description: Номер текущей страницы
         type: integer
       page_size:
-        description: PageSize - размер страницы
+        description: Размер страницы
         type: integer
       recordings:
-        description: Recordings - список записей
+        description: Список записей
         items:
           $ref: '#/definitions/models.Recording'
         type: array
       total:
-        description: Total - общее количество записей
+        description: Общее количество записей
         type: integer
     type: object
   models.LoginRequest:
     properties:
       password:
-        description: Password - пароль пользователя
+        description: Пароль пользователя
         example: password123
         type: string
       username:
-        description: Username - имя пользователя или email для входа
+        description: Имя пользователя или email для входа
         example: admin@recontext.online
         type: string
     required:
@@ -220,47 +226,46 @@ definitions:
   models.LoginResponse:
     properties:
       expires_at:
-        description: ExpiresAt - время истечения срока действия токена
+        description: Время истечения срока действия токена
         type: string
       token:
-        description: Token - JWT токен аутентификации
+        description: JWT токен аутентификации
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
       user:
         allOf:
         - $ref: '#/definitions/models.UserInfo'
-        description: User - информация об аутентифицированном пользователе
+        description: Информация об аутентифицированном пользователе
     type: object
   models.MeetingParticipantInfo:
     properties:
       created_at:
-        description: CreatedAt - время создания записи
+        description: Время создания записи
         type: string
       id:
-        description: ID - уникальный идентификатор участника
+        description: Уникальный идентификатор участника
         type: string
       joined_at:
-        description: JoinedAt - время присоединения к встрече
+        description: Время присоединения к встрече
         type: string
       left_at:
-        description: LeftAt - время выхода из встречи
+        description: Время выхода из встречи
         type: string
       meeting_id:
-        description: MeetingID - идентификатор встречи
+        description: Идентификатор встречи
         type: string
       role:
-        description: Role - роль участника ("speaker", "participant")
+        description: Роль участника ("speaker", "participant")
         type: string
       status:
-        description: Status - статус участника ("invited", "accepted", "declined",
-          "attended")
+        description: Статус участника ("invited", "accepted", "declined", "attended")
         type: string
       user:
         allOf:
         - $ref: '#/definitions/models.UserInfo'
-        description: User - информация о пользователе
+        description: Информация о пользователе
       user_id:
-        description: UserID - идентификатор пользователя
+        description: Идентификатор пользователя
         type: string
     type: object
   models.MeetingRecurrence:
@@ -310,44 +315,44 @@ definitions:
   models.MeetingSubject:
     properties:
       created_at:
-        description: CreatedAt - время создания
+        description: Время создания
         type: string
       department_ids:
-        description: DepartmentIDs - отделы, с которыми связана эта тема
+        description: Отделы, с которыми связана эта тема
         items:
           type: string
         type: array
       description:
-        description: Description - описание темы
+        description: Описание темы
         type: string
       id:
-        description: ID - уникальный идентификатор темы
+        description: Уникальный идентификатор темы
         type: string
       is_active:
-        description: IsActive - активна ли тема
+        description: Активна ли тема
         type: boolean
       name:
-        description: Name - название темы
+        description: Название темы
         type: string
       updated_at:
-        description: UpdatedAt - время последнего обновления
+        description: Время последнего обновления
         type: string
     type: object
   models.MeetingSubjectsResponse:
     properties:
       items:
-        description: Items - список тем
+        description: Список тем
         items:
           $ref: '#/definitions/models.MeetingSubject'
         type: array
       offset:
-        description: Offset - смещение от начала
+        description: Смещение от начала
         type: integer
       page_size:
-        description: PageSize - размер страницы
+        description: Размер страницы
         type: integer
       total:
-        description: Total - общее количество тем
+        description: Общее количество тем
         type: integer
     type: object
   models.MeetingType:
@@ -367,103 +372,102 @@ definitions:
   models.MeetingWithDetails:
     properties:
       additional_notes:
-        description: AdditionalNotes - дополнительные заметки
+        description: Дополнительные заметки
         type: string
       created_at:
-        description: CreatedAt - время создания
+        description: Время создания
         type: string
       created_by:
-        description: CreatedBy - идентификатор пользователя, создавшего встречу
+        description: Идентификатор пользователя, создавшего встречу
         type: string
       created_by_user:
         allOf:
         - $ref: '#/definitions/models.UserInfo'
-        description: CreatedByUser - пользователь, создавший встречу
+        description: Пользователь, создавший встречу
       departments:
-        description: Departments - список отделов
+        description: Список отделов
         items:
           $ref: '#/definitions/models.Department'
         type: array
       duration:
-        description: Duration - длительность в минутах
+        description: Длительность в минутах
         type: integer
       force_end_at_duration:
-        description: ForceEndAtDuration - принудительно завершить встречу после истечения
-          времени
+        description: Принудительно завершить встречу после истечения времени
         type: boolean
       id:
-        description: ID - уникальный идентификатор встречи
+        description: Уникальный идентификатор встречи
         type: string
       livekit_room_id:
-        description: LiveKitRoomID - ссылка на комнату LiveKit если встреча начата
+        description: Ссылка на комнату LiveKit если встреча начата
         type: string
       needs_audio_record:
-        description: NeedsAudioRecord - требуется ли аудиозапись
+        description: Требуется ли аудиозапись
         type: boolean
       needs_video_record:
-        description: NeedsVideoRecord - требуется ли видеозапись
+        description: Требуется ли видеозапись
         type: boolean
       participants:
-        description: Participants - список участников
+        description: Список участников
         items:
           $ref: '#/definitions/models.MeetingParticipantInfo'
         type: array
       recurrence:
         allOf:
         - $ref: '#/definitions/models.MeetingRecurrence'
-        description: Recurrence - частота повторения
+        description: Частота повторения
       scheduled_at:
-        description: ScheduledAt - запланированное время начала
+        description: Запланированное время начала
         type: string
       status:
         allOf:
         - $ref: '#/definitions/models.MeetingStatus'
-        description: Status - текущий статус встречи
+        description: Текущий статус встречи
       subject:
         allOf:
         - $ref: '#/definitions/models.MeetingSubject'
-        description: Subject - тема встречи
+        description: Тема встречи
       subject_id:
-        description: SubjectID - идентификатор темы встречи
+        description: Идентификатор темы встречи
         type: string
       title:
-        description: Title - название встречи
+        description: Название встречи
         type: string
       type:
         allOf:
         - $ref: '#/definitions/models.MeetingType'
-        description: Type - тип встречи
+        description: Тип встречи
       updated_at:
-        description: UpdatedAt - время последнего обновления
+        description: Время последнего обновления
         type: string
     type: object
   models.MeetingsResponse:
     properties:
       items:
-        description: Items - список встреч
+        description: Список встреч
         items:
           $ref: '#/definitions/models.MeetingWithDetails'
         type: array
       offset:
-        description: Offset - смещение от начала
+        description: Смещение от начала
         type: integer
       page_size:
-        description: PageSize - размер страницы
+        description: Размер страницы
         type: integer
       total:
-        description: Total - общее количество встреч
+        description: Общее количество встреч
         type: integer
     type: object
   models.RAGSearchRequest:
     properties:
       query:
-        description: Query - текст запроса
+        description: Текст запроса
         type: string
       threshold:
-        description: 'Threshold - порог схожести (по умолчанию: 0.7)'
+        description: 'Порог схожести (по умолчанию: 0.7)'
         type: number
       top_k:
-        description: 'TopK - количество возвращаемых результатов (по умолчанию: 5)'
+        description: 'Количество возвращаемых результатов (по умолчанию: 5)'
         type: integer
     required:
     - query
@@ -471,13 +475,13 @@ definitions:
   models.RAGSearchResponse:
     properties:
       count:
-        description: Count - количество найденных результатов
+        description: Количество найденных результатов
         type: integer
       query:
-        description: Query - исходный запрос
+        description: Исходный запрос
         type: string
       results:
-        description: Results - список результатов
+        description: Список результатов
         items:
           $ref: '#/definitions/models.RAGSearchResult'
         type: array
@@ -485,77 +489,77 @@ definitions:
   models.RAGSearchResult:
     properties:
       chunk_id:
-        description: ChunkID - идентификатор фрагмента
+        description: Идентификатор фрагмента
         type: string
       chunk_index:
-        description: ChunkIndex - индекс фрагмента
+        description: Индекс фрагмента
         type: integer
       chunk_text:
-        description: ChunkText - текст фрагмента
+        description: Текст фрагмента
         type: string
       file_id:
-        description: FileID - идентификатор файла
+        description: Идентификатор файла
         type: string
       file_name:
-        description: FileName - имя файла
+        description: Имя файла
         type: string
       similarity:
-        description: Similarity - уровень схожести с запросом
+        description: Уровень схожести с запросом
         type: number
       uploaded_at:
-        description: UploadedAt - время загрузки файла
+        description: Время загрузки файла
         type: string
     type: object
   models.RAGStatusResponse:
     properties:
       indexed_files:
-        description: IndexedFiles - количество проиндексированных файлов
+        description: Количество проиндексированных файлов
         type: integer
       is_ready:
-        description: IsReady - готова ли система к работе
+        description: Готова ли система к работе
         type: boolean
       total_chunks:
-        description: TotalChunks - общее количество фрагментов
+        description: Общее количество фрагментов
         type: integer
     type: object
   models.Recording:
     properties:
       duration:
-        description: Duration - длительность в секундах
+        description: Длительность в секундах
         type: number
       file_name:
-        description: FileName - имя файла
+        description: Имя файла
         type: string
       file_size:
-        description: FileSize - размер файла в байтах
+        description: Размер файла в байтах
         type: integer
       id:
-        description: ID - уникальный идентификатор записи
+        description: Уникальный идентификатор записи
         type: string
       mime_type:
-        description: MimeType - MIME тип файла
+        description: MIME тип файла
         type: string
       processed_at:
-        description: ProcessedAt - время завершения обработки
+        description: Время завершения обработки
         type: string
       status:
         allOf:
         - $ref: '#/definitions/models.RecordingStatus'
-        description: Status - статус обработки записи
+        description: Статус обработки записи
       storage_path:
-        description: StoragePath - путь к файлу в хранилище
+        description: Путь к файлу в хранилище
         type: string
       title:
-        description: Title - название записи
+        description: Название записи
         type: string
       transcript_id:
-        description: TranscriptID - идентификатор транскрипции (если есть)
+        description: Идентификатор транскрипции (если есть)
         type: string
       uploaded_at:
-        description: UploadedAt - время загрузки
+        description: Время загрузки
         type: string
       user_id:
-        description: UserID - идентификатор пользователя
+        description: Идентификатор пользователя
         type: string
     type: object
   models.RecordingStatus:
@@ -587,7 +591,7 @@ definitions:
   models.RequestPasswordResetRequest:
     properties:
       email:
-        description: Email - адрес электронной почты для отправки кода сброса
+        description: Адрес электронной почты для отправки кода сброса
         example: user@example.com
         type: string
     required:
@@ -596,27 +600,27 @@ definitions:
   models.RequestPasswordResetResponse:
     properties:
       message:
-        description: Message - статусное сообщение
+        description: Статусное сообщение
         example: Password reset code sent to your email
         type: string
       token_id:
-        description: TokenID - идентификатор сгенерированного токена сброса
+        description: Идентификатор сгенерированного токена сброса
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
   models.ResetPasswordRequest:
     properties:
       code:
-        description: Code - 6-значный код подтверждения
+        description: 6-значный код подтверждения
         example: "123456"
         type: string
       new_password:
-        description: NewPassword - новый пароль (минимум 8 символов)
+        description: Новый пароль (минимум 8 символов)
         example: newpassword123
         minLength: 8
         type: string
       token_id:
-        description: TokenID - идентификатор токена сброса
+        description: Идентификатор токена сброса
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     required:
@@ -627,46 +631,46 @@ definitions:
   models.ResetPasswordResponse:
     properties:
       message:
-        description: Message - статусное сообщение
+        description: Статусное сообщение
         example: Password reset successfully
         type: string
     type: object
   models.SearchResponse:
     properties:
       page:
-        description: Page - номер текущей страницы
+        description: Номер текущей страницы
         type: integer
       page_size:
-        description: PageSize - размер страницы
+        description: Размер страницы
         type: integer
       results:
-        description: Results - список результатов
+        description: Список результатов
         items:
           $ref: '#/definitions/models.SearchResult'
         type: array
       total:
-        description: Total - общее количество результатов
+        description: Общее количество результатов
         type: integer
     type: object
   models.SearchResult:
     properties:
       recording_id:
-        description: RecordingID - идентификатор записи
+        description: Идентификатор записи
         type: string
       relevance:
-        description: Relevance - релевантность результата
+        description: Релевантность результата
         type: number
       snippet:
-        description: Snippet - фрагмент текста с совпадением
+        description: Фрагмент текста с совпадением
         type: string
       timestamp:
-        description: Timestamp - временная метка в секундах
+        description: Временная метка в секундах
         type: number
       title:
-        description: Title - название записи
+        description: Название записи
         type: string
       uploaded_at:
-        description: UploadedAt - время загрузки
+        description: Время загрузки
         type: string
     type: object
   models.TranscriptionStatus:
@@ -694,35 +698,34 @@ definitions:
   models.UpdateMeetingRequest:
     properties:
       additional_notes:
-        description: AdditionalNotes - дополнительные заметки
+        description: Дополнительные заметки
         example: Обновленные комментарии
         type: string
       department_ids:
-        description: DepartmentIDs - идентификаторы отделов
+        description: Идентификаторы отделов
         example:
         - '["550e8400-e29b-41d4-a716-446655440000"]'
         items:
           type: string
         type: array
       duration:
-        description: Duration - длительность в минутах
+        description: Длительность в минутах
         example: 90
         type: integer
       force_end_at_duration:
-        description: ForceEndAtDuration - принудительно завершить встречу после истечения
-          времени
+        description: Принудительно завершить встречу после истечения времени
         example: true
         type: boolean
       needs_audio_record:
-        description: NeedsAudioRecord - требуется ли аудиозапись
+        description: Требуется ли аудиозапись
         example: true
         type: boolean
       needs_video_record:
-        description: NeedsVideoRecord - требуется ли видеозапись
+        description: Требуется ли видеозапись
         example: true
         type: boolean
       participant_ids:
-        description: ParticipantIDs - идентификаторы участников
+        description: Идентификаторы участников
         example:
         - '["550e8400-e29b-41d4-a716-446655440000"]'
         items:
@@ -731,194 +734,194 @@ definitions:
       recurrence:
         allOf:
         - $ref: '#/definitions/models.MeetingRecurrence'
-        description: Recurrence - частота повторения
+        description: Частота повторения
         example: weekly
       scheduled_at:
-        description: ScheduledAt - запланированное время начала
+        description: Запланированное время начала
         example: "2025-01-15T10:00:00Z"
         type: string
       speaker_id:
-        description: SpeakerID - идентификатор докладчика
+        description: Идентификатор докладчика
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       status:
         allOf:
         - $ref: '#/definitions/models.MeetingStatus'
-        description: Status - статус встречи
+        description: Статус встречи
         example: in_progress
       subject_id:
-        description: SubjectID - идентификатор темы
+        description: Идентификатор темы
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       title:
-        description: Title - название встречи
+        description: Название встречи
         example: Обновленное название
         type: string
       type:
         allOf:
         - $ref: '#/definitions/models.MeetingType'
-        description: Type - тип встречи
+        description: Тип встречи
         example: conference
     type: object
   models.UpdateProfileRequest:
     properties:
       avatar:
-        description: Avatar - URL аватара
+        description: URL аватара
         example: https://example.com/avatar.jpg
         type: string
       bio:
-        description: Bio - биография
+        description: Биография
         example: Software developer
         type: string
       first_name:
-        description: FirstName - имя
+        description: Имя
         example: John
         type: string
       language:
-        description: Language - предпочитаемый язык
+        description: Предпочитаемый язык
         example: en
         type: string
       last_name:
-        description: LastName - фамилия
+        description: Фамилия
         example: Doe
         type: string
       phone:
-        description: Phone - номер телефона
+        description: Номер телефона
         example: "+1234567890"
         type: string
     type: object
   models.UploadAvatarResponse:
     properties:
       avatar_url:
-        description: AvatarURL - URL загруженного аватара
+        description: URL загруженного аватара
         example: https://example.com/avatars/user-123.jpg
         type: string
       message:
-        description: Message - статусное сообщение
+        description: Статусное сообщение
         example: Avatar uploaded successfully
         type: string
     type: object
   models.UploadResponse:
     properties:
       message:
-        description: Message - статусное сообщение
+        description: Статусное сообщение
         example: File uploaded successfully
         type: string
       recording_id:
-        description: RecordingID - идентификатор созданной записи
+        description: Идентификатор созданной записи
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       upload_url:
-        description: UploadURL - URL для загрузки файла
+        description: URL для загрузки файла
         example: https://minio:9000/recontext/uploads/550e8400-e29b-41d4-a716-446655440000.mp4
         type: string
     type: object
   models.UploadedFile:
     properties:
       file_size:
-        description: FileSize - размер файла в байтах
+        description: Размер файла в байтах
         type: integer
       filename:
-        description: Filename - имя файла в хранилище
+        description: Имя файла в хранилище
         type: string
       group_id:
-        description: GroupID - идентификатор группы
+        description: Идентификатор группы
         type: string
       id:
-        description: ID - уникальный идентификатор файла
+        description: Уникальный идентификатор файла
         type: string
       metadata:
         additionalProperties: true
-        description: Metadata - дополнительные метаданные файла
+        description: Дополнительные метаданные файла
         type: object
       mime_type:
-        description: MimeType - MIME тип файла
+        description: MIME тип файла
         type: string
       original_name:
-        description: OriginalName - оригинальное имя файла
+        description: Оригинальное имя файла
         type: string
       processed_at:
-        description: ProcessedAt - время завершения обработки файла
+        description: Время завершения обработки файла
         type: string
       status:
         allOf:
         - $ref: '#/definitions/models.TranscriptionStatus'
-        description: Status - статус обработки файла
+        description: Статус обработки файла
       storage_path:
-        description: StoragePath - путь к файлу в хранилище
+        description: Путь к файлу в хранилище
         type: string
       transcription_id:
-        description: TranscriptionID - идентификатор транскрипции (если есть)
+        description: Идентификатор транскрипции (если есть)
         type: string
       uploaded_at:
-        description: UploadedAt - время загрузки файла
+        description: Время загрузки файла
         type: string
       user_id:
-        description: UserID - идентификатор пользователя, загрузившего файл
+        description: Идентификатор пользователя, загрузившего файл
         type: string
     type: object
   models.UserInfo:
     properties:
       avatar:
-        description: Avatar - URL аватара или base64 изображение
+        description: URL аватара или base64 изображение
         example: https://example.com/avatar.jpg
         type: string
       bio:
-        description: Bio - биография пользователя
+        description: Биография пользователя
         example: Software developer
         type: string
       department_id:
-        description: DepartmentID - идентификатор отдела, к которому принадлежит пользователь
+        description: Идентификатор отдела, к которому принадлежит пользователь
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       email:
-        description: Email - адрес электронной почты пользователя
+        description: Адрес электронной почты пользователя
         example: admin@recontext.online
         type: string
       first_name:
-        description: FirstName - имя пользователя
+        description: Имя пользователя
         example: John
         type: string
       id:
-        description: ID - уникальный идентификатор пользователя
+        description: Уникальный идентификатор пользователя
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       language:
-        description: Language - предпочитаемый язык пользователя
+        description: Предпочитаемый язык пользователя
         example: en
         type: string
       last_name:
-        description: LastName - фамилия пользователя
+        description: Фамилия пользователя
         example: Doe
         type: string
       permissions:
         allOf:
         - $ref: '#/definitions/models.UserPermissions'
-        description: Permissions - специфические разрешения пользователя
+        description: Специфические разрешения пользователя
       phone:
-        description: Phone - номер телефона пользователя
+        description: Номер телефона пользователя
         example: "+1234567890"
         type: string
       role:
         allOf:
         - $ref: '#/definitions/models.UserRole'
-        description: Role - роль пользователя в системе
+        description: Роль пользователя в системе
         example: admin
       username:
-        description: Username - имя пользователя для входа
+        description: Имя пользователя для входа
         example: admin
         type: string
     type: object
   models.UserPermissions:
     properties:
       can_approve_recordings:
-        description: CanApproveRecordings - разрешение на утверждение записей
+        description: Разрешение на утверждение записей
         type: boolean
       can_manage_department:
-        description: CanManageDepartment - разрешение на управление отделом
+        description: Разрешение на управление отделом
         type: boolean
       can_schedule_meetings:
-        description: CanScheduleMeetings - разрешение на планирование видеовстреч
+        description: Разрешение на планирование видеовстреч
         type: boolean
     type: object
   models.UserRole:
@@ -929,12 +932,12 @@ definitions:
     - service
     type: string
     x-enum-comments:
-      RoleService: For service-to-service authentication
+      RoleService: Роль для сервисной аутентификации (межсервисные вызовы)
     x-enum-descriptions:
     - ""
     - ""
     - ""
-    - For service-to-service authentication
+    - Роль для сервисной аутентификации (межсервисные вызовы)
     x-enum-varnames:
     - RoleAdmin
     - RoleUser
@@ -943,11 +946,11 @@ definitions:
   models.VerifyResetCodeRequest:
     properties:
       code:
-        description: Code - 6-значный код подтверждения
+        description: 6-значный код подтверждения
         example: "123456"
         type: string
       token_id:
-        description: TokenID - идентификатор токена сброса для проверки
+        description: Идентификатор токена сброса для проверки
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     required:
@@ -957,11 +960,11 @@ definitions:
   models.VerifyResetCodeResponse:
     properties:
       message:
-        description: Message - дополнительная информация о проверке
+        description: Дополнительная информация о проверке
         example: Code verified successfully
         type: string
       valid:
-        description: Valid - валиден ли код
+        description: Валиден ли код
         example: true
         type: boolean
     type: object

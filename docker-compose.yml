@@ -28,6 +28,8 @@ services:
       - LIVEKIT_URL=wss://video.recontext.online
       - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
       - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
+      - LIVEKIT_WEBHOOK_DEBUG=true
+      - DEBUG_LOGS_ENABLED=true
       # SMTP Configuration for email sending
       - SMTP_HOST=smtp.timeweb.ru
       - SMTP_PORT=465
@@ -70,6 +72,8 @@ services:
       - LIVEKIT_URL=wss://video.recontext.online
       - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
       - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
+      - LIVEKIT_WEBHOOK_DEBUG=true
+      - DEBUG_LOGS_ENABLED=true
       # SMTP Configuration for email sending
       - SMTP_HOST=smtp.timeweb.ru
       - SMTP_PORT=465

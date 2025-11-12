@@ -24,54 +24,54 @@ const (
 
 // ServiceInfo представляет информацию о сервисе
 type ServiceInfo struct {
-	// ID - уникальный идентификатор сервиса
+	// Уникальный идентификатор сервиса
 	ID          string        `json:"id"`
-	// Name - название сервиса
+	// Название сервиса
 	Name        string        `json:"name"`
-	// Type - тип сервиса
+	// Тип сервиса
 	Type        ServiceType   `json:"type"`
-	// Status - текущий статус сервиса
+	// Текущий статус сервиса
 	Status      ServiceStatus `json:"status"`
-	// Version - версия сервиса
+	// Версия сервиса
 	Version     string        `json:"version"`
-	// StartedAt - время запуска сервиса
+	// Время запуска сервиса
 	StartedAt   time.Time     `json:"started_at"`
-	// LastHeartbeat - время последнего сигнала жизни
+	// Время последнего сигнала жизни
 	LastHeartbeat time.Time   `json:"last_heartbeat"`
-	// Metadata - дополнительные метаданные сервиса
+	// Дополнительные метаданные сервиса
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // SystemStatus представляет общий статус системы
 type SystemStatus struct {
-	// Status - общий статус системы
+	// Общий статус системы
 	Status       string                  `json:"status"`
-	// Services - информация о сервисах
+	// Информация о сервисах
 	Services     map[string]ServiceInfo  `json:"services"`
-	// Infrastructure - информация об инфраструктуре
+	// Информация об инфраструктуре
 	Infrastructure map[string]interface{} `json:"infrastructure"`
-	// Timestamp - время получения статуса
+	// Время получения статуса
 	Timestamp    time.Time               `json:"timestamp"`
 }
 
 // HealthResponse представляет ответ на проверку здоровья
 type HealthResponse struct {
-	// Status - статус здоровья
+	// Статус здоровья
 	Status    string    `json:"status"`
-	// Timestamp - время проверки
+	// Время проверки
 	Timestamp time.Time `json:"timestamp"`
-	// Version - версия сервиса
+	// Версия сервиса
 	Version   string    `json:"version"`
 }
 
 // ErrorResponse представляет ответ с ошибкой
 type ErrorResponse struct {
-	// Error - код ошибки
+	// Код ошибки
 	Error   string    `json:"error"`
-	// Message - сообщение об ошибке
+	// Сообщение об ошибке
 	Message string    `json:"message"`
-	// Code - HTTP код ошибки
+	// HTTP код ошибки
 	Code    int       `json:"code"`
-	// Timestamp - время возникновения ошибки
+	// Время возникновения ошибки
 	Timestamp time.Time `json:"timestamp"`
 }

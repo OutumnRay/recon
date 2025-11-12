@@ -1370,27 +1370,35 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "duration": {
+                    "description": "Длительность встречи в минутах",
                     "type": "integer"
                 },
                 "forceEndAt": {
+                    "description": "Время принудительного завершения встречи (если задано)",
                     "type": "string"
                 },
                 "meetingId": {
+                    "description": "Идентификатор встречи",
                     "type": "string"
                 },
                 "participantName": {
+                    "description": "Имя участника, отображаемое в комнате",
                     "type": "string"
                 },
                 "roomName": {
+                    "description": "Название комнаты LiveKit",
                     "type": "string"
                 },
                 "scheduledAt": {
+                    "description": "Запланированное время начала встречи (строка RFC3339)",
                     "type": "string"
                 },
                 "token": {
+                    "description": "Токен доступа LiveKit",
                     "type": "string"
                 },
                 "url": {
+                    "description": "URL сервера LiveKit",
                     "type": "string"
                 }
             }
@@ -1406,12 +1414,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "additional_notes": {
-                    "description": "AdditionalNotes - дополнительные заметки",
+                    "description": "Дополнительные заметки",
                     "type": "string",
                     "example": "Подготовить отчеты"
                 },
                 "department_ids": {
-                    "description": "DepartmentIDs - идентификаторы отделов",
+                    "description": "Идентификаторы отделов",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -1421,27 +1429,27 @@ const docTemplate = `{
                     ]
                 },
                 "duration": {
-                    "description": "Duration - длительность в минутах",
+                    "description": "Длительность в минутах",
                     "type": "integer",
                     "example": 60
                 },
                 "force_end_at_duration": {
-                    "description": "ForceEndAtDuration - принудительно завершить встречу после истечения времени",
+                    "description": "Принудительно завершить встречу после истечения времени",
                     "type": "boolean",
                     "example": true
                 },
                 "needs_audio_record": {
-                    "description": "NeedsAudioRecord - требуется ли аудиозапись",
+                    "description": "Требуется ли аудиозапись",
                     "type": "boolean",
                     "example": true
                 },
                 "needs_video_record": {
-                    "description": "NeedsVideoRecord - требуется ли видеозапись",
+                    "description": "Требуется ли видеозапись",
                     "type": "boolean",
                     "example": true
                 },
                 "participant_ids": {
-                    "description": "ParticipantIDs - идентификаторы участников",
+                    "description": "Идентификаторы участников",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -1451,7 +1459,7 @@ const docTemplate = `{
                     ]
                 },
                 "recurrence": {
-                    "description": "Recurrence - частота повторения",
+                    "description": "Частота повторения",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingRecurrence"
@@ -1460,27 +1468,27 @@ const docTemplate = `{
                     "example": "weekly"
                 },
                 "scheduled_at": {
-                    "description": "ScheduledAt - запланированное время начала",
+                    "description": "Запланированное время начала",
                     "type": "string",
                     "example": "2025-01-15T10:00:00Z"
                 },
                 "speaker_id": {
-                    "description": "SpeakerID - идентификатор докладчика (для презентаций)",
+                    "description": "Идентификатор докладчика (для презентаций)",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "subject_id": {
-                    "description": "SubjectID - идентификатор темы",
+                    "description": "Идентификатор темы",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "title": {
-                    "description": "Title - название встречи",
+                    "description": "Название встречи",
                     "type": "string",
                     "example": "Еженедельное совещание"
                 },
                 "type": {
-                    "description": "Type - тип встречи",
+                    "description": "Тип встречи",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingType"
@@ -1494,39 +1502,39 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
-                    "description": "CreatedAt - время создания отдела",
+                    "description": "Время создания отдела",
                     "type": "string"
                 },
                 "description": {
-                    "description": "Description - описание отдела",
+                    "description": "Описание отдела",
                     "type": "string"
                 },
                 "id": {
-                    "description": "ID - уникальный идентификатор отдела",
+                    "description": "Уникальный идентификатор отдела",
                     "type": "string"
                 },
                 "is_active": {
-                    "description": "IsActive - активен ли отдел",
+                    "description": "Активен ли отдел",
                     "type": "boolean"
                 },
                 "level": {
-                    "description": "Level - глубина в иерархии (0 для корневого)",
+                    "description": "Глубина в иерархии (0 для корневого)",
                     "type": "integer"
                 },
                 "name": {
-                    "description": "Name - название отдела",
+                    "description": "Название отдела",
                     "type": "string"
                 },
                 "parent_id": {
-                    "description": "ParentID - идентификатор родительского отдела (NULL для корневых отделов)",
+                    "description": "Идентификатор родительского отдела (NULL для корневых отделов)",
                     "type": "string"
                 },
                 "path": {
-                    "description": "Path - полный путь вида \"root/child/grandchild\"",
+                    "description": "Полный путь вида \"root/child/grandchild\"",
                     "type": "string"
                 },
                 "updated_at": {
-                    "description": "UpdatedAt - время последнего обновления отдела",
+                    "description": "Время последнего обновления отдела",
                     "type": "string"
                 }
             }
@@ -1535,19 +1543,19 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "description": "Code - HTTP код ошибки",
+                    "description": "HTTP код ошибки",
                     "type": "integer"
                 },
                 "error": {
-                    "description": "Error - код ошибки",
+                    "description": "Код ошибки",
                     "type": "string"
                 },
                 "message": {
-                    "description": "Message - сообщение об ошибке",
+                    "description": "Сообщение об ошибке",
                     "type": "string"
                 },
                 "timestamp": {
-                    "description": "Timestamp - время возникновения ошибки",
+                    "description": "Время возникновения ошибки",
                     "type": "string"
                 }
             }
@@ -1556,23 +1564,23 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "file_size": {
-                    "description": "FileSize - размер файла в байтах",
+                    "description": "Размер файла в байтах",
                     "type": "integer"
                 },
                 "filename": {
-                    "description": "Filename - имя файла",
+                    "description": "Имя файла",
                     "type": "string"
                 },
                 "id": {
-                    "description": "ID - уникальный идентификатор загруженного файла",
+                    "description": "Уникальный идентификатор загруженного файла",
                     "type": "string"
                 },
                 "original_name": {
-                    "description": "OriginalName - оригинальное имя файла",
+                    "description": "Оригинальное имя файла",
                     "type": "string"
                 },
                 "status": {
-                    "description": "Status - статус обработки",
+                    "description": "Статус обработки",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.TranscriptionStatus"
@@ -1580,7 +1588,7 @@ const docTemplate = `{
                     ]
                 },
                 "uploaded_at": {
-                    "description": "UploadedAt - время загрузки",
+                    "description": "Время загрузки",
                     "type": "string"
                 }
             }
@@ -1589,15 +1597,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "status": {
-                    "description": "Status - статус здоровья",
+                    "description": "Статус здоровья",
                     "type": "string"
                 },
                 "timestamp": {
-                    "description": "Timestamp - время проверки",
+                    "description": "Время проверки",
                     "type": "string"
                 },
                 "version": {
-                    "description": "Version - версия сервиса",
+                    "description": "Версия сервиса",
                     "type": "string"
                 }
             }
@@ -1606,22 +1614,22 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "files": {
-                    "description": "Files - список файлов",
+                    "description": "Список файлов",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.UploadedFile"
                     }
                 },
                 "page": {
-                    "description": "Page - номер текущей страницы",
+                    "description": "Номер текущей страницы",
                     "type": "integer"
                 },
                 "pageSize": {
-                    "description": "PageSize - размер страницы",
+                    "description": "Размер страницы",
                     "type": "integer"
                 },
                 "total": {
-                    "description": "Total - общее количество файлов",
+                    "description": "Общее количество файлов",
                     "type": "integer"
                 }
             }
@@ -1630,22 +1638,22 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "page": {
-                    "description": "Page - номер текущей страницы",
+                    "description": "Номер текущей страницы",
                     "type": "integer"
                 },
                 "page_size": {
-                    "description": "PageSize - размер страницы",
+                    "description": "Размер страницы",
                     "type": "integer"
                 },
                 "recordings": {
-                    "description": "Recordings - список записей",
+                    "description": "Список записей",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.Recording"
                     }
                 },
                 "total": {
-                    "description": "Total - общее количество записей",
+                    "description": "Общее количество записей",
                     "type": "integer"
                 }
             }
@@ -1658,12 +1666,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "password": {
-                    "description": "Password - пароль пользователя",
+                    "description": "Пароль пользователя",
                     "type": "string",
                     "example": "password123"
                 },
                 "username": {
-                    "description": "Username - имя пользователя или email для входа",
+                    "description": "Имя пользователя или email для входа",
                     "type": "string",
                     "example": "admin@recontext.online"
                 }
@@ -1673,16 +1681,16 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "expires_at": {
-                    "description": "ExpiresAt - время истечения срока действия токена",
+                    "description": "Время истечения срока действия токена",
                     "type": "string"
                 },
                 "token": {
-                    "description": "Token - JWT токен аутентификации",
+                    "description": "JWT токен аутентификации",
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
                 "user": {
-                    "description": "User - информация об аутентифицированном пользователе",
+                    "description": "Информация об аутентифицированном пользователе",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.UserInfo"
@@ -1695,35 +1703,35 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
-                    "description": "CreatedAt - время создания записи",
+                    "description": "Время создания записи",
                     "type": "string"
                 },
                 "id": {
-                    "description": "ID - уникальный идентификатор участника",
+                    "description": "Уникальный идентификатор участника",
                     "type": "string"
                 },
                 "joined_at": {
-                    "description": "JoinedAt - время присоединения к встрече",
+                    "description": "Время присоединения к встрече",
                     "type": "string"
                 },
                 "left_at": {
-                    "description": "LeftAt - время выхода из встречи",
+                    "description": "Время выхода из встречи",
                     "type": "string"
                 },
                 "meeting_id": {
-                    "description": "MeetingID - идентификатор встречи",
+                    "description": "Идентификатор встречи",
                     "type": "string"
                 },
                 "role": {
-                    "description": "Role - роль участника (\"speaker\", \"participant\")",
+                    "description": "Роль участника (\"speaker\", \"participant\")",
                     "type": "string"
                 },
                 "status": {
-                    "description": "Status - статус участника (\"invited\", \"accepted\", \"declined\", \"attended\")",
+                    "description": "Статус участника (\"invited\", \"accepted\", \"declined\", \"attended\")",
                     "type": "string"
                 },
                 "user": {
-                    "description": "User - информация о пользователе",
+                    "description": "Информация о пользователе",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.UserInfo"
@@ -1731,7 +1739,7 @@ const docTemplate = `{
                     ]
                 },
                 "user_id": {
-                    "description": "UserID - идентификатор пользователя",
+                    "description": "Идентификатор пользователя",
                     "type": "string"
                 }
             }
@@ -1794,34 +1802,34 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
-                    "description": "CreatedAt - время создания",
+                    "description": "Время создания",
                     "type": "string"
                 },
                 "department_ids": {
-                    "description": "DepartmentIDs - отделы, с которыми связана эта тема",
+                    "description": "Отделы, с которыми связана эта тема",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "description": {
-                    "description": "Description - описание темы",
+                    "description": "Описание темы",
                     "type": "string"
                 },
                 "id": {
-                    "description": "ID - уникальный идентификатор темы",
+                    "description": "Уникальный идентификатор темы",
                     "type": "string"
                 },
                 "is_active": {
-                    "description": "IsActive - активна ли тема",
+                    "description": "Активна ли тема",
                     "type": "boolean"
                 },
                 "name": {
-                    "description": "Name - название темы",
+                    "description": "Название темы",
                     "type": "string"
                 },
                 "updated_at": {
-                    "description": "UpdatedAt - время последнего обновления",
+                    "description": "Время последнего обновления",
                     "type": "string"
                 }
             }
@@ -1830,22 +1838,22 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "items": {
-                    "description": "Items - список тем",
+                    "description": "Список тем",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.MeetingSubject"
                     }
                 },
                 "offset": {
-                    "description": "Offset - смещение от начала",
+                    "description": "Смещение от начала",
                     "type": "integer"
                 },
                 "page_size": {
-                    "description": "PageSize - размер страницы",
+                    "description": "Размер страницы",
                     "type": "integer"
                 },
                 "total": {
-                    "description": "Total - общее количество тем",
+                    "description": "Общее количество тем",
                     "type": "integer"
                 }
             }
@@ -1873,19 +1881,19 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "additional_notes": {
-                    "description": "AdditionalNotes - дополнительные заметки",
+                    "description": "Дополнительные заметки",
                     "type": "string"
                 },
                 "created_at": {
-                    "description": "CreatedAt - время создания",
+                    "description": "Время создания",
                     "type": "string"
                 },
                 "created_by": {
-                    "description": "CreatedBy - идентификатор пользователя, создавшего встречу",
+                    "description": "Идентификатор пользователя, создавшего встречу",
                     "type": "string"
                 },
                 "created_by_user": {
-                    "description": "CreatedByUser - пользователь, создавший встречу",
+                    "description": "Пользователь, создавший встречу",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.UserInfo"
@@ -1893,45 +1901,45 @@ const docTemplate = `{
                     ]
                 },
                 "departments": {
-                    "description": "Departments - список отделов",
+                    "description": "Список отделов",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.Department"
                     }
                 },
                 "duration": {
-                    "description": "Duration - длительность в минутах",
+                    "description": "Длительность в минутах",
                     "type": "integer"
                 },
                 "force_end_at_duration": {
-                    "description": "ForceEndAtDuration - принудительно завершить встречу после истечения времени",
+                    "description": "Принудительно завершить встречу после истечения времени",
                     "type": "boolean"
                 },
                 "id": {
-                    "description": "ID - уникальный идентификатор встречи",
+                    "description": "Уникальный идентификатор встречи",
                     "type": "string"
                 },
                 "livekit_room_id": {
-                    "description": "LiveKitRoomID - ссылка на комнату LiveKit если встреча начата",
+                    "description": "Ссылка на комнату LiveKit если встреча начата",
                     "type": "string"
                 },
                 "needs_audio_record": {
-                    "description": "NeedsAudioRecord - требуется ли аудиозапись",
+                    "description": "Требуется ли аудиозапись",
                     "type": "boolean"
                 },
                 "needs_video_record": {
-                    "description": "NeedsVideoRecord - требуется ли видеозапись",
+                    "description": "Требуется ли видеозапись",
                     "type": "boolean"
                 },
                 "participants": {
-                    "description": "Participants - список участников",
+                    "description": "Список участников",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.MeetingParticipantInfo"
                     }
                 },
                 "recurrence": {
-                    "description": "Recurrence - частота повторения",
+                    "description": "Частота повторения",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingRecurrence"
@@ -1939,11 +1947,11 @@ const docTemplate = `{
                     ]
                 },
                 "scheduled_at": {
-                    "description": "ScheduledAt - запланированное время начала",
+                    "description": "Запланированное время начала",
                     "type": "string"
                 },
                 "status": {
-                    "description": "Status - текущий статус встречи",
+                    "description": "Текущий статус встречи",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingStatus"
@@ -1951,7 +1959,7 @@ const docTemplate = `{
                     ]
                 },
                 "subject": {
-                    "description": "Subject - тема встречи",
+                    "description": "Тема встречи",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingSubject"
@@ -1959,15 +1967,15 @@ const docTemplate = `{
                     ]
                 },
                 "subject_id": {
-                    "description": "SubjectID - идентификатор темы встречи",
+                    "description": "Идентификатор темы встречи",
                     "type": "string"
                 },
                 "title": {
-                    "description": "Title - название встречи",
+                    "description": "Название встречи",
                     "type": "string"
                 },
                 "type": {
-                    "description": "Type - тип встречи",
+                    "description": "Тип встречи",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingType"
@@ -1975,7 +1983,7 @@ const docTemplate = `{
                     ]
                 },
                 "updated_at": {
-                    "description": "UpdatedAt - время последнего обновления",
+                    "description": "Время последнего обновления",
                     "type": "string"
                 }
             }
@@ -1984,22 +1992,22 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "items": {
-                    "description": "Items - список встреч",
+                    "description": "Список встреч",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.MeetingWithDetails"
                     }
                 },
                 "offset": {
-                    "description": "Offset - смещение от начала",
+                    "description": "Смещение от начала",
                     "type": "integer"
                 },
                 "page_size": {
-                    "description": "PageSize - размер страницы",
+                    "description": "Размер страницы",
                     "type": "integer"
                 },
                 "total": {
-                    "description": "Total - общее количество встреч",
+                    "description": "Общее количество встреч",
                     "type": "integer"
                 }
             }
@@ -2011,15 +2019,15 @@ const docTemplate = `{
             ],
             "properties": {
                 "query": {
-                    "description": "Query - текст запроса",
+                    "description": "Текст запроса",
                     "type": "string"
                 },
                 "threshold": {
-                    "description": "Threshold - порог схожести (по умолчанию: 0.7)",
+                    "description": "Порог схожести (по умолчанию: 0.7)",
                     "type": "number"
                 },
                 "top_k": {
-                    "description": "TopK - количество возвращаемых результатов (по умолчанию: 5)",
+                    "description": "Количество возвращаемых результатов (по умолчанию: 5)",
                     "type": "integer"
                 }
             }
@@ -2028,15 +2036,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "count": {
-                    "description": "Count - количество найденных результатов",
+                    "description": "Количество найденных результатов",
                     "type": "integer"
                 },
                 "query": {
-                    "description": "Query - исходный запрос",
+                    "description": "Исходный запрос",
                     "type": "string"
                 },
                 "results": {
-                    "description": "Results - список результатов",
+                    "description": "Список результатов",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.RAGSearchResult"
@@ -2048,31 +2056,31 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "chunk_id": {
-                    "description": "ChunkID - идентификатор фрагмента",
+                    "description": "Идентификатор фрагмента",
                     "type": "string"
                 },
                 "chunk_index": {
-                    "description": "ChunkIndex - индекс фрагмента",
+                    "description": "Индекс фрагмента",
                     "type": "integer"
                 },
                 "chunk_text": {
-                    "description": "ChunkText - текст фрагмента",
+                    "description": "Текст фрагмента",
                     "type": "string"
                 },
                 "file_id": {
-                    "description": "FileID - идентификатор файла",
+                    "description": "Идентификатор файла",
                     "type": "string"
                 },
                 "file_name": {
-                    "description": "FileName - имя файла",
+                    "description": "Имя файла",
                     "type": "string"
                 },
                 "similarity": {
-                    "description": "Similarity - уровень схожести с запросом",
+                    "description": "Уровень схожести с запросом",
                     "type": "number"
                 },
                 "uploaded_at": {
-                    "description": "UploadedAt - время загрузки файла",
+                    "description": "Время загрузки файла",
                     "type": "string"
                 }
             }
@@ -2081,15 +2089,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "indexed_files": {
-                    "description": "IndexedFiles - количество проиндексированных файлов",
+                    "description": "Количество проиндексированных файлов",
                     "type": "integer"
                 },
                 "is_ready": {
-                    "description": "IsReady - готова ли система к работе",
+                    "description": "Готова ли система к работе",
                     "type": "boolean"
                 },
                 "total_chunks": {
-                    "description": "TotalChunks - общее количество фрагментов",
+                    "description": "Общее количество фрагментов",
                     "type": "integer"
                 }
             }
@@ -2098,31 +2106,31 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "duration": {
-                    "description": "Duration - длительность в секундах",
+                    "description": "Длительность в секундах",
                     "type": "number"
                 },
                 "file_name": {
-                    "description": "FileName - имя файла",
+                    "description": "Имя файла",
                     "type": "string"
                 },
                 "file_size": {
-                    "description": "FileSize - размер файла в байтах",
+                    "description": "Размер файла в байтах",
                     "type": "integer"
                 },
                 "id": {
-                    "description": "ID - уникальный идентификатор записи",
+                    "description": "Уникальный идентификатор записи",
                     "type": "string"
                 },
                 "mime_type": {
-                    "description": "MimeType - MIME тип файла",
+                    "description": "MIME тип файла",
                     "type": "string"
                 },
                 "processed_at": {
-                    "description": "ProcessedAt - время завершения обработки",
+                    "description": "Время завершения обработки",
                     "type": "string"
                 },
                 "status": {
-                    "description": "Status - статус обработки записи",
+                    "description": "Статус обработки записи",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.RecordingStatus"
@@ -2130,23 +2138,23 @@ const docTemplate = `{
                     ]
                 },
                 "storage_path": {
-                    "description": "StoragePath - путь к файлу в хранилище",
+                    "description": "Путь к файлу в хранилище",
                     "type": "string"
                 },
                 "title": {
-                    "description": "Title - название записи",
+                    "description": "Название записи",
                     "type": "string"
                 },
                 "transcript_id": {
-                    "description": "TranscriptID - идентификатор транскрипции (если есть)",
+                    "description": "Идентификатор транскрипции (если есть)",
                     "type": "string"
                 },
                 "uploaded_at": {
-                    "description": "UploadedAt - время загрузки",
+                    "description": "Время загрузки",
                     "type": "string"
                 },
                 "user_id": {
-                    "description": "UserID - идентификатор пользователя",
+                    "description": "Идентификатор пользователя",
                     "type": "string"
                 }
             }
@@ -2189,7 +2197,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "description": "Email - адрес электронной почты для отправки кода сброса",
+                    "description": "Адрес электронной почты для отправки кода сброса",
                     "type": "string",
                     "example": "user@example.com"
                 }
@@ -2199,12 +2207,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "description": "Message - статусное сообщение",
+                    "description": "Статусное сообщение",
                     "type": "string",
                     "example": "Password reset code sent to your email"
                 },
                 "token_id": {
-                    "description": "TokenID - идентификатор сгенерированного токена сброса",
+                    "description": "Идентификатор сгенерированного токена сброса",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
@@ -2219,18 +2227,18 @@ const docTemplate = `{
             ],
             "properties": {
                 "code": {
-                    "description": "Code - 6-значный код подтверждения",
+                    "description": "6-значный код подтверждения",
                     "type": "string",
                     "example": "123456"
                 },
                 "new_password": {
-                    "description": "NewPassword - новый пароль (минимум 8 символов)",
+                    "description": "Новый пароль (минимум 8 символов)",
                     "type": "string",
                     "minLength": 8,
                     "example": "newpassword123"
                 },
                 "token_id": {
-                    "description": "TokenID - идентификатор токена сброса",
+                    "description": "Идентификатор токена сброса",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
@@ -2240,7 +2248,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "description": "Message - статусное сообщение",
+                    "description": "Статусное сообщение",
                     "type": "string",
                     "example": "Password reset successfully"
                 }
@@ -2250,22 +2258,22 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "page": {
-                    "description": "Page - номер текущей страницы",
+                    "description": "Номер текущей страницы",
                     "type": "integer"
                 },
                 "page_size": {
-                    "description": "PageSize - размер страницы",
+                    "description": "Размер страницы",
                     "type": "integer"
                 },
                 "results": {
-                    "description": "Results - список результатов",
+                    "description": "Список результатов",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.SearchResult"
                     }
                 },
                 "total": {
-                    "description": "Total - общее количество результатов",
+                    "description": "Общее количество результатов",
                     "type": "integer"
                 }
             }
@@ -2274,27 +2282,27 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "recording_id": {
-                    "description": "RecordingID - идентификатор записи",
+                    "description": "Идентификатор записи",
                     "type": "string"
                 },
                 "relevance": {
-                    "description": "Relevance - релевантность результата",
+                    "description": "Релевантность результата",
                     "type": "number"
                 },
                 "snippet": {
-                    "description": "Snippet - фрагмент текста с совпадением",
+                    "description": "Фрагмент текста с совпадением",
                     "type": "string"
                 },
                 "timestamp": {
-                    "description": "Timestamp - временная метка в секундах",
+                    "description": "Временная метка в секундах",
                     "type": "number"
                 },
                 "title": {
-                    "description": "Title - название записи",
+                    "description": "Название записи",
                     "type": "string"
                 },
                 "uploaded_at": {
-                    "description": "UploadedAt - время загрузки",
+                    "description": "Время загрузки",
                     "type": "string"
                 }
             }
@@ -2330,12 +2338,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "additional_notes": {
-                    "description": "AdditionalNotes - дополнительные заметки",
+                    "description": "Дополнительные заметки",
                     "type": "string",
                     "example": "Обновленные комментарии"
                 },
                 "department_ids": {
-                    "description": "DepartmentIDs - идентификаторы отделов",
+                    "description": "Идентификаторы отделов",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2345,27 +2353,27 @@ const docTemplate = `{
                     ]
                 },
                 "duration": {
-                    "description": "Duration - длительность в минутах",
+                    "description": "Длительность в минутах",
                     "type": "integer",
                     "example": 90
                 },
                 "force_end_at_duration": {
-                    "description": "ForceEndAtDuration - принудительно завершить встречу после истечения времени",
+                    "description": "Принудительно завершить встречу после истечения времени",
                     "type": "boolean",
                     "example": true
                 },
                 "needs_audio_record": {
-                    "description": "NeedsAudioRecord - требуется ли аудиозапись",
+                    "description": "Требуется ли аудиозапись",
                     "type": "boolean",
                     "example": true
                 },
                 "needs_video_record": {
-                    "description": "NeedsVideoRecord - требуется ли видеозапись",
+                    "description": "Требуется ли видеозапись",
                     "type": "boolean",
                     "example": true
                 },
                 "participant_ids": {
-                    "description": "ParticipantIDs - идентификаторы участников",
+                    "description": "Идентификаторы участников",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2375,7 +2383,7 @@ const docTemplate = `{
                     ]
                 },
                 "recurrence": {
-                    "description": "Recurrence - частота повторения",
+                    "description": "Частота повторения",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingRecurrence"
@@ -2384,17 +2392,17 @@ const docTemplate = `{
                     "example": "weekly"
                 },
                 "scheduled_at": {
-                    "description": "ScheduledAt - запланированное время начала",
+                    "description": "Запланированное время начала",
                     "type": "string",
                     "example": "2025-01-15T10:00:00Z"
                 },
                 "speaker_id": {
-                    "description": "SpeakerID - идентификатор докладчика",
+                    "description": "Идентификатор докладчика",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "status": {
-                    "description": "Status - статус встречи",
+                    "description": "Статус встречи",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingStatus"
@@ -2403,17 +2411,17 @@ const docTemplate = `{
                     "example": "in_progress"
                 },
                 "subject_id": {
-                    "description": "SubjectID - идентификатор темы",
+                    "description": "Идентификатор темы",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "title": {
-                    "description": "Title - название встречи",
+                    "description": "Название встречи",
                     "type": "string",
                     "example": "Обновленное название"
                 },
                 "type": {
-                    "description": "Type - тип встречи",
+                    "description": "Тип встречи",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.MeetingType"
@@ -2427,32 +2435,32 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatar": {
-                    "description": "Avatar - URL аватара",
+                    "description": "URL аватара",
                     "type": "string",
                     "example": "https://example.com/avatar.jpg"
                 },
                 "bio": {
-                    "description": "Bio - биография",
+                    "description": "Биография",
                     "type": "string",
                     "example": "Software developer"
                 },
                 "first_name": {
-                    "description": "FirstName - имя",
+                    "description": "Имя",
                     "type": "string",
                     "example": "John"
                 },
                 "language": {
-                    "description": "Language - предпочитаемый язык",
+                    "description": "Предпочитаемый язык",
                     "type": "string",
                     "example": "en"
                 },
                 "last_name": {
-                    "description": "LastName - фамилия",
+                    "description": "Фамилия",
                     "type": "string",
                     "example": "Doe"
                 },
                 "phone": {
-                    "description": "Phone - номер телефона",
+                    "description": "Номер телефона",
                     "type": "string",
                     "example": "+1234567890"
                 }
@@ -2462,12 +2470,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatar_url": {
-                    "description": "AvatarURL - URL загруженного аватара",
+                    "description": "URL загруженного аватара",
                     "type": "string",
                     "example": "https://example.com/avatars/user-123.jpg"
                 },
                 "message": {
-                    "description": "Message - статусное сообщение",
+                    "description": "Статусное сообщение",
                     "type": "string",
                     "example": "Avatar uploaded successfully"
                 }
@@ -2477,17 +2485,17 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "description": "Message - статусное сообщение",
+                    "description": "Статусное сообщение",
                     "type": "string",
                     "example": "File uploaded successfully"
                 },
                 "recording_id": {
-                    "description": "RecordingID - идентификатор созданной записи",
+                    "description": "Идентификатор созданной записи",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "upload_url": {
-                    "description": "UploadURL - URL для загрузки файла",
+                    "description": "URL для загрузки файла",
                     "type": "string",
                     "example": "https://minio:9000/recontext/uploads/550e8400-e29b-41d4-a716-446655440000.mp4"
                 }
@@ -2497,40 +2505,40 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "file_size": {
-                    "description": "FileSize - размер файла в байтах",
+                    "description": "Размер файла в байтах",
                     "type": "integer"
                 },
                 "filename": {
-                    "description": "Filename - имя файла в хранилище",
+                    "description": "Имя файла в хранилище",
                     "type": "string"
                 },
                 "group_id": {
-                    "description": "GroupID - идентификатор группы",
+                    "description": "Идентификатор группы",
                     "type": "string"
                 },
                 "id": {
-                    "description": "ID - уникальный идентификатор файла",
+                    "description": "Уникальный идентификатор файла",
                     "type": "string"
                 },
                 "metadata": {
-                    "description": "Metadata - дополнительные метаданные файла",
+                    "description": "Дополнительные метаданные файла",
                     "type": "object",
                     "additionalProperties": true
                 },
                 "mime_type": {
-                    "description": "MimeType - MIME тип файла",
+                    "description": "MIME тип файла",
                     "type": "string"
                 },
                 "original_name": {
-                    "description": "OriginalName - оригинальное имя файла",
+                    "description": "Оригинальное имя файла",
                     "type": "string"
                 },
                 "processed_at": {
-                    "description": "ProcessedAt - время завершения обработки файла",
+                    "description": "Время завершения обработки файла",
                     "type": "string"
                 },
                 "status": {
-                    "description": "Status - статус обработки файла",
+                    "description": "Статус обработки файла",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.TranscriptionStatus"
@@ -2538,19 +2546,19 @@ const docTemplate = `{
                     ]
                 },
                 "storage_path": {
-                    "description": "StoragePath - путь к файлу в хранилище",
+                    "description": "Путь к файлу в хранилище",
                     "type": "string"
                 },
                 "transcription_id": {
-                    "description": "TranscriptionID - идентификатор транскрипции (если есть)",
+                    "description": "Идентификатор транскрипции (если есть)",
                     "type": "string"
                 },
                 "uploaded_at": {
-                    "description": "UploadedAt - время загрузки файла",
+                    "description": "Время загрузки файла",
                     "type": "string"
                 },
                 "user_id": {
-                    "description": "UserID - идентификатор пользователя, загрузившего файл",
+                    "description": "Идентификатор пользователя, загрузившего файл",
                     "type": "string"
                 }
             }
@@ -2559,47 +2567,47 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatar": {
-                    "description": "Avatar - URL аватара или base64 изображение",
+                    "description": "URL аватара или base64 изображение",
                     "type": "string",
                     "example": "https://example.com/avatar.jpg"
                 },
                 "bio": {
-                    "description": "Bio - биография пользователя",
+                    "description": "Биография пользователя",
                     "type": "string",
                     "example": "Software developer"
                 },
                 "department_id": {
-                    "description": "DepartmentID - идентификатор отдела, к которому принадлежит пользователь",
+                    "description": "Идентификатор отдела, к которому принадлежит пользователь",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "email": {
-                    "description": "Email - адрес электронной почты пользователя",
+                    "description": "Адрес электронной почты пользователя",
                     "type": "string",
                     "example": "admin@recontext.online"
                 },
                 "first_name": {
-                    "description": "FirstName - имя пользователя",
+                    "description": "Имя пользователя",
                     "type": "string",
                     "example": "John"
                 },
                 "id": {
-                    "description": "ID - уникальный идентификатор пользователя",
+                    "description": "Уникальный идентификатор пользователя",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "language": {
-                    "description": "Language - предпочитаемый язык пользователя",
+                    "description": "Предпочитаемый язык пользователя",
                     "type": "string",
                     "example": "en"
                 },
                 "last_name": {
-                    "description": "LastName - фамилия пользователя",
+                    "description": "Фамилия пользователя",
                     "type": "string",
                     "example": "Doe"
                 },
                 "permissions": {
-                    "description": "Permissions - специфические разрешения пользователя",
+                    "description": "Специфические разрешения пользователя",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.UserPermissions"
@@ -2607,12 +2615,12 @@ const docTemplate = `{
                     ]
                 },
                 "phone": {
-                    "description": "Phone - номер телефона пользователя",
+                    "description": "Номер телефона пользователя",
                     "type": "string",
                     "example": "+1234567890"
                 },
                 "role": {
-                    "description": "Role - роль пользователя в системе",
+                    "description": "Роль пользователя в системе",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.UserRole"
@@ -2621,7 +2629,7 @@ const docTemplate = `{
                     "example": "admin"
                 },
                 "username": {
-                    "description": "Username - имя пользователя для входа",
+                    "description": "Имя пользователя для входа",
                     "type": "string",
                     "example": "admin"
                 }
@@ -2631,15 +2639,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "can_approve_recordings": {
-                    "description": "CanApproveRecordings - разрешение на утверждение записей",
+                    "description": "Разрешение на утверждение записей",
                     "type": "boolean"
                 },
                 "can_manage_department": {
-                    "description": "CanManageDepartment - разрешение на управление отделом",
+                    "description": "Разрешение на управление отделом",
                     "type": "boolean"
                 },
                 "can_schedule_meetings": {
-                    "description": "CanScheduleMeetings - разрешение на планирование видеовстреч",
+                    "description": "Разрешение на планирование видеовстреч",
                     "type": "boolean"
                 }
             }
@@ -2653,13 +2661,13 @@ const docTemplate = `{
                 "service"
             ],
             "x-enum-comments": {
-                "RoleService": "For service-to-service authentication"
+                "RoleService": "Роль для сервисной аутентификации (межсервисные вызовы)"
             },
             "x-enum-descriptions": [
                 "",
                 "",
                 "",
-                "For service-to-service authentication"
+                "Роль для сервисной аутентификации (межсервисные вызовы)"
             ],
             "x-enum-varnames": [
                 "RoleAdmin",
@@ -2676,12 +2684,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "code": {
-                    "description": "Code - 6-значный код подтверждения",
+                    "description": "6-значный код подтверждения",
                     "type": "string",
                     "example": "123456"
                 },
                 "token_id": {
-                    "description": "TokenID - идентификатор токена сброса для проверки",
+                    "description": "Идентификатор токена сброса для проверки",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
@@ -2691,12 +2699,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "description": "Message - дополнительная информация о проверке",
+                    "description": "Дополнительная информация о проверке",
                     "type": "string",
                     "example": "Code verified successfully"
                 },
                 "valid": {
-                    "description": "Valid - валиден ли код",
+                    "description": "Валиден ли код",
                     "type": "boolean",
                     "example": true
                 }

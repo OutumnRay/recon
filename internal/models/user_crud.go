@@ -4,98 +4,98 @@ import "github.com/google/uuid"
 
 // UpdateUserRequest представляет запрос на обновление информации о пользователе
 type UpdateUserRequest struct {
-	// Email - адрес электронной почты
+	// Адрес электронной почты
 	Email        string           `json:"email,omitempty" example:"newemail@example.com"`
-	// Password - пароль
+	// Пароль
 	Password     string           `json:"password,omitempty" example:"newpassword123"`
-	// Role - роль пользователя
+	// Роль пользователя
 	Role         UserRole         `json:"role,omitempty" example:"operator"`
-	// FirstName - имя
+	// Имя
 	FirstName    string           `json:"first_name,omitempty" example:"John"`
-	// LastName - фамилия
+	// Фамилия
 	LastName     string           `json:"last_name,omitempty" example:"Doe"`
-	// Phone - номер телефона
+	// Номер телефона
 	Phone        string           `json:"phone,omitempty" example:"+1234567890"`
-	// Bio - биография
+	// Биография
 	Bio          string           `json:"bio,omitempty" example:"Software developer"`
-	// Avatar - URL аватара
+	// URL аватара
 	Avatar       string           `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
-	// DepartmentID - идентификатор отдела
+	// Идентификатор отдела
 	DepartmentID *uuid.UUID       `json:"department_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
-	// Groups - список групп
+	// Список групп
 	Groups       []uuid.UUID      `json:"groups,omitempty"`
-	// Permissions - разрешения пользователя
+	// Разрешения пользователя
 	Permissions  *UserPermissions `json:"permissions,omitempty"`
-	// Language - предпочитаемый язык
+	// Предпочитаемый язык
 	Language     string           `json:"language,omitempty" example:"en"`
-	// IsActive - активен ли аккаунт
+	// Активен ли аккаунт
 	IsActive     *bool            `json:"is_active,omitempty" example:"true"`
 }
 
 // UpdateProfileRequest представляет запрос на обновление профиля пользователя (ограниченные поля для самостоятельного обновления)
 type UpdateProfileRequest struct {
-	// FirstName - имя
+	// Имя
 	FirstName string `json:"first_name,omitempty" example:"John"`
-	// LastName - фамилия
+	// Фамилия
 	LastName  string `json:"last_name,omitempty" example:"Doe"`
-	// Phone - номер телефона
+	// Номер телефона
 	Phone     string `json:"phone,omitempty" example:"+1234567890"`
-	// Bio - биография
+	// Биография
 	Bio       string `json:"bio,omitempty" example:"Software developer"`
-	// Avatar - URL аватара
+	// URL аватара
 	Avatar    string `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
-	// Language - предпочитаемый язык
+	// Предпочитаемый язык
 	Language  string `json:"language,omitempty" example:"en"`
 }
 
 // UploadAvatarResponse представляет ответ после загрузки аватара
 type UploadAvatarResponse struct {
-	// AvatarURL - URL загруженного аватара
+	// URL загруженного аватара
 	AvatarURL string `json:"avatar_url" example:"https://example.com/avatars/user-123.jpg"`
-	// Message - статусное сообщение
+	// Статусное сообщение
 	Message   string `json:"message" example:"Avatar uploaded successfully"`
 }
 
 // ChangePasswordRequest представляет запрос на изменение пароля
 type ChangePasswordRequest struct {
-	// OldPassword - старый пароль
+	// Старый пароль
 	OldPassword string `json:"old_password" binding:"required" example:"oldpass123"`
-	// NewPassword - новый пароль
+	// Новый пароль
 	NewPassword string `json:"new_password" binding:"required,min=8" example:"newpass123"`
 }
 
 // ListUsersRequest представляет параметры для получения списка пользователей
 type ListUsersRequest struct {
-	// Page - номер страницы
+	// Номер страницы
 	Page         int        `json:"page" form:"page" example:"1"`
-	// PageSize - размер страницы
+	// Размер страницы
 	PageSize     int        `json:"page_size" form:"page_size" example:"20"`
-	// Role - фильтр по роли
+	// Фильтр по роли
 	Role         string     `json:"role" form:"role" example:"user"`
-	// DepartmentID - фильтр по отделу
+	// Фильтр по отделу
 	DepartmentID *uuid.UUID `json:"department_id" form:"department_id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	// GroupID - фильтр по группе
+	// Фильтр по группе
 	GroupID      *uuid.UUID `json:"group_id" form:"group_id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	// IsActive - фильтр по активности
+	// Фильтр по активности
 	IsActive     *bool      `json:"is_active" form:"is_active" example:"true"`
 }
 
 // ListUsersResponse представляет постраничный список пользователей
 type ListUsersResponse struct {
-	// Items - список пользователей
+	// Список пользователей
 	Items    []UserInfo `json:"items"`
-	// Total - общее количество пользователей
+	// Общее количество пользователей
 	Total    int        `json:"total"`
-	// Offset - смещение от начала
+	// Смещение от начала
 	Offset   int        `json:"offset"`
-	// PageSize - размер страницы
+	// Размер страницы
 	PageSize int        `json:"page_size"`
 }
 
 // DeleteUserRequest представляет запрос на удаление пользователя
 type DeleteUserRequest struct {
-	// UserID - идентификатор пользователя для удаления
+	// Идентификатор пользователя для удаления
 	UserID uuid.UUID `json:"user_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
-	// Reason - причина удаления
+	// Причина удаления
 	Reason string    `json:"reason,omitempty" example:"Account requested deletion"`
 }

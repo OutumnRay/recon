@@ -10,45 +10,58 @@ type Logger struct {
 	infoLogger  *log.Logger
 	errorLogger *log.Logger
 	debugLogger *log.Logger
+	debugEnabled bool
 }
 
 // New creates a new logger instance
 func New() *Logger {
+	// Check if debug logs are enabled (default: true)
+	debugEnabled := os.Getenv("DEBUG_LOGS_ENABLED") != "false"
+
 	return &Logger{
 		infoLogger:  log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile),
 		errorLogger: log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
 		debugLogger: log.New(os.Stdout, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile),
+		debugEnabled: debugEnabled,
 	}
 }
 
-// Info logs an info message
+// Info logs an info message (controlled by DEBUG_LOGS_ENABLED)
 func (l *Logger) Info(v ...interface{}) {
-	l.infoLogger.Println(v...)
+	if l.debugEnabled {
+		l.infoLogger.Println(v...)
+	}
 }
 
-// Infof logs a formatted info message
+// Infof logs a formatted info message (controlled by DEBUG_LOGS_ENABLED)
 func (l *Logger) Infof(format string, v ...interface{}) {
-	l.infoLogger.Printf(format, v...)
+	if l.debugEnabled {
+		l.infoLogger.Printf(format, v...)
+	}
 }
 
-// Error logs an error message
+// Error logs an error message (always enabled)
 func (l *Logger) Error(v ...interface{}) {
 	l.errorLogger.Println(v...)
 }
 
-// Errorf logs a formatted error message
+// Errorf logs a formatted error message (always enabled)
 func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.errorLogger.Printf(format, v...)
 }
 
-// Debug logs a debug message
+// Debug logs a debug message (controlled by DEBUG_LOGS_ENABLED)
 func (l *Logger) Debug(v ...interface{}) {
-	l.debugLogger.Println(v...)
+	if l.debugEnabled {
+		l.debugLogger.Println(v...)
+	}
 }
 
-// Debugf logs a formatted debug message
+// Debugf logs a formatted debug message (controlled by DEBUG_LOGS_ENABLED)
 func (l *Logger) Debugf(format string, v ...interface{}) {
-	l.debugLogger.Printf(format, v...)
+	if l.debugEnabled {
+		l.debugLogger.Printf(format, v...)
+	}
 }
 
 // Fatal logs a fatal message and exits
