@@ -179,19 +179,11 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 		fmt.Printf("DEBUG: Using default LiveKit URL: %s\n", livekitURL)
 	}
 
-	// Get room ID (should be set during meeting creation)
-	fmt.Printf("DEBUG: Checking LiveKit room ID...\n")
-	var roomID string
-	if meeting.LiveKitRoomID != nil {
-		roomID = meeting.LiveKitRoomID.String()
-		fmt.Printf("DEBUG: Found LiveKit room ID: %s\n", roomID)
-	} else {
-		fmt.Printf("ERROR: Meeting %s has no LiveKit room ID assigned\n", meetingID)
-		up.respondWithError(w, http.StatusInternalServerError, "Meeting room not initialized", "")
-		return
-	}
-
-	fmt.Printf("INFO: Using LiveKit room: %s\n", roomID)
+	// Use meeting ID as room name for LiveKit
+	// This allows managing-portal to find the meeting when processing webhooks
+	fmt.Printf("DEBUG: Using meeting ID as LiveKit room name...\n")
+	roomName := meetingID
+	fmt.Printf("INFO: Using LiveKit room name: %s (meeting ID)\n", roomName)
 
 	// Get user info for participant name
 	fmt.Printf("DEBUG: Getting user info for user ID: %s\n", claims.UserID.String())
@@ -239,11 +231,11 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	at := lkauth.NewAccessToken(apiKey, apiSecret)
 	grant := &lkauth.VideoGrant{
 		RoomJoin:     true,
-		Room:         roomID,
+		Room:         roomName,
 		CanPublish:   &canPublish,
 		CanSubscribe: &canSubscribe,
 	}
-	fmt.Printf("DEBUG: Video grant created for room: %s\n", roomID)
+	fmt.Printf("DEBUG: Video grant created for room: %s\n", roomName)
 
 	metadata := fmt.Sprintf(`{"meetingId":"%s","role":"%s"}`, meetingID, participantRole)
 	fmt.Printf("DEBUG: Setting token metadata: %s\n", metadata)
@@ -263,13 +255,13 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	fmt.Printf("INFO: Successfully generated token for user %s (%s) in room %s\n", claims.UserID, participantName, roomID)
+	fmt.Printf("INFO: Successfully generated token for user %s (%s) in room %s\n", claims.UserID, participantName, roomName)
 
 	// Prepare response
 	response := GetMeetingTokenResponse{
 		Token:           token,
 		URL:             livekitURL,
-		RoomName:        roomID,
+		RoomName:        roomName,
 		ParticipantName: participantName,
 		MeetingID:       meetingID,
 		ScheduledAt:     meeting.ScheduledAt.Format(time.RFC3339),
