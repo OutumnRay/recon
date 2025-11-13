@@ -219,12 +219,6 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 					needsAudioRecord = true
 					mp.logger.Infof("Video recording enabled, automatically enabling audio recording")
 				}
-
-				// Сохраняем настройки транскрибации для этой комнаты
-				mp.setRoomSettings(room.SID, &RoomSettings{
-					NeedsTranscription: needsTranscription,
-				})
-				mp.logger.Infof("Room settings saved: NeedsTranscription=%v", needsTranscription)
 			} else {
 				mp.logger.Errorf("Failed to find meeting %s for room linking: %v", meetingID, err)
 			}
@@ -462,11 +456,23 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	mp.logger.Infof("📊 Track Summary: SID=%s | Source=%s | Type=%s | Room=%s | Participant=%s | MimeType=%s",
 		track.SID, track.Source, track.Type, roomName, participantSID, track.MimeType)
 
-	// Проверяем настройки транскрибации для комнаты
-	roomSettings := mp.getRoomSettings(track.RoomSID)
-	needsTranscription := roomSettings != nil && roomSettings.NeedsTranscription
-
-	mp.logger.Infof("📝 Room transcription settings: NeedsTranscription=%v (RoomSID=%s)", needsTranscription, track.RoomSID)
+	// Получаем настройки транскрибации напрямую из базы по room name (meeting ID)
+	var needsTranscription bool
+	if roomName != "" {
+		if meetingID, err := uuid.Parse(roomName); err == nil {
+			meeting, err := mp.meetingRepo.GetMeetingByID(meetingID)
+			if err == nil {
+				needsTranscription = meeting.NeedsTranscription
+				mp.logger.Infof("📝 Meeting %s: NeedsTranscription=%v", meetingID, needsTranscription)
+			} else {
+				mp.logger.Infof("📝 Room name '%s' is not a meeting ID or meeting not found: %v", roomName, err)
+			}
+		} else {
+			mp.logger.Infof("📝 Room name '%s' is not a valid meeting UUID", roomName)
+		}
+	} else {
+		mp.logger.Infof("📝 Room name is empty, cannot check transcription settings")
+	}
 
 	// Start track egress recording for audio tracks if transcription is enabled
 	isAudioTrack := track.Source == "MICROPHONE" || (track.Source == "SCREEN_SHARE_AUDIO") ||
