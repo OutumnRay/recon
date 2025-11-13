@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"Recontext.online/internal/models"
-	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -216,7 +215,7 @@ func (r *LiveKitRepository) ListParticipantsByRoom(roomSID string) ([]*models.Pa
 
 // CreateTrack creates a new track
 func (r *LiveKitRepository) CreateTrack(track *models.Track) error {
-	// Note: For AudioFeatures array, we need to handle it manually with pq.Array
+	// Note: For AudioFeatures, we need to handle it manually as JSON
 	// First, let's save the track using GORM
 	err := r.db.DB.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "sid"}},
@@ -227,9 +226,13 @@ func (r *LiveKitRepository) CreateTrack(track *models.Track) error {
 		return fmt.Errorf("failed to create track: %w", err)
 	}
 
-	// If AudioFeatures is not empty, update it with pq.Array
+	// If AudioFeatures is not empty, marshal to JSON and update
 	if len(track.AudioFeatures) > 0 {
-		err = r.db.DB.Model(track).Update("audio_features", pq.Array(track.AudioFeatures)).Error
+		audioFeaturesJSON, err := json.Marshal(track.AudioFeatures)
+		if err != nil {
+			return fmt.Errorf("failed to marshal audio features: %w", err)
+		}
+		err = r.db.DB.Model(track).Update("audio_features", audioFeaturesJSON).Error
 		if err != nil {
 			return fmt.Errorf("failed to update audio features: %w", err)
 		}
@@ -270,11 +273,11 @@ func (r *LiveKitRepository) GetTrackBySID(sid string) (*models.Track, error) {
 		return nil, fmt.Errorf("failed to get track: %w", err)
 	}
 
-	// Load AudioFeatures using pq.Array
+	// Unmarshal AudioFeatures from JSON
 	if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
-		err = r.db.DB.Model(track).Select("audio_features").Scan(pq.Array(&track.AudioFeatures)).Error
+		err = json.Unmarshal(track.AudioFeaturesJSON, &track.AudioFeatures)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load audio features: %w", err)
+			return nil, fmt.Errorf("failed to unmarshal audio features: %w", err)
 		}
 	}
 
@@ -290,12 +293,12 @@ func (r *LiveKitRepository) ListTracksByParticipant(participantSID string) ([]*m
 		return nil, fmt.Errorf("failed to list tracks: %w", err)
 	}
 
-	// Load AudioFeatures for each track
+	// Unmarshal AudioFeatures for each track
 	for _, track := range tracks {
 		if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
-			err = r.db.DB.Model(track).Select("audio_features").Scan(pq.Array(&track.AudioFeatures)).Error
+			err = json.Unmarshal(track.AudioFeaturesJSON, &track.AudioFeatures)
 			if err != nil {
-				return nil, fmt.Errorf("failed to load audio features: %w", err)
+				return nil, fmt.Errorf("failed to unmarshal audio features: %w", err)
 			}
 		}
 	}
@@ -312,12 +315,12 @@ func (r *LiveKitRepository) ListTracksByRoom(roomSID string) ([]*models.Track, e
 		return nil, fmt.Errorf("failed to list tracks: %w", err)
 	}
 
-	// Load AudioFeatures for each track
+	// Unmarshal AudioFeatures for each track
 	for _, track := range tracks {
 		if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
-			err = r.db.DB.Model(track).Select("audio_features").Scan(pq.Array(&track.AudioFeatures)).Error
+			err = json.Unmarshal(track.AudioFeaturesJSON, &track.AudioFeatures)
 			if err != nil {
-				return nil, fmt.Errorf("failed to load audio features: %w", err)
+				return nil, fmt.Errorf("failed to unmarshal audio features: %w", err)
 			}
 		}
 	}

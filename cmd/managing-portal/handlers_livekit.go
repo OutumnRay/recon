@@ -182,10 +182,14 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	var needsAudioRecord bool
 
 	if room.Name != "" {
+		mp.logger.Infof("Checking if room name '%s' is a meeting ID...", room.Name)
 		if meetingID, err := uuid.Parse(room.Name); err == nil {
+			mp.logger.Infof("Room name is valid UUID, looking up meeting %s", meetingID)
 			// Find meeting by ID and update its LiveKitRoomID
 			meeting, err := mp.meetingRepo.GetMeetingByID(meetingID)
 			if err == nil {
+				mp.logger.Infof("Found meeting %s: NeedsVideoRecord=%v, NeedsAudioRecord=%v", meetingID, meeting.NeedsVideoRecord, meeting.NeedsAudioRecord)
+
 				// Link meeting to the room ID (not SID - SID is a string like RM_xxx)
 				meeting.LiveKitRoomID = &room.ID
 				if err := mp.meetingRepo.UpdateMeeting(meeting); err != nil {
@@ -200,25 +204,34 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 			} else {
 				mp.logger.Errorf("Failed to find meeting %s for room linking: %v", meetingID, err)
 			}
+		} else {
+			mp.logger.Infof("Room name '%s' is not a valid UUID: %v", room.Name, err)
 		}
 	}
 
 	// Start room composite egress recording if enabled in meeting settings
+	mp.logger.Infof("Checking egress requirements: needsVideoRecord=%v, needsAudioRecord=%v", needsVideoRecord, needsAudioRecord)
+
 	if room.Name != "" && (needsVideoRecord || needsAudioRecord) {
 		// If video is not needed, record audio only
 		audioOnly := !needsVideoRecord && needsAudioRecord
 
+		mp.logger.Infof("Starting room composite egress for room '%s' (audioOnly=%v)...", room.Name, audioOnly)
 		egressID, err := mp.startRoomCompositeEgress(room.Name, audioOnly)
 		if err != nil {
 			mp.logger.Errorf("Failed to start room composite egress: %v", err)
 		} else if egressID != "" {
-			mp.logger.Infof("Started room composite egress (audioOnly=%v): %s", audioOnly, egressID)
+			mp.logger.Infof("✅ Started room composite egress (audioOnly=%v): %s", audioOnly, egressID)
 			// Update room with egress ID
 			room.EgressID = egressID
 			if err := mp.liveKitRepo.CreateRoom(room); err != nil {
 				mp.logger.Errorf("Failed to update room with egress ID: %v", err)
 			}
+		} else {
+			mp.logger.Infof("❌ Egress not started (disabled in config or returned empty ID)")
 		}
+	} else {
+		mp.logger.Infof("❌ Egress not started: room.Name='%s', needsVideoRecord=%v, needsAudioRecord=%v", room.Name, needsVideoRecord, needsAudioRecord)
 	}
 
 	return nil
@@ -374,18 +387,25 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	}
 
 	// Start track egress recording for MICROPHONE audio tracks
+	mp.logger.Infof("Track published: SID=%s, Source=%s, Type=%s, RoomName=%s", track.SID, track.Source, track.Type, roomName)
+
 	if track.Source == "MICROPHONE" && roomName != "" && track.SID != "" {
+		mp.logger.Infof("Starting track composite egress for MICROPHONE track %s in room '%s'...", track.SID, roomName)
 		egressID, err := mp.startTrackCompositeEgress(roomName, track.SID)
 		if err != nil {
 			mp.logger.Errorf("Failed to start track composite egress: %v", err)
 		} else if egressID != "" {
-			mp.logger.Infof("Started track composite egress: %s for track %s", egressID, track.SID)
+			mp.logger.Infof("✅ Started track composite egress: %s for track %s", egressID, track.SID)
 			// Update track with egress ID
 			track.EgressID = egressID
 			if err := mp.liveKitRepo.CreateTrack(track); err != nil {
 				mp.logger.Errorf("Failed to update track with egress ID: %v", err)
 			}
+		} else {
+			mp.logger.Infof("❌ Track egress not started (disabled in config or returned empty ID)")
 		}
+	} else {
+		mp.logger.Infof("❌ Track egress not started: Source=%s, RoomName=%s, TrackSID=%s", track.Source, roomName, track.SID)
 	}
 
 	return nil
