@@ -34,7 +34,7 @@ services:
       # LiveKit Egress (Recording) Configuration
       - LIVEKIT_EGRESS_ENABLED=true
       - LIVEKIT_EGRESS_S3_ENDPOINT=https://api.storage.recontext.online
-      - LIVEKIT_EGRESS_S3_BUCKET=jitsi-recordings
+      - LIVEKIT_EGRESS_S3_BUCKET=recontext
       - LIVEKIT_EGRESS_S3_ACCESS_KEY=minioadmin
       - LIVEKIT_EGRESS_S3_SECRET=minioadmin
       - LIVEKIT_EGRESS_S3_REGION=
@@ -87,7 +87,7 @@ services:
       # LiveKit Egress (Recording) Configuration
       - LIVEKIT_EGRESS_ENABLED=true
       - LIVEKIT_EGRESS_S3_ENDPOINT=https://api.storage.recontext.online
-      - LIVEKIT_EGRESS_S3_BUCKET=jitsi-recordings
+      - LIVEKIT_EGRESS_S3_BUCKET=recontext
       - LIVEKIT_EGRESS_S3_ACCESS_KEY=minioadmin
       - LIVEKIT_EGRESS_S3_SECRET=minioadmin
       - LIVEKIT_EGRESS_S3_REGION=

@@ -26,6 +26,14 @@ services:
       - LIVEKIT_URL=wss://video.recontext.online
       - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
       - LIVEKIT_API_SECRET=2Q66dFk7HWpxTuTneMT4fQlsxeIlmkn47ApjnJiSukiA
+      # LiveKit Egress (Recording) Configuration
+      - LIVEKIT_EGRESS_ENABLED=true
+      - LIVEKIT_EGRESS_S3_ENDPOINT=https://api.storage.recontext.online
+      - LIVEKIT_EGRESS_S3_BUCKET=recontext
+      - LIVEKIT_EGRESS_S3_ACCESS_KEY=minioadmin
+      - LIVEKIT_EGRESS_S3_SECRET=minioadmin
+      - LIVEKIT_EGRESS_S3_REGION=
+      - LIVEKIT_EGRESS_RECORD_TRACKS=true
       # SMTP Configuration for email sending
       - SMTP_HOST=smtp.timeweb.ru
       - SMTP_PORT=465

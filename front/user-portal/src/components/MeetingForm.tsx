@@ -77,12 +77,22 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   const [needsAudioRecord, setNeedsAudioRecord] = useState(
     meeting?.needs_audio_record || false
   );
+  const [needsTranscription, setNeedsTranscription] = useState(
+    meeting?.needs_transcription || false
+  );
   const [forceEndAtDuration, setForceEndAtDuration] = useState(
     meeting?.force_end_at_duration || false
   );
   const [additionalNotes, setAdditionalNotes] = useState(
     meeting?.additional_notes || ''
   );
+
+  // Auto-enable audio recording when video is enabled
+  useEffect(() => {
+    if (needsVideoRecord && !needsAudioRecord) {
+      setNeedsAudioRecord(true);
+    }
+  }, [needsVideoRecord]);
 
   // Participants and departments
   const [speakerId, setSpeakerId] = useState('');
@@ -236,6 +246,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           subject_id: subjectId,
           needs_video_record: needsVideoRecord,
           needs_audio_record: needsAudioRecord,
+          needs_transcription: needsTranscription,
           force_end_at_duration: forceEndAtDuration,
           additional_notes: additionalNotes || undefined,
           speaker_id: type === 'presentation' ? speakerId : undefined,
@@ -256,6 +267,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           subject_id: subjectId,
           needs_video_record: needsVideoRecord,
           needs_audio_record: needsAudioRecord,
+          needs_transcription: needsTranscription,
           force_end_at_duration: forceEndAtDuration,
           additional_notes: additionalNotes || undefined,
           speaker_id: type === 'presentation' ? speakerId : undefined,
@@ -480,11 +492,31 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 type="checkbox"
                 checked={needsAudioRecord}
                 onChange={(e) => setNeedsAudioRecord(e.target.checked)}
+                disabled={needsVideoRecord}
               />
               <span className="checkbox-label">
                 <LuMic className="checkbox-icon" /> {t('meetings.form.audioRecording')}
+                {needsVideoRecord && <span className="text-muted"> ({t('meetings.form.autoEnabled')})</span>}
               </span>
             </label>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={needsTranscription}
+                onChange={(e) => setNeedsTranscription(e.target.checked)}
+              />
+              <span className="checkbox-label">
+                <LuMic className="checkbox-icon" /> {t('meetings.form.transcription')}
+              </span>
+            </label>
+            {needsTranscription && (
+              <p className="form-help-text">
+                {t('meetings.form.transcriptionHelp')}
+              </p>
+            )}
           </div>
 
           <div className="form-group">

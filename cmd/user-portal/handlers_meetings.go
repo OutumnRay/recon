@@ -94,6 +94,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		Status:             models.MeetingStatusScheduled,
 		NeedsVideoRecord:   req.NeedsVideoRecord,
 		NeedsAudioRecord:   req.NeedsAudioRecord,
+		NeedsTranscription: req.NeedsTranscription,
 		AdditionalNotes:    req.AdditionalNotes,
 		ForceEndAtDuration: req.ForceEndAtDuration,
 		LiveKitRoomID:      nil, // Will be set below
@@ -398,6 +399,9 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	}
 	if req.NeedsAudioRecord != nil {
 		meeting.NeedsAudioRecord = *req.NeedsAudioRecord
+	}
+	if req.NeedsTranscription != nil {
+		meeting.NeedsTranscription = *req.NeedsTranscription
 	}
 	if req.AdditionalNotes != nil {
 		meeting.AdditionalNotes = *req.AdditionalNotes

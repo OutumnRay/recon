@@ -29,6 +29,7 @@ export interface Meeting {
   status: MeetingStatus;
   needs_video_record: boolean;
   needs_audio_record: boolean;
+  needs_transcription: boolean;
   additional_notes: string;
   force_end_at_duration: boolean;
   livekit_room_id?: string;
@@ -89,6 +90,7 @@ export interface MeetingWithDetails {
   status: MeetingStatus;
   needs_video_record: boolean;
   needs_audio_record: boolean;
+  needs_transcription: boolean;
   additional_notes: string;
   force_end_at_duration: boolean;
   livekit_room_id?: string;
@@ -111,6 +113,7 @@ export interface CreateMeetingRequest {
   subject_id: string;
   needs_video_record: boolean;
   needs_audio_record: boolean;
+  needs_transcription: boolean;
   additional_notes?: string;
   force_end_at_duration: boolean;
   speaker_id?: string; // For presentations
@@ -128,6 +131,7 @@ export interface UpdateMeetingRequest {
   status?: MeetingStatus;
   needs_video_record?: boolean;
   needs_audio_record?: boolean;
+  needs_transcription?: boolean;
   additional_notes?: string;
   force_end_at_duration?: boolean;
   speaker_id?: string;
