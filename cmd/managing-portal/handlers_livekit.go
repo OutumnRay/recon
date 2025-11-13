@@ -184,23 +184,22 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 		}
 	}
 
-	// Save room to database
-	mp.logger.Infof("💾 Saving room to database...")
-	if err := mp.liveKitRepo.CreateRoom(room); err != nil {
-		mp.logger.Errorf("❌ Failed to save room to database: %v", err)
-		return err
-	}
-	mp.logger.Infof("✅ Room saved successfully (DB ID: %s, SID: %s)", room.ID, room.SID)
-
-	// Link room to meeting if room.Name is a valid UUID (meeting ID)
+	// Link room to meeting if room.Name is a valid UUID (meeting ID) BEFORE saving to database
 	var needsVideoRecord bool
 	var needsAudioRecord bool
 	var needsTranscription bool
+	var meetingUUID *uuid.UUID
 
 	if room.Name != "" {
 		mp.logger.Infof("Checking if room name '%s' is a meeting ID...", room.Name)
 		if meetingID, err := uuid.Parse(room.Name); err == nil {
 			mp.logger.Infof("Room name is valid UUID, looking up meeting %s", meetingID)
+			meetingUUID = &meetingID
+
+			// Set MeetingID in room before saving
+			room.MeetingID = meetingUUID
+			mp.logger.Infof("✅ Set room.MeetingID to %s", meetingID)
+
 			// Find meeting by ID and update its LiveKitRoomID
 			meeting, err := mp.meetingRepo.GetMeetingByID(meetingID)
 			if err == nil {
@@ -208,14 +207,7 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 					meetingID, meeting.NeedsVideoRecord, meeting.NeedsAudioRecord, meeting.NeedsTranscription)
 
 				// Link meeting to the room ID (not SID - SID is a string like RM_xxx)
-				meeting.LiveKitRoomID = &room.ID
-				if err := mp.meetingRepo.UpdateMeeting(meeting); err != nil {
-					mp.logger.Errorf("Failed to link meeting %s to room %s (SID: %s): %v", meetingID, room.ID, room.SID, err)
-				} else {
-					mp.logger.Infof("Successfully linked meeting %s to LiveKit room %s (SID: %s)", meetingID, room.ID, room.SID)
-				}
-
-				// Get recording settings from meeting
+				// We'll update this after saving the room
 				needsVideoRecord = meeting.NeedsVideoRecord
 				needsAudioRecord = meeting.NeedsAudioRecord
 				needsTranscription = meeting.NeedsTranscription
@@ -254,6 +246,27 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 		}
 	}
 
+	// Save room to database with MeetingID set
+	mp.logger.Infof("💾 Saving room to database (MeetingID: %v)...", meetingUUID)
+	if err := mp.liveKitRepo.CreateRoom(room); err != nil {
+		mp.logger.Errorf("❌ Failed to save room to database: %v", err)
+		return err
+	}
+	mp.logger.Infof("✅ Room saved successfully (DB ID: %s, SID: %s, MeetingID: %v)", room.ID, room.SID, meetingUUID)
+
+	// Now link the meeting to the room ID
+	if meetingUUID != nil {
+		meeting, err := mp.meetingRepo.GetMeetingByID(*meetingUUID)
+		if err == nil {
+			meeting.LiveKitRoomID = &room.ID
+			if err := mp.meetingRepo.UpdateMeeting(meeting); err != nil {
+				mp.logger.Errorf("Failed to link meeting %s to room %s (SID: %s): %v", meetingUUID, room.ID, room.SID, err)
+			} else {
+				mp.logger.Infof("Successfully linked meeting %s to LiveKit room %s (SID: %s)", meetingUUID, room.ID, room.SID)
+			}
+		}
+	}
+
 	// Start room composite egress recording if enabled in meeting settings
 	mp.logger.Infof("📹 Checking room egress requirements...")
 	mp.logger.Infof("  • Video Recording: %v", needsVideoRecord)
@@ -267,13 +280,8 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 
 		mp.logger.Infof("🚀 Starting room composite egress for room '%s' (audioOnly=%v) asynchronously...", room.Name, audioOnly)
 
-		// Parse meeting ID from room name
-		var meetingUUID *uuid.UUID
-		if parsedMeetingID, err := uuid.Parse(room.Name); err == nil {
-			meetingUUID = &parsedMeetingID
-		}
-
 		// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
+		// meetingUUID is already set above
 		go func(roomName string, audioOnly bool, roomSID string, meetingID *uuid.UUID) {
 			egressID, err := mp.startRoomCompositeEgress(roomName, audioOnly)
 			if err != nil {
@@ -787,6 +795,36 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 	if err := mp.liveKitRepo.FinishRoom(roomSID); err != nil {
 		mp.logger.Errorf("❌ Failed to finish room: %v", err)
 		return err
+	}
+
+	// Get the room to find the meeting ID
+	mp.logger.Infof("📋 Looking up room to find associated meeting...")
+	var dbRoom models.Room
+	if err := mp.db.DB.Where("sid = ?", roomSID).First(&dbRoom).Error; err != nil {
+		mp.logger.Errorf("❌ Failed to find room by SID: %v", err)
+	} else if dbRoom.MeetingID != nil {
+		mp.logger.Infof("📅 Room is associated with meeting: %s", *dbRoom.MeetingID)
+
+		// Update meeting status and recording flags
+		meeting, err := mp.meetingRepo.GetMeetingByID(*dbRoom.MeetingID)
+		if err != nil {
+			mp.logger.Errorf("❌ Failed to get meeting %s: %v", *dbRoom.MeetingID, err)
+		} else {
+			mp.logger.Infof("🔄 Updating meeting status to completed and disabling recording flags...")
+
+			// Set meeting as completed
+			meeting.Status = "completed"
+			meeting.IsRecording = false
+			meeting.IsTranscribing = false
+
+			if err := mp.meetingRepo.UpdateMeeting(meeting); err != nil {
+				mp.logger.Errorf("❌ Failed to update meeting status: %v", err)
+			} else {
+				mp.logger.Infof("✅ Meeting %s marked as completed (is_recording=false, is_transcribing=false)", *dbRoom.MeetingID)
+			}
+		}
+	} else {
+		mp.logger.Infof("ℹ️ Room is not associated with any meeting")
 	}
 
 	mp.logger.Infof("✅ room_finished event processed successfully")

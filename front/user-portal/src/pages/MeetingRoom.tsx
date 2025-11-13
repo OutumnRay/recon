@@ -695,10 +695,15 @@ export default function MeetingRoom() {
     });
   }, [volume]);
 
-  const confirmLeave = () => {
-    room.disconnect();
+  const confirmLeave = useCallback(() => {
+    console.log('[Leave] Disconnecting from room and navigating to meetings...');
+    try {
+      room.disconnect();
+    } catch (err) {
+      console.error('[Leave] Error disconnecting:', err);
+    }
     navigate('/dashboard/meetings');
-  };
+  }, [room, navigate]);
 
   // Aggressive track subscription - force subscribe to all tracks
   const forceSubscribeToAllTracks = useCallback(async () => {
@@ -1032,11 +1037,6 @@ export default function MeetingRoom() {
     <div className={`meeting-room-page ${isFullscreen ? 'fullscreen' : ''}`} style={{ cursor: showControls ? 'default' : 'none' }}>
       {showControls && (
         <div className="meeting-room-header" style={{
-          position: isFullscreen ? 'fixed' : 'relative',
-          top: isFullscreen ? '0' : 'auto',
-          left: isFullscreen ? '0' : 'auto',
-          right: isFullscreen ? '0' : 'auto',
-          zIndex: isFullscreen ? 1000 : 'auto',
           transition: 'opacity 0.3s ease',
         }}>
           <div className="meeting-room-header-info">
@@ -1142,11 +1142,6 @@ export default function MeetingRoom() {
               <div className="local-preview-video" ref={localPreviewRef} />
             </div>
             {showControls && <div className="stage-controls" style={{
-              position: isFullscreen ? 'fixed' : 'relative',
-              bottom: isFullscreen ? '20px' : 'auto',
-              left: isFullscreen ? '50%' : 'auto',
-              transform: isFullscreen ? 'translateX(-50%)' : 'none',
-              zIndex: isFullscreen ? 1000 : 'auto',
               transition: 'opacity 0.3s ease',
             }}>
               <button
@@ -1208,12 +1203,7 @@ export default function MeetingRoom() {
         {showControls && <aside
           className={`participant-sidebar ${isParticipantsCollapsed ? 'collapsed' : ''}`}
           style={{
-            position: isFullscreen ? 'fixed' : 'relative',
-            right: isFullscreen ? '0' : 'auto',
-            top: isFullscreen ? '80px' : 'auto',
-            bottom: isFullscreen ? '80px' : 'auto',
-            zIndex: isFullscreen ? 1000 : 'auto',
-            transition: 'opacity 0.3s ease',
+            transition: 'transform 0.3s ease, opacity 0.3s ease',
           }}
           onTouchStart={isMobile ? onTouchStart : undefined}
           onTouchMove={isMobile ? onTouchMove : undefined}
