@@ -66,85 +66,85 @@ type EnabledCodec struct {
 // Participant представляет участника комнаты LiveKit
 type Participant struct {
 	// Внутренний уникальный идентификатор
-	ID              uuid.UUID       `json:"id" db:"id"`
+	ID              uuid.UUID       `gorm:"type:uuid;default:gen_random_uuid()" json:"id" db:"id"`
 	// Идентификатор сессии участника LiveKit
-	SID             string          `json:"sid" db:"sid"`
+	SID             string          `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid" db:"sid"`
 	// Идентификатор сессии комнаты
-	RoomSID         string          `json:"-" db:"room_sid"`
+	RoomSID         string          `gorm:"column:room_sid;type:varchar(255);not null" json:"-" db:"room_sid"`
 	// Идентификатор пользователя
-	Identity        string          `json:"identity" db:"identity"`
+	Identity        string          `gorm:"column:identity;type:varchar(255);not null" json:"identity" db:"identity"`
 	// Отображаемое имя участника
-	Name            string          `json:"name" db:"name"`
+	Name            string          `gorm:"column:name;type:varchar(255)" json:"name" db:"name"`
 	// Состояние участника (ACTIVE, DISCONNECTED)
-	State           string          `json:"state" db:"state"`
+	State           string          `gorm:"column:state;type:varchar(50);not null" json:"state" db:"state"`
 	// Время присоединения (строка)
-	JoinedAt        string          `json:"joinedAt" db:"joined_at"`
+	JoinedAt        string          `gorm:"column:joined_at;type:varchar(50)" json:"joinedAt" db:"joined_at"`
 	// Время присоединения в миллисекундах (строка)
-	JoinedAtMs      string          `json:"joinedAtMs" db:"joined_at_ms"`
+	JoinedAtMs      string          `gorm:"column:joined_at_ms;type:varchar(50)" json:"joinedAtMs" db:"joined_at_ms"`
 	// Версия протокола
-	Version         int             `json:"version" db:"version"`
+	Version         int             `gorm:"column:version;default:0" json:"version" db:"version"`
 	// Разрешения участника (необработанный JSON)
-	Permission      json.RawMessage `json:"permission" db:"permission"`
+	Permission      json.RawMessage `gorm:"column:permission;type:jsonb" json:"permission" db:"permission"`
 	// Является ли участник издателем
-	IsPublisher     bool            `json:"isPublisher,omitempty" db:"is_publisher"`
+	IsPublisher     bool            `gorm:"column:is_publisher;default:false" json:"isPublisher,omitempty" db:"is_publisher"`
 	// Причина отключения
-	DisconnectReason string         `json:"disconnectReason,omitempty" db:"disconnect_reason"`
+	DisconnectReason string         `gorm:"column:disconnect_reason;type:text" json:"disconnectReason,omitempty" db:"disconnect_reason"`
 	// Время выхода из комнаты
-	LeftAt          *time.Time      `json:"leftAt,omitempty" db:"left_at"`
+	LeftAt          *time.Time      `gorm:"column:left_at" json:"leftAt,omitempty" db:"left_at"`
 	// Время создания записи в БД
-	CreatedAtDB     time.Time       `json:"-" db:"created_at"`
+	CreatedAtDB     time.Time       `gorm:"column:created_at_db;autoCreateTime" json:"-" db:"created_at"`
 	// Время последнего обновления
-	UpdatedAt       time.Time       `json:"-" db:"updated_at"`
+	UpdatedAt       time.Time       `gorm:"column:updated_at;autoUpdateTime" json:"-" db:"updated_at"`
 }
 
 // Track представляет аудио или видео дорожку
 type Track struct {
 	// Внутренний уникальный идентификатор
-	ID               uuid.UUID       `json:"id" db:"id"`
+	ID               uuid.UUID       `gorm:"type:uuid;default:gen_random_uuid()" json:"id" db:"id"`
 	// Идентификатор сессии дорожки LiveKit
-	SID              string          `json:"sid" db:"sid"`
+	SID              string          `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid" db:"sid"`
 	// Идентификатор сессии участника
-	ParticipantSID   string          `json:"-" db:"participant_sid"`
+	ParticipantSID   string          `gorm:"column:participant_sid;type:varchar(255);not null" json:"-" db:"participant_sid"`
 	// Идентификатор сессии комнаты
-	RoomSID          string          `json:"-" db:"room_sid"`
+	RoomSID          string          `gorm:"column:room_sid;type:varchar(255);not null" json:"-" db:"room_sid"`
 	// Тип дорожки (VIDEO, AUDIO)
-	Type             string          `json:"type,omitempty" db:"type"`
+	Type             string          `gorm:"column:type;type:varchar(50)" json:"type,omitempty" db:"type"`
 	// Источник дорожки (MICROPHONE, CAMERA)
-	Source           string          `json:"source" db:"source"`
+	Source           string          `gorm:"column:source;type:varchar(50);not null" json:"source" db:"source"`
 	// MIME тип дорожки
-	MimeType         string          `json:"mimeType" db:"mime_type"`
+	MimeType         string          `gorm:"column:mime_type;type:varchar(100)" json:"mimeType" db:"mime_type"`
 	// Идентификатор медиа
-	Mid              string          `json:"mid" db:"mid"`
+	Mid              string          `gorm:"column:mid;type:varchar(255)" json:"mid" db:"mid"`
 	// Ширина видео (для видео дорожек)
-	Width            int             `json:"width,omitempty" db:"width"`
+	Width            int             `gorm:"column:width;default:0" json:"width,omitempty" db:"width"`
 	// Высота видео (для видео дорожек)
-	Height           int             `json:"height,omitempty" db:"height"`
+	Height           int             `gorm:"column:height;default:0" json:"height,omitempty" db:"height"`
 	// Используется ли simulcast
-	Simulcast        bool            `json:"simulcast,omitempty" db:"simulcast"`
+	Simulcast        bool            `gorm:"column:simulcast;default:false" json:"simulcast,omitempty" db:"simulcast"`
 	// Слои simulcast (необработанный JSON)
-	Layers           json.RawMessage `json:"layers,omitempty" db:"layers"`
+	Layers           json.RawMessage `gorm:"column:layers;type:jsonb" json:"layers,omitempty" db:"layers"`
 	// Используемые кодеки (необработанный JSON)
-	Codecs           json.RawMessage `json:"codecs,omitempty" db:"codecs"`
+	Codecs           json.RawMessage `gorm:"column:codecs;type:jsonb" json:"codecs,omitempty" db:"codecs"`
 	// Идентификатор потока
-	Stream           string          `json:"stream,omitempty" db:"stream"`
+	Stream           string          `gorm:"column:stream;type:varchar(255)" json:"stream,omitempty" db:"stream"`
 	// Версия (необработанный JSON)
-	Version          json.RawMessage `json:"version,omitempty" db:"version"`
+	Version          json.RawMessage `gorm:"column:version;type:jsonb" json:"version,omitempty" db:"version"`
 	// Аудио функции
-	AudioFeatures    []string        `json:"audioFeatures,omitempty" db:"-"`
+	AudioFeatures    []string        `gorm:"-" json:"audioFeatures,omitempty" db:"-"`
 	// Аудио функции в формате JSON (для БД)
-	AudioFeaturesJSON string         `json:"-" db:"audio_features"`
+	AudioFeaturesJSON string         `gorm:"column:audio_features;type:jsonb" json:"-" db:"audio_features"`
 	// Политика резервного кодека
-	BackupCodecPolicy string         `json:"backupCodecPolicy,omitempty" db:"backup_codec_policy"`
+	BackupCodecPolicy string         `gorm:"column:backup_codec_policy;type:varchar(100)" json:"backupCodecPolicy,omitempty" db:"backup_codec_policy"`
 	// Статус дорожки (published, unpublished)
-	Status           string          `json:"status" db:"status"`
+	Status           string          `gorm:"column:status;type:varchar(50);not null" json:"status" db:"status"`
 	// Время публикации
-	PublishedAt      time.Time       `json:"publishedAt" db:"published_at"`
+	PublishedAt      time.Time       `gorm:"column:published_at" json:"publishedAt" db:"published_at"`
 	// Время отмены публикации
-	UnpublishedAt    *time.Time      `json:"unpublishedAt,omitempty" db:"unpublished_at"`
+	UnpublishedAt    *time.Time      `gorm:"column:unpublished_at" json:"unpublishedAt,omitempty" db:"unpublished_at"`
 	// Время создания записи в БД
-	CreatedAtDB      time.Time       `json:"-" db:"created_at"`
+	CreatedAtDB      time.Time       `gorm:"column:created_at_db;autoCreateTime" json:"-" db:"created_at"`
 	// Время последнего обновления
-	UpdatedAt        time.Time       `json:"-" db:"updated_at"`
+	UpdatedAt        time.Time       `gorm:"column:updated_at;autoUpdateTime" json:"-" db:"updated_at"`
 }
 
 // WebhookEventLog представляет лог всех полученных событий webhook

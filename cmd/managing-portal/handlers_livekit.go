@@ -84,11 +84,11 @@ func (mp *ManagingPortal) liveKitWebhookHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// Save event log
-	if err := mp.liveKitRepo.LogWebhookEvent(eventLog); err != nil {
-		mp.logger.Errorf("Failed to log webhook event: %s", err.Error())
-		// Continue processing even if logging fails
-	}
+	// Save event log (temporarily disabled)
+	// if err := mp.liveKitRepo.LogWebhookEvent(eventLog); err != nil {
+	// 	mp.logger.Errorf("Failed to log webhook event: %s", err.Error())
+	// 	// Continue processing even if logging fails
+	// }
 
 	// Process event based on type
 	switch webhookReq.Event {
