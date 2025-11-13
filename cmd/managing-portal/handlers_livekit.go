@@ -103,6 +103,12 @@ func (mp *ManagingPortal) liveKitWebhookHandler(w http.ResponseWriter, r *http.R
 		err = mp.handleParticipantLeft(webhookReq)
 	case "room_finished":
 		err = mp.handleRoomFinished(webhookReq)
+	case "egress_started":
+		err = mp.handleEgressStarted(webhookReq)
+	case "egress_updated":
+		err = mp.handleEgressUpdated(webhookReq)
+	case "egress_ended":
+		err = mp.handleEgressEnded(webhookReq)
 	default:
 		mp.logger.Errorf("Unknown webhook event type: %s", webhookReq.Event)
 		mp.respondWithError(w, http.StatusBadRequest, "Unknown event type", "")
@@ -718,6 +724,91 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 	}
 
 	mp.logger.Infof("✅ room_finished event processed successfully")
+	return nil
+}
+
+// handleEgressStarted обрабатывает событие начала записи egress
+func (mp *ManagingPortal) handleEgressStarted(req models.WebhookRequest) error {
+	mp.logger.Infof("🎬 Processing egress_started event...")
+
+	egressInfo, ok := req.EgressInfo.(map[string]interface{})
+	if !ok {
+		mp.logger.Errorf("❌ Invalid egress_info in webhook")
+		return fmt.Errorf("invalid egress_info")
+	}
+
+	egressID, _ := egressInfo["egress_id"].(string)
+	roomName, _ := egressInfo["room_name"].(string)
+	status, _ := egressInfo["status"].(string)
+
+	mp.logger.Infof("📌 Egress ID: %s", egressID)
+	mp.logger.Infof("📌 Room Name: %s", roomName)
+	mp.logger.Infof("📌 Status: %s", status)
+
+	// Update egress status in database
+	if egressID != "" {
+		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, "active"); err != nil {
+			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
+		}
+	}
+
+	mp.logger.Infof("✅ egress_started event processed successfully")
+	return nil
+}
+
+// handleEgressUpdated обрабатывает событие обновления статуса egress
+func (mp *ManagingPortal) handleEgressUpdated(req models.WebhookRequest) error {
+	mp.logger.Infof("📊 Processing egress_updated event...")
+
+	egressInfo, ok := req.EgressInfo.(map[string]interface{})
+	if !ok {
+		mp.logger.Errorf("❌ Invalid egress_info in webhook")
+		return fmt.Errorf("invalid egress_info")
+	}
+
+	egressID, _ := egressInfo["egress_id"].(string)
+	status, _ := egressInfo["status"].(string)
+
+	mp.logger.Infof("📌 Egress ID: %s", egressID)
+	mp.logger.Infof("📌 Status: %s", status)
+
+	// Update egress status in database
+	if egressID != "" && status != "" {
+		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, status); err != nil {
+			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
+		}
+	}
+
+	mp.logger.Infof("✅ egress_updated event processed successfully")
+	return nil
+}
+
+// handleEgressEnded обрабатывает событие завершения записи egress
+func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
+	mp.logger.Infof("🏁 Processing egress_ended event...")
+
+	egressInfo, ok := req.EgressInfo.(map[string]interface{})
+	if !ok {
+		mp.logger.Errorf("❌ Invalid egress_info in webhook")
+		return fmt.Errorf("invalid egress_info")
+	}
+
+	egressID, _ := egressInfo["egress_id"].(string)
+	roomName, _ := egressInfo["room_name"].(string)
+	status, _ := egressInfo["status"].(string)
+
+	mp.logger.Infof("📌 Egress ID: %s", egressID)
+	mp.logger.Infof("📌 Room Name: %s", roomName)
+	mp.logger.Infof("📌 Status: %s", status)
+
+	// Update egress status to completed in database
+	if egressID != "" {
+		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, "completed"); err != nil {
+			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
+		}
+	}
+
+	mp.logger.Infof("✅ egress_ended event processed successfully")
 	return nil
 }
 

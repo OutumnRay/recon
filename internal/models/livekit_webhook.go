@@ -181,6 +181,8 @@ type WebhookRequest struct {
 	Participant map[string]interface{} `json:"participant,omitempty"`
 	// Данные дорожки
 	Track       map[string]interface{} `json:"track,omitempty"`
+	// Данные egress (для событий egress_started, egress_updated, egress_ended)
+	EgressInfo  interface{}            `json:"egressInfo,omitempty"`
 	// Идентификатор события
 	ID          string                 `json:"id"`
 	// Время создания события

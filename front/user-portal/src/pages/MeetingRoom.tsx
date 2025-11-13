@@ -890,6 +890,8 @@ export default function MeetingRoom() {
     }
   };
 
+  // Reserved for future use - manual start recording
+  // @ts-ignore - unused variable kept for future use
   const handleStartRecording = async () => {
     if (!meetingId) return;
     try {
@@ -914,6 +916,8 @@ export default function MeetingRoom() {
     }
   };
 
+  // Reserved for future use - manual start transcription
+  // @ts-ignore - unused variable kept for future use
   const handleStartTranscription = async () => {
     if (!meetingId) return;
     try {
@@ -992,36 +996,42 @@ export default function MeetingRoom() {
           </div>
           <div className="meeting-room-header-actions">
             <div className="recording-controls">
-              <button
-                onClick={isRecording ? handleStopRecording : handleStartRecording}
-                className={`icon-circle-button ${isRecording ? 'recording' : ''}`}
-                aria-label={isRecording ? 'Stop Recording' : 'Start Recording'}
-                title={isRecording ? 'Stop Recording' : 'Start Recording'}
-                disabled={!isConnected}
-                style={{ color: isRecording ? '#ef4444' : undefined }}
-              >
-                <LuCircle />
-              </button>
+              {/* Recording control - shows when recording is active */}
               {isRecording && (
-                <span className="recording-indicator" style={{ color: '#ef4444', fontSize: '12px', fontWeight: 'bold' }}>
-                  REC
-                </span>
+                <>
+                  <button
+                    onClick={handleStopRecording}
+                    className="icon-circle-button recording"
+                    aria-label="Stop Recording"
+                    title="Click to stop recording"
+                    disabled={!isConnected}
+                    style={{ color: '#ef4444' }}
+                  >
+                    <LuCircle />
+                  </button>
+                  <span className="recording-indicator" style={{ color: '#ef4444', fontSize: '12px', fontWeight: 'bold' }}>
+                    REC
+                  </span>
+                </>
               )}
 
-              <button
-                onClick={isTranscribing ? handleStopTranscription : handleStartTranscription}
-                className={`icon-circle-button ${isTranscribing ? 'transcribing' : ''}`}
-                aria-label={isTranscribing ? 'Stop Transcription' : 'Start Transcription'}
-                title={isTranscribing ? 'Stop Transcription' : 'Start Transcription'}
-                disabled={!isConnected}
-                style={{ color: isTranscribing ? '#3b82f6' : undefined }}
-              >
-                <LuFileText />
-              </button>
+              {/* Transcription control - shows when transcription is active */}
               {isTranscribing && (
-                <span className="transcription-indicator" style={{ color: '#3b82f6', fontSize: '12px', fontWeight: 'bold' }}>
-                  TXT
-                </span>
+                <>
+                  <button
+                    onClick={handleStopTranscription}
+                    className="icon-circle-button transcribing"
+                    aria-label="Stop Transcription"
+                    title="Click to stop transcription"
+                    disabled={!isConnected}
+                    style={{ color: '#3b82f6' }}
+                  >
+                    <LuFileText />
+                  </button>
+                  <span className="transcription-indicator" style={{ color: '#3b82f6', fontSize: '12px', fontWeight: 'bold' }}>
+                    TXT
+                  </span>
+                </>
               )}
             </div>
 
