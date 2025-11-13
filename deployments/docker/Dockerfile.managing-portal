@@ -5,7 +5,8 @@ WORKDIR /app/frontend
 
 # Copy frontend package files
 COPY front/managing-portal/package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 # Copy frontend source
 COPY front/managing-portal/ ./
@@ -20,7 +21,8 @@ WORKDIR /app
 
 # Copy go mod files
 COPY go.mod go.sum* ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # Copy source code
 COPY . .

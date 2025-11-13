@@ -57,11 +57,14 @@ func (mp *ManagingPortal) liveKitWebhookHandler(w http.ResponseWriter, r *http.R
 
 	// Log the raw event to database
 	eventLog := &models.WebhookEventLog{
-		ID:        uuid.New(),
-		EventType: webhookReq.Event,
-		EventID:   webhookReq.ID,
-		Payload:   body,
-		CreatedAt: time.Now(),
+		ID:             uuid.New(),
+		EventType:      webhookReq.Event,
+		EventID:        webhookReq.ID,
+		RoomSID:        "",
+		ParticipantSID: "",
+		TrackSID:       "",
+		Payload:        body,
+		CreatedAt:      time.Now(),
 	}
 
 	// Extract IDs from webhook
@@ -130,11 +133,11 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	}
 
 	room := &models.Room{
-		ID:     uuid.New(),
-		Status: "active",
-		StartedAt: time.Now(),
+		ID:          uuid.New(),
+		Status:      "active",
+		StartedAt:   time.Now(),
 		CreatedAtDB: time.Now(),
-		UpdatedAt: time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	// Extract room data
@@ -176,6 +179,25 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 		return err
 	}
 
+	// Link room to meeting if room.Name is a valid UUID (meeting ID)
+	if room.Name != "" {
+		if meetingID, err := uuid.Parse(room.Name); err == nil {
+			// Find meeting by ID and update its LiveKitRoomID
+			meeting, err := mp.meetingRepo.GetMeetingByID(meetingID)
+			if err == nil {
+				// Link meeting to the room ID (not SID - SID is a string like RM_xxx)
+				meeting.LiveKitRoomID = &room.ID
+				if err := mp.meetingRepo.UpdateMeeting(meeting); err != nil {
+					mp.logger.Errorf("Failed to link meeting %s to room %s (SID: %s): %v", meetingID, room.ID, room.SID, err)
+				} else {
+					mp.logger.Infof("Successfully linked meeting %s to LiveKit room %s (SID: %s)", meetingID, room.ID, room.SID)
+				}
+			} else {
+				mp.logger.Errorf("Failed to find meeting %s for room linking: %v", meetingID, err)
+			}
+		}
+	}
+
 	// Auto-start room composite recording if egressClient is configured
 	if mp.egressClient != nil && room.Name != "" {
 		mp.logger.Infof("Auto-starting room composite recording for room: %s", room.Name)
@@ -191,10 +213,10 @@ func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) err
 	}
 
 	participant := &models.Participant{
-		ID:    uuid.New(),
-		State: "ACTIVE",
+		ID:          uuid.New(),
+		State:       "ACTIVE",
 		CreatedAtDB: time.Now(),
-		UpdatedAt: time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	// Extract participant data
@@ -245,11 +267,11 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	}
 
 	track := &models.Track{
-		ID:     uuid.New(),
-		Status: "published",
+		ID:          uuid.New(),
+		Status:      "published",
 		PublishedAt: time.Now(),
 		CreatedAtDB: time.Now(),
-		UpdatedAt: time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	// Extract track data

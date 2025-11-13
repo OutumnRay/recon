@@ -70,11 +70,8 @@ jobs:
             ${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:latest
             ${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
-          no-cache: true
-          # Disable caching to ensure fresh builds with latest code changes
-          # cache-from: type=registry,ref=${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:buildcache
-          # cache-to: type=registry,ref=${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:buildcache,mode=max
-          # Add build arguments for debugging
+          cache-from: type=registry,ref=${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_USERNAME }}/recontext-${{ matrix.service.name }}:buildcache,mode=max
           build-args: |
             BUILDKIT_PROGRESS=plain
 

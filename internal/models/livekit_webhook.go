@@ -26,35 +26,35 @@ type LiveKitWebhookEvent struct {
 // Room представляет комнату LiveKit
 type Room struct {
 	// Внутренний уникальный идентификатор
-	ID                uuid.UUID      `json:"id" db:"id"`
+	ID                uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id" db:"id"`
 	// Идентификатор сессии LiveKit
-	SID               string         `json:"sid" db:"sid"`
+	SID               string         `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid" db:"sid"`
 	// Название комнаты
-	Name              string         `json:"name" db:"name"`
+	Name              string         `gorm:"type:varchar(255);not null" json:"name" db:"name"`
 	// Таймаут пустой комнаты в секундах
-	EmptyTimeout      int            `json:"emptyTimeout" db:"empty_timeout"`
+	EmptyTimeout      int            `gorm:"default:300" json:"emptyTimeout" db:"empty_timeout"`
 	// Таймаут после ухода участника в секундах
-	DepartureTimeout  int            `json:"departureTimeout" db:"departure_timeout"`
+	DepartureTimeout  int            `gorm:"default:20" json:"departureTimeout" db:"departure_timeout"`
 	// Время создания (строка)
-	CreationTime      string         `json:"creationTime" db:"creation_time"`
+	CreationTime      string         `gorm:"type:varchar(50)" json:"creationTime" db:"creation_time"`
 	// Время создания в миллисекундах (строка)
-	CreationTimeMs    string         `json:"creationTimeMs" db:"creation_time_ms"`
+	CreationTimeMs    string         `gorm:"type:varchar(50)" json:"creationTimeMs" db:"creation_time_ms"`
 	// Пароль TURN сервера
-	TurnPassword      string         `json:"turnPassword,omitempty" db:"turn_password"`
+	TurnPassword      string         `gorm:"type:text" json:"turnPassword,omitempty" db:"turn_password"`
 	// Включенные кодеки
-	EnabledCodecs     []EnabledCodec `json:"enabledCodecs" db:"-"`
+	EnabledCodecs     []EnabledCodec `json:"enabledCodecs" gorm:"-" db:"-"`
 	// Включенные кодеки в формате JSON (для БД)
-	EnabledCodecsJSON string         `json:"-" db:"enabled_codecs"`
+	EnabledCodecsJSON string         `gorm:"column:enabled_codecs;type:jsonb;default:'[]'" json:"-" db:"enabled_codecs"`
 	// Статус комнаты (active, finished)
-	Status            string         `json:"status" db:"status"`
+	Status            string         `gorm:"type:varchar(50);not null;default:'active'" json:"status" db:"status"`
 	// Время начала сессии
-	StartedAt         time.Time      `json:"startedAt" db:"started_at"`
+	StartedAt         time.Time      `gorm:"column:started_at" json:"startedAt" db:"started_at"`
 	// Время завершения сессии
-	FinishedAt        *time.Time     `json:"finishedAt,omitempty" db:"finished_at"`
+	FinishedAt        *time.Time     `gorm:"column:finished_at" json:"finishedAt,omitempty" db:"finished_at"`
 	// Время создания записи в БД
-	CreatedAtDB       time.Time      `json:"-" db:"created_at"`
+	CreatedAtDB       time.Time      `gorm:"column:created_at;autoCreateTime" json:"-" db:"created_at"`
 	// Время последнего обновления
-	UpdatedAt         time.Time      `json:"-" db:"updated_at"`
+	UpdatedAt         time.Time      `gorm:"column:updated_at;autoUpdateTime" json:"-" db:"updated_at"`
 }
 
 // EnabledCodec представляет кодек, включенный в комнате
