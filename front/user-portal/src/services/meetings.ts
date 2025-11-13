@@ -379,10 +379,14 @@ export const getParticipantStatusInfo = (status: string): { label: string; class
  * Get recordings for a meeting
  */
 export const getMeetingRecordings = async (meetingId: string): Promise<any[]> => {
+  console.log('📹 [RECORDINGS API] Fetching recordings for meeting:', meetingId);
   const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/recordings`, {
     method: 'GET',
     headers: getHeaders(),
   });
 
-  return handleResponse<any[]>(response);
+  console.log('📹 [RECORDINGS API] Response status:', response.status);
+  const data = await handleResponse<any[]>(response);
+  console.log('📹 [RECORDINGS API] Received data:', data);
+  return data;
 };

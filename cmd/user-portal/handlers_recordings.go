@@ -34,8 +34,11 @@ type RecordingInfo struct {
 // @Security BearerAuth
 // @Router /api/v1/meetings/{id}/recordings [get]
 func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http.Request) {
+	up.logger.Infof("📹 [RECORDINGS] Request received: %s", r.URL.Path)
+
 	claims, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
+		up.logger.Errorf("📹 [RECORDINGS] Unauthorized access attempt")
 		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
 		return
 	}
@@ -43,20 +46,25 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 	// Extract meeting ID from path
 	meetingID := strings.TrimPrefix(r.URL.Path, "/api/v1/meetings/")
 	meetingID = strings.TrimSuffix(meetingID, "/recordings")
+	up.logger.Infof("📹 [RECORDINGS] Meeting ID: %s, User ID: %s", meetingID, claims.UserID)
 
 	// Get meeting
 	meeting, err := up.meetingRepo.GetMeetingByID(uuid.Must(uuid.Parse(meetingID)))
 	if err != nil {
+		up.logger.Errorf("📹 [RECORDINGS] Meeting not found: %s, error: %v", meetingID, err)
 		up.respondWithError(w, http.StatusNotFound, "Meeting not found", err.Error())
 		return
 	}
+	up.logger.Infof("📹 [RECORDINGS] Meeting found: %s, CreatedBy: %s", meeting.ID, meeting.CreatedBy)
 
 	// Check permissions - only participants can view recordings
 	participants, err := up.meetingRepo.GetMeetingParticipants(uuid.Must(uuid.Parse(meetingID)))
 	if err != nil {
+		up.logger.Errorf("📹 [RECORDINGS] Failed to get participants: %v", err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to check permissions", err.Error())
 		return
 	}
+	up.logger.Infof("📹 [RECORDINGS] Participants count: %d", len(participants))
 
 	isParticipant := meeting.CreatedBy == claims.UserID
 	for _, p := range participants {
@@ -67,21 +75,28 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 	}
 
 	if !isParticipant && claims.Role != models.RoleAdmin {
+		up.logger.Errorf("📹 [RECORDINGS] Access denied for user %s (not participant, role: %s)", claims.UserID, claims.Role)
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}
+	up.logger.Infof("📹 [RECORDINGS] Access granted (isParticipant: %v, role: %s)", isParticipant, claims.Role)
 
 	// Get all egress recordings for this meeting's rooms
 	// Query LiveKit rooms by meeting ID (room name = meeting ID)
 	rooms, err := up.liveKitRepo.GetRoomsByName(meetingID)
 	if err != nil {
-		up.logger.Infof("No rooms found for meeting %s: %v", meetingID, err)
+		up.logger.Errorf("📹 [RECORDINGS] Error getting rooms for meeting %s: %v", meetingID, err)
+	} else {
+		up.logger.Infof("📹 [RECORDINGS] Found %d rooms for meeting %s", len(rooms), meetingID)
 	}
 
 	recordings := []RecordingInfo{}
 
 	// Collect room composite recordings
-	for _, room := range rooms {
+	for i, room := range rooms {
+		up.logger.Infof("📹 [RECORDINGS] Room %d: SID=%s, Name=%s, EgressID=%s, Status=%s",
+			i, room.SID, room.Name, room.EgressID, room.Status)
+
 		if room.EgressID != "" {
 			rec := RecordingInfo{
 				ID:          room.EgressID,
@@ -95,12 +110,19 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 				rec.EndedAt = &endedAt
 			}
 			recordings = append(recordings, rec)
+			up.logger.Infof("📹 [RECORDINGS] Added room recording: %s", room.EgressID)
+		} else {
+			up.logger.Infof("📹 [RECORDINGS] Room %s has no EgressID", room.SID)
 		}
 
 		// Get tracks for this room
 		tracks, err := up.liveKitRepo.GetTracksByRoomSID(room.SID)
 		if err == nil {
-			for _, track := range tracks {
+			up.logger.Infof("📹 [RECORDINGS] Found %d tracks for room %s", len(tracks), room.SID)
+			for j, track := range tracks {
+				up.logger.Infof("📹 [RECORDINGS]   Track %d: SID=%s, Source=%s, EgressID=%s, Type=%s",
+					j, track.SID, track.Source, track.EgressID, track.Type)
+
 				if track.EgressID != "" && track.Source == "MICROPHONE" {
 					rec := RecordingInfo{
 						ID:        track.EgressID,
@@ -116,11 +138,15 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 						rec.EndedAt = &endedAt
 					}
 					recordings = append(recordings, rec)
+					up.logger.Infof("📹 [RECORDINGS] Added track recording: %s", track.EgressID)
 				}
 			}
+		} else {
+			up.logger.Errorf("📹 [RECORDINGS] Error getting tracks for room %s: %v", room.SID, err)
 		}
 	}
 
+	up.logger.Infof("📹 [RECORDINGS] Returning %d total recordings for meeting %s", len(recordings), meetingID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(recordings)
 }

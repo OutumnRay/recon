@@ -340,15 +340,32 @@ export const Meetings: React.FC = () => {
           <div className="details-section">
             <h3>{t('meetings.details.actions')}</h3>
             <div className="meeting-actions">
+              {(() => {
+                const isPast = isMeetingPast(selectedMeeting);
+                const isUpcoming = isMeetingUpcoming(selectedMeeting);
+                console.log('🎬 [RECORDINGS DETAILS] Meeting state:', {
+                  id: selectedMeeting.id,
+                  status: selectedMeeting.status,
+                  scheduled_at: selectedMeeting.scheduled_at,
+                  duration: selectedMeeting.duration,
+                  isPast: isPast,
+                  isUpcoming: isUpcoming
+                });
+                return null;
+              })()}
               {selectedMeeting.status !== 'cancelled' && (
                 <button className="btn btn-primary" onClick={handleJoinMeeting}>
                   <LuPlay /> {t('meetings.details.joinMeeting')}
                 </button>
               )}
-              {isMeetingPast(selectedMeeting) && (
+              {isMeetingPast(selectedMeeting) ? (
                 <button className="btn btn-secondary" onClick={handleViewRecordings}>
                   <LuFilm /> Записи встречи
                 </button>
+              ) : (
+                <span style={{ fontSize: '11px', color: '#999' }}>
+                  {/* Recordings not available yet */}
+                </span>
               )}
               {isMeetingUpcoming(selectedMeeting) && (
                 <button className="btn btn-secondary">
@@ -504,6 +521,25 @@ export const Meetings: React.FC = () => {
               const isNow = isMeetingNow(meeting);
               const isPast = isMeetingPast(meeting);
 
+              // Debug logging for recordings button
+              const now = new Date();
+              const scheduledTime = new Date(meeting.scheduled_at);
+              const endTime = new Date(scheduledTime.getTime() + meeting.duration * 60000);
+
+              console.log('🎬 [RECORDINGS] Meeting check:', {
+                id: meeting.id,
+                title: meeting.title,
+                status: meeting.status,
+                scheduled_at: meeting.scheduled_at,
+                duration: meeting.duration,
+                now: now.toISOString(),
+                scheduledTime: scheduledTime.toISOString(),
+                endTime: endTime.toISOString(),
+                isPast: isPast,
+                isNow: isNow,
+                shouldShowButton: isPast
+              });
+
               return (
                 <div
                   key={meeting.id}
@@ -575,17 +611,22 @@ export const Meetings: React.FC = () => {
                       )}
                     </div>
                     <div className="meeting-card-actions">
-                      {isPast && (
+                      {isPast ? (
                         <button
                           className="btn-recordings"
                           onClick={(e) => {
                             e.stopPropagation();
+                            console.log('🎬 [RECORDINGS] Button clicked for meeting:', meeting.id);
                             navigate(`/meeting/${meeting.id}/recordings`);
                           }}
                           title="Просмотр записей"
                         >
                           <LuFilm />
                         </button>
+                      ) : (
+                        <span style={{ fontSize: '10px', color: '#999' }}>
+                          {/* Debug: not past */}
+                        </span>
                       )}
                       <button className="view-details-btn">
                         {t('meetings.viewDetails')} →
