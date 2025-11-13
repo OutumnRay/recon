@@ -267,17 +267,49 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 
 		mp.logger.Infof("🚀 Starting room composite egress for room '%s' (audioOnly=%v) asynchronously...", room.Name, audioOnly)
 
+		// Parse meeting ID from room name
+		var meetingUUID *uuid.UUID
+		if parsedMeetingID, err := uuid.Parse(room.Name); err == nil {
+			meetingUUID = &parsedMeetingID
+		}
+
 		// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
-		go func(roomName string, audioOnly bool) {
+		go func(roomName string, audioOnly bool, roomSID string, meetingID *uuid.UUID) {
 			egressID, err := mp.startRoomCompositeEgress(roomName, audioOnly)
 			if err != nil {
 				mp.logger.Errorf("❌ Failed to start room composite egress: %v", err)
 			} else if egressID != "" {
 				mp.logger.Infof("✅ Room egress started successfully: %s (audioOnly=%v)", egressID, audioOnly)
+
+				// Save EgressID to database
+				err = mp.db.DB.Model(&models.Room{}).Where("sid = ?", roomSID).Update("egress_id", egressID).Error
+				if err != nil {
+					mp.logger.Errorf("❌ Failed to save room egress ID to database: %v", err)
+				} else {
+					mp.logger.Infof("✅ Room egress ID saved to database: %s", egressID)
+				}
+
+				// Create EgressRecording entry
+				egressRec := &models.EgressRecording{
+					EgressID:  egressID,
+					Type:      "room_composite",
+					Status:    "started",
+					RoomSID:   roomSID,
+					RoomName:  roomName,
+					MeetingID: meetingID,
+					AudioOnly: audioOnly,
+					StartedAt: time.Now(),
+				}
+				err = mp.db.DB.Create(egressRec).Error
+				if err != nil {
+					mp.logger.Errorf("❌ Failed to create egress recording entry: %v", err)
+				} else {
+					mp.logger.Infof("✅ Egress recording entry created: %s (Type: room_composite, Meeting: %v)", egressID, meetingID)
+				}
 			} else {
 				mp.logger.Infof("⚠️ Room egress not started (disabled in config or returned empty ID)")
 			}
-		}(room.Name, audioOnly)
+		}(room.Name, audioOnly, room.SID, meetingUUID)
 
 		mp.logger.Infof("ℹ️ Room egress request sent asynchronously")
 	} else {
@@ -515,17 +547,53 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 		if roomName != "" && track.SID != "" {
 			mp.logger.Infof("🚀 Starting track composite egress for audio track %s in room '%s' asynchronously...", track.SID, roomName)
 
+			// Parse meeting ID from room name
+			var meetingUUID *uuid.UUID
+			if parsedMeetingID, err := uuid.Parse(roomName); err == nil {
+				meetingUUID = &parsedMeetingID
+			}
+
 			// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
-			go func(roomName string, trackSID string) {
+			go func(roomName string, trackSID string, roomSID string, partSID string, meetingID *uuid.UUID) {
 				egressID, err := mp.startTrackCompositeEgress(roomName, trackSID)
 				if err != nil {
 					mp.logger.Errorf("❌ Failed to start track composite egress: %v", err)
 				} else if egressID != "" {
 					mp.logger.Infof("✅ Track egress started successfully: %s (track: %s)", egressID, trackSID)
+
+					// Save EgressID to database
+					err = mp.db.DB.Model(&models.Track{}).Where("sid = ?", trackSID).Update("egress_id", egressID).Error
+					if err != nil {
+						mp.logger.Errorf("❌ Failed to save track egress ID to database: %v", err)
+					} else {
+						mp.logger.Infof("✅ Track egress ID saved to database: %s", egressID)
+					}
+
+					// Create EgressRecording entry
+					trackSIDPtr := &trackSID
+					partSIDPtr := &partSID
+					egressRec := &models.EgressRecording{
+						EgressID:       egressID,
+						Type:           "track_composite",
+						Status:         "started",
+						RoomSID:        roomSID,
+						RoomName:       roomName,
+						MeetingID:      meetingID,
+						TrackSID:       trackSIDPtr,
+						ParticipantSID: partSIDPtr,
+						AudioOnly:      true, // Track egress is always audio only for transcription
+						StartedAt:      time.Now(),
+					}
+					err = mp.db.DB.Create(egressRec).Error
+					if err != nil {
+						mp.logger.Errorf("❌ Failed to create egress recording entry: %v", err)
+					} else {
+						mp.logger.Infof("✅ Egress recording entry created: %s (Type: track_composite, Track: %s, Meeting: %v)", egressID, trackSID, meetingID)
+					}
 				} else {
 					mp.logger.Infof("⚠️ Track egress not started (disabled in config or returned empty ID)")
 				}
-			}(roomName, track.SID)
+			}(roomName, track.SID, track.RoomSID, participantSID, meetingUUID)
 
 			mp.logger.Infof("ℹ️ Track egress request sent asynchronously")
 		} else {
@@ -743,10 +811,22 @@ func (mp *ManagingPortal) handleEgressStarted(req models.WebhookRequest) error {
 	mp.logger.Infof("📌 Room Name: %s", roomName)
 	mp.logger.Infof("📌 Status: %s", status)
 
-	// Update egress status in database
+	// Update egress status in database (legacy)
 	if egressID != "" {
 		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, "active"); err != nil {
 			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
+		}
+	}
+
+	// Update EgressRecording table
+	if egressID != "" {
+		err := mp.db.DB.Model(&models.EgressRecording{}).
+			Where("egress_id = ?", egressID).
+			Update("status", "active").Error
+		if err != nil {
+			mp.logger.Errorf("❌ Failed to update egress recording status: %v", err)
+		} else {
+			mp.logger.Infof("✅ Egress recording status updated to 'active': %s", egressID)
 		}
 	}
 
@@ -766,14 +846,37 @@ func (mp *ManagingPortal) handleEgressUpdated(req models.WebhookRequest) error {
 
 	egressID, _ := egressInfo["egress_id"].(string)
 	status, _ := egressInfo["status"].(string)
+	errorStr, _ := egressInfo["error"].(string)
 
 	mp.logger.Infof("📌 Egress ID: %s", egressID)
 	mp.logger.Infof("📌 Status: %s", status)
+	if errorStr != "" {
+		mp.logger.Infof("📌 Error: %s", errorStr)
+	}
 
-	// Update egress status in database
+	// Update egress status in database (legacy)
 	if egressID != "" && status != "" {
 		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, status); err != nil {
 			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
+		}
+	}
+
+	// Update EgressRecording table
+	if egressID != "" && status != "" {
+		updates := map[string]interface{}{
+			"status": status,
+		}
+		if errorStr != "" {
+			updates["error_message"] = errorStr
+		}
+
+		err := mp.db.DB.Model(&models.EgressRecording{}).
+			Where("egress_id = ?", egressID).
+			Updates(updates).Error
+		if err != nil {
+			mp.logger.Errorf("❌ Failed to update egress recording: %v", err)
+		} else {
+			mp.logger.Infof("✅ Egress recording updated: %s (status: %s)", egressID, status)
 		}
 	}
 
@@ -794,15 +897,61 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 	egressID, _ := egressInfo["egress_id"].(string)
 	roomName, _ := egressInfo["room_name"].(string)
 	status, _ := egressInfo["status"].(string)
+	errorStr, _ := egressInfo["error"].(string)
+
+	// Extract file paths from file_results or file
+	var filePath string
+	if fileResults, ok := egressInfo["file_results"].([]interface{}); ok && len(fileResults) > 0 {
+		if fileResult, ok := fileResults[0].(map[string]interface{}); ok {
+			if fp, ok := fileResult["filename"].(string); ok {
+				filePath = fp
+			}
+		}
+	} else if file, ok := egressInfo["file"].(map[string]interface{}); ok {
+		if fp, ok := file["filename"].(string); ok {
+			filePath = fp
+		}
+	}
 
 	mp.logger.Infof("📌 Egress ID: %s", egressID)
 	mp.logger.Infof("📌 Room Name: %s", roomName)
 	mp.logger.Infof("📌 Status: %s", status)
+	if filePath != "" {
+		mp.logger.Infof("📌 File Path: %s", filePath)
+	}
+	if errorStr != "" {
+		mp.logger.Infof("📌 Error: %s", errorStr)
+	}
 
-	// Update egress status to completed in database
+	// Update egress status to completed in database (legacy)
 	if egressID != "" {
 		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, "completed"); err != nil {
 			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
+		}
+	}
+
+	// Update EgressRecording table with ended status and file path
+	if egressID != "" {
+		now := time.Now()
+		updates := map[string]interface{}{
+			"status":   "ended",
+			"ended_at": now,
+		}
+		if filePath != "" {
+			updates["file_path"] = filePath
+		}
+		if errorStr != "" {
+			updates["error_message"] = errorStr
+			updates["status"] = "failed"
+		}
+
+		err := mp.db.DB.Model(&models.EgressRecording{}).
+			Where("egress_id = ?", egressID).
+			Updates(updates).Error
+		if err != nil {
+			mp.logger.Errorf("❌ Failed to update egress recording: %v", err)
+		} else {
+			mp.logger.Infof("✅ Egress recording ended: %s (status: %s, file: %s)", egressID, updates["status"], filePath)
 		}
 	}
 

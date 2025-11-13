@@ -31,6 +31,8 @@ type Room struct {
 	SID               string         `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid" db:"sid"`
 	// Название комнаты
 	Name              string         `gorm:"type:varchar(255);not null" json:"name" db:"name"`
+	// ID встречи (meeting UUID)
+	MeetingID         *uuid.UUID     `gorm:"type:uuid;index" json:"meeting_id,omitempty" db:"meeting_id"`
 	// Таймаут пустой комнаты в секундах
 	EmptyTimeout      int            `gorm:"default:300" json:"emptyTimeout" db:"empty_timeout"`
 	// Таймаут после ухода участника в секундах
@@ -109,6 +111,8 @@ type Track struct {
 	ParticipantSID   string          `gorm:"column:participant_sid;type:varchar(255);not null" json:"-" db:"participant_sid"`
 	// Идентификатор сессии комнаты
 	RoomSID          string          `gorm:"column:room_sid;type:varchar(255);not null" json:"-" db:"room_sid"`
+	// Связь с комнатой
+	Room             *Room           `gorm:"foreignKey:RoomSID;references:SID" json:"room,omitempty"`
 	// Тип дорожки (VIDEO, AUDIO)
 	Type             string          `gorm:"column:type;type:varchar(50)" json:"type,omitempty" db:"type"`
 	// Источник дорожки (MICROPHONE, CAMERA)
@@ -197,6 +201,42 @@ type WebhookResponse struct {
 	Message string `json:"message"`
 }
 
+// EgressRecording представляет запись egress (room composite или track composite)
+type EgressRecording struct {
+	// Уникальный идентификатор записи
+	ID            uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id" db:"id"`
+	// Идентификатор egress от LiveKit
+	EgressID      string     `gorm:"column:egress_id;uniqueIndex;type:varchar(255);not null" json:"egress_id" db:"egress_id"`
+	// Тип записи (room_composite, track_composite)
+	Type          string     `gorm:"column:type;type:varchar(50);not null" json:"type" db:"type"`
+	// Статус (started, active, ended, failed)
+	Status        string     `gorm:"column:status;type:varchar(50);not null;default:'started'" json:"status" db:"status"`
+	// Идентификатор комнаты
+	RoomSID       string     `gorm:"column:room_sid;type:varchar(255);not null;index" json:"room_sid" db:"room_sid"`
+	// Название комнаты (meeting ID)
+	RoomName      string     `gorm:"column:room_name;type:varchar(255);not null;index" json:"room_name" db:"room_name"`
+	// ID встречи
+	MeetingID     *uuid.UUID `gorm:"type:uuid;index" json:"meeting_id,omitempty" db:"meeting_id"`
+	// Идентификатор трека (для track_composite)
+	TrackSID      *string    `gorm:"column:track_sid;type:varchar(255);index" json:"track_sid,omitempty" db:"track_sid"`
+	// Идентификатор участника (для track_composite)
+	ParticipantSID *string   `gorm:"column:participant_sid;type:varchar(255)" json:"participant_sid,omitempty" db:"participant_sid"`
+	// Путь к файлу в MinIO/S3
+	FilePath      string     `gorm:"column:file_path;type:text" json:"file_path,omitempty" db:"file_path"`
+	// Только аудио (для room_composite)
+	AudioOnly     bool       `gorm:"column:audio_only;default:false" json:"audio_only" db:"audio_only"`
+	// Время начала записи
+	StartedAt     time.Time  `gorm:"column:started_at;not null" json:"started_at" db:"started_at"`
+	// Время завершения записи
+	EndedAt       *time.Time `gorm:"column:ended_at" json:"ended_at,omitempty" db:"ended_at"`
+	// Сообщение об ошибке (если failed)
+	ErrorMessage  string     `gorm:"column:error_message;type:text" json:"error_message,omitempty" db:"error_message"`
+	// Время создания записи в БД
+	CreatedAt     time.Time  `gorm:"column:created_at;autoCreateTime" json:"created_at" db:"created_at"`
+	// Время последнего обновления
+	UpdatedAt     time.Time  `gorm:"column:updated_at;autoUpdateTime" json:"updated_at" db:"updated_at"`
+}
+
 // TableName переопределяет имя таблицы, используемое для Room
 func (Room) TableName() string {
 	return "livekit_rooms"
@@ -215,4 +255,9 @@ func (Track) TableName() string {
 // TableName переопределяет имя таблицы, используемое для WebhookEventLog
 func (WebhookEventLog) TableName() string {
 	return "livekit_webhook_events"
+}
+
+// TableName переопределяет имя таблицы, используемое для EgressRecording
+func (EgressRecording) TableName() string {
+	return "livekit_egress_recordings"
 }

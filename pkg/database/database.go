@@ -188,6 +188,7 @@ func (db *DB) RunMigrations() error {
 		&models.Participant{},
 		&models.Track{},
 		&models.WebhookEventLog{},
+		&models.EgressRecording{},
 		&LiveKitEgress{},
 		&MeetingSubject{},
 		&Meeting{},
