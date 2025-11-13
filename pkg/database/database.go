@@ -124,49 +124,54 @@ func (db *DB) RunMigrations() error {
 	}
 	log.Println("✓ pgvector extension enabled")
 
-	// Manual migration for audio_features column type change
-	log.Println("→ Fixing audio_features column type...")
+	// Smart migration for LiveKit columns that need type changes
+	log.Println("→ Checking LiveKit columns for type migrations...")
 
-	// First, check if the column exists and needs migration
-	var columnType string
+	// Migration 1: audio_features from text[] to jsonb
+	var audioFeaturesType string
 	err := db.DB.Raw(`
 		SELECT data_type
 		FROM information_schema.columns
 		WHERE table_name = 'livekit_tracks'
 		AND column_name = 'audio_features'
-	`).Scan(&columnType).Error
+	`).Scan(&audioFeaturesType).Error
 
-	if err == nil && columnType == "ARRAY" {
-		log.Println("  → Column audio_features is ARRAY type, converting to jsonb...")
+	if err == nil && audioFeaturesType == "ARRAY" {
+		log.Println("  → Migrating audio_features from ARRAY to jsonb...")
 
-		// Drop any constraints or defaults
-		if err := db.DB.Exec(`
-			ALTER TABLE livekit_tracks
-			ALTER COLUMN audio_features DROP DEFAULT
-		`).Error; err != nil {
-			log.Printf("  → Warning: Could not drop default (may not exist): %v", err)
+		// Drop the column and let AutoMigrate recreate it
+		if err := db.DB.Exec(`ALTER TABLE livekit_tracks DROP COLUMN audio_features`).Error; err != nil {
+			log.Printf("  → Warning: Could not drop audio_features column: %v", err)
+		} else {
+			log.Println("  → audio_features column dropped, will be recreated")
 		}
-
-		// Convert the column
-		if err := db.DB.Exec(`
-			ALTER TABLE livekit_tracks
-			ALTER COLUMN audio_features TYPE jsonb
-			USING CASE
-				WHEN audio_features IS NULL THEN NULL
-				ELSE to_jsonb(audio_features)
-			END
-		`).Error; err != nil {
-			return fmt.Errorf("failed to convert audio_features to jsonb: %w", err)
-		}
-
-		log.Println("  → Conversion successful")
 	} else if err == nil {
-		log.Printf("  → Column audio_features type is %s, no conversion needed", columnType)
-	} else {
-		log.Println("  → Column audio_features does not exist yet, will be created by AutoMigrate")
+		log.Printf("  → audio_features is %s, no migration needed", audioFeaturesType)
 	}
 
-	log.Println("✓ audio_features column check completed")
+	// Migration 2: payload from jsonb to bytea (or vice versa)
+	var payloadType string
+	err = db.DB.Raw(`
+		SELECT data_type
+		FROM information_schema.columns
+		WHERE table_name = 'livekit_webhook_events'
+		AND column_name = 'payload'
+	`).Scan(&payloadType).Error
+
+	if err == nil && payloadType != "jsonb" {
+		log.Printf("  → Migrating payload from %s to jsonb...", payloadType)
+
+		// Drop the column and let AutoMigrate recreate it
+		if err := db.DB.Exec(`ALTER TABLE livekit_webhook_events DROP COLUMN payload`).Error; err != nil {
+			log.Printf("  → Warning: Could not drop payload column: %v", err)
+		} else {
+			log.Println("  → payload column dropped, will be recreated")
+		}
+	} else if err == nil {
+		log.Println("  → payload is already jsonb, no migration needed")
+	}
+
+	log.Println("✓ Column migrations completed")
 
 	// Run AutoMigrate for all models
 	log.Println("→ Running AutoMigrate for all models...")
