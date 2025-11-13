@@ -403,6 +403,9 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	if req.NeedsTranscription != nil {
 		meeting.NeedsTranscription = *req.NeedsTranscription
 	}
+	if req.ForceEndAtDuration != nil {
+		meeting.ForceEndAtDuration = *req.ForceEndAtDuration
+	}
 	if req.AdditionalNotes != nil {
 		meeting.AdditionalNotes = *req.AdditionalNotes
 	}
