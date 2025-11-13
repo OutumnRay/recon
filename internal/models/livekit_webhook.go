@@ -47,6 +47,8 @@ type Room struct {
 	EnabledCodecsJSON string         `gorm:"column:enabled_codecs;type:jsonb;default:'[]'" json:"-" db:"enabled_codecs"`
 	// Статус комнаты (active, finished)
 	Status            string         `gorm:"type:varchar(50);not null;default:'active'" json:"status" db:"status"`
+	// ID записи Egress (если запись активна)
+	EgressID          string         `gorm:"type:varchar(255)" json:"egressId,omitempty" db:"egress_id"`
 	// Время начала сессии
 	StartedAt         time.Time      `gorm:"column:started_at" json:"startedAt" db:"started_at"`
 	// Время завершения сессии
@@ -135,6 +137,8 @@ type Track struct {
 	AudioFeaturesJSON json.RawMessage `gorm:"column:audio_features;type:jsonb" json:"-" db:"audio_features"`
 	// Политика резервного кодека
 	BackupCodecPolicy string         `gorm:"column:backup_codec_policy;type:varchar(100)" json:"backupCodecPolicy,omitempty" db:"backup_codec_policy"`
+	// ID записи Egress трека (если запись активна)
+	EgressID          string         `gorm:"type:varchar(255)" json:"egressId,omitempty" db:"egress_id"`
 	// Статус дорожки (published, unpublished)
 	Status           string          `gorm:"column:status;type:varchar(50);not null" json:"status" db:"status"`
 	// Время публикации

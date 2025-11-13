@@ -198,10 +198,19 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 		}
 	}
 
-	// Auto-start room composite recording if egressClient is configured
-	if mp.egressClient != nil && room.Name != "" {
-		mp.logger.Infof("Auto-starting room composite recording for room: %s", room.Name)
-		go mp.autoStartRoomRecording(room.SID, room.Name)
+	// Start room composite egress recording
+	if room.Name != "" {
+		egressID, err := mp.startRoomCompositeEgress(room.Name)
+		if err != nil {
+			mp.logger.Errorf("Failed to start room composite egress: %v", err)
+		} else if egressID != "" {
+			mp.logger.Infof("Started room composite egress: %s", egressID)
+			// Update room with egress ID
+			room.EgressID = egressID
+			if err := mp.liveKitRepo.CreateRoom(room); err != nil {
+				mp.logger.Errorf("Failed to update room with egress ID: %v", err)
+			}
+		}
 	}
 
 	return nil
@@ -340,14 +349,38 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 		}
 	}
 
-	// Extract room SID
+	// Extract room SID and room name
+	var roomName string
 	if req.Room != nil {
 		if roomSID, ok := req.Room["sid"].(string); ok {
 			track.RoomSID = roomSID
 		}
+		if name, ok := req.Room["name"].(string); ok {
+			roomName = name
+		}
 	}
 
-	return mp.liveKitRepo.CreateTrack(track)
+	// Save track to database
+	if err := mp.liveKitRepo.CreateTrack(track); err != nil {
+		return err
+	}
+
+	// Start track egress recording for MICROPHONE audio tracks
+	if track.Source == "MICROPHONE" && roomName != "" && track.SID != "" {
+		egressID, err := mp.startTrackCompositeEgress(roomName, track.SID)
+		if err != nil {
+			mp.logger.Errorf("Failed to start track composite egress: %v", err)
+		} else if egressID != "" {
+			mp.logger.Infof("Started track composite egress: %s for track %s", egressID, track.SID)
+			// Update track with egress ID
+			track.EgressID = egressID
+			if err := mp.liveKitRepo.CreateTrack(track); err != nil {
+				mp.logger.Errorf("Failed to update track with egress ID: %v", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (mp *ManagingPortal) handleTrackUnpublished(req models.WebhookRequest) error {
@@ -360,6 +393,19 @@ func (mp *ManagingPortal) handleTrackUnpublished(req models.WebhookRequest) erro
 		trackSID = sid
 	} else {
 		return fmt.Errorf("track SID is missing")
+	}
+
+	// Get track to find egress ID
+	track, err := mp.liveKitRepo.GetTrackBySID(trackSID)
+	if err != nil {
+		mp.logger.Errorf("Failed to get track for unpublish: %v", err)
+	} else if track.EgressID != "" {
+		// Stop track egress recording
+		if err := mp.stopEgress(track.EgressID); err != nil {
+			mp.logger.Errorf("Failed to stop track egress %s: %v", track.EgressID, err)
+		} else {
+			mp.logger.Infof("Stopped track egress: %s", track.EgressID)
+		}
 	}
 
 	return mp.liveKitRepo.UnpublishTrack(trackSID)
@@ -397,10 +443,33 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 		return fmt.Errorf("room SID is missing")
 	}
 
-	// Stop all active egress sessions for this room
-	if mp.egressClient != nil {
-		mp.logger.Infof("Auto-stopping active recordings for room: %s", roomSID)
-		go mp.autoStopRoomRecordings(roomSID)
+	// Get room to find egress ID
+	room, err := mp.liveKitRepo.GetRoomBySID(roomSID)
+	if err != nil {
+		mp.logger.Errorf("Failed to get room for finish: %v", err)
+	} else if room.EgressID != "" {
+		// Stop room egress recording
+		if err := mp.stopEgress(room.EgressID); err != nil {
+			mp.logger.Errorf("Failed to stop room egress %s: %v", room.EgressID, err)
+		} else {
+			mp.logger.Infof("Stopped room egress: %s", room.EgressID)
+		}
+	}
+
+	// Also stop all track egress for this room
+	tracks, err := mp.liveKitRepo.ListTracksByRoom(roomSID)
+	if err != nil {
+		mp.logger.Errorf("Failed to get tracks for room finish: %v", err)
+	} else {
+		for _, track := range tracks {
+			if track.EgressID != "" {
+				if err := mp.stopEgress(track.EgressID); err != nil {
+					mp.logger.Errorf("Failed to stop track egress %s: %v", track.EgressID, err)
+				} else {
+					mp.logger.Infof("Stopped track egress: %s", track.EgressID)
+				}
+			}
+		}
 	}
 
 	return mp.liveKitRepo.FinishRoom(roomSID)
@@ -597,84 +666,4 @@ func (mp *ManagingPortal) listWebhookEventsHandler(w http.ResponseWriter, r *htt
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-}
-
-// ============================================================================
-// Auto-recording helper functions
-// ============================================================================
-
-// autoStartRoomRecording automatically starts recording when a room starts
-func (mp *ManagingPortal) autoStartRoomRecording(roomSID string, roomName string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	mp.logger.Infof("Starting automatic room recording for: %s (%s)", roomName, roomSID)
-
-	// Start room composite egress (audio + video)
-	egressInfo, err := mp.egressClient.StartRoomCompositeEgress(ctx, roomName, false)
-	if err != nil {
-		mp.logger.Errorf("Failed to auto-start room recording: %v", err)
-		return
-	}
-
-	mp.logger.Infof("Room recording started successfully. Egress ID: %s", egressInfo.EgressId)
-
-	// Store egress info in database
-	egressID, err := uuid.Parse(egressInfo.EgressId)
-	if err != nil {
-		mp.logger.Errorf("Invalid egress ID format: %v", err)
-		return
-	}
-
-	egress := &database.LiveKitEgress{
-		ID:        egressID,
-		RoomSID:   roomSID,
-		RoomName:  roomName,
-		Type:      "room_composite",
-		Status:    "pending",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	if err := mp.egressRepo.Create(egress); err != nil {
-		mp.logger.Errorf("Failed to store egress in database: %v", err)
-	}
-}
-
-// autoStopRoomRecordings automatically stops all active recordings when room ends
-func (mp *ManagingPortal) autoStopRoomRecordings(roomSID string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	mp.logger.Infof("Stopping active recordings for room: %s", roomSID)
-
-	// Get all active egress sessions for this room
-	egresses, err := mp.egressRepo.GetActiveByRoomSID(roomSID)
-	if err != nil {
-		mp.logger.Errorf("Failed to get active egress sessions: %v", err)
-		return
-	}
-
-	if len(egresses) == 0 {
-		mp.logger.Infof("No active recordings found for room: %s", roomSID)
-		return
-	}
-
-	// Stop each egress session
-	for _, egress := range egresses {
-		mp.logger.Infof("Stopping egress: %s", egress.ID)
-
-		_, err := mp.egressClient.StopEgress(ctx, egress.ID.String())
-		if err != nil {
-			mp.logger.Errorf("Failed to stop egress %s: %v", egress.ID, err)
-			continue
-		}
-
-		// Update status in database
-		if err := mp.egressRepo.UpdateStatus(egress.ID, "finishing"); err != nil {
-			mp.logger.Errorf("Failed to update egress status: %v", err)
-		}
-
-		mp.logger.Infof("Egress %s stopped successfully", egress.ID)
-	}
 }
