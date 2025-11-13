@@ -27,13 +27,12 @@ import {
   LuMicOff,
   LuVideo,
   LuVideoOff,
-  LuMaximize2,
-  LuMinimize2,
   LuMenu,
   LuLogOut,
   LuRefreshCw,
   LuCircle,
   LuFileText,
+  LuUsers,
 } from 'react-icons/lu';
 import './MeetingRoom.css';
 
@@ -60,7 +59,6 @@ export default function MeetingRoom() {
   const [tokenData, setTokenData] = useState<MeetingTokenResponse | null>(null);
   const [meetingTitle, setMeetingTitle] = useState('');
   const [stageParticipantId, setStageParticipantId] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isParticipantsCollapsed, setIsParticipantsCollapsed] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [volume, setVolume] = useState(100);
@@ -214,6 +212,20 @@ export default function MeetingRoom() {
       videoContainerRef.current?.appendChild(container);
     }
     return container;
+  };
+
+  const showParticipantAvatar = (participant: RemoteParticipant) => {
+    const container = ensureParticipantTile(participant);
+    const videoSlot = container.querySelector<HTMLDivElement>('.remote-participant-video');
+
+    if (videoSlot) {
+      videoSlot.innerHTML = '';
+      const avatarPlaceholder = document.createElement('div');
+      avatarPlaceholder.className = 'participant-avatar-large';
+      const displayName = getParticipantDisplayName(participant);
+      avatarPlaceholder.textContent = getInitials(displayName);
+      videoSlot.appendChild(avatarPlaceholder);
+    }
   };
 
   const attachTrackToTile = (participant: RemoteParticipant, element: HTMLElement) => {
@@ -386,12 +398,11 @@ export default function MeetingRoom() {
     ) => {
       console.log(`[Track Unsubscribed] Participant: ${participant.identity}, Track: ${track.kind}`);
       track.detach();
-      participantVideoTracks.current.delete(participant.sid);
 
-      const container = document.getElementById(`participant-${participant.sid}`);
-      const videoSlot = container?.querySelector<HTMLDivElement>('.remote-participant-video');
-      if (videoSlot) {
-        videoSlot.innerHTML = '';
+      if (track.kind === Track.Kind.Video) {
+        participantVideoTracks.current.delete(participant.sid);
+        // Show avatar when video is unsubscribed
+        showParticipantAvatar(participant);
       }
 
       if (stageParticipantId === participant.sid) {
@@ -481,6 +492,14 @@ export default function MeetingRoom() {
 
       setParticipants(prev => new Map(prev).set(participant.sid, participant));
       ensureParticipantTile(participant);
+
+      // Show avatar initially if no video track is published
+      const hasVideoTrack = Array.from(participant.videoTrackPublications.values()).some(
+        pub => pub.isSubscribed || pub.track
+      );
+      if (!hasVideoTrack) {
+        showParticipantAvatar(participant);
+      }
 
       // Check if participant already has published tracks that we need to subscribe to
       participant.trackPublications.forEach(async (publication, trackSid) => {
@@ -697,13 +716,14 @@ export default function MeetingRoom() {
 
   const confirmLeave = useCallback(() => {
     console.log('[Leave] Disconnecting from room and navigating to meetings...');
+    setShowLeaveConfirm(false);
     try {
       room.disconnect();
     } catch (err) {
       console.error('[Leave] Error disconnecting:', err);
     }
     navigate('/dashboard/meetings');
-  }, [room, navigate]);
+  }, [room, navigate, setShowLeaveConfirm]);
 
   // Aggressive track subscription - force subscribe to all tracks
   const forceSubscribeToAllTracks = useCallback(async () => {
@@ -1034,7 +1054,7 @@ export default function MeetingRoom() {
     : t('meetingRoom.connecting');
 
   return (
-    <div className={`meeting-room-page ${isFullscreen ? 'fullscreen' : ''}`} style={{ cursor: showControls ? 'default' : 'none' }}>
+    <div className="meeting-room-page" style={{ cursor: showControls ? 'default' : 'none' }}>
       {showControls && (
         <div className="meeting-room-header" style={{
           transition: 'opacity 0.3s ease',
@@ -1097,12 +1117,12 @@ export default function MeetingRoom() {
             </div>
 
             <button
-              onClick={() => setIsFullscreen(prev => !prev)}
+              onClick={() => setIsParticipantsCollapsed(prev => !prev)}
               className="icon-circle-button"
-              aria-label={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
-              title={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
+              aria-label={isParticipantsCollapsed ? 'Show participants' : 'Hide participants'}
+              title={isParticipantsCollapsed ? 'Show participants' : 'Hide participants'}
             >
-              {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
+              <LuUsers />
             </button>
             <button
               onClick={() => setShowLeaveConfirm(true)}
@@ -1188,14 +1208,6 @@ export default function MeetingRoom() {
                   title={t('meetingRoom.volumeControl') || 'Volume'}
                 />
               </div>
-              <button
-                onClick={() => setIsFullscreen(prev => !prev)}
-                className="icon-circle-button"
-                aria-label={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
-                title={isFullscreen ? t('meetingRoom.exitFullscreen') : t('meetingRoom.enterFullscreen')}
-              >
-                {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
-              </button>
             </div>}
           </div>
         </div>

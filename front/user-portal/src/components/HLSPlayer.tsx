@@ -18,11 +18,20 @@ export default function HLSPlayer({ src, autoplay = false }: HLSPlayerProps) {
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('token');
+
       // Initialize HLS.js
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
         backBufferLength: 90,
+        xhrSetup: (xhr: XMLHttpRequest) => {
+          // Add Authorization header to all HLS requests
+          if (token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          }
+        },
       });
 
       hlsRef.current = hls;
