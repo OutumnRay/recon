@@ -92,7 +92,7 @@ type Participant struct {
 	// Время выхода из комнаты
 	LeftAt          *time.Time      `gorm:"column:left_at" json:"leftAt,omitempty" db:"left_at"`
 	// Время создания записи в БД
-	CreatedAtDB     time.Time       `gorm:"column:created_at_db;autoCreateTime" json:"-" db:"created_at"`
+	CreatedAtDB     time.Time       `gorm:"column:created_at;autoCreateTime" json:"-" db:"created_at"`
 	// Время последнего обновления
 	UpdatedAt       time.Time       `gorm:"column:updated_at;autoUpdateTime" json:"-" db:"updated_at"`
 }
@@ -142,7 +142,7 @@ type Track struct {
 	// Время отмены публикации
 	UnpublishedAt    *time.Time      `gorm:"column:unpublished_at" json:"unpublishedAt,omitempty" db:"unpublished_at"`
 	// Время создания записи в БД
-	CreatedAtDB      time.Time       `gorm:"column:created_at_db;autoCreateTime" json:"-" db:"created_at"`
+	CreatedAtDB      time.Time       `gorm:"column:created_at;autoCreateTime" json:"-" db:"created_at"`
 	// Время последнего обновления
 	UpdatedAt        time.Time       `gorm:"column:updated_at;autoUpdateTime" json:"-" db:"updated_at"`
 }
