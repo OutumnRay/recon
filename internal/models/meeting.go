@@ -76,6 +76,10 @@ type Meeting struct {
 	NeedsAudioRecord     bool              `json:"needs_audio_record" db:"needs_audio_record"`
 	// Требуется ли транскрибация (запись отдельных аудио треков участников)
 	NeedsTranscription   bool              `json:"needs_transcription" db:"needs_transcription"`
+	// Идет ли сейчас запись
+	IsRecording          bool              `json:"is_recording" db:"is_recording"`
+	// Идет ли сейчас транскрибация
+	IsTranscribing       bool              `json:"is_transcribing" db:"is_transcribing"`
 	// Дополнительные заметки
 	AdditionalNotes      string            `json:"additional_notes" db:"additional_notes"`
 	// Принудительно завершить встречу после истечения времени

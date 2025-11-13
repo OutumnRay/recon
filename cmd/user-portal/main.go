@@ -831,6 +831,26 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				return
 			}
 
+			// Check if this is a recording control request
+			if strings.HasSuffix(r.URL.Path, "/recording/start") && r.Method == http.MethodPost {
+				up.startRecordingHandler(w, r)
+				return
+			}
+			if strings.HasSuffix(r.URL.Path, "/recording/stop") && r.Method == http.MethodPost {
+				up.stopRecordingHandler(w, r)
+				return
+			}
+
+			// Check if this is a transcription control request
+			if strings.HasSuffix(r.URL.Path, "/transcription/start") && r.Method == http.MethodPost {
+				up.startTranscriptionHandler(w, r)
+				return
+			}
+			if strings.HasSuffix(r.URL.Path, "/transcription/stop") && r.Method == http.MethodPost {
+				up.stopTranscriptionHandler(w, r)
+				return
+			}
+
 			switch r.Method {
 			case http.MethodGet:
 				up.getMeetingHandler(w, r)

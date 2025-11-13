@@ -410,6 +410,10 @@ type Meeting struct {
 	NeedsAudioRecord bool `gorm:"not null;default:false" json:"needs_audio_record"`
 	// NeedsTranscription - требуется ли транскрибация (запись отдельных аудио треков участников)
 	NeedsTranscription bool `gorm:"not null;default:false" json:"needs_transcription"`
+	// IsRecording - идет ли сейчас запись (композитная room egress)
+	IsRecording bool `gorm:"not null;default:false" json:"is_recording"`
+	// IsTranscribing - идет ли сейчас транскрибация (track egress для участников)
+	IsTranscribing bool `gorm:"not null;default:false" json:"is_transcribing"`
 	// ForceEndAtDuration - принудительно завершить встречу по истечении времени
 	ForceEndAtDuration bool `gorm:"column:force_end_at_duration;not null;default:false" json:"force_end_at_duration"`
 	// AdditionalNotes - дополнительные заметки о встрече

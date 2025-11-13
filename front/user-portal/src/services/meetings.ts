@@ -150,6 +150,59 @@ export const getMeetingToken = async (meetingId: string): Promise<MeetingTokenRe
 };
 
 // ===========================
+// Recording Control Operations
+// ===========================
+
+/**
+ * Start recording for a meeting
+ */
+export const startRecording = async (meetingId: string, audioOnly: boolean = false): Promise<MeetingWithDetails> => {
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/recording/start`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ audio_only: audioOnly }),
+  });
+
+  return handleResponse<MeetingWithDetails>(response);
+};
+
+/**
+ * Stop recording for a meeting
+ */
+export const stopRecording = async (meetingId: string): Promise<MeetingWithDetails> => {
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/recording/stop`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+
+  return handleResponse<MeetingWithDetails>(response);
+};
+
+/**
+ * Start transcription for a meeting
+ */
+export const startTranscription = async (meetingId: string): Promise<MeetingWithDetails> => {
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/transcription/start`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+
+  return handleResponse<MeetingWithDetails>(response);
+};
+
+/**
+ * Stop transcription for a meeting
+ */
+export const stopTranscription = async (meetingId: string): Promise<MeetingWithDetails> => {
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/transcription/stop`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+
+  return handleResponse<MeetingWithDetails>(response);
+};
+
+// ===========================
 // Meeting Subjects Operations
 // ===========================
 

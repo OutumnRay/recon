@@ -13,7 +13,14 @@ import {
   Participant,
 } from 'livekit-client';
 import { useTranslation } from 'react-i18next';
-import { getMeeting, getMeetingToken } from '../services/meetings';
+import {
+  getMeeting,
+  getMeetingToken,
+  startRecording,
+  stopRecording,
+  startTranscription,
+  stopTranscription,
+} from '../services/meetings';
 import type { MeetingTokenResponse } from '../types/meeting';
 import {
   LuMic,
@@ -25,6 +32,8 @@ import {
   LuMenu,
   LuLogOut,
   LuRefreshCw,
+  LuCircle,
+  LuFileText,
 } from 'react-icons/lu';
 import './MeetingRoom.css';
 
@@ -58,6 +67,9 @@ export default function MeetingRoom() {
   const [isMobile, setIsMobile] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const localPreviewRef = useRef<HTMLDivElement>(null);
@@ -244,6 +256,8 @@ export default function MeetingRoom() {
       try {
         const meeting = await getMeeting(meetingId);
         setMeetingTitle(meeting.title);
+        setIsRecording(meeting.is_recording || false);
+        setIsTranscribing(meeting.is_transcribing || false);
       } catch (err) {
         console.error('Failed to load meeting details:', err);
       }
@@ -867,6 +881,54 @@ export default function MeetingRoom() {
     }
   };
 
+  const handleStartRecording = async () => {
+    if (!meetingId) return;
+    try {
+      setRecordingError(null);
+      await startRecording(meetingId);
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording:', err);
+      setRecordingError(err instanceof Error ? err.message : 'Failed to start recording');
+    }
+  };
+
+  const handleStopRecording = async () => {
+    if (!meetingId) return;
+    try {
+      setRecordingError(null);
+      await stopRecording(meetingId);
+      setIsRecording(false);
+    } catch (err) {
+      console.error('Failed to stop recording:', err);
+      setRecordingError(err instanceof Error ? err.message : 'Failed to stop recording');
+    }
+  };
+
+  const handleStartTranscription = async () => {
+    if (!meetingId) return;
+    try {
+      setRecordingError(null);
+      await startTranscription(meetingId);
+      setIsTranscribing(true);
+    } catch (err) {
+      console.error('Failed to start transcription:', err);
+      setRecordingError(err instanceof Error ? err.message : 'Failed to start transcription');
+    }
+  };
+
+  const handleStopTranscription = async () => {
+    if (!meetingId) return;
+    try {
+      setRecordingError(null);
+      await stopTranscription(meetingId);
+      setIsTranscribing(false);
+    } catch (err) {
+      console.error('Failed to stop transcription:', err);
+      setRecordingError(err instanceof Error ? err.message : 'Failed to stop transcription');
+    }
+  };
+
   if (isJoining) {
     return (
       <div className="meeting-room-state-card">
@@ -920,6 +982,40 @@ export default function MeetingRoom() {
             </div>
           </div>
           <div className="meeting-room-header-actions">
+            <div className="recording-controls">
+              <button
+                onClick={isRecording ? handleStopRecording : handleStartRecording}
+                className={`icon-circle-button ${isRecording ? 'recording' : ''}`}
+                aria-label={isRecording ? 'Stop Recording' : 'Start Recording'}
+                title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                disabled={!isConnected}
+                style={{ color: isRecording ? '#ef4444' : undefined }}
+              >
+                <LuCircle />
+              </button>
+              {isRecording && (
+                <span className="recording-indicator" style={{ color: '#ef4444', fontSize: '12px', fontWeight: 'bold' }}>
+                  REC
+                </span>
+              )}
+
+              <button
+                onClick={isTranscribing ? handleStopTranscription : handleStartTranscription}
+                className={`icon-circle-button ${isTranscribing ? 'transcribing' : ''}`}
+                aria-label={isTranscribing ? 'Stop Transcription' : 'Start Transcription'}
+                title={isTranscribing ? 'Stop Transcription' : 'Start Transcription'}
+                disabled={!isConnected}
+                style={{ color: isTranscribing ? '#3b82f6' : undefined }}
+              >
+                <LuFileText />
+              </button>
+              {isTranscribing && (
+                <span className="transcription-indicator" style={{ color: '#3b82f6', fontSize: '12px', fontWeight: 'bold' }}>
+                  TXT
+                </span>
+              )}
+            </div>
+
             <button
               onClick={() => setIsFullscreen(prev => !prev)}
               className="icon-circle-button"
@@ -943,6 +1039,12 @@ export default function MeetingRoom() {
       {error && isConnected && (
         <div className="alert alert-error meeting-room-inline-alert">
           {error}
+        </div>
+      )}
+
+      {recordingError && (
+        <div className="alert alert-error meeting-room-inline-alert">
+          {recordingError}
         </div>
       )}
 

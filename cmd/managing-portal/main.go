@@ -67,10 +67,10 @@ type ManagingPortal struct {
 	egressRepo        *database.EgressRepository     // LiveKit Egress repository
 	mailer            *email.Mailer                  // Email service
 	egressClient      *livekit.EgressClient          // LiveKit Egress client
-	metricsData       []models.Metric         // In-memory metrics store
-	logs              []models.LogEntry       // In-memory logs store
-	prometheusMetrics *metrics.ServiceMetrics // Prometheus metrics
-	prometheusClient  *prometheus.Client      // Prometheus query client
+	metricsData       []models.Metric                // In-memory metrics store
+	logs              []models.LogEntry              // In-memory logs store
+	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
+	prometheusClient  *prometheus.Client             // Prometheus query client
 }
 
 func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal, error) {
@@ -117,7 +117,7 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 	// Initialize LiveKit Egress client from environment variables
 	egressClient := livekit.NewEgressClientFromEnv()
 
-	// Initialize Prometheus client (uses internal Docker network)
+	// Initialize Prometheus client (uses internal Docker networ
 	prometheusClient := prometheus.NewClient("http://prometheus:9090")
 
 	return &ManagingPortal{
