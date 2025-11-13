@@ -209,6 +209,34 @@
   border-color: transparent;
 }
 
+.meeting-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.btn-recordings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+  background: var(--surface-panel);
+  color: var(--color-primary-600);
+  font-size: 18px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-recordings:hover {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-300);
+  transform: scale(1.05);
+}
+
 .view-details-btn {
   padding: var(--space-xs) var(--space-lg);
   border-radius: var(--radius-full);

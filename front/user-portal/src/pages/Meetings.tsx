@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LuCalendar,
@@ -17,6 +18,7 @@ import {
   LuCircle,
   LuCheck,
   LuX,
+  LuFilm,
 } from 'react-icons/lu';
 import {
   listMyMeetings,
@@ -41,6 +43,7 @@ import './Meetings.css';
 
 export const Meetings: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   // Set page title
   useEffect(() => {
@@ -168,6 +171,11 @@ export const Meetings: React.FC = () => {
     if (!selectedMeeting) return;
     // Navigate to meeting room page - token will be fetched there
     window.location.href = `/meeting/${selectedMeeting.id}`;
+  };
+
+  const handleViewRecordings = () => {
+    if (!selectedMeeting) return;
+    navigate(`/meeting/${selectedMeeting.id}/recordings`);
   };
 
   const handleDeleteMeeting = async () => {
@@ -335,6 +343,11 @@ export const Meetings: React.FC = () => {
               {selectedMeeting.status !== 'cancelled' && (
                 <button className="btn btn-primary" onClick={handleJoinMeeting}>
                   <LuPlay /> {t('meetings.details.joinMeeting')}
+                </button>
+              )}
+              {isMeetingPast(selectedMeeting) && (
+                <button className="btn btn-secondary" onClick={handleViewRecordings}>
+                  <LuFilm /> Записи встречи
                 </button>
               )}
               {isMeetingUpcoming(selectedMeeting) && (
@@ -561,9 +574,23 @@ export const Meetings: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <button className="view-details-btn">
-                      {t('meetings.viewDetails')} →
-                    </button>
+                    <div className="meeting-card-actions">
+                      {isPast && (
+                        <button
+                          className="btn-recordings"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/meeting/${meeting.id}/recordings`);
+                          }}
+                          title="Просмотр записей"
+                        >
+                          <LuFilm />
+                        </button>
+                      )}
+                      <button className="view-details-btn">
+                        {t('meetings.viewDetails')} →
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
