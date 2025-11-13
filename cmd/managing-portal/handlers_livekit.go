@@ -237,6 +237,7 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	mp.logger.Infof("📹 Checking room egress requirements...")
 	mp.logger.Infof("  • Video Recording: %v", needsVideoRecord)
 	mp.logger.Infof("  • Audio Recording: %v", needsAudioRecord)
+	mp.logger.Infof("  • Transcription: %v", needsTranscription)
 	mp.logger.Infof("  • Room Name: %s", room.Name)
 
 	if room.Name != "" && (needsVideoRecord || needsAudioRecord) {
