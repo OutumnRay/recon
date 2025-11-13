@@ -398,3 +398,46 @@ func (r *LiveKitRepository) UpdateEgressStatus(egressID string, status string) e
 	// Not found in livekit_egress, just skip (not critical)
 	return nil
 }
+
+// GetRoomsByName retrieves all rooms by name (meeting ID)
+func (r *LiveKitRepository) GetRoomsByName(roomName string) ([]*models.Room, error) {
+	var rooms []*models.Room
+
+	err := r.db.DB.Where("name = ?", roomName).Order("created_at DESC").Find(&rooms).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rooms by name: %w", err)
+	}
+
+	// Unmarshal enabled codecs for each room
+	for _, room := range rooms {
+		if len(room.EnabledCodecsJSON) > 0 {
+			if err := json.Unmarshal([]byte(room.EnabledCodecsJSON), &room.EnabledCodecs); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal enabled codecs: %w", err)
+			}
+		}
+	}
+
+	return rooms, nil
+}
+
+// GetTracksByRoomSID retrieves all tracks for a room
+func (r *LiveKitRepository) GetTracksByRoomSID(roomSID string) ([]*models.Track, error) {
+	var tracks []*models.Track
+
+	err := r.db.DB.Where("room_sid = ?", roomSID).Order("published_at ASC").Find(&tracks).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tracks by room SID: %w", err)
+	}
+
+	// Unmarshal AudioFeatures for each track
+	for _, track := range tracks {
+		if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
+			err = json.Unmarshal(track.AudioFeaturesJSON, &track.AudioFeatures)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal audio features: %w", err)
+			}
+		}
+	}
+
+	return tracks, nil
+}

@@ -7,6 +7,35 @@
   gap: var(--space-xl);
 }
 
+.meeting-room-page.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+  z-index: 9999;
+  background: #000;
+}
+
+.meeting-room-page.fullscreen .stage-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.meeting-room-page.fullscreen .stage-video {
+  width: 100%;
+  height: 100%;
+}
+
 .meeting-room-header {
   background: var(--surface-card);
   border-radius: var(--radius-xl);

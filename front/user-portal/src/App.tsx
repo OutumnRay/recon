@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Meetings from './pages/Meetings';
 import MeetingRoom from './pages/MeetingRoom';
+import MeetingRecordings from './pages/MeetingRecordings';
 import Search from './pages/Search';
 import Documents from './pages/Documents';
 import Management from './pages/Management';
@@ -29,6 +30,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="/meeting/:meetingId" element={<MeetingRoom />} />
+        <Route path="/meeting/:meetingId/recordings" element={<MeetingRecordings />} />
       </Routes>
     </BrowserRouter>
   );

@@ -60,6 +60,7 @@ type UserPortal struct {
 	userRepo          *database.UserRepository       // User repository
 	departmentRepo    *database.DepartmentRepository // Department repository
 	meetingRepo       *database.MeetingRepository    // Meeting repository
+	liveKitRepo       *database.LiveKitRepository    // LiveKit repository
 	recordings        map[string]*models.Recording   // In-memory recordings store
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
 	embeddingsClient  *embeddings.EmbeddingsClient   // Embeddings client for RAG
@@ -104,6 +105,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 	userRepo := database.NewUserRepository(db)
 	departmentRepo := database.NewDepartmentRepository(db)
 	meetingRepo := database.NewMeetingRepository(db)
+	liveKitRepo := database.NewLiveKitRepository(db)
 
 	// Initialize embeddings client for RAG
 	embeddingsClient := embeddings.NewEmbeddingsClient()
@@ -120,6 +122,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		userRepo:          userRepo,
 		departmentRepo:    departmentRepo,
 		meetingRepo:       meetingRepo,
+		liveKitRepo:       liveKitRepo,
 		recordings:        make(map[string]*models.Recording),
 		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
 		embeddingsClient:  embeddingsClient,
@@ -784,7 +787,22 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	))
 
 	mux.Handle("/api/v1/recordings/", chainMiddleware(
-		http.HandlerFunc(up.getRecordingHandler),
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Check if this is a playlist request (HLS proxy)
+			if strings.Contains(r.URL.Path, "/playlist") && r.Method == http.MethodGet {
+				up.getPlaylistHandler(w, r)
+				return
+			}
+
+			// Check if this is a segment request (HLS proxy)
+			if strings.Contains(r.URL.Path, "/segment/") && r.Method == http.MethodGet {
+				up.getSegmentHandler(w, r)
+				return
+			}
+
+			// Otherwise it's the old recordings handler (uploaded files)
+			up.getRecordingHandler(w, r)
+		}),
 		authMiddleware,
 	))
 
@@ -848,6 +866,12 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 			}
 			if strings.HasSuffix(r.URL.Path, "/transcription/stop") && r.Method == http.MethodPost {
 				up.stopTranscriptionHandler(w, r)
+				return
+			}
+
+			// Check if this is a recordings request
+			if strings.HasSuffix(r.URL.Path, "/recordings") && r.Method == http.MethodGet {
+				up.getMeetingRecordingsHandler(w, r)
 				return
 			}
 

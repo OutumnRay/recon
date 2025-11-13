@@ -265,22 +265,21 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 		// If video is not needed, record audio only
 		audioOnly := !needsVideoRecord && needsAudioRecord
 
-		mp.logger.Infof("🚀 Starting room composite egress for room '%s' (audioOnly=%v)...", room.Name, audioOnly)
-		egressID, err := mp.startRoomCompositeEgress(room.Name, audioOnly)
-		if err != nil {
-			mp.logger.Errorf("❌ Failed to start room composite egress: %v", err)
-		} else if egressID != "" {
-			mp.logger.Infof("✅ Room egress started successfully: %s (audioOnly=%v)", egressID, audioOnly)
-			// Update room with egress ID
-			room.EgressID = egressID
-			if err := mp.liveKitRepo.CreateRoom(room); err != nil {
-				mp.logger.Errorf("❌ Failed to update room with egress ID: %v", err)
+		mp.logger.Infof("🚀 Starting room composite egress for room '%s' (audioOnly=%v) asynchronously...", room.Name, audioOnly)
+
+		// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
+		go func(roomName string, audioOnly bool) {
+			egressID, err := mp.startRoomCompositeEgress(roomName, audioOnly)
+			if err != nil {
+				mp.logger.Errorf("❌ Failed to start room composite egress: %v", err)
+			} else if egressID != "" {
+				mp.logger.Infof("✅ Room egress started successfully: %s (audioOnly=%v)", egressID, audioOnly)
 			} else {
-				mp.logger.Infof("✅ Room updated with egress ID")
+				mp.logger.Infof("⚠️ Room egress not started (disabled in config or returned empty ID)")
 			}
-		} else {
-			mp.logger.Infof("⚠️ Room egress not started (disabled in config or returned empty ID)")
-		}
+		}(room.Name, audioOnly)
+
+		mp.logger.Infof("ℹ️ Room egress request sent asynchronously")
 	} else {
 		mp.logger.Infof("ℹ️ Room egress skipped:")
 		mp.logger.Infof("  • Room Name: '%s' (empty=%v)", room.Name, room.Name == "")
@@ -514,22 +513,21 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 		mp.logger.Infof("  ✓ Transcription needed: %v", needsTranscription)
 
 		if roomName != "" && track.SID != "" {
-			mp.logger.Infof("🚀 Starting track composite egress for audio track %s in room '%s'...", track.SID, roomName)
-			egressID, err := mp.startTrackCompositeEgress(roomName, track.SID)
-			if err != nil {
-				mp.logger.Errorf("❌ Failed to start track composite egress: %v", err)
-			} else if egressID != "" {
-				mp.logger.Infof("✅ Track egress started successfully: %s (track: %s)", egressID, track.SID)
-				// Update track with egress ID
-				track.EgressID = egressID
-				if err := mp.liveKitRepo.CreateTrack(track); err != nil {
-					mp.logger.Errorf("❌ Failed to update track with egress ID: %v", err)
+			mp.logger.Infof("🚀 Starting track composite egress for audio track %s in room '%s' asynchronously...", track.SID, roomName)
+
+			// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
+			go func(roomName string, trackSID string) {
+				egressID, err := mp.startTrackCompositeEgress(roomName, trackSID)
+				if err != nil {
+					mp.logger.Errorf("❌ Failed to start track composite egress: %v", err)
+				} else if egressID != "" {
+					mp.logger.Infof("✅ Track egress started successfully: %s (track: %s)", egressID, trackSID)
 				} else {
-					mp.logger.Infof("✅ Track updated with egress ID")
+					mp.logger.Infof("⚠️ Track egress not started (disabled in config or returned empty ID)")
 				}
-			} else {
-				mp.logger.Infof("⚠️ Track egress not started (disabled in config or returned empty ID)")
-			}
+			}(roomName, track.SID)
+
+			mp.logger.Infof("ℹ️ Track egress request sent asynchronously")
 		} else {
 			mp.logger.Infof("⚠️ Track egress not started - missing required data:")
 			mp.logger.Infof("  • Room Name empty: %v", roomName == "")

@@ -193,3 +193,15 @@ export interface UpdateMeetingSubjectRequest {
   department_ids?: string[];
   is_active?: boolean;
 }
+
+export interface Recording {
+  id: string;
+  type: 'room' | 'track';
+  status: string;
+  started_at: string;
+  ended_at?: string;
+  playlist_url: string;
+  participant_id?: string;
+  track_id?: string;
+  participant?: User;
+}

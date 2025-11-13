@@ -374,3 +374,15 @@ export const getParticipantStatusInfo = (status: string): { label: string; class
       return { label: status, className: 'participant-default' };
   }
 };
+
+/**
+ * Get recordings for a meeting
+ */
+export const getMeetingRecordings = async (meetingId: string): Promise<any[]> => {
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/recordings`, {
+    method: 'GET',
+    headers: getHeaders(),
+  });
+
+  return handleResponse<any[]>(response);
+};

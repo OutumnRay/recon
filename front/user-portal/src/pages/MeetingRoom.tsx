@@ -70,6 +70,8 @@ export default function MeetingRoom() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [showControls, setShowControls] = useState(true);
+  const [mouseIdleTimer, setMouseIdleTimer] = useState<number | null>(null);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const localPreviewRef = useRef<HTMLDivElement>(null);
@@ -273,12 +275,64 @@ export default function MeetingRoom() {
     };
 
     loadMeetingTitle();
+
+    // Periodically refresh recording/transcription status every 10 seconds
+    const statusInterval = setInterval(() => {
+      if (meetingId) {
+        getMeeting(meetingId)
+          .then(meeting => {
+            setIsRecording(meeting.is_recording || false);
+            setIsTranscribing(meeting.is_transcribing || false);
+          })
+          .catch(err => {
+            console.error('Failed to refresh meeting status:', err);
+          });
+      }
+    }, 10000); // Update every 10 seconds
+
+    return () => clearInterval(statusInterval);
   }, [meetingId, t]);
 
   useEffect(() => {
     const pageTitle = meetingTitle || tokenData?.roomName || t('meetingRoom.pageTitle');
     document.title = `Recontext - ${pageTitle}`;
   }, [meetingTitle, tokenData, t]);
+
+  // Auto-hide controls after 5 seconds of mouse inactivity
+  useEffect(() => {
+    const handleMouseMove = () => {
+      setShowControls(true);
+
+      // Clear existing timer
+      if (mouseIdleTimer) {
+        clearTimeout(mouseIdleTimer);
+      }
+
+      // Set new timer to hide controls after 5 seconds
+      const timer = setTimeout(() => {
+        setShowControls(false);
+      }, 5000);
+
+      setMouseIdleTimer(timer);
+    };
+
+    // Show controls on any mouse movement
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousedown', handleMouseMove);
+    window.addEventListener('keydown', handleMouseMove);
+
+    // Initial timer
+    handleMouseMove();
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousedown', handleMouseMove);
+      window.removeEventListener('keydown', handleMouseMove);
+      if (mouseIdleTimer) {
+        clearTimeout(mouseIdleTimer);
+      }
+    };
+  }, [mouseIdleTimer]);
 
   useEffect(() => {
     if (!isConnected) {
@@ -975,9 +1029,16 @@ export default function MeetingRoom() {
     : t('meetingRoom.connecting');
 
   return (
-    <div className={`meeting-room-page ${isFullscreen ? 'fullscreen' : ''}`}>
-      {!isFullscreen && (
-        <div className="meeting-room-header">
+    <div className={`meeting-room-page ${isFullscreen ? 'fullscreen' : ''}`} style={{ cursor: showControls ? 'default' : 'none' }}>
+      {showControls && (
+        <div className="meeting-room-header" style={{
+          position: isFullscreen ? 'fixed' : 'relative',
+          top: isFullscreen ? '0' : 'auto',
+          left: isFullscreen ? '0' : 'auto',
+          right: isFullscreen ? '0' : 'auto',
+          zIndex: isFullscreen ? 1000 : 'auto',
+          transition: 'opacity 0.3s ease',
+        }}>
           <div className="meeting-room-header-info">
             <h1>
               {meetingTitle || tokenData?.roomName || t('meetingRoom.pageTitle')}
@@ -1080,7 +1141,14 @@ export default function MeetingRoom() {
             <div className={`local-preview ${isCameraEnabled ? 'visible' : ''}`}>
               <div className="local-preview-video" ref={localPreviewRef} />
             </div>
-            <div className="stage-controls">
+            {showControls && <div className="stage-controls" style={{
+              position: isFullscreen ? 'fixed' : 'relative',
+              bottom: isFullscreen ? '20px' : 'auto',
+              left: isFullscreen ? '50%' : 'auto',
+              transform: isFullscreen ? 'translateX(-50%)' : 'none',
+              zIndex: isFullscreen ? 1000 : 'auto',
+              transition: 'opacity 0.3s ease',
+            }}>
               <button
                 onClick={toggleCamera}
                 className="icon-circle-button"
@@ -1133,12 +1201,20 @@ export default function MeetingRoom() {
               >
                 {isFullscreen ? <LuMinimize2 /> : <LuMaximize2 />}
               </button>
-            </div>
+            </div>}
           </div>
         </div>
 
-        <aside
+        {showControls && <aside
           className={`participant-sidebar ${isParticipantsCollapsed ? 'collapsed' : ''}`}
+          style={{
+            position: isFullscreen ? 'fixed' : 'relative',
+            right: isFullscreen ? '0' : 'auto',
+            top: isFullscreen ? '80px' : 'auto',
+            bottom: isFullscreen ? '80px' : 'auto',
+            zIndex: isFullscreen ? 1000 : 'auto',
+            transition: 'opacity 0.3s ease',
+          }}
           onTouchStart={isMobile ? onTouchStart : undefined}
           onTouchMove={isMobile ? onTouchMove : undefined}
           onTouchEnd={isMobile ? onTouchEnd : undefined}
@@ -1170,7 +1246,7 @@ export default function MeetingRoom() {
           {participants.size === 0 && (
             <p className="empty-participants-text">{t('meetingRoom.waitingForParticipants')}</p>
           )}
-        </aside>
+        </aside>}
       </div>
 
       {showLeaveConfirm && (
