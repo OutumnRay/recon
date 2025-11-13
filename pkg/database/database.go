@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -123,10 +124,54 @@ func (db *DB) RunMigrations() error {
 	}
 	log.Println("✓ pgvector extension enabled")
 
+	// Manual migration for audio_features column type change
+	log.Println("→ Fixing audio_features column type...")
+
+	// First, check if the column exists and needs migration
+	var columnType string
+	err := db.DB.Raw(`
+		SELECT data_type
+		FROM information_schema.columns
+		WHERE table_name = 'livekit_tracks'
+		AND column_name = 'audio_features'
+	`).Scan(&columnType).Error
+
+	if err == nil && columnType == "ARRAY" {
+		log.Println("  → Column audio_features is ARRAY type, converting to jsonb...")
+
+		// Drop any constraints or defaults
+		if err := db.DB.Exec(`
+			ALTER TABLE livekit_tracks
+			ALTER COLUMN audio_features DROP DEFAULT
+		`).Error; err != nil {
+			log.Printf("  → Warning: Could not drop default (may not exist): %v", err)
+		}
+
+		// Convert the column
+		if err := db.DB.Exec(`
+			ALTER TABLE livekit_tracks
+			ALTER COLUMN audio_features TYPE jsonb
+			USING CASE
+				WHEN audio_features IS NULL THEN NULL
+				ELSE to_jsonb(audio_features)
+			END
+		`).Error; err != nil {
+			return fmt.Errorf("failed to convert audio_features to jsonb: %w", err)
+		}
+
+		log.Println("  → Conversion successful")
+	} else if err == nil {
+		log.Printf("  → Column audio_features type is %s, no conversion needed", columnType)
+	} else {
+		log.Println("  → Column audio_features does not exist yet, will be created by AutoMigrate")
+	}
+
+	log.Println("✓ audio_features column check completed")
+
 	// Run AutoMigrate for all models
 	log.Println("→ Running AutoMigrate for all models...")
 
-	models := []interface{}{
+	dbModels := []interface{}{
 		&Department{},
 		&User{},
 		&Group{},
@@ -134,10 +179,10 @@ func (db *DB) RunMigrations() error {
 		&UploadedFile{},
 		&FileTranscription{},
 		&DocumentChunk{},
-		&LiveKitRoom{},
-		&LiveKitParticipant{},
-		&LiveKitTrack{},
-		&LiveKitWebhookEvent{},
+		&models.Room{},
+		&models.Participant{},
+		&models.Track{},
+		&models.WebhookEventLog{},
 		&LiveKitEgress{},
 		&MeetingSubject{},
 		&Meeting{},
@@ -146,7 +191,7 @@ func (db *DB) RunMigrations() error {
 		&PasswordResetToken{},
 	}
 
-	if err := db.AutoMigrate(models...); err != nil {
+	if err := db.AutoMigrate(dbModels...); err != nil {
 		return fmt.Errorf("failed to run auto migrations: %w", err)
 	}
 	log.Println("✓ AutoMigrate completed successfully")
