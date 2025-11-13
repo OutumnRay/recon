@@ -132,7 +132,7 @@ type Track struct {
 	// Аудио функции
 	AudioFeatures    []string        `gorm:"-" json:"audioFeatures,omitempty" db:"-"`
 	// Аудио функции в формате JSON (для БД)
-	AudioFeaturesJSON string         `gorm:"column:audio_features;type:jsonb" json:"-" db:"audio_features"`
+	AudioFeaturesJSON json.RawMessage `gorm:"column:audio_features;type:jsonb" json:"-" db:"audio_features"`
 	// Политика резервного кодека
 	BackupCodecPolicy string         `gorm:"column:backup_codec_policy;type:varchar(100)" json:"backupCodecPolicy,omitempty" db:"backup_codec_policy"`
 	// Статус дорожки (published, unpublished)
