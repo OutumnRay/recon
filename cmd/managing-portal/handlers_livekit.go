@@ -126,7 +126,10 @@ func (mp *ManagingPortal) liveKitWebhookHandler(w http.ResponseWriter, r *http.R
 }
 
 func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
+	mp.logger.Infof("🏠 Processing room_started event...")
+
 	if req.Room == nil {
+		mp.logger.Errorf("❌ Room data is missing in webhook request")
 		return fmt.Errorf("room data is missing")
 	}
 
@@ -141,9 +144,11 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	// Extract room data
 	if sid, ok := req.Room["sid"].(string); ok {
 		room.SID = sid
+		mp.logger.Infof("  📌 Room SID: %s", sid)
 	}
 	if name, ok := req.Room["name"].(string); ok {
 		room.Name = name
+		mp.logger.Infof("  📌 Room Name: %s", name)
 	}
 	if emptyTimeout, ok := req.Room["emptyTimeout"].(float64); ok {
 		room.EmptyTimeout = int(emptyTimeout)
@@ -173,9 +178,12 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	}
 
 	// Save room to database
+	mp.logger.Infof("💾 Saving room to database...")
 	if err := mp.liveKitRepo.CreateRoom(room); err != nil {
+		mp.logger.Errorf("❌ Failed to save room to database: %v", err)
 		return err
 	}
+	mp.logger.Infof("✅ Room saved successfully (DB ID: %s, SID: %s)", room.ID, room.SID)
 
 	// Link room to meeting if room.Name is a valid UUID (meeting ID)
 	var needsVideoRecord bool
@@ -210,35 +218,48 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	}
 
 	// Start room composite egress recording if enabled in meeting settings
-	mp.logger.Infof("Checking egress requirements: needsVideoRecord=%v, needsAudioRecord=%v", needsVideoRecord, needsAudioRecord)
+	mp.logger.Infof("📹 Checking room egress requirements...")
+	mp.logger.Infof("  • Video Recording: %v", needsVideoRecord)
+	mp.logger.Infof("  • Audio Recording: %v", needsAudioRecord)
+	mp.logger.Infof("  • Room Name: %s", room.Name)
 
 	if room.Name != "" && (needsVideoRecord || needsAudioRecord) {
 		// If video is not needed, record audio only
 		audioOnly := !needsVideoRecord && needsAudioRecord
 
-		mp.logger.Infof("Starting room composite egress for room '%s' (audioOnly=%v)...", room.Name, audioOnly)
+		mp.logger.Infof("🚀 Starting room composite egress for room '%s' (audioOnly=%v)...", room.Name, audioOnly)
 		egressID, err := mp.startRoomCompositeEgress(room.Name, audioOnly)
 		if err != nil {
-			mp.logger.Errorf("Failed to start room composite egress: %v", err)
+			mp.logger.Errorf("❌ Failed to start room composite egress: %v", err)
 		} else if egressID != "" {
-			mp.logger.Infof("✅ Started room composite egress (audioOnly=%v): %s", audioOnly, egressID)
+			mp.logger.Infof("✅ Room egress started successfully: %s (audioOnly=%v)", egressID, audioOnly)
 			// Update room with egress ID
 			room.EgressID = egressID
 			if err := mp.liveKitRepo.CreateRoom(room); err != nil {
-				mp.logger.Errorf("Failed to update room with egress ID: %v", err)
+				mp.logger.Errorf("❌ Failed to update room with egress ID: %v", err)
+			} else {
+				mp.logger.Infof("✅ Room updated with egress ID")
 			}
 		} else {
-			mp.logger.Infof("❌ Egress not started (disabled in config or returned empty ID)")
+			mp.logger.Infof("⚠️ Room egress not started (disabled in config or returned empty ID)")
 		}
 	} else {
-		mp.logger.Infof("❌ Egress not started: room.Name='%s', needsVideoRecord=%v, needsAudioRecord=%v", room.Name, needsVideoRecord, needsAudioRecord)
+		mp.logger.Infof("ℹ️ Room egress skipped:")
+		mp.logger.Infof("  • Room Name: '%s' (empty=%v)", room.Name, room.Name == "")
+		mp.logger.Infof("  • Video needed: %v", needsVideoRecord)
+		mp.logger.Infof("  • Audio needed: %v", needsAudioRecord)
+		mp.logger.Infof("  • Any recording needed: %v", needsVideoRecord || needsAudioRecord)
 	}
 
+	mp.logger.Infof("✅ room_started event processed successfully")
 	return nil
 }
 
 func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) error {
+	mp.logger.Infof("👤 Processing participant_joined event...")
+
 	if req.Participant == nil {
+		mp.logger.Errorf("❌ Participant data is missing in webhook request")
 		return fmt.Errorf("participant data is missing")
 	}
 
@@ -252,15 +273,19 @@ func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) err
 	// Extract participant data
 	if sid, ok := req.Participant["sid"].(string); ok {
 		participant.SID = sid
+		mp.logger.Infof("  📌 Participant SID: %s", sid)
 	}
 	if identity, ok := req.Participant["identity"].(string); ok {
 		participant.Identity = identity
+		mp.logger.Infof("  📌 Identity: %s", identity)
 	}
 	if name, ok := req.Participant["name"].(string); ok {
 		participant.Name = name
+		mp.logger.Infof("  📌 Name: %s", name)
 	}
 	if state, ok := req.Participant["state"].(string); ok {
 		participant.State = state
+		mp.logger.Infof("  📌 State: %s", state)
 	}
 	if joinedAt, ok := req.Participant["joinedAt"].(string); ok {
 		participant.JoinedAt = joinedAt
@@ -285,14 +310,25 @@ func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) err
 	if req.Room != nil {
 		if roomSID, ok := req.Room["sid"].(string); ok {
 			participant.RoomSID = roomSID
+			mp.logger.Infof("  📌 Room SID: %s", roomSID)
 		}
 	}
 
-	return mp.liveKitRepo.CreateParticipant(participant)
+	mp.logger.Infof("💾 Saving participant to database...")
+	if err := mp.liveKitRepo.CreateParticipant(participant); err != nil {
+		mp.logger.Errorf("❌ Failed to save participant: %v", err)
+		return err
+	}
+	mp.logger.Infof("✅ Participant saved successfully (DB ID: %s, SID: %s, Identity: %s)", participant.ID, participant.SID, participant.Identity)
+	mp.logger.Infof("✅ participant_joined event processed successfully")
+	return nil
 }
 
 func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error {
+	mp.logger.Infof("🎬 Processing track_published event...")
+
 	if req.Track == nil {
+		mp.logger.Errorf("❌ Track data is missing in webhook request")
 		return fmt.Errorf("track data is missing")
 	}
 
@@ -307,15 +343,19 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	// Extract track data
 	if sid, ok := req.Track["sid"].(string); ok {
 		track.SID = sid
+		mp.logger.Infof("  📌 Track SID: %s", sid)
 	}
 	if trackType, ok := req.Track["type"].(string); ok {
 		track.Type = trackType
+		mp.logger.Infof("  📌 Track Type: %s", trackType)
 	}
 	if source, ok := req.Track["source"].(string); ok {
 		track.Source = source
+		mp.logger.Infof("  📌 Track Source: %s", source)
 	}
 	if mimeType, ok := req.Track["mimeType"].(string); ok {
 		track.MimeType = mimeType
+		mp.logger.Infof("  📌 MIME Type: %s", mimeType)
 	}
 	if mid, ok := req.Track["mid"].(string); ok {
 		track.Mid = mid
@@ -328,6 +368,9 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	}
 	if simulcast, ok := req.Track["simulcast"].(bool); ok {
 		track.Simulcast = simulcast
+		if simulcast {
+			mp.logger.Infof("  📌 Simulcast: enabled")
+		}
 	}
 	if stream, ok := req.Track["stream"].(string); ok {
 		track.Stream = stream
@@ -340,12 +383,14 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	if layers, ok := req.Track["layers"]; ok {
 		layersJSON, _ := json.Marshal(layers)
 		track.Layers = layersJSON
+		mp.logger.Infof("  📌 Layers: %d layer(s) configured", len(layers.([]interface{})))
 	}
 
 	// Marshal codecs as JSON
 	if codecs, ok := req.Track["codecs"]; ok {
 		codecsJSON, _ := json.Marshal(codecs)
 		track.Codecs = codecsJSON
+		mp.logger.Infof("  📌 Codecs: %d codec(s) configured", len(codecs.([]interface{})))
 	}
 
 	// Marshal version as JSON
@@ -356,58 +401,84 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 
 	// Extract audio features
 	if audioFeatures, ok := req.Track["audioFeatures"].([]interface{}); ok {
+		mp.logger.Infof("  📌 Audio Features found: %d feature(s)", len(audioFeatures))
 		for _, feature := range audioFeatures {
 			if featureStr, ok := feature.(string); ok {
 				track.AudioFeatures = append(track.AudioFeatures, featureStr)
+				mp.logger.Infof("    ✓ %s", featureStr)
 			}
 		}
 	}
 
 	// Extract participant SID
+	var participantSID string
 	if req.Participant != nil {
-		if participantSID, ok := req.Participant["sid"].(string); ok {
-			track.ParticipantSID = participantSID
+		if sid, ok := req.Participant["sid"].(string); ok {
+			track.ParticipantSID = sid
+			participantSID = sid
+			mp.logger.Infof("  📌 Participant SID: %s", sid)
 		}
 	}
 
 	// Extract room SID and room name
 	var roomName string
 	if req.Room != nil {
-		if roomSID, ok := req.Room["sid"].(string); ok {
-			track.RoomSID = roomSID
+		if sid, ok := req.Room["sid"].(string); ok {
+			track.RoomSID = sid
+			mp.logger.Infof("  📌 Room SID: %s", sid)
 		}
 		if name, ok := req.Room["name"].(string); ok {
 			roomName = name
+			mp.logger.Infof("  📌 Room Name: %s", name)
 		}
 	}
 
 	// Save track to database
+	mp.logger.Infof("💾 Saving track to database...")
 	if err := mp.liveKitRepo.CreateTrack(track); err != nil {
+		mp.logger.Errorf("❌ Failed to save track to database: %v", err)
 		return err
 	}
+	mp.logger.Infof("✅ Track saved successfully (DB ID: %s)", track.ID)
+
+	// Log track summary
+	mp.logger.Infof("📊 Track Summary: SID=%s | Source=%s | Type=%s | Room=%s | Participant=%s | MimeType=%s",
+		track.SID, track.Source, track.Type, roomName, participantSID, track.MimeType)
 
 	// Start track egress recording for MICROPHONE audio tracks
-	mp.logger.Infof("Track published: SID=%s, Source=%s, Type=%s, RoomName=%s", track.SID, track.Source, track.Type, roomName)
+	if track.Source == "MICROPHONE" {
+		mp.logger.Infof("🎤 MICROPHONE track detected - checking egress eligibility...")
+		mp.logger.Infof("  ✓ Track Source: MICROPHONE")
+		mp.logger.Infof("  ✓ Room Name: %s (empty=%v)", roomName, roomName == "")
+		mp.logger.Infof("  ✓ Track SID: %s (empty=%v)", track.SID, track.SID == "")
 
-	if track.Source == "MICROPHONE" && roomName != "" && track.SID != "" {
-		mp.logger.Infof("Starting track composite egress for MICROPHONE track %s in room '%s'...", track.SID, roomName)
-		egressID, err := mp.startTrackCompositeEgress(roomName, track.SID)
-		if err != nil {
-			mp.logger.Errorf("Failed to start track composite egress: %v", err)
-		} else if egressID != "" {
-			mp.logger.Infof("✅ Started track composite egress: %s for track %s", egressID, track.SID)
-			// Update track with egress ID
-			track.EgressID = egressID
-			if err := mp.liveKitRepo.CreateTrack(track); err != nil {
-				mp.logger.Errorf("Failed to update track with egress ID: %v", err)
+		if roomName != "" && track.SID != "" {
+			mp.logger.Infof("🚀 Starting track composite egress for MICROPHONE track %s in room '%s'...", track.SID, roomName)
+			egressID, err := mp.startTrackCompositeEgress(roomName, track.SID)
+			if err != nil {
+				mp.logger.Errorf("❌ Failed to start track composite egress: %v", err)
+			} else if egressID != "" {
+				mp.logger.Infof("✅ Track egress started successfully: %s (track: %s)", egressID, track.SID)
+				// Update track with egress ID
+				track.EgressID = egressID
+				if err := mp.liveKitRepo.CreateTrack(track); err != nil {
+					mp.logger.Errorf("❌ Failed to update track with egress ID: %v", err)
+				} else {
+					mp.logger.Infof("✅ Track updated with egress ID")
+				}
+			} else {
+				mp.logger.Infof("⚠️ Track egress not started (disabled in config or returned empty ID)")
 			}
 		} else {
-			mp.logger.Infof("❌ Track egress not started (disabled in config or returned empty ID)")
+			mp.logger.Infof("⚠️ Track egress not started - missing required data:")
+			mp.logger.Infof("  • Room Name empty: %v", roomName == "")
+			mp.logger.Infof("  • Track SID empty: %v", track.SID == "")
 		}
 	} else {
-		mp.logger.Infof("❌ Track egress not started: Source=%s, RoomName=%s, TrackSID=%s", track.Source, roomName, track.SID)
+		mp.logger.Infof("ℹ️ Track egress skipped - not a MICROPHONE source (Source=%s)", track.Source)
 	}
 
+	mp.logger.Infof("✅ track_published event processed successfully")
 	return nil
 }
 

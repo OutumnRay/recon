@@ -232,10 +232,13 @@ func (r *LiveKitRepository) CreateTrack(track *models.Track) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal audio features: %w", err)
 		}
+		fmt.Printf("[LiveKit Repository] Updating audio_features for track %s: %s -> JSON: %s\n", track.SID, track.AudioFeatures, string(audioFeaturesJSON))
 		err = r.db.DB.Model(track).Update("audio_features", audioFeaturesJSON).Error
 		if err != nil {
+			fmt.Printf("[LiveKit Repository] ERROR updating audio_features: %v\n", err)
 			return fmt.Errorf("failed to update audio features: %w", err)
 		}
+		fmt.Printf("[LiveKit Repository] Successfully updated audio_features for track %s\n", track.SID)
 	}
 
 	return nil
