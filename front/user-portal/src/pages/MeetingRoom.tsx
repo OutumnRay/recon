@@ -256,8 +256,17 @@ export default function MeetingRoom() {
       try {
         const meeting = await getMeeting(meetingId);
         setMeetingTitle(meeting.title);
+
+        // Show indicators based only on runtime state (is_recording / is_transcribing)
+        // The needs_* fields are only used for initial auto-start
         setIsRecording(meeting.is_recording || false);
         setIsTranscribing(meeting.is_transcribing || false);
+
+        console.log('[Meeting Settings] needs_video_record:', meeting.needs_video_record);
+        console.log('[Meeting Settings] needs_audio_record:', meeting.needs_audio_record);
+        console.log('[Meeting Settings] needs_transcription:', meeting.needs_transcription);
+        console.log('[Meeting Settings] is_recording:', meeting.is_recording);
+        console.log('[Meeting Settings] is_transcribing:', meeting.is_transcribing);
       } catch (err) {
         console.error('Failed to load meeting details:', err);
       }

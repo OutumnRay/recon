@@ -30,6 +30,8 @@ export interface Meeting {
   needs_video_record: boolean;
   needs_audio_record: boolean;
   needs_transcription: boolean;
+  is_recording: boolean;
+  is_transcribing: boolean;
   additional_notes: string;
   force_end_at_duration: boolean;
   livekit_room_id?: string;
@@ -91,6 +93,8 @@ export interface MeetingWithDetails {
   needs_video_record: boolean;
   needs_audio_record: boolean;
   needs_transcription: boolean;
+  is_recording: boolean;
+  is_transcribing: boolean;
   additional_notes: string;
   force_end_at_duration: boolean;
   livekit_room_id?: string;

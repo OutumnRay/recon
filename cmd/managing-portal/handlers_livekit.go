@@ -219,6 +219,27 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 					needsAudioRecord = true
 					mp.logger.Infof("Video recording enabled, automatically enabling audio recording")
 				}
+
+				// Auto-enable is_recording and is_transcribing based on needs_* settings
+				// This allows user to start with enabled recording/transcription and then manually control it
+				updateNeeded := false
+				if (needsVideoRecord || needsAudioRecord) && !meeting.IsRecording {
+					meeting.IsRecording = true
+					updateNeeded = true
+					mp.logger.Infof("Auto-enabling is_recording for meeting %s (needs_video=%v, needs_audio=%v)",
+						meetingID, needsVideoRecord, needsAudioRecord)
+				}
+				if needsTranscription && !meeting.IsTranscribing {
+					meeting.IsTranscribing = true
+					updateNeeded = true
+					mp.logger.Infof("Auto-enabling is_transcribing for meeting %s (needs_transcription=%v)",
+						meetingID, needsTranscription)
+				}
+				if updateNeeded {
+					if err := mp.meetingRepo.UpdateMeeting(meeting); err != nil {
+						mp.logger.Errorf("Failed to update meeting recording state: %v", err)
+					}
+				}
 			} else {
 				mp.logger.Errorf("Failed to find meeting %s for room linking: %v", meetingID, err)
 			}
@@ -687,9 +708,8 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 		}
 	}
 
-	// Удаляем настройки комнаты из памяти
-	mp.deleteRoomSettings(roomSID)
-	mp.logger.Infof("🗑️ Room settings deleted for room: %s", roomSID)
+	// Room settings are no longer cached in memory, they are read from database
+	mp.logger.Infof("🗑️ Room finished: %s", roomSID)
 
 	mp.logger.Infof("💾 Marking room as finished in database...")
 	if err := mp.liveKitRepo.FinishRoom(roomSID); err != nil {
