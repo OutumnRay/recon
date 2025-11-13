@@ -271,7 +271,7 @@ func (r *LiveKitRepository) GetTrackBySID(sid string) (*models.Track, error) {
 	}
 
 	// Load AudioFeatures using pq.Array
-	if track.AudioFeaturesJSON != "" {
+	if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
 		err = r.db.DB.Model(track).Select("audio_features").Scan(pq.Array(&track.AudioFeatures)).Error
 		if err != nil {
 			return nil, fmt.Errorf("failed to load audio features: %w", err)
@@ -292,7 +292,7 @@ func (r *LiveKitRepository) ListTracksByParticipant(participantSID string) ([]*m
 
 	// Load AudioFeatures for each track
 	for _, track := range tracks {
-		if track.AudioFeaturesJSON != "" {
+		if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
 			err = r.db.DB.Model(track).Select("audio_features").Scan(pq.Array(&track.AudioFeatures)).Error
 			if err != nil {
 				return nil, fmt.Errorf("failed to load audio features: %w", err)
@@ -314,7 +314,7 @@ func (r *LiveKitRepository) ListTracksByRoom(roomSID string) ([]*models.Track, e
 
 	// Load AudioFeatures for each track
 	for _, track := range tracks {
-		if track.AudioFeaturesJSON != "" {
+		if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
 			err = r.db.DB.Model(track).Select("audio_features").Scan(pq.Array(&track.AudioFeatures)).Error
 			if err != nil {
 				return nil, fmt.Errorf("failed to load audio features: %w", err)
