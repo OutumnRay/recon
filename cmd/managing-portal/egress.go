@@ -18,14 +18,12 @@ type EgressConfig struct {
 	S3AccessKey    string
 	S3Secret       string
 	S3Region       string
-	AudioOnly      bool
 	RecordTracks   bool
 }
 
 // loadEgressConfig загружает конфигурацию Egress из переменных окружения
 func loadEgressConfig() EgressConfig {
 	enabled, _ := strconv.ParseBool(os.Getenv("LIVEKIT_EGRESS_ENABLED"))
-	audioOnly, _ := strconv.ParseBool(os.Getenv("LIVEKIT_EGRESS_AUDIO_ONLY"))
 	recordTracks, _ := strconv.ParseBool(os.Getenv("LIVEKIT_EGRESS_RECORD_TRACKS"))
 
 	return EgressConfig{
@@ -35,13 +33,12 @@ func loadEgressConfig() EgressConfig {
 		S3AccessKey:  os.Getenv("LIVEKIT_EGRESS_S3_ACCESS_KEY"),
 		S3Secret:     os.Getenv("LIVEKIT_EGRESS_S3_SECRET"),
 		S3Region:     os.Getenv("LIVEKIT_EGRESS_S3_REGION"),
-		AudioOnly:    audioOnly,
 		RecordTracks: recordTracks,
 	}
 }
 
 // startRoomCompositeEgress запускает запись всей комнаты
-func (mp *ManagingPortal) startRoomCompositeEgress(roomName string) (string, error) {
+func (mp *ManagingPortal) startRoomCompositeEgress(roomName string, audioOnly bool) (string, error) {
 	config := loadEgressConfig()
 
 	if !config.Enabled {
@@ -59,11 +56,11 @@ func (mp *ManagingPortal) startRoomCompositeEgress(roomName string) (string, err
 	req := &livekit.RoomCompositeEgressRequest{
 		RoomName:  roomName,
 		Layout:    "speaker",
-		AudioOnly: config.AudioOnly,
+		AudioOnly: audioOnly,
 	}
 
 	// Настройки кодирования
-	if config.AudioOnly {
+	if audioOnly {
 		req.Options = &livekit.RoomCompositeEgressRequest_Preset{
 			Preset: livekit.EncodingOptionsPreset_H264_720P_30,
 		}

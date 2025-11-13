@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"Recontext.online/internal/models"
-	"Recontext.online/pkg/database"
 	"github.com/google/uuid"
 )
 
@@ -180,6 +178,9 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	}
 
 	// Link room to meeting if room.Name is a valid UUID (meeting ID)
+	var needsVideoRecord bool
+	var needsAudioRecord bool
+
 	if room.Name != "" {
 		if meetingID, err := uuid.Parse(room.Name); err == nil {
 			// Find meeting by ID and update its LiveKitRoomID
@@ -192,19 +193,26 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 				} else {
 					mp.logger.Infof("Successfully linked meeting %s to LiveKit room %s (SID: %s)", meetingID, room.ID, room.SID)
 				}
+
+				// Get recording settings from meeting
+				needsVideoRecord = meeting.NeedsVideoRecord
+				needsAudioRecord = meeting.NeedsAudioRecord
 			} else {
 				mp.logger.Errorf("Failed to find meeting %s for room linking: %v", meetingID, err)
 			}
 		}
 	}
 
-	// Start room composite egress recording
-	if room.Name != "" {
-		egressID, err := mp.startRoomCompositeEgress(room.Name)
+	// Start room composite egress recording if enabled in meeting settings
+	if room.Name != "" && (needsVideoRecord || needsAudioRecord) {
+		// If video is not needed, record audio only
+		audioOnly := !needsVideoRecord && needsAudioRecord
+
+		egressID, err := mp.startRoomCompositeEgress(room.Name, audioOnly)
 		if err != nil {
 			mp.logger.Errorf("Failed to start room composite egress: %v", err)
 		} else if egressID != "" {
-			mp.logger.Infof("Started room composite egress: %s", egressID)
+			mp.logger.Infof("Started room composite egress (audioOnly=%v): %s", audioOnly, egressID)
 			// Update room with egress ID
 			room.EgressID = egressID
 			if err := mp.liveKitRepo.CreateRoom(room); err != nil {

@@ -37,7 +37,6 @@ services:
       - LIVEKIT_EGRESS_S3_ACCESS_KEY=minioadmin
       - LIVEKIT_EGRESS_S3_SECRET=minioadmin
       - LIVEKIT_EGRESS_S3_REGION=
-      - LIVEKIT_EGRESS_AUDIO_ONLY=true
       - LIVEKIT_EGRESS_RECORD_TRACKS=true
       # SMTP Configuration for email sending
       - SMTP_HOST=smtp.timeweb.ru
@@ -90,7 +89,6 @@ services:
       - LIVEKIT_EGRESS_S3_ACCESS_KEY=minioadmin
       - LIVEKIT_EGRESS_S3_SECRET=minioadmin
       - LIVEKIT_EGRESS_S3_REGION=
-      - LIVEKIT_EGRESS_AUDIO_ONLY=true
       - LIVEKIT_EGRESS_RECORD_TRACKS=true
       # SMTP Configuration for email sending
       - SMTP_HOST=smtp.timeweb.ru
