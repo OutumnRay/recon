@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -71,6 +72,13 @@ type ManagingPortal struct {
 	logs              []models.LogEntry              // In-memory logs store
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
 	prometheusClient  *prometheus.Client             // Prometheus query client
+	roomSettings      map[string]*RoomSettings       // Room-specific settings (roomSID -> settings)
+	roomSettingsMu    sync.RWMutex                   // Mutex for roomSettings
+}
+
+// RoomSettings хранит настройки для конкретной комнаты
+type RoomSettings struct {
+	NeedsTranscription bool
 }
 
 func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal, error) {
@@ -138,7 +146,29 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 		logs:              make([]models.LogEntry, 0),
 		prometheusMetrics: metrics.NewServiceMetrics("managing_portal"),
 		prometheusClient:  prometheusClient,
+		roomSettings:      make(map[string]*RoomSettings),
 	}, nil
+}
+
+// setRoomSettings сохраняет настройки для комнаты
+func (mp *ManagingPortal) setRoomSettings(roomSID string, settings *RoomSettings) {
+	mp.roomSettingsMu.Lock()
+	defer mp.roomSettingsMu.Unlock()
+	mp.roomSettings[roomSID] = settings
+}
+
+// getRoomSettings получает настройки для комнаты
+func (mp *ManagingPortal) getRoomSettings(roomSID string) *RoomSettings {
+	mp.roomSettingsMu.RLock()
+	defer mp.roomSettingsMu.RUnlock()
+	return mp.roomSettings[roomSID]
+}
+
+// deleteRoomSettings удаляет настройки для комнаты
+func (mp *ManagingPortal) deleteRoomSettings(roomSID string) {
+	mp.roomSettingsMu.Lock()
+	defer mp.roomSettingsMu.Unlock()
+	delete(mp.roomSettings, roomSID)
 }
 
 func getEnv(key, defaultValue string) string {

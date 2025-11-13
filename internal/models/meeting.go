@@ -74,6 +74,8 @@ type Meeting struct {
 	NeedsVideoRecord     bool              `json:"needs_video_record" db:"needs_video_record"`
 	// Требуется ли аудиозапись
 	NeedsAudioRecord     bool              `json:"needs_audio_record" db:"needs_audio_record"`
+	// Требуется ли транскрибация (запись отдельных аудио треков участников)
+	NeedsTranscription   bool              `json:"needs_transcription" db:"needs_transcription"`
 	// Дополнительные заметки
 	AdditionalNotes      string            `json:"additional_notes" db:"additional_notes"`
 	// Принудительно завершить встречу после истечения времени
@@ -180,6 +182,8 @@ type CreateMeetingRequest struct {
 	NeedsVideoRecord   bool              `json:"needs_video_record" example:"true"`
 	// Требуется ли аудиозапись
 	NeedsAudioRecord   bool              `json:"needs_audio_record" example:"true"`
+	// Требуется ли транскрибация
+	NeedsTranscription bool              `json:"needs_transcription" example:"true"`
 	// Дополнительные заметки
 	AdditionalNotes    string            `json:"additional_notes" example:"Подготовить отчеты"`
 	// Принудительно завершить встречу после истечения времени
@@ -212,6 +216,8 @@ type UpdateMeetingRequest struct {
 	NeedsVideoRecord   *bool              `json:"needs_video_record,omitempty" example:"true"`
 	// Требуется ли аудиозапись
 	NeedsAudioRecord   *bool              `json:"needs_audio_record,omitempty" example:"true"`
+	// Требуется ли транскрибация
+	NeedsTranscription *bool              `json:"needs_transcription,omitempty" example:"true"`
 	// Дополнительные заметки
 	AdditionalNotes    *string            `json:"additional_notes,omitempty" example:"Обновленные комментарии"`
 	// Принудительно завершить встречу после истечения времени

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"Recontext.online/internal/models"
@@ -188,6 +189,7 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	// Link room to meeting if room.Name is a valid UUID (meeting ID)
 	var needsVideoRecord bool
 	var needsAudioRecord bool
+	var needsTranscription bool
 
 	if room.Name != "" {
 		mp.logger.Infof("Checking if room name '%s' is a meeting ID...", room.Name)
@@ -196,7 +198,8 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 			// Find meeting by ID and update its LiveKitRoomID
 			meeting, err := mp.meetingRepo.GetMeetingByID(meetingID)
 			if err == nil {
-				mp.logger.Infof("Found meeting %s: NeedsVideoRecord=%v, NeedsAudioRecord=%v", meetingID, meeting.NeedsVideoRecord, meeting.NeedsAudioRecord)
+				mp.logger.Infof("Found meeting %s: NeedsVideoRecord=%v, NeedsAudioRecord=%v, NeedsTranscription=%v",
+					meetingID, meeting.NeedsVideoRecord, meeting.NeedsAudioRecord, meeting.NeedsTranscription)
 
 				// Link meeting to the room ID (not SID - SID is a string like RM_xxx)
 				meeting.LiveKitRoomID = &room.ID
@@ -209,6 +212,19 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 				// Get recording settings from meeting
 				needsVideoRecord = meeting.NeedsVideoRecord
 				needsAudioRecord = meeting.NeedsAudioRecord
+				needsTranscription = meeting.NeedsTranscription
+
+				// Если включено видео, автоматически включаем аудио
+				if needsVideoRecord {
+					needsAudioRecord = true
+					mp.logger.Infof("Video recording enabled, automatically enabling audio recording")
+				}
+
+				// Сохраняем настройки транскрибации для этой комнаты
+				mp.setRoomSettings(room.SID, &RoomSettings{
+					NeedsTranscription: needsTranscription,
+				})
+				mp.logger.Infof("Room settings saved: NeedsTranscription=%v", needsTranscription)
 			} else {
 				mp.logger.Errorf("Failed to find meeting %s for room linking: %v", meetingID, err)
 			}
@@ -445,15 +461,26 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	mp.logger.Infof("📊 Track Summary: SID=%s | Source=%s | Type=%s | Room=%s | Participant=%s | MimeType=%s",
 		track.SID, track.Source, track.Type, roomName, participantSID, track.MimeType)
 
-	// Start track egress recording for MICROPHONE audio tracks
-	if track.Source == "MICROPHONE" {
-		mp.logger.Infof("🎤 MICROPHONE track detected - checking egress eligibility...")
-		mp.logger.Infof("  ✓ Track Source: MICROPHONE")
+	// Проверяем настройки транскрибации для комнаты
+	roomSettings := mp.getRoomSettings(track.RoomSID)
+	needsTranscription := roomSettings != nil && roomSettings.NeedsTranscription
+
+	mp.logger.Infof("📝 Room transcription settings: NeedsTranscription=%v (RoomSID=%s)", needsTranscription, track.RoomSID)
+
+	// Start track egress recording for audio tracks if transcription is enabled
+	isAudioTrack := track.Source == "MICROPHONE" || (track.Source == "SCREEN_SHARE_AUDIO") ||
+		(track.MimeType != "" && strings.HasPrefix(track.MimeType, "audio/"))
+
+	if isAudioTrack && needsTranscription {
+		mp.logger.Infof("🎤 Audio track detected with transcription enabled - checking egress eligibility...")
+		mp.logger.Infof("  ✓ Track Source: %s", track.Source)
+		mp.logger.Infof("  ✓ MIME Type: %s", track.MimeType)
 		mp.logger.Infof("  ✓ Room Name: %s (empty=%v)", roomName, roomName == "")
 		mp.logger.Infof("  ✓ Track SID: %s (empty=%v)", track.SID, track.SID == "")
+		mp.logger.Infof("  ✓ Transcription needed: %v", needsTranscription)
 
 		if roomName != "" && track.SID != "" {
-			mp.logger.Infof("🚀 Starting track composite egress for MICROPHONE track %s in room '%s'...", track.SID, roomName)
+			mp.logger.Infof("🚀 Starting track composite egress for audio track %s in room '%s'...", track.SID, roomName)
 			egressID, err := mp.startTrackCompositeEgress(roomName, track.SID)
 			if err != nil {
 				mp.logger.Errorf("❌ Failed to start track composite egress: %v", err)
@@ -475,7 +502,11 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 			mp.logger.Infof("  • Track SID empty: %v", track.SID == "")
 		}
 	} else {
-		mp.logger.Infof("ℹ️ Track egress skipped - not a MICROPHONE source (Source=%s)", track.Source)
+		if !isAudioTrack {
+			mp.logger.Infof("ℹ️ Track egress skipped - not an audio track (Source=%s, MimeType=%s)", track.Source, track.MimeType)
+		} else {
+			mp.logger.Infof("ℹ️ Track egress skipped - transcription not enabled for this room (NeedsTranscription=%v)", needsTranscription)
+		}
 	}
 
 	mp.logger.Infof("✅ track_published event processed successfully")
@@ -483,62 +514,136 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 }
 
 func (mp *ManagingPortal) handleTrackUnpublished(req models.WebhookRequest) error {
+	mp.logger.Infof("🔴 Processing track_unpublished event...")
+
 	if req.Track == nil {
+		mp.logger.Errorf("❌ Track data is missing in webhook request")
 		return fmt.Errorf("track data is missing")
 	}
 
 	var trackSID string
 	if sid, ok := req.Track["sid"].(string); ok {
 		trackSID = sid
+		mp.logger.Infof("  📌 Track SID: %s", sid)
 	} else {
+		mp.logger.Errorf("❌ Track SID is missing")
 		return fmt.Errorf("track SID is missing")
 	}
 
-	// Get track to find egress ID
-	track, err := mp.liveKitRepo.GetTrackBySID(trackSID)
-	if err != nil {
-		mp.logger.Errorf("Failed to get track for unpublish: %v", err)
-	} else if track.EgressID != "" {
-		// Stop track egress recording
-		if err := mp.stopEgress(track.EgressID); err != nil {
-			mp.logger.Errorf("Failed to stop track egress %s: %v", track.EgressID, err)
-		} else {
-			mp.logger.Infof("Stopped track egress: %s", track.EgressID)
+	// Extract room info for logging
+	var roomSID string
+	if req.Room != nil {
+		if sid, ok := req.Room["sid"].(string); ok {
+			roomSID = sid
+			mp.logger.Infof("  📌 Room SID: %s", sid)
+		}
+		if name, ok := req.Room["name"].(string); ok {
+			mp.logger.Infof("  📌 Room Name: %s", name)
 		}
 	}
 
-	return mp.liveKitRepo.UnpublishTrack(trackSID)
+	// Extract participant info for logging
+	var participantSID string
+	if req.Participant != nil {
+		if sid, ok := req.Participant["sid"].(string); ok {
+			participantSID = sid
+			mp.logger.Infof("  📌 Participant SID: %s", sid)
+		}
+	}
+
+	// Get track to find egress ID
+	mp.logger.Infof("🔍 Looking up track in database...")
+	track, err := mp.liveKitRepo.GetTrackBySID(trackSID)
+	if err != nil {
+		mp.logger.Errorf("❌ Failed to get track for unpublish: %v", err)
+		// Continue to mark as unpublished even if we can't stop egress
+	} else {
+		mp.logger.Infof("✅ Track found: Source=%s, Type=%s, MimeType=%s", track.Source, track.Type, track.MimeType)
+
+		if track.EgressID != "" {
+			// Stop track egress recording
+			mp.logger.Infof("🛑 Stopping track egress: %s (track: %s)", track.EgressID, trackSID)
+			if err := mp.stopEgress(track.EgressID); err != nil {
+				mp.logger.Errorf("❌ Failed to stop track egress %s: %v", track.EgressID, err)
+			} else {
+				mp.logger.Infof("✅ Stopped track egress: %s", track.EgressID)
+			}
+		} else {
+			mp.logger.Infof("ℹ️ No egress ID found for track - nothing to stop")
+		}
+	}
+
+	mp.logger.Infof("💾 Marking track as unpublished in database...")
+	if err := mp.liveKitRepo.UnpublishTrack(trackSID); err != nil {
+		mp.logger.Errorf("❌ Failed to mark track as unpublished: %v", err)
+		return err
+	}
+
+	mp.logger.Infof("✅ track_unpublished event processed successfully (Track: %s, Room: %s, Participant: %s)",
+		trackSID, roomSID, participantSID)
+	return nil
 }
 
 func (mp *ManagingPortal) handleParticipantLeft(req models.WebhookRequest) error {
+	mp.logger.Infof("👋 Processing participant_left event...")
+
 	if req.Participant == nil {
+		mp.logger.Errorf("❌ Participant data is missing in webhook request")
 		return fmt.Errorf("participant data is missing")
 	}
 
 	var participantSID string
 	if sid, ok := req.Participant["sid"].(string); ok {
 		participantSID = sid
+		mp.logger.Infof("  📌 Participant SID: %s", sid)
 	} else {
+		mp.logger.Errorf("❌ Participant SID is missing")
 		return fmt.Errorf("participant SID is missing")
+	}
+
+	// Extract identity for logging
+	if identity, ok := req.Participant["identity"].(string); ok {
+		mp.logger.Infof("  📌 Identity: %s", identity)
+	}
+
+	// Extract room info for logging
+	if req.Room != nil {
+		if roomSID, ok := req.Room["sid"].(string); ok {
+			mp.logger.Infof("  📌 Room SID: %s", roomSID)
+		}
 	}
 
 	var disconnectReason string
 	if reason, ok := req.Participant["disconnectReason"].(string); ok {
 		disconnectReason = reason
+		mp.logger.Infof("  📌 Disconnect Reason: %s", reason)
 	}
 
-	return mp.liveKitRepo.UpdateParticipantLeft(participantSID, disconnectReason)
+	mp.logger.Infof("💾 Updating participant status in database...")
+	if err := mp.liveKitRepo.UpdateParticipantLeft(participantSID, disconnectReason); err != nil {
+		mp.logger.Errorf("❌ Failed to update participant: %v", err)
+		return err
+	}
+
+	mp.logger.Infof("✅ participant_left event processed successfully (Participant: %s, Reason: %s)",
+		participantSID, disconnectReason)
+	return nil
 }
 
 func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
+	mp.logger.Infof("🏁 Processing room_finished event...")
+
 	if req.Room == nil {
+		mp.logger.Errorf("❌ Room data is missing in webhook request")
 		return fmt.Errorf("room data is missing")
 	}
 
 	var roomSID string
 	if sid, ok := req.Room["sid"].(string); ok {
 		roomSID = sid
+		mp.logger.Infof("  📌 Room SID: %s", sid)
 	} else {
+		mp.logger.Errorf("❌ Room SID is missing")
 		return fmt.Errorf("room SID is missing")
 	}
 
@@ -548,30 +653,45 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 		mp.logger.Errorf("Failed to get room for finish: %v", err)
 	} else if room.EgressID != "" {
 		// Stop room egress recording
+		mp.logger.Infof("🛑 Stopping room egress: %s", room.EgressID)
 		if err := mp.stopEgress(room.EgressID); err != nil {
-			mp.logger.Errorf("Failed to stop room egress %s: %v", room.EgressID, err)
+			mp.logger.Errorf("❌ Failed to stop room egress %s: %v", room.EgressID, err)
 		} else {
-			mp.logger.Infof("Stopped room egress: %s", room.EgressID)
+			mp.logger.Infof("✅ Stopped room egress: %s", room.EgressID)
 		}
 	}
 
 	// Also stop all track egress for this room
+	mp.logger.Infof("🔍 Looking for track egress to stop...")
 	tracks, err := mp.liveKitRepo.ListTracksByRoom(roomSID)
 	if err != nil {
 		mp.logger.Errorf("Failed to get tracks for room finish: %v", err)
 	} else {
+		mp.logger.Infof("Found %d tracks in room", len(tracks))
 		for _, track := range tracks {
 			if track.EgressID != "" {
+				mp.logger.Infof("🛑 Stopping track egress: %s (track: %s)", track.EgressID, track.SID)
 				if err := mp.stopEgress(track.EgressID); err != nil {
-					mp.logger.Errorf("Failed to stop track egress %s: %v", track.EgressID, err)
+					mp.logger.Errorf("❌ Failed to stop track egress %s: %v", track.EgressID, err)
 				} else {
-					mp.logger.Infof("Stopped track egress: %s", track.EgressID)
+					mp.logger.Infof("✅ Stopped track egress: %s", track.EgressID)
 				}
 			}
 		}
 	}
 
-	return mp.liveKitRepo.FinishRoom(roomSID)
+	// Удаляем настройки комнаты из памяти
+	mp.deleteRoomSettings(roomSID)
+	mp.logger.Infof("🗑️ Room settings deleted for room: %s", roomSID)
+
+	mp.logger.Infof("💾 Marking room as finished in database...")
+	if err := mp.liveKitRepo.FinishRoom(roomSID); err != nil {
+		mp.logger.Errorf("❌ Failed to finish room: %v", err)
+		return err
+	}
+
+	mp.logger.Infof("✅ room_finished event processed successfully")
+	return nil
 }
 
 // GetLiveKitRooms godoc
