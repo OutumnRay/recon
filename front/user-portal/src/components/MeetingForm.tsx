@@ -86,6 +86,9 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   const [isPermanent, setIsPermanent] = useState(
     meeting?.is_permanent || false
   );
+  const [allowAnonymous, setAllowAnonymous] = useState(
+    meeting?.allow_anonymous || false
+  );
   const [additionalNotes, setAdditionalNotes] = useState(
     meeting?.additional_notes || ''
   );
@@ -275,6 +278,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           needs_transcription: needsTranscription,
           force_end_at_duration: forceEndAtDuration,
           is_permanent: isPermanent,
+          allow_anonymous: allowAnonymous,
           additional_notes: additionalNotes || undefined,
           speaker_id: type === 'presentation' ? speakerId : undefined,
           participant_ids: selectedUserIds,
@@ -297,6 +301,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           needs_transcription: needsTranscription,
           force_end_at_duration: forceEndAtDuration,
           is_permanent: isPermanent,
+          allow_anonymous: allowAnonymous,
           additional_notes: additionalNotes || undefined,
           speaker_id: type === 'presentation' ? speakerId : undefined,
           participant_ids: selectedUserIds,
@@ -564,6 +569,24 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 <LuClock className="checkbox-icon" /> {t('meetings.form.forceEndAtDuration')}
               </span>
             </label>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={allowAnonymous}
+                onChange={(e) => setAllowAnonymous(e.target.checked)}
+              />
+              <span className="checkbox-label">
+                {t('meetings.form.allowAnonymous')}
+              </span>
+            </label>
+            {allowAnonymous && (
+              <p className="form-help-text">
+                {t('meetings.form.allowAnonymousHelp')}
+              </p>
+            )}
           </div>
         </div>
 

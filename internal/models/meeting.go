@@ -87,6 +87,8 @@ type Meeting struct {
 	ForceEndAtDuration   bool              `json:"force_end_at_duration" db:"force_end_at_duration"`
 	// Постоянная встреча (всегда доступна)
 	IsPermanent          bool              `json:"is_permanent" db:"is_permanent"`
+	// Разрешить анонимные подключения к встрече
+	AllowAnonymous       bool              `json:"allow_anonymous" db:"allow_anonymous"`
 	// Ссылка на комнату LiveKit если встреча начата
 	LiveKitRoomID        *uuid.UUID        `json:"livekit_room_id,omitempty" db:"livekit_room_id"`
 	// Идентификатор пользователя, создавшего встречу

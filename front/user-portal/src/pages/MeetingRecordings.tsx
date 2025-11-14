@@ -2,18 +2,16 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMeeting, getMeetingRecordings } from '../services/meetings';
-import type { Meeting, RoomRecording, TrackRecording } from '../types/meeting';
+import type { Meeting, RoomRecording } from '../types/meeting';
 import HLSPlayer from '../components/HLSPlayer';
 import './MeetingRecordings.css';
 
 type SelectedRecording = {
-  type: 'room' | 'track';
   playlist_url: string;
   started_at: string;
   ended_at?: string;
   status: string;
-  participant?: TrackRecording['participant'];
-  participantId?: string;
+  audio_only: boolean;
 };
 
 export default function MeetingRecordings() {
@@ -23,30 +21,12 @@ export default function MeetingRecordings() {
   const locale = i18n.language?.startsWith('ru') ? 'ru-RU' : 'en-US';
   const formatDateTime = (value: string) => new Date(value).toLocaleString(locale);
   const formatTime = (value: string) => new Date(value).toLocaleTimeString(locale);
-  const getParticipantName = (
-    participant?: TrackRecording['participant'],
-    fallbackId?: string
-  ) => {
-    if (participant) {
-      if (participant.first_name && participant.last_name) {
-        return `${participant.first_name} ${participant.last_name}`;
-      }
-      return participant.username;
-    }
-    if (fallbackId) {
-      return t('meetingRecordings.participantFallback', { id: fallbackId.slice(0, 8) });
-    }
-    return t('meetingRecordings.participantTrack');
-  };
-
-  const getTrackLabel = (track: TrackRecording) => getParticipantName(track.participant, track.participant_id);
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [roomRecordings, setRoomRecordings] = useState<RoomRecording[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<SelectedRecording | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showTracks, setShowTracks] = useState(false);
 
   useEffect(() => {
     if (!meetingId) return;
@@ -63,29 +43,16 @@ export default function MeetingRecordings() {
         const recordingsData = await getMeetingRecordings(meetingId);
         setRoomRecordings(recordingsData);
 
-        // Auto-select first room composite or first track
+        // Auto-select first room composite recording
         if (recordingsData.length > 0) {
           const firstRoom = recordingsData[0];
           if (firstRoom.playlist_url) {
-            // Select room composite
             setSelectedRecording({
-              type: 'room',
               playlist_url: firstRoom.playlist_url,
               started_at: firstRoom.started_at,
               ended_at: firstRoom.ended_at,
               status: firstRoom.status,
-            });
-          } else if (firstRoom.tracks.length > 0) {
-            // Select first track
-            const firstTrack = firstRoom.tracks[0];
-            setSelectedRecording({
-              type: 'track',
-              playlist_url: firstTrack.playlist_url,
-              started_at: firstTrack.started_at,
-              ended_at: firstTrack.ended_at,
-              status: firstTrack.status,
-              participant: firstTrack.participant,
-              participantId: firstTrack.participant_id,
+              audio_only: firstRoom.audio_only || false,
             });
           }
         }
@@ -104,37 +71,18 @@ export default function MeetingRecordings() {
     if (!room.playlist_url) return;
 
     setSelectedRecording({
-      type: 'room',
       playlist_url: room.playlist_url,
       started_at: room.started_at,
       ended_at: room.ended_at,
       status: room.status,
+      audio_only: room.audio_only || false,
     });
-  };
-
-  const selectTrackRecording = (track: TrackRecording) => {
-    setSelectedRecording({
-      type: 'track',
-      playlist_url: track.playlist_url,
-      started_at: track.started_at,
-      ended_at: track.ended_at,
-      status: track.status,
-      participant: track.participant,
-      participantId: track.participant_id,
-    });
-  };
-
-  const getTotalTracks = () => {
-    return roomRecordings.reduce((sum, room) => sum + room.tracks.length, 0);
   };
 
   const meetingTitle = meeting?.title || t('meetingRecordings.defaultTitle');
   const selectedRecordingTitle = selectedRecording
-    ? (selectedRecording.type === 'room'
-      ? t('meetingRecordings.roomRecordingTitle', { date: formatDateTime(selectedRecording.started_at) })
-      : getParticipantName(selectedRecording.participant, selectedRecording.participantId))
+    ? t('meetingRecordings.roomRecordingTitle', { date: formatDateTime(selectedRecording.started_at) })
     : '';
-  const isTrackSelected = selectedRecording?.type === 'track';
 
   if (loading) {
     return (
@@ -178,70 +126,48 @@ export default function MeetingRecordings() {
         </div>
       ) : (
         <div className="recordings-layout">
-          {!isTrackSelected && (
-            <div className="player-panel">
-              {selectedRecording ? (
-                <>
-                  <div className="player-header">
-                    <div>
-                      <p className="player-subtitle">{meetingTitle}</p>
-                      <h2>{selectedRecordingTitle}</h2>
-                    </div>
-                    <div className="recording-meta">
-                      <span>
-                        {t('meetingRecordings.meta.start')}: {formatDateTime(selectedRecording.started_at)}
-                      </span>
-                      {selectedRecording.ended_at && (
-                        <span>
-                          {t('meetingRecordings.meta.end')}: {formatDateTime(selectedRecording.ended_at)}
-                        </span>
-                      )}
-                      <span className={`status ${selectedRecording.status}`}>
-                        {selectedRecording.status}
-                      </span>
-                    </div>
+          <div className="player-panel">
+            {selectedRecording ? (
+              <>
+                <div className="player-header">
+                  <div>
+                    <p className="player-subtitle">{meetingTitle}</p>
+                    <h2>{selectedRecordingTitle}</h2>
                   </div>
-                  <div className="player-surface">
+                  <div className="recording-meta">
+                    <span>
+                      {t('meetingRecordings.meta.start')}: {formatDateTime(selectedRecording.started_at)}
+                    </span>
+                    {selectedRecording.ended_at && (
+                      <span>
+                        {t('meetingRecordings.meta.end')}: {formatDateTime(selectedRecording.ended_at)}
+                      </span>
+                    )}
+                    <span className={`status ${selectedRecording.status}`}>
+                      {selectedRecording.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="player-surface">
+                  {selectedRecording.audio_only ? (
+                    <audio controls style={{ width: '100%' }}>
+                      <source src={selectedRecording.playlist_url} type="application/x-mpegURL" />
+                      Your browser does not support the audio element.
+                    </audio>
+                  ) : (
                     <HLSPlayer
                       src={selectedRecording.playlist_url}
                       autoplay={false}
                     />
-                  </div>
-                </>
-              ) : (
-                <div className="no-selection">
-                  <p>{t('meetingRecordings.selectPrompt')}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isTrackSelected && selectedRecording && (
-            <div className="player-panel track-only">
-              <div className="player-header">
-                <div>
-                  <p className="player-subtitle">{meetingTitle}</p>
-                  <h2>{selectedRecordingTitle}</h2>
-                </div>
-                <div className="recording-meta">
-                  <span>
-                    {t('meetingRecordings.meta.start')}: {formatDateTime(selectedRecording.started_at)}
-                  </span>
-                  {selectedRecording.ended_at && (
-                    <span>
-                      {t('meetingRecordings.meta.end')}: {formatDateTime(selectedRecording.ended_at)}
-                    </span>
                   )}
-                  <span className={`status ${selectedRecording.status}`}>
-                    {selectedRecording.status}
-                  </span>
                 </div>
+              </>
+            ) : (
+              <div className="no-selection">
+                <p>{t('meetingRecordings.selectPrompt')}</p>
               </div>
-              <div className="track-only-body">
-                <p>{t('meetingRecordings.trackSelectedMessage')}</p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="sessions-panel">
             <div className="sessions-controls">
@@ -249,26 +175,12 @@ export default function MeetingRecordings() {
                 <span className="stat-pill">
                   {t('meetingRecordings.stats.sessions', { count: roomRecordings.length })}
                 </span>
-                <span className="stat-pill">
-                  {t('meetingRecordings.stats.tracks', { count: getTotalTracks() })}
-                </span>
               </div>
-              <label className={`tracks-toggle ${showTracks ? 'active' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={showTracks}
-                  onChange={() => setShowTracks(prev => !prev)}
-                />
-                <span>{t('meetingRecordings.toggleTracks')}</span>
-                <div className="toggle-visual">
-                  <div className="toggle-thumb" />
-                </div>
-              </label>
             </div>
 
             <div className="sessions-list">
               {roomRecordings.map((room, idx) => {
-                const roomSelected = selectedRecording?.type === 'room' && selectedRecording.playlist_url === room.playlist_url;
+                const roomSelected = selectedRecording?.playlist_url === room.playlist_url;
                 const roomDurationMinutes = room.ended_at
                   ? Math.max(1, Math.floor((new Date(room.ended_at).getTime() - new Date(room.started_at).getTime()) / 60000))
                   : null;
@@ -284,7 +196,6 @@ export default function MeetingRecordings() {
                         {roomDurationMinutes && (
                           <span>{t('meetingRecordings.durationMinutes', { minutes: roomDurationMinutes })}</span>
                         )}
-                        <span>{t('meetingRecordings.trackCount', { count: room.tracks.length })}</span>
                       </div>
                     </div>
 
@@ -293,7 +204,7 @@ export default function MeetingRecordings() {
                         className={`session-recording ${roomSelected ? 'active' : ''}`}
                         onClick={() => selectRoomRecording(room)}
                       >
-                        <div className="session-recording-icon">🎥</div>
+                        <div className="session-recording-icon">{room.audio_only ? '🎙️' : '🎥'}</div>
                         <div className="session-recording-info">
                           <span className="session-recording-label">{t('meetingRecordings.roomRecordingLabel')}</span>
                           <span className="session-recording-time">{formatTime(room.started_at)}</span>
@@ -302,45 +213,6 @@ export default function MeetingRecordings() {
                           {room.status}
                         </div>
                       </button>
-                    )}
-
-                    {showTracks && (
-                      <div className="session-tracks">
-                        <div className="session-tracks-header">
-                          <span>{t('meetingRecordings.tracksLabel')}</span>
-                        </div>
-                        {room.tracks.length === 0 ? (
-                          <div className="session-track-empty">{t('meetingRecordings.noTracks')}</div>
-                        ) : (
-                          room.tracks.map(track => {
-                            const trackSelected =
-                              selectedRecording?.type === 'track' &&
-                              selectedRecording.playlist_url === track.playlist_url;
-                            const trackDurationMinutes = track.ended_at
-                              ? Math.max(1, Math.floor((new Date(track.ended_at).getTime() - new Date(track.started_at).getTime()) / 60000))
-                              : null;
-                            return (
-                              <button
-                                key={track.id}
-                                className={`session-track ${trackSelected ? 'active' : ''}`}
-                                onClick={() => selectTrackRecording(track)}
-                              >
-                                <div className="session-track-avatar">🎤</div>
-                                <div className="session-track-info">
-                                  <span className="session-track-name">{getTrackLabel(track)}</span>
-                                  <span className="session-track-meta">
-                                    {formatTime(track.started_at)}
-                                    {trackDurationMinutes && ` · ${t('meetingRecordings.durationMinutes', { minutes: trackDurationMinutes })}`}
-                                  </span>
-                                </div>
-                                <div className={`session-status ${track.status}`}>
-                                  {track.status}
-                                </div>
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
                     )}
                   </div>
                 );

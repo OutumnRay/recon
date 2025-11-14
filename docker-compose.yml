@@ -46,6 +46,8 @@ services:
       - SMTP_PASSWORD=hiwu9vdxe5
       - SMTP_FROM_ADDRESS=support@recontext.online
       - SMTP_FROM_NAME=Служба поддержки Recontext
+      # Portal URL for generating anonymous join links
+      - PORTAL_URL=https://portal.recontext.online
     depends_on:
       - postgres
       - rabbitmq
@@ -101,6 +103,8 @@ services:
       - SMTP_PASSWORD=hiwu9vdxe5
       - SMTP_FROM_ADDRESS=support@recontext.online
       - SMTP_FROM_NAME=Служба поддержки Recontext
+      # Portal URL for generating anonymous join links
+      - PORTAL_URL=https://portal.recontext.online
     depends_on:
       - managing-portal
       - postgres

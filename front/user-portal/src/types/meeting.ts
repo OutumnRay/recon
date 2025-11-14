@@ -35,6 +35,7 @@ export interface Meeting {
   additional_notes: string;
   force_end_at_duration: boolean;
   is_permanent: boolean;
+  allow_anonymous: boolean;
   livekit_room_id?: string;
   created_by: string;
   created_at: string;
@@ -100,6 +101,7 @@ export interface MeetingWithDetails {
   additional_notes: string;
   force_end_at_duration: boolean;
   is_permanent: boolean;
+  allow_anonymous: boolean;
   livekit_room_id?: string;
   created_by: string;
   created_at: string;
@@ -125,6 +127,7 @@ export interface CreateMeetingRequest {
   additional_notes?: string;
   force_end_at_duration: boolean;
   is_permanent: boolean;
+  allow_anonymous: boolean;
   speaker_id?: string; // For presentations
   participant_ids: string[];
   department_ids: string[];
@@ -144,6 +147,7 @@ export interface UpdateMeetingRequest {
   additional_notes?: string;
   force_end_at_duration?: boolean;
   is_permanent?: boolean;
+  allow_anonymous?: boolean;
   speaker_id?: string;
   participant_ids?: string[];
   department_ids?: string[];
@@ -230,5 +234,6 @@ export interface RoomRecording {
   started_at: string;
   ended_at?: string;
   playlist_url?: string; // Room composite recording (optional)
+  audio_only?: boolean; // Whether this is an audio-only recording
   tracks: TrackRecording[];
 }

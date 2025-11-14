@@ -778,6 +778,15 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("/api/v1/auth/password-reset/verify", up.verifyResetCodeHandler)
 	mux.HandleFunc("/api/v1/auth/password-reset/reset", up.resetPasswordHandler)
 
+	// Anonymous meeting join endpoint (public) - must be registered before protected /api/v1/meetings/ route
+	mux.HandleFunc("/api/v1/meetings/{meetingId}/join-anonymous", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		up.anonymousJoinHandler(w, r)
+	})
+
 	// Protected endpoints
 	authMiddleware := auth.AuthMiddleware(up.jwtManager)
 

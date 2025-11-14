@@ -276,6 +276,10 @@ type LiveKitParticipant struct {
 	DisconnectReason string `gorm:"type:varchar(255)" json:"disconnect_reason"`
 	// LeftAt - время выхода участника из комнаты
 	LeftAt *time.Time `json:"left_at"`
+	// UserID - ID обычного пользователя (если участник - зарегистрированный пользователь)
+	UserID *uuid.UUID `gorm:"column:user_id;type:uuid" json:"user_id"`
+	// TemporaryUserID - ID временного пользователя (если участник - анонимный пользователь)
+	TemporaryUserID *uuid.UUID `gorm:"column:temporary_user_id;type:uuid" json:"temporary_user_id"`
 	// CreatedAt - время создания записи об участнике
 	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
 	// UpdatedAt - время последнего обновления записи об участнике
@@ -286,6 +290,10 @@ type LiveKitParticipant struct {
 	// Relations
 	// Room - комната, в которой находится участник
 	Room LiveKitRoom `gorm:"foreignKey:RoomSid;references:Sid;constraint:OnDelete:CASCADE" json:"-"`
+	// User - обычный пользователь (если участник зарегистрирован)
+	User *User `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL" json:"user,omitempty"`
+	// TemporaryUser - временный пользователь (если участник анонимный)
+	TemporaryUser *TemporaryUser `gorm:"foreignKey:TemporaryUserID;constraint:OnDelete:SET NULL" json:"temporary_user,omitempty"`
 }
 
 // LiveKitTrack - медиа-трек (аудио/видео поток) в комнате LiveKit
@@ -418,6 +426,8 @@ type Meeting struct {
 	ForceEndAtDuration bool `gorm:"column:force_end_at_duration;not null;default:false" json:"force_end_at_duration"`
 	// IsPermanent - постоянная встреча (всегда доступна, статус не меняется)
 	IsPermanent bool `gorm:"column:is_permanent;not null;default:false" json:"is_permanent"`
+	// AllowAnonymous - разрешить анонимные подключения к встрече
+	AllowAnonymous bool `gorm:"column:allow_anonymous;not null;default:false" json:"allow_anonymous"`
 	// AdditionalNotes - дополнительные заметки о встрече
 	AdditionalNotes string `gorm:"column:additional_notes;type:text" json:"additional_notes"`
 	// LiveKitRoomID - ID комнаты LiveKit для онлайн-встречи
@@ -549,6 +559,26 @@ type LiveKitEgress struct {
 }
 
 // TableName overrides for consistency
+// TemporaryUser - временный анонимный пользователь для встречи
+type TemporaryUser struct {
+	// ID - уникальный идентификатор временного пользователя
+	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	// DisplayName - отображаемое имя, введенное пользователем
+	DisplayName string `gorm:"type:varchar(255);not null" json:"display_name"`
+	// MeetingID - ID встречи, для которой создан временный пользователь
+	MeetingID uuid.UUID `gorm:"type:uuid;not null" json:"meeting_id"`
+	// SessionID - уникальный идентификатор сессии (для отслеживания)
+	SessionID string `gorm:"type:varchar(255);not null" json:"session_id"`
+	// CreatedAt - время создания временного пользователя
+	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+	// LastActiveAt - время последней активности
+	LastActiveAt *time.Time `json:"last_active_at"`
+
+	// Relations
+	// Meeting - встреча, к которой относится временный пользователь
+	Meeting Meeting `gorm:"foreignKey:MeetingID;constraint:OnDelete:CASCADE" json:"meeting,omitempty"`
+}
+
 func (Department) TableName() string          { return "departments" }
 func (User) TableName() string                { return "users" }
 func (Group) TableName() string               { return "groups" }
@@ -566,3 +596,4 @@ func (Meeting) TableName() string             { return "meetings" }
 func (MeetingParticipant) TableName() string  { return "meeting_participants" }
 func (MeetingDepartment) TableName() string   { return "meeting_departments" }
 func (PasswordResetToken) TableName() string  { return "password_reset_tokens" }
+func (TemporaryUser) TableName() string       { return "temporary_users" }
