@@ -717,13 +717,19 @@ export default function MeetingRoom() {
   const confirmLeave = useCallback(() => {
     console.log('[Leave] Disconnecting from room and navigating to meetings...');
     setShowLeaveConfirm(false);
+
+    // Disconnect from room
     try {
       room.disconnect();
     } catch (err) {
       console.error('[Leave] Error disconnecting:', err);
     }
-    navigate('/dashboard/meetings');
-  }, [room, navigate, setShowLeaveConfirm]);
+
+    // Navigate after a short delay to allow cleanup
+    setTimeout(() => {
+      navigate('/dashboard/meetings');
+    }, 100);
+  }, [room, navigate]);
 
   // Aggressive track subscription - force subscribe to all tracks
   const forceSubscribeToAllTracks = useCallback(async () => {

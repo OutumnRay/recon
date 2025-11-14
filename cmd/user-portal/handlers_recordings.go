@@ -148,10 +148,10 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 
 				if track.EgressID != "" && track.Source == "MICROPHONE" {
 					trackRec := TrackRecordingInfo{
-						ID:            track.EgressID,
+						ID:            track.SID,
 						Status:        "completed",
 						StartedAt:     track.PublishedAt.Format("2006-01-02T15:04:05Z07:00"),
-						PlaylistURL:   "/api/v1/recordings/" + track.EgressID + "/playlist",
+						PlaylistURL:   "/api/v1/recordings/track/" + track.SID + "/playlist",
 						TrackID:       track.SID,
 						ParticipantID: track.ParticipantSID,
 					}

@@ -13,11 +13,17 @@ import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
+// Component to redirect to meetings if logged in, otherwise to login
+function RootRedirect() {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  return token ? <Navigate to="/dashboard/meetings" replace /> : <Navigate to="/login" replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />

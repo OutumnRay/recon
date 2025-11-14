@@ -66,13 +66,35 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Extract egress_id from URL path
+	// Extract egress_id or track id from URL path
+	// Supports both /recordings/{egress_id}/playlist and /recordings/track/{track_sid}/playlist
 	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/recordings/"), "/")
 	if len(pathParts) < 2 {
 		up.respondWithError(w, http.StatusBadRequest, "Invalid URL", "")
 		return
 	}
-	egressID := pathParts[0]
+
+	var egressID string
+	var trackSID string
+	var isTrack bool
+
+	// Check if this is a track request
+	if pathParts[0] == "track" && len(pathParts) >= 3 {
+		isTrack = true
+		trackSID = pathParts[1]
+
+		// Find track by SID to get egress_id for access check
+		var track models.Track
+		err := up.db.DB.Where("sid = ?", trackSID).First(&track).Error
+		if err != nil {
+			up.logger.Errorf("Track not found: %s, error: %v", trackSID, err)
+			up.respondWithError(w, http.StatusNotFound, "Track not found", err.Error())
+			return
+		}
+		egressID = track.EgressID
+	} else {
+		egressID = pathParts[0]
+	}
 
 	// Check access permissions
 	if !up.checkRecordingAccess(egressID, claims.UserID) {
@@ -88,21 +110,22 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Determine playlist path based on egress type
-	// Try room composite first
-	playlistPath := fmt.Sprintf("%s/composite.m3u8", egressID)
+	// Determine playlist path based on type
+	var playlistPath string
+	if isTrack {
+		// For tracks, use track SID as path on MinIO
+		playlistPath = fmt.Sprintf("%s/track.m3u8", trackSID)
+	} else {
+		// For room composites, use egress_id
+		playlistPath = fmt.Sprintf("%s/composite.m3u8", egressID)
+	}
 
 	// Get the playlist file from MinIO
 	object, err := minioClient.client.GetObject(context.Background(), minioClient.bucket, playlistPath, minio.GetObjectOptions{})
 	if err != nil {
-		// Try track format
-		playlistPath = fmt.Sprintf("%s/track.m3u8", egressID)
-		object, err = minioClient.client.GetObject(context.Background(), minioClient.bucket, playlistPath, minio.GetObjectOptions{})
-		if err != nil {
-			up.logger.Errorf("Failed to get playlist from MinIO: %v", err)
-			up.respondWithError(w, http.StatusNotFound, "Playlist not found", err.Error())
-			return
-		}
+		up.logger.Errorf("Failed to get playlist from MinIO (path: %s): %v", playlistPath, err)
+		up.respondWithError(w, http.StatusNotFound, "Playlist not found", err.Error())
+		return
 	}
 	defer object.Close()
 
@@ -120,8 +143,12 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			if idx := strings.LastIndex(line, "/"); idx != -1 {
 				filename = line[idx+1:]
 			}
-			// Rewrite to proxy URL
-			line = fmt.Sprintf("/api/v1/recordings/%s/segment/%s", egressID, filename)
+			// Rewrite to proxy URL - use track SID if this is a track request
+			if isTrack {
+				line = fmt.Sprintf("/api/v1/recordings/track/%s/segment/%s", trackSID, filename)
+			} else {
+				line = fmt.Sprintf("/api/v1/recordings/%s/segment/%s", egressID, filename)
+			}
 		}
 
 		modifiedPlaylist.WriteString(line)
@@ -163,13 +190,37 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Extract egress_id and filename from URL path
+	// Supports both /recordings/{egress_id}/segment/{filename} and /recordings/track/{egress_id}/segment/{filename}
 	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/recordings/"), "/")
 	if len(pathParts) < 3 {
 		up.respondWithError(w, http.StatusBadRequest, "Invalid URL", "")
 		return
 	}
-	egressID := pathParts[0]
-	filename := pathParts[2]
+
+	var egressID string
+	var trackSID string
+	var filename string
+	var isTrack bool
+
+	// Check if this is a track request
+	if pathParts[0] == "track" && len(pathParts) >= 4 {
+		isTrack = true
+		trackSID = pathParts[1]
+		filename = pathParts[3]
+
+		// Find track by SID to get egress_id for access check
+		var track models.Track
+		err := up.db.DB.Where("sid = ?", trackSID).First(&track).Error
+		if err != nil {
+			up.logger.Errorf("Track not found: %s, error: %v", trackSID, err)
+			up.respondWithError(w, http.StatusNotFound, "Track not found", err.Error())
+			return
+		}
+		egressID = track.EgressID
+	} else {
+		egressID = pathParts[0]
+		filename = pathParts[2]
+	}
 
 	// Validate filename (prevent directory traversal)
 	if strings.Contains(filename, "..") || strings.Contains(filename, "/") {
@@ -191,19 +242,21 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Construct segment path - try both composite and track paths
-	segmentPath := fmt.Sprintf("%s/composite_%s", egressID, filename)
+	// Construct segment path based on type
+	var segmentPath string
+	if isTrack {
+		// For tracks, use track SID as path on MinIO
+		segmentPath = fmt.Sprintf("%s/track_%s", trackSID, filename)
+	} else {
+		// For room composites, use egress_id
+		segmentPath = fmt.Sprintf("%s/composite_%s", egressID, filename)
+	}
 
 	object, err := minioClient.client.GetObject(context.Background(), minioClient.bucket, segmentPath, minio.GetObjectOptions{})
 	if err != nil {
-		// Try track path
-		segmentPath = fmt.Sprintf("%s/track_%s", egressID, filename)
-		object, err = minioClient.client.GetObject(context.Background(), minioClient.bucket, segmentPath, minio.GetObjectOptions{})
-		if err != nil {
-			up.logger.Errorf("Failed to get segment from MinIO: %v", err)
-			up.respondWithError(w, http.StatusNotFound, "Segment not found", err.Error())
-			return
-		}
+		up.logger.Errorf("Failed to get segment from MinIO (path: %s): %v", segmentPath, err)
+		up.respondWithError(w, http.StatusNotFound, "Segment not found", err.Error())
+		return
 	}
 	defer object.Close()
 
