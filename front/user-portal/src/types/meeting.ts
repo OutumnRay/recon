@@ -34,6 +34,7 @@ export interface Meeting {
   is_transcribing: boolean;
   additional_notes: string;
   force_end_at_duration: boolean;
+  is_permanent: boolean;
   livekit_room_id?: string;
   created_by: string;
   created_at: string;
@@ -97,6 +98,7 @@ export interface MeetingWithDetails {
   is_transcribing: boolean;
   additional_notes: string;
   force_end_at_duration: boolean;
+  is_permanent: boolean;
   livekit_room_id?: string;
   created_by: string;
   created_at: string;
@@ -120,6 +122,7 @@ export interface CreateMeetingRequest {
   needs_transcription: boolean;
   additional_notes?: string;
   force_end_at_duration: boolean;
+  is_permanent: boolean;
   speaker_id?: string; // For presentations
   participant_ids: string[];
   department_ids: string[];
@@ -204,4 +207,25 @@ export interface Recording {
   participant_id?: string;
   track_id?: string;
   participant?: User;
+}
+
+export interface TrackRecording {
+  id: string;
+  status: string;
+  started_at: string;
+  ended_at?: string;
+  playlist_url: string;
+  participant_id: string;
+  track_id: string;
+  participant?: User;
+}
+
+export interface RoomRecording {
+  id: string;
+  room_sid: string;
+  status: string;
+  started_at: string;
+  ended_at?: string;
+  playlist_url?: string; // Room composite recording (optional)
+  tracks: TrackRecording[];
 }

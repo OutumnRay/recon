@@ -86,8 +86,8 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Check if meeting is already completed
-	if meeting.Status == models.MeetingStatusCompleted {
+	// Check if meeting is already completed (unless it's a permanent meeting)
+	if meeting.Status == models.MeetingStatusCompleted && !meeting.IsPermanent {
 		fmt.Printf("ERROR: Meeting %s is already completed\n", meetingID)
 		up.respondWithError(w, http.StatusForbidden, "Meeting has ended", "")
 		return

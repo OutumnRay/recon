@@ -22,6 +22,28 @@ type RecordingInfo struct {
 	TrackID       *string  `json:"track_id,omitempty"`
 }
 
+// TrackRecordingInfo представляет информацию о записи трека участника
+type TrackRecordingInfo struct {
+	ID            string  `json:"id"`
+	Status        string  `json:"status"`
+	StartedAt     string  `json:"started_at"`
+	EndedAt       *string `json:"ended_at,omitempty"`
+	PlaylistURL   string  `json:"playlist_url"`
+	ParticipantID string  `json:"participant_id"`
+	TrackID       string  `json:"track_id"`
+}
+
+// RoomRecordingInfo представляет информацию о записи комнаты с треками
+type RoomRecordingInfo struct {
+	ID          string               `json:"id"`
+	RoomSID     string               `json:"room_sid"`
+	Status      string               `json:"status"`
+	StartedAt   string               `json:"started_at"`
+	EndedAt     *string              `json:"ended_at,omitempty"`
+	PlaylistURL string               `json:"playlist_url,omitempty"` // Only if room has egress recording
+	Tracks      []TrackRecordingInfo `json:"tracks"`
+}
+
 // GetMeetingRecordings godoc
 // @Summary Get recordings for a meeting
 // @Description Returns all recordings (room composite and tracks) for a meeting
@@ -90,29 +112,30 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 		up.logger.Infof("📹 [RECORDINGS] Found %d rooms for meeting %s", len(rooms), meetingID)
 	}
 
-	recordings := []RecordingInfo{}
+	roomRecordings := []RoomRecordingInfo{}
 
-	// Collect room composite recordings
+	// Collect room recordings with their tracks
 	for i, room := range rooms {
 		up.logger.Infof("📹 [RECORDINGS] Room %d: SID=%s, Name=%s, EgressID=%s, Status=%s",
 			i, room.SID, room.Name, room.EgressID, room.Status)
 
+		roomRec := RoomRecordingInfo{
+			ID:        room.SID,
+			RoomSID:   room.SID,
+			Status:    room.Status,
+			StartedAt: room.StartedAt.Format("2006-01-02T15:04:05Z07:00"),
+			Tracks:    []TrackRecordingInfo{},
+		}
+
+		if room.FinishedAt != nil {
+			endedAt := room.FinishedAt.Format("2006-01-02T15:04:05Z07:00")
+			roomRec.EndedAt = &endedAt
+		}
+
+		// Add room composite recording URL if exists
 		if room.EgressID != "" {
-			rec := RecordingInfo{
-				ID:          room.EgressID,
-				Type:        "room",
-				Status:      "completed",
-				StartedAt:   room.StartedAt.Format("2006-01-02T15:04:05Z07:00"),
-				PlaylistURL: "/api/v1/recordings/" + room.EgressID + "/playlist",
-			}
-			if room.FinishedAt != nil {
-				endedAt := room.FinishedAt.Format("2006-01-02T15:04:05Z07:00")
-				rec.EndedAt = &endedAt
-			}
-			recordings = append(recordings, rec)
-			up.logger.Infof("📹 [RECORDINGS] Added room recording: %s", room.EgressID)
-		} else {
-			up.logger.Infof("📹 [RECORDINGS] Room %s has no EgressID", room.SID)
+			roomRec.PlaylistURL = "/api/v1/recordings/" + room.EgressID + "/playlist"
+			up.logger.Infof("📹 [RECORDINGS] Room has composite recording: %s", room.EgressID)
 		}
 
 		// Get tracks for this room
@@ -124,29 +147,30 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 					j, track.SID, track.Source, track.EgressID, track.Type)
 
 				if track.EgressID != "" && track.Source == "MICROPHONE" {
-					rec := RecordingInfo{
-						ID:        track.EgressID,
-						Type:      "track",
-						Status:    "completed",
-						StartedAt: track.PublishedAt.Format("2006-01-02T15:04:05Z07:00"),
-						PlaylistURL: "/api/v1/recordings/" + track.EgressID + "/playlist",
-						TrackID:   &track.SID,
-						ParticipantID: &track.ParticipantSID,
+					trackRec := TrackRecordingInfo{
+						ID:            track.EgressID,
+						Status:        "completed",
+						StartedAt:     track.PublishedAt.Format("2006-01-02T15:04:05Z07:00"),
+						PlaylistURL:   "/api/v1/recordings/" + track.EgressID + "/playlist",
+						TrackID:       track.SID,
+						ParticipantID: track.ParticipantSID,
 					}
 					if track.UnpublishedAt != nil {
 						endedAt := track.UnpublishedAt.Format("2006-01-02T15:04:05Z07:00")
-						rec.EndedAt = &endedAt
+						trackRec.EndedAt = &endedAt
 					}
-					recordings = append(recordings, rec)
+					roomRec.Tracks = append(roomRec.Tracks, trackRec)
 					up.logger.Infof("📹 [RECORDINGS] Added track recording: %s", track.EgressID)
 				}
 			}
 		} else {
 			up.logger.Errorf("📹 [RECORDINGS] Error getting tracks for room %s: %v", room.SID, err)
 		}
+
+		roomRecordings = append(roomRecordings, roomRec)
 	}
 
-	up.logger.Infof("📹 [RECORDINGS] Returning %d total recordings for meeting %s", len(recordings), meetingID)
+	up.logger.Infof("📹 [RECORDINGS] Returning %d rooms with recordings for meeting %s", len(roomRecordings), meetingID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(recordings)
+	json.NewEncoder(w).Encode(roomRecordings)
 }

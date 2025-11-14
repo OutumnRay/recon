@@ -83,6 +83,9 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   const [forceEndAtDuration, setForceEndAtDuration] = useState(
     meeting?.force_end_at_duration || false
   );
+  const [isPermanent, setIsPermanent] = useState(
+    meeting?.is_permanent || false
+  );
   const [additionalNotes, setAdditionalNotes] = useState(
     meeting?.additional_notes || ''
   );
@@ -269,6 +272,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           needs_audio_record: needsAudioRecord,
           needs_transcription: needsTranscription,
           force_end_at_duration: forceEndAtDuration,
+          is_permanent: isPermanent,
           additional_notes: additionalNotes || undefined,
           speaker_id: type === 'presentation' ? speakerId : undefined,
           participant_ids: selectedUserIds,
@@ -530,6 +534,24 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 <LuClock className="checkbox-icon" /> {t('meetings.form.forceEndAtDuration')}
               </span>
             </label>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={isPermanent}
+                onChange={(e) => setIsPermanent(e.target.checked)}
+              />
+              <span className="checkbox-label">
+                <LuClock className="checkbox-icon" /> Постоянная встреча
+              </span>
+            </label>
+            {isPermanent && (
+              <p className="form-help-text">
+                Постоянная встреча всегда доступна для входа и не завершается автоматически
+              </p>
+            )}
           </div>
         </div>
 

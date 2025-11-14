@@ -97,6 +97,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		NeedsTranscription: req.NeedsTranscription,
 		AdditionalNotes:    req.AdditionalNotes,
 		ForceEndAtDuration: req.ForceEndAtDuration,
+		IsPermanent:        req.IsPermanent,
 		LiveKitRoomID:      nil, // Will be set below
 		CreatedBy:          claims.UserID,
 		CreatedAt:          time.Now(),

@@ -72,31 +72,81 @@
   overflow: hidden;
 }
 
-.recording-type-selector {
+.recording-stats {
   display: flex;
+  justify-content: space-around;
+  padding: 15px;
   background: white;
   border-bottom: 1px solid #dee2e6;
-}
-
-.recording-type-selector button {
-  flex: 1;
-  padding: 15px;
-  border: none;
-  background: white;
-  cursor: pointer;
   font-size: 14px;
-  transition: all 0.2s;
-  border-bottom: 3px solid transparent;
-}
-
-.recording-type-selector button:hover {
-  background: #f8f9fa;
-}
-
-.recording-type-selector button.active {
-  border-bottom-color: #007bff;
-  color: #007bff;
   font-weight: 600;
+  color: #495057;
+}
+
+.recording-stats span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.room-recording-group {
+  margin-bottom: 10px;
+}
+
+.room-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #dee2e6;
+}
+
+.room-header:hover {
+  background: #f8f9fa;
+  border-color: #007bff;
+}
+
+.room-toggle {
+  font-size: 12px;
+  color: #6c757d;
+  min-width: 20px;
+}
+
+.room-info {
+  flex: 1;
+}
+
+.room-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #212529;
+  margin-bottom: 2px;
+}
+
+.room-time {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.room-badge {
+  background: #e9ecef;
+  color: #495057;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.room-recordings {
+  margin-top: 8px;
+  margin-left: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .recordings-list {
@@ -115,6 +165,11 @@
   text-transform: uppercase;
   margin-bottom: 10px;
   padding-left: 5px;
+}
+
+.recording-card.track {
+  margin-left: 0;
+  border-left: 3px solid #17a2b8;
 }
 
 .recording-card {

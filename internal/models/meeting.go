@@ -84,6 +84,8 @@ type Meeting struct {
 	AdditionalNotes      string            `json:"additional_notes" db:"additional_notes"`
 	// Принудительно завершить встречу после истечения времени
 	ForceEndAtDuration   bool              `json:"force_end_at_duration" db:"force_end_at_duration"`
+	// Постоянная встреча (всегда доступна)
+	IsPermanent          bool              `json:"is_permanent" db:"is_permanent"`
 	// Ссылка на комнату LiveKit если встреча начата
 	LiveKitRoomID        *uuid.UUID        `json:"livekit_room_id,omitempty" db:"livekit_room_id"`
 	// Идентификатор пользователя, создавшего встречу
@@ -192,6 +194,8 @@ type CreateMeetingRequest struct {
 	AdditionalNotes    string            `json:"additional_notes" example:"Подготовить отчеты"`
 	// Принудительно завершить встречу после истечения времени
 	ForceEndAtDuration bool              `json:"force_end_at_duration" example:"true"`
+	// Постоянная встреча (всегда доступна)
+	IsPermanent        bool              `json:"is_permanent" example:"false"`
 	// Идентификатор докладчика (для презентаций)
 	SpeakerID          *uuid.UUID        `json:"speaker_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Идентификаторы участников

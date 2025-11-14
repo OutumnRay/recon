@@ -124,6 +124,20 @@
   color: var(--text-secondary);
 }
 
+.permanent-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-md);
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 .meeting-card-body {
   display: flex;
   flex-direction: column;

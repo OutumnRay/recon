@@ -558,6 +558,11 @@ export const Meetings: React.FC = () => {
                             <LuBookOpen /> {meeting.subject.name}
                           </span>
                         )}
+                        {meeting.is_permanent && (
+                          <span className="permanent-badge" title="Постоянная встреча">
+                            <LuClock /> Постоянная
+                          </span>
+                        )}
                       </div>
                     </div>
                     <span className={`status-badge ${statusInfo.className}`}>

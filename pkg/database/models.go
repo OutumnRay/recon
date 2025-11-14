@@ -416,6 +416,8 @@ type Meeting struct {
 	IsTranscribing bool `gorm:"not null;default:false" json:"is_transcribing"`
 	// ForceEndAtDuration - принудительно завершить встречу по истечении времени
 	ForceEndAtDuration bool `gorm:"column:force_end_at_duration;not null;default:false" json:"force_end_at_duration"`
+	// IsPermanent - постоянная встреча (всегда доступна, статус не меняется)
+	IsPermanent bool `gorm:"column:is_permanent;not null;default:false" json:"is_permanent"`
 	// AdditionalNotes - дополнительные заметки о встрече
 	AdditionalNotes string `gorm:"column:additional_notes;type:text" json:"additional_notes"`
 	// LiveKitRoomID - ID комнаты LiveKit для онлайн-встречи

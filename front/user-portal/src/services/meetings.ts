@@ -376,9 +376,9 @@ export const getParticipantStatusInfo = (status: string): { label: string; class
 };
 
 /**
- * Get recordings for a meeting
+ * Get recordings for a meeting (returns hierarchical structure: rooms with tracks)
  */
-export const getMeetingRecordings = async (meetingId: string): Promise<any[]> => {
+export const getMeetingRecordings = async (meetingId: string): Promise<import('../types/meeting').RoomRecording[]> => {
   console.log('📹 [RECORDINGS API] Fetching recordings for meeting:', meetingId);
   const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/recordings`, {
     method: 'GET',
@@ -386,7 +386,7 @@ export const getMeetingRecordings = async (meetingId: string): Promise<any[]> =>
   });
 
   console.log('📹 [RECORDINGS API] Response status:', response.status);
-  const data = await handleResponse<any[]>(response);
+  const data = await handleResponse<import('../types/meeting').RoomRecording[]>(response);
   console.log('📹 [RECORDINGS API] Received data:', data);
   return data;
 };
