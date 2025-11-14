@@ -102,6 +102,9 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
 
+  // Current user ID (creator/organizer)
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+
   // Dropdowns data
   const [subjects, setSubjects] = useState<MeetingSubject[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -111,6 +114,19 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
+
+  // Get current user on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setCurrentUserId(user.id || '');
+      } catch (err) {
+        console.error('Failed to parse user data:', err);
+      }
+    }
+  }, []);
 
   // Fetch dropdown data
   useEffect(() => {
@@ -134,6 +150,13 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
       setSelectedDepartmentIds(deptIds);
     }
   }, [meeting]);
+
+  // Automatically add current user to participants when creating new meeting
+  useEffect(() => {
+    if (!isEditMode && currentUserId && !selectedUserIds.includes(currentUserId)) {
+      setSelectedUserIds((prev) => [...prev, currentUserId]);
+    }
+  }, [currentUserId, isEditMode]);
 
   const fetchFormData = async () => {
     try {
@@ -251,6 +274,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           needs_audio_record: needsAudioRecord,
           needs_transcription: needsTranscription,
           force_end_at_duration: forceEndAtDuration,
+          is_permanent: isPermanent,
           additional_notes: additionalNotes || undefined,
           speaker_id: type === 'presentation' ? speakerId : undefined,
           participant_ids: selectedUserIds,
@@ -456,7 +480,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             onChange={setSelectedUserIds}
             placeholder={t('meetings.form.searchUsers') || 'Поиск пользователей...'}
             emptyMessage={t('meetings.form.noUsersAvailable')}
-            disabledIds={speakerId ? [speakerId] : []}
+            disabledIds={speakerId ? [speakerId, currentUserId] : [currentUserId]}
+            organizerId={currentUserId}
           />
 
           <MultiSelectWithSearch

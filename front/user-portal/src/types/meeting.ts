@@ -142,6 +142,7 @@ export interface UpdateMeetingRequest {
   needs_transcription?: boolean;
   additional_notes?: string;
   force_end_at_duration?: boolean;
+  is_permanent?: boolean;
   speaker_id?: string;
   participant_ids?: string[];
   department_ids?: string[];

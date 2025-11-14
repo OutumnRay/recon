@@ -32,6 +32,14 @@ export const Login: React.FC = () => {
     document.title = `Recontext - ${t('login.title')}`;
   }, [t]);
 
+  // Check if user is already logged in, redirect to dashboard
+  React.useEffect(() => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (token) {
+      navigate('/dashboard/meetings');
+    }
+  }, [navigate]);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);

@@ -318,6 +318,9 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 
 	if req.Status != nil {
 		query = query.Where("status = ?", *req.Status)
+	} else if req.ExcludeCancelled {
+		// Exclude cancelled meetings unless specifically requested
+		query = query.Where("status != ?", "cancelled")
 	}
 
 	if req.Type != nil {

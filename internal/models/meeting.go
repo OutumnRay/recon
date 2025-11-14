@@ -230,6 +230,8 @@ type UpdateMeetingRequest struct {
 	AdditionalNotes    *string            `json:"additional_notes,omitempty" example:"Обновленные комментарии"`
 	// Принудительно завершить встречу после истечения времени
 	ForceEndAtDuration *bool              `json:"force_end_at_duration,omitempty" example:"true"`
+	// Постоянная встреча (всегда доступна)
+	IsPermanent        *bool              `json:"is_permanent,omitempty" example:"false"`
 	// Идентификатор докладчика
 	SpeakerID          *uuid.UUID         `json:"speaker_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Идентификаторы участников
@@ -258,6 +260,8 @@ type ListMeetingsRequest struct {
 	DateTo       *time.Time     `json:"date_to" form:"date_to" example:"2025-12-31T23:59:59Z"`
 	// Фильтр по участнику или докладчику
 	UserID       *uuid.UUID     `json:"user_id" form:"user_id"`
+	// Исключить отмененные встречи
+	ExcludeCancelled bool       `json:"exclude_cancelled" form:"exclude_cancelled"`
 }
 
 // PaginatedResponse представляет постраничный ответ

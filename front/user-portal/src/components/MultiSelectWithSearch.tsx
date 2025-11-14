@@ -17,6 +17,7 @@ interface MultiSelectWithSearchProps {
   emptyMessage?: string;
   disabled?: boolean;
   disabledIds?: string[];
+  organizerId?: string; // ID of the organizer to show badge
 }
 
 export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
@@ -28,6 +29,7 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
   emptyMessage = 'Нет доступных элементов',
   disabled = false,
   disabledIds = [],
+  organizerId,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -158,6 +160,7 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
           <div className="selected-items-list">
             {selectedOptions.map((option) => {
               const isDisabled = disabledIds.includes(option.id);
+              const isOrganizer = organizerId && option.id === organizerId;
 
               return (
                 <div
@@ -165,7 +168,22 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
                   className={`selected-item ${isDisabled ? 'disabled' : ''}`}
                 >
                   <div className="selected-item-content">
-                    <span className="selected-item-name">{option.name}</span>
+                    <span className="selected-item-name">
+                      {option.name}
+                      {isOrganizer && (
+                        <span className="organizer-badge" style={{
+                          marginLeft: '8px',
+                          padding: '2px 8px',
+                          fontSize: '0.75rem',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          borderRadius: '4px',
+                          fontWeight: '500'
+                        }}>
+                          Организатор
+                        </span>
+                      )}
+                    </span>
                     {(option.email || option.description) && (
                       <span className="selected-item-meta">
                         {option.email || option.description}

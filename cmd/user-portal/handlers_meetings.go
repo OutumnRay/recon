@@ -232,6 +232,10 @@ func (up *UserPortal) listMyMeetingsHandler(w http.ResponseWriter, r *http.Reque
 	if status := r.URL.Query().Get("status"); status != "" {
 		meetingStatus := models.MeetingStatus(status)
 		req.Status = &meetingStatus
+	} else {
+		// By default, exclude cancelled meetings
+		// This ensures cancelled meetings are hidden unless explicitly requested
+		req.ExcludeCancelled = true
 	}
 
 	if meetingType := r.URL.Query().Get("type"); meetingType != "" {
@@ -407,6 +411,9 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	if req.ForceEndAtDuration != nil {
 		meeting.ForceEndAtDuration = *req.ForceEndAtDuration
 	}
+	if req.IsPermanent != nil {
+		meeting.IsPermanent = *req.IsPermanent
+	}
 	if req.AdditionalNotes != nil {
 		meeting.AdditionalNotes = *req.AdditionalNotes
 	}
@@ -500,8 +507,8 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 }
 
 // DeleteMeeting godoc
-// @Summary Удалить встречу
-// @Description Удалить встречу (должен быть создателем или администратором)
+// @Summary Отменить встречу
+// @Description Отменить встречу (изменить статус на cancelled) (должен быть создателем или администратором)
 // @Tags Meetings
 // @Produce json
 // @Param id path string true "Идентификатор встречи"
@@ -530,21 +537,24 @@ func (up *UserPortal) deleteMeetingHandler(w http.ResponseWriter, r *http.Reques
 
 	// Check if user is creator or admin
 	if claims.Role != models.RoleAdmin && meeting.CreatedBy != claims.UserID {
-		up.respondWithError(w, http.StatusForbidden, "Access denied", "Only meeting creator or admin can delete meetings")
+		up.respondWithError(w, http.StatusForbidden, "Access denied", "Only meeting creator or admin can cancel meetings")
 		return
 	}
 
-	// Delete meeting
-	if err := up.meetingRepo.DeleteMeeting(uuid.Must(uuid.Parse(meetingID))); err != nil {
-		up.respondWithError(w, http.StatusInternalServerError, "Failed to delete meeting", err.Error())
+	// Cancel meeting by updating status instead of deleting
+	meeting.Status = models.MeetingStatusCancelled
+	meeting.UpdatedAt = time.Now()
+
+	if err := up.meetingRepo.UpdateMeeting(meeting); err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to cancel meeting", err.Error())
 		return
 	}
 
-	up.logger.Infof("Meeting deleted: %s by user %s", meetingID, claims.Username)
+	up.logger.Infof("Meeting cancelled: %s by user %s", meetingID, claims.Username)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message":    "Meeting deleted successfully",
+		"message":    "Meeting cancelled successfully",
 		"meeting_id": meetingID,
 	})
 }
