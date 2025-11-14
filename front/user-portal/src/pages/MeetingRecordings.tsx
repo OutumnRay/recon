@@ -12,7 +12,8 @@ type SelectedRecording = {
   started_at: string;
   ended_at?: string;
   status: string;
-  participantName?: string;
+  participant?: TrackRecording['participant'];
+  participantId?: string;
 };
 
 export default function MeetingRecordings() {
@@ -22,6 +23,23 @@ export default function MeetingRecordings() {
   const locale = i18n.language?.startsWith('ru') ? 'ru-RU' : 'en-US';
   const formatDateTime = (value: string) => new Date(value).toLocaleString(locale);
   const formatTime = (value: string) => new Date(value).toLocaleTimeString(locale);
+  const getParticipantName = (
+    participant?: TrackRecording['participant'],
+    fallbackId?: string
+  ) => {
+    if (participant) {
+      if (participant.first_name && participant.last_name) {
+        return `${participant.first_name} ${participant.last_name}`;
+      }
+      return participant.username;
+    }
+    if (fallbackId) {
+      return t('meetingRecordings.participantFallback', { id: fallbackId.slice(0, 8) });
+    }
+    return t('meetingRecordings.participantTrack');
+  };
+
+  const getTrackLabel = (track: TrackRecording) => getParticipantName(track.participant, track.participant_id);
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [roomRecordings, setRoomRecordings] = useState<RoomRecording[]>([]);
@@ -70,7 +88,8 @@ export default function MeetingRecordings() {
               started_at: firstTrack.started_at,
               ended_at: firstTrack.ended_at,
               status: firstTrack.status,
-              participantName: getParticipantLabel(firstTrack),
+              participant: firstTrack.participant,
+              participantId: firstTrack.participant_id,
             });
           }
         }
@@ -103,7 +122,6 @@ export default function MeetingRecordings() {
     setSelectedRecording({
       type: 'room',
       playlist_url: room.playlist_url,
-      title: `Общая запись (${new Date(room.started_at).toLocaleString('ru-RU')})`,
       started_at: room.started_at,
       ended_at: room.ended_at,
       status: room.status,
@@ -114,10 +132,11 @@ export default function MeetingRecordings() {
     setSelectedRecording({
       type: 'track',
       playlist_url: track.playlist_url,
-      title: `Трек участника`,
       started_at: track.started_at,
       ended_at: track.ended_at,
       status: track.status,
+      participant: track.participant,
+      participantId: track.participant_id,
     });
   };
 
@@ -125,10 +144,17 @@ export default function MeetingRecordings() {
     return roomRecordings.reduce((sum, room) => sum + room.tracks.length, 0);
   };
 
+  const meetingTitle = meeting?.title || t('meetingRecordings.defaultTitle');
+  const selectedRecordingTitle = selectedRecording
+    ? (selectedRecording.type === 'room'
+      ? t('meetingRecordings.roomRecordingTitle', { date: formatDateTime(selectedRecording.started_at) })
+      : getParticipantName(selectedRecording.participant, selectedRecording.participantId))
+    : '';
+
   if (loading) {
     return (
       <div className="meeting-recordings-page">
-        <div className="loading">Загрузка записей...</div>
+        <div className="loading">{t('meetingRecordings.loading')}</div>
       </div>
     );
   }
@@ -137,9 +163,11 @@ export default function MeetingRecordings() {
     return (
       <div className="meeting-recordings-page">
         <div className="error">
-          <h2>Ошибка</h2>
+          <h2>{t('meetingRecordings.errorTitle')}</h2>
           <p>{error}</p>
-          <button onClick={() => navigate('/dashboard/meetings')}>Вернуться к встречам</button>
+          <button onClick={() => navigate('/dashboard/meetings')}>
+            {t('meetingRecordings.backToMeetings')}
+          </button>
         </div>
       </div>
     );
@@ -149,26 +177,26 @@ export default function MeetingRecordings() {
     <div className="meeting-recordings-page">
       <div className="recordings-header">
         <button className="back-button" onClick={() => navigate('/dashboard/meetings')}>
-          ← Назад к встречам
+          ← {t('meetingRecordings.backToMeetings')}
         </button>
-        <h1>Записи встречи: {meeting?.title || 'Встреча'}</h1>
+        <h1>{t('meetingRecordings.heading', { title: meetingTitle })}</h1>
         {meeting?.scheduled_at && (
           <p className="meeting-date">
-            {new Date(meeting.scheduled_at).toLocaleString('ru-RU')}
+            {formatDateTime(meeting.scheduled_at)}
           </p>
         )}
       </div>
 
       {roomRecordings.length === 0 ? (
         <div className="no-recordings">
-          <p>Нет доступных записей для этой встречи</p>
+          <p>{t('meetingRecordings.noRecordings')}</p>
         </div>
       ) : (
         <div className="recordings-container">
           <div className="recordings-sidebar">
             <div className="recording-stats">
-              <span>Сессий: {roomRecordings.length}</span>
-              <span>Треков: {getTotalTracks()}</span>
+              <span>{t('meetingRecordings.stats.sessions', { count: roomRecordings.length })}</span>
+              <span>{t('meetingRecordings.stats.tracks', { count: getTotalTracks() })}</span>
             </div>
 
             <div className="recordings-list">
@@ -180,14 +208,14 @@ export default function MeetingRecordings() {
                     </span>
                     <div className="room-info">
                       <div className="room-title">
-                        Сессия {idx + 1}
+                        {t('meetingRecordings.sessionLabel', { number: idx + 1 })}
                       </div>
                       <div className="room-time">
-                        {new Date(room.started_at).toLocaleString('ru-RU')}
+                        {formatDateTime(room.started_at)}
                       </div>
                     </div>
                     <div className="room-badge">
-                      {room.tracks.length} трек{room.tracks.length !== 1 ? 'ов' : ''}
+                      {t('meetingRecordings.trackCount', { count: room.tracks.length })}
                     </div>
                   </div>
 
@@ -200,12 +228,14 @@ export default function MeetingRecordings() {
                         >
                           <div className="recording-icon">🎥</div>
                           <div className="recording-info">
-                            <div className="recording-title">Общая запись комнаты</div>
+                            <div className="recording-title">{t('meetingRecordings.roomCompositeLabel')}</div>
                             <div className="recording-details">
-                              <span>{new Date(room.started_at).toLocaleTimeString('ru-RU')}</span>
+                              <span>{formatTime(room.started_at)}</span>
                               {room.ended_at && (
                                 <span>
-                                  {Math.floor((new Date(room.ended_at).getTime() - new Date(room.started_at).getTime()) / 60000)} мин
+                                  {t('meetingRecordings.durationMinutes', {
+                                    minutes: Math.floor((new Date(room.ended_at).getTime() - new Date(room.started_at).getTime()) / 60000)
+                                  })}
                                 </span>
                               )}
                             </div>
@@ -223,17 +253,15 @@ export default function MeetingRecordings() {
                           <div className="recording-icon">🎤</div>
                           <div className="recording-info">
                             <div className="recording-title">
-                              {track.participant ?
-                                (track.participant.first_name && track.participant.last_name ?
-                                  `${track.participant.first_name} ${track.participant.last_name}` :
-                                  track.participant.username) :
-                                `Участник ${track.participant_id.slice(0, 8)}`}
+                              {getTrackLabel(track)}
                             </div>
                             <div className="recording-details">
-                              <span>{new Date(track.started_at).toLocaleTimeString('ru-RU')}</span>
+                              <span>{formatTime(track.started_at)}</span>
                               {track.ended_at && (
                                 <span>
-                                  {Math.floor((new Date(track.ended_at).getTime() - new Date(track.started_at).getTime()) / 60000)} мин
+                                  {t('meetingRecordings.durationMinutes', {
+                                    minutes: Math.floor((new Date(track.ended_at).getTime() - new Date(track.started_at).getTime()) / 60000)
+                                  })}
                                 </span>
                               )}
                             </div>
@@ -252,11 +280,15 @@ export default function MeetingRecordings() {
             {selectedRecording ? (
               <>
                 <div className="player-header">
-                  <h2>{selectedRecording.title}</h2>
+                  <h2>{selectedRecordingTitle}</h2>
                   <div className="recording-meta">
-                    <span>Начало: {new Date(selectedRecording.started_at).toLocaleString('ru-RU')}</span>
+                    <span>
+                      {t('meetingRecordings.meta.start')}: {formatDateTime(selectedRecording.started_at)}
+                    </span>
                     {selectedRecording.ended_at && (
-                      <span>Окончание: {new Date(selectedRecording.ended_at).toLocaleString('ru-RU')}</span>
+                      <span>
+                        {t('meetingRecordings.meta.end')}: {formatDateTime(selectedRecording.ended_at)}
+                      </span>
                     )}
                     <span className={`status ${selectedRecording.status}`}>
                       {selectedRecording.status}
@@ -270,7 +302,7 @@ export default function MeetingRecordings() {
               </>
             ) : (
               <div className="no-selection">
-                <p>Выберите запись для воспроизведения</p>
+                <p>{t('meetingRecordings.selectPrompt')}</p>
               </div>
             )}
           </div>

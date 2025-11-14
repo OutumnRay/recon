@@ -402,7 +402,15 @@
     "controls": {
       "screenShareStart": "Демонстрация экрана",
       "screenShareStop": "Остановить демонстрацию",
-      "mediaSettings": "Настройки видео и аудио"
+      "mediaSettings": "Настройки видео и аудио",
+      "stopRecording": "Остановить запись",
+      "stopTranscription": "Остановить транскрибацию",
+      "showParticipants": "Показать участников",
+      "hideParticipants": "Скрыть участников"
+    },
+    "indicators": {
+      "recording": "Запись",
+      "transcribing": "Транскрибация"
     },
     "leaveConfirmTitle": "Выйти из встречи?",
     "leaveConfirmDescription": "Вы отключитесь от этой встречи. Продолжить?",

@@ -486,7 +486,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             }))}
             selectedIds={selectedUserIds}
             onChange={setSelectedUserIds}
-            placeholder={t('meetings.form.searchUsers') || 'Поиск пользователей...'}
+            placeholder={t('meetings.form.searchUsers') || ''}
             emptyMessage={t('meetings.form.noUsersAvailable')}
             disabledIds={speakerId ? [speakerId, currentUserId] : [currentUserId]}
             organizerId={currentUserId}
@@ -501,7 +501,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             }))}
             selectedIds={selectedDepartmentIds}
             onChange={setSelectedDepartmentIds}
-            placeholder={t('meetings.form.searchDepartments') || 'Поиск подразделений...'}
+            placeholder={t('meetings.form.searchDepartments') || ''}
             emptyMessage={t('meetings.form.noDepartmentsAvailable')}
           />
         </div>

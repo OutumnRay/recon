@@ -74,7 +74,6 @@ export default function MeetingRoom() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
-  const [mouseIdleTimer, setMouseIdleTimer] = useState<number | null>(null);
   const [showMediaSettings, setShowMediaSettings] = useState(false);
   const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState<string>('');
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string>('');
@@ -82,7 +81,6 @@ export default function MeetingRoom() {
   const [currentScreenSharer, setCurrentScreenSharer] = useState<string | null>(null);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
-  const localPreviewRef = useRef<HTMLDivElement>(null);
   const stageVideoRef = useRef<HTMLDivElement>(null);
 
   const participantVideoTracks = useRef<Map<string, RemoteTrack>>(new Map());
@@ -154,22 +152,74 @@ export default function MeetingRoom() {
     localPreviewElementRef.current = null;
   }, []);
 
+  const ensureLocalParticipantTile = useCallback(() => {
+    if (!room.localParticipant) return null;
+
+    const sid = room.localParticipant.sid;
+    let container = document.getElementById(`participant-${sid}`) as HTMLElement | null;
+
+    if (!container) {
+      container = document.createElement('div');
+      container.id = `participant-${sid}`;
+      container.className = 'remote-participant-tile local-participant-tile';
+      container.dataset.participant = sid;
+      container.addEventListener('click', () => {
+        setStageParticipantId(sid);
+      });
+
+      const header = document.createElement('div');
+      header.className = 'remote-participant-header';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'participant-avatar';
+      const displayName = tokenData?.participantName || 'You';
+      avatar.textContent = getInitials(displayName);
+      header.appendChild(avatar);
+
+      const name = document.createElement('div');
+      name.className = 'remote-participant-name';
+      name.textContent = `${displayName} (You)`;
+      header.appendChild(name);
+
+      container.appendChild(header);
+
+      const videoSlot = document.createElement('div');
+      videoSlot.className = 'remote-participant-video';
+      videoSlot.dataset.slot = sid;
+      container.appendChild(videoSlot);
+
+      // Insert at the beginning of the list
+      videoContainerRef.current?.insertBefore(container, videoContainerRef.current.firstChild);
+    }
+    return container;
+  }, [room, tokenData]);
+
   const renderLocalPreview = useCallback(() => {
-    const container = localPreviewRef.current;
+    const container = ensureLocalParticipantTile();
     if (!container) return;
 
-    detachLocalPreview();
-    container.innerHTML = '';
+    const videoSlot = container.querySelector<HTMLDivElement>('.remote-participant-video');
+    if (!videoSlot) return;
+
+    // Clear previous video
+    videoSlot.innerHTML = '';
 
     const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
     if (publication?.track) {
       const element = publication.track.attach();
       element.classList.add('meeting-video-element');
-      container.appendChild(element);
+      videoSlot.appendChild(element);
       localPreviewTrackRef.current = publication.track;
       localPreviewElementRef.current = element;
+    } else {
+      // Show avatar if no video
+      const avatarPlaceholder = document.createElement('div');
+      avatarPlaceholder.className = 'participant-avatar-large';
+      const displayName = tokenData?.participantName || 'You';
+      avatarPlaceholder.textContent = getInitials(displayName);
+      videoSlot.appendChild(avatarPlaceholder);
     }
-  }, [detachLocalPreview, room]);
+  }, [ensureLocalParticipantTile, room, tokenData]);
 
   const renderStageVideo = useCallback((preferredId?: string) => {
     const container = stageVideoRef.current;
@@ -359,12 +409,17 @@ export default function MeetingRoom() {
     loadMeetingTitle();
 
     // Periodically refresh recording/transcription status every 10 seconds
+    // Only update state if values actually changed to prevent flickering
     const statusInterval = setInterval(() => {
       if (meetingId) {
         getMeeting(meetingId)
           .then(meeting => {
-            setIsRecording(meeting.is_recording || false);
-            setIsTranscribing(meeting.is_transcribing || false);
+            const newIsRecording = meeting.is_recording || false;
+            const newIsTranscribing = meeting.is_transcribing || false;
+
+            // Only update if values changed
+            setIsRecording(prev => prev !== newIsRecording ? newIsRecording : prev);
+            setIsTranscribing(prev => prev !== newIsTranscribing ? newIsTranscribing : prev);
           })
           .catch(err => {
             console.error('Failed to refresh meeting status:', err);
@@ -380,41 +435,11 @@ export default function MeetingRoom() {
     document.title = `Recontext - ${pageTitle}`;
   }, [meetingTitle, tokenData, t]);
 
-  // Auto-hide controls after 5 seconds of mouse inactivity
+  // Auto-hide controls disabled - causes flickering
+  // Controls are always visible now
   useEffect(() => {
-    const handleMouseMove = () => {
-      setShowControls(true);
-
-      // Clear existing timer
-      if (mouseIdleTimer) {
-        clearTimeout(mouseIdleTimer);
-      }
-
-      // Set new timer to hide controls after 5 seconds
-      const timer = setTimeout(() => {
-        setShowControls(false);
-      }, 5000);
-
-      setMouseIdleTimer(timer);
-    };
-
-    // Show controls on any mouse movement
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mousedown', handleMouseMove);
-    window.addEventListener('keydown', handleMouseMove);
-
-    // Initial timer
-    handleMouseMove();
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mousedown', handleMouseMove);
-      window.removeEventListener('keydown', handleMouseMove);
-      if (mouseIdleTimer) {
-        clearTimeout(mouseIdleTimer);
-      }
-    };
-  }, [mouseIdleTimer]);
+    setShowControls(true);
+  }, []);
 
   useEffect(() => {
     if (!isConnected) {
@@ -785,7 +810,7 @@ export default function MeetingRoom() {
   }, [volume]);
 
   const confirmLeave = useCallback(() => {
-    console.log('[Leave] Disconnecting from room and navigating to meetings...');
+    console.log('[Leave] Disconnecting from room and navigating to dashboard...');
     setShowLeaveConfirm(false);
 
     // Disconnect from room
@@ -795,9 +820,9 @@ export default function MeetingRoom() {
       console.error('[Leave] Error disconnecting:', err);
     }
 
-    // Navigate immediately (no delay needed)
-    navigate('/dashboard/meetings', { replace: true });
-  }, [room, navigate]);
+    // Use window.location for full page reload to dashboard
+    window.location.href = '/dashboard';
+  }, [room]);
 
   // Aggressive track subscription - force subscribe to all tracks
   const forceSubscribeToAllTracks = useCallback(async () => {
@@ -853,38 +878,8 @@ export default function MeetingRoom() {
     });
   }, [isConnected, room, stageParticipantId, renderStageVideo]);
 
-  // Initial force subscription only (no periodic updates to prevent flickering)
-  useEffect(() => {
-    if (!isConnected) return;
-
-    // Initial force subscription after 1 second
-    const initialTimer = setTimeout(() => {
-      console.log('[Force Subscribe] Running initial check...');
-      forceSubscribeToAllTracks();
-    }, 1000);
-
-    // Second check after 3 seconds
-    const secondTimer = setTimeout(() => {
-      console.log('[Force Subscribe] Running second check...');
-      forceSubscribeToAllTracks();
-    }, 3000);
-
-    return () => {
-      clearTimeout(initialTimer);
-      clearTimeout(secondTimer);
-    };
-  }, [isConnected, forceSubscribeToAllTracks]);
-
-  // Force subscribe only when NEW participants join (not on every change)
-  useEffect(() => {
-    if (isConnected && participants.size > 0) {
-      console.log('[Force Subscribe] New participant detected, running check...');
-      const timer = setTimeout(() => {
-        forceSubscribeToAllTracks();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [participants.size, isConnected, forceSubscribeToAllTracks]);
+  // Force subscription timers removed - causes flickering
+  // Subscription now happens only via event handlers
 
   // Touch handlers for swipe gesture on participant sidebar
   const minSwipeDistance = 50;
@@ -1171,13 +1166,15 @@ export default function MeetingRoom() {
       } else {
         // Check if someone else is already sharing
         if (currentScreenSharer && currentScreenSharer !== room.localParticipant?.sid) {
-          setError('Другой участник уже демонстрирует экран. Только один участник может делиться экраном одновременно.');
+          setError(t('meetingRoom.errors.screenShareInUse'));
           return;
         }
 
-        // Start screen sharing
-        console.log('[Screen Share] Starting screen share...');
-        await room.localParticipant.setScreenShareEnabled(true);
+        // Start screen sharing with high quality settings (1080p)
+        console.log('[Screen Share] Starting screen share with 1080p quality...');
+        await room.localParticipant.setScreenShareEnabled(true, {
+          resolution: VideoPresets.h1080.resolution,
+        });
         setIsScreenSharing(true);
         setCurrentScreenSharer(room.localParticipant?.sid || null);
 
@@ -1197,12 +1194,12 @@ export default function MeetingRoom() {
       console.error('[Screen Share] Failed to toggle screen share:', err);
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError') {
-          setError('Отказано в доступе к экрану. Пожалуйста, разрешите демонстрацию экрана.');
+          setError(t('meetingRoom.errors.screenSharePermissionDenied'));
         } else {
-          setError(err.message || 'Не удалось начать демонстрацию экрана');
+          setError(err.message || t('meetingRoom.errors.screenShareFailed'));
         }
       } else {
-        setError('Не удалось начать демонстрацию экрана');
+        setError(t('meetingRoom.errors.screenShareFailed'));
       }
       setIsScreenSharing(false);
     }
@@ -1242,10 +1239,10 @@ export default function MeetingRoom() {
 
   return (
     <div className="meeting-room-page" style={{ cursor: showControls ? 'default' : 'none' }}>
-      {showControls && (
-        <div className="meeting-room-header" style={{
-          transition: 'opacity 0.3s ease',
-        }}>
+      <div
+        className={`meeting-room-header ${showControls ? '' : 'hidden'}`}
+        aria-hidden={!showControls}
+      >
           <div className="meeting-room-header-info">
             <h1>
               {meetingTitle || tokenData?.roomName || t('meetingRoom.pageTitle')}
@@ -1270,8 +1267,8 @@ export default function MeetingRoom() {
                   <button
                     onClick={handleStopRecording}
                     className="icon-circle-button recording"
-                    aria-label="Stop Recording"
-                    title="Click to stop recording"
+                    aria-label={t('meetingRoom.controls.stopRecording')}
+                    title={t('meetingRoom.controls.stopRecording')}
                     disabled={!isConnected}
                     style={{ color: '#ef4444' }}
                   >
@@ -1289,8 +1286,8 @@ export default function MeetingRoom() {
                   <button
                     onClick={handleStopTranscription}
                     className="icon-circle-button transcribing"
-                    aria-label="Stop Transcription"
-                    title="Click to stop transcription"
+                    aria-label={t('meetingRoom.controls.stopTranscription')}
+                    title={t('meetingRoom.controls.stopTranscription')}
                     disabled={!isConnected}
                     style={{ color: '#3b82f6' }}
                   >
@@ -1306,8 +1303,8 @@ export default function MeetingRoom() {
             <button
               onClick={() => setIsParticipantsCollapsed(prev => !prev)}
               className="icon-circle-button"
-              aria-label={isParticipantsCollapsed ? 'Show participants' : 'Hide participants'}
-              title={isParticipantsCollapsed ? 'Show participants' : 'Hide participants'}
+              aria-label={isParticipantsCollapsed ? t('meetingRoom.controls.showParticipants') : t('meetingRoom.controls.hideParticipants')}
+              title={isParticipantsCollapsed ? t('meetingRoom.controls.showParticipants') : t('meetingRoom.controls.hideParticipants')}
             >
               <LuUsers />
             </button>
@@ -1320,6 +1317,22 @@ export default function MeetingRoom() {
               <LuLogOut />
             </button>
           </div>
+      </div>
+
+      {!showControls && (isRecording || isTranscribing) && (
+        <div className="recording-status-floating">
+          {isRecording && (
+            <div className="status-pill recording">
+              <LuCircle className="status-icon" />
+              <span>{t('meetingRoom.indicators.recording')}</span>
+            </div>
+          )}
+          {isTranscribing && (
+            <div className="status-pill transcription">
+              <LuFileText className="status-icon" />
+              <span>{t('meetingRoom.indicators.transcribing')}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -1345,9 +1358,6 @@ export default function MeetingRoom() {
               </div>
             )}
             <div className="stage-video" ref={stageVideoRef} />
-            <div className={`local-preview ${isCameraEnabled ? 'visible' : ''}`}>
-              <div className="local-preview-video" ref={localPreviewRef} />
-            </div>
             {showControls && <div className="stage-controls" style={{
               transition: 'opacity 0.3s ease',
             }}>
@@ -1372,8 +1382,8 @@ export default function MeetingRoom() {
               <button
                 onClick={toggleScreenShare}
                 className={`icon-circle-button ${isScreenSharing ? 'active-share' : ''}`}
-                aria-label={isScreenSharing ? 'Остановить демонстрацию экрана' : 'Демонстрация экрана'}
-                title={isScreenSharing ? 'Остановить демонстрацию экрана' : 'Демонстрация экрана'}
+                aria-label={isScreenSharing ? t('meetingRoom.controls.screenShareStop') : t('meetingRoom.controls.screenShareStart')}
+                title={isScreenSharing ? t('meetingRoom.controls.screenShareStop') : t('meetingRoom.controls.screenShareStart')}
                 disabled={!isConnected || (currentScreenSharer !== null && currentScreenSharer !== room.localParticipant?.sid)}
               >
                 {isScreenSharing ? <LuMonitorOff /> : <LuMonitor />}
@@ -1381,8 +1391,8 @@ export default function MeetingRoom() {
               <button
                 onClick={() => setShowMediaSettings(true)}
                 className="icon-circle-button"
-                aria-label="Настройки видео и аудио"
-                title="Настройки видео и аудио"
+                aria-label={t('meetingRoom.controls.mediaSettings')}
+                title={t('meetingRoom.controls.mediaSettings')}
                 disabled={!isConnected}
               >
                 <LuSettings />

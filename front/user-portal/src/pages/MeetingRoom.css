@@ -49,6 +49,15 @@
   flex-wrap: wrap;
   align-items: center;
   color: white;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.meeting-room-header.hidden {
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
 }
 
 .meeting-room-header h1 {
@@ -71,6 +80,44 @@
   gap: var(--space-sm);
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.recording-status-floating {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  display: flex;
+  gap: var(--space-sm);
+  z-index: 900;
+  pointer-events: none;
+}
+
+.recording-status-floating .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-md);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.recording-status-floating .status-pill.recording {
+  background: rgba(239, 68, 68, 0.9);
+}
+
+.recording-status-floating .status-pill.transcription {
+  background: rgba(59, 130, 246, 0.9);
+}
+
+.recording-status-floating .status-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .recording-controls {
@@ -238,7 +285,7 @@
 .meeting-video-element {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: var(--radius-lg);
   background: #0d2a2f;
 }

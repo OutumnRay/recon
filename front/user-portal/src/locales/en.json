@@ -400,7 +400,15 @@
     "controls": {
       "screenShareStart": "Share screen",
       "screenShareStop": "Stop sharing",
-      "mediaSettings": "Video & audio settings"
+      "mediaSettings": "Video & audio settings",
+      "stopRecording": "Stop recording",
+      "stopTranscription": "Stop transcription",
+      "showParticipants": "Show participants",
+      "hideParticipants": "Hide participants"
+    },
+    "indicators": {
+      "recording": "Recording",
+      "transcribing": "Transcription"
     },
     "leaveConfirmTitle": "Leave meeting?",
     "leaveConfirmDescription": "You will disconnect from this meeting. Continue?",
