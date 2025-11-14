@@ -657,6 +657,7 @@ func (r *MeetingRepository) UpdateMeeting(meeting *models.Meeting) error {
 		"is_recording":          meeting.IsRecording,
 		"is_transcribing":       meeting.IsTranscribing,
 		"force_end_at_duration": meeting.ForceEndAtDuration,
+		"is_permanent":          meeting.IsPermanent,
 		"additional_notes":      meeting.AdditionalNotes,
 		"livekit_room_id":       liveKitRoomID,
 		"updated_at":            meeting.UpdatedAt,
