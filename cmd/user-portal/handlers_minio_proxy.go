@@ -152,7 +152,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		roomSID = room.SID
-		playlistPath = fmt.Sprintf("%s_%s/tracks/%s.m3u8", meetingID, roomSID, trackSID)
+		playlistPath = fmt.Sprintf("%s_%s/tracks/%s/%s.m3u8", meetingID, roomSID, trackSID, trackSID)
 	} else {
 		// For room composites, get room and use meetingID/roomSID/composite.m3u8
 		var room models.Room
@@ -332,7 +332,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		segmentPath = fmt.Sprintf("%s_%s/tracks/%s", meetingID, room.SID, filename)
+		segmentPath = fmt.Sprintf("%s_%s/tracks/%s/%s", meetingID, room.SID, trackSID, filename)
 	} else {
 		// For room composites, get room and use meetingID/roomSID/composite_XXXXX.ts
 		var room models.Room

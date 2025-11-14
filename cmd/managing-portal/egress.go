@@ -129,10 +129,10 @@ func (mp *ManagingPortal) startTrackCompositeEgress(roomName, roomSID, trackID s
 	}
 
 	// Настройки сегментированного вывода в S3
-	// Используем структуру: {meetingID}_{sessionID}/tracks
+	// Используем структуру: {meetingID}_{sessionID}/tracks/{trackID}
 	req.SegmentOutputs = []*livekit.SegmentedFileOutput{
 		{
-			FilenamePrefix:   fmt.Sprintf("%s_%s/tracks", roomName, roomSID),
+			FilenamePrefix:   fmt.Sprintf("%s_%s/tracks/%s", roomName, roomSID, trackID),
 			PlaylistName:     fmt.Sprintf("%s.m3u8", trackID),
 			LivePlaylistName: fmt.Sprintf("%s-live.m3u8", trackID),
 			SegmentDuration:  20,
