@@ -56,6 +56,107 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-lg);
+  align-items: flex-start;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.form-label,
+.searchable-select-label,
+.multi-select-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.form-label.required::after {
+  content: '*';
+  color: var(--color-error);
+  font-weight: var(--font-weight-bold);
+  margin-left: 2px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  background: var(--surface-panel);
+  transition: border var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.meeting-form .datetime-picker-wrapper {
+  width: 100%;
+}
+
+.form-input:hover,
+.form-select:hover {
+  border-color: var(--color-primary-300);
+  background: var(--bg-primary);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(70, 175, 186, 0.15);
+  background: var(--bg-primary);
+}
+
+.form-select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-primary-500) 50%), linear-gradient(135deg, var(--color-primary-500) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: var(--space-2xl);
+}
+
+.form-textarea {
+  padding: var(--space-md);
+  min-height: 120px;
+  resize: vertical;
+}
+
+.meeting-form .datetime-picker-input {
+  min-height: 48px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.meeting-form .datetime-picker-input:hover {
+  border-color: var(--color-primary-300);
+  background: var(--bg-primary);
+}
+
+.meeting-form .datetime-picker-input:focus {
+  outline: none;
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(70, 175, 186, 0.15);
+  background: var(--bg-primary);
+}
+
+.select-with-icon .form-select {
+  padding-left: var(--space-3xl);
+}
+
+.searchable-select-trigger {
+  min-height: 48px;
 }
 
 /* Checkbox List Container */
@@ -141,6 +242,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-md);
+  width: 100%;
 }
 
 .select-icon {

@@ -6,9 +6,9 @@
 .multi-select-label {
   display: block;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
 }
 
 .multi-select-search-wrapper {
@@ -24,6 +24,7 @@
   transition: all var(--transition-fast);
   background: var(--surface-panel);
   color: var(--text-primary);
+  min-height: 48px;
 }
 
 .multi-select-search:focus {

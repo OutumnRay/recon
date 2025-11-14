@@ -64,6 +64,11 @@
   position: relative;
 }
 
+.meeting-card-permanent {
+  border-color: rgba(124, 58, 237, 0.4);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(255, 255, 255, 0.9));
+}
+
 .meeting-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
@@ -79,17 +84,6 @@
   opacity: 0.92;
 }
 
-.meeting-card.meeting-permanent {
-  border-color: #7c3aed;
-  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
-  background: linear-gradient(to bottom right, rgba(124, 58, 237, 0.02), transparent);
-}
-
-.meeting-card.meeting-permanent:hover {
-  border-color: #6d28d9;
-  box-shadow: 0 12px 30px rgba(124, 58, 237, 0.25);
-}
-
 .meeting-card-header {
   display: flex;
   justify-content: space-between;
@@ -103,10 +97,63 @@
   gap: var(--space-xs);
 }
 
+.meeting-card-title h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.meeting-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--space-md);
+  height: 28px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
+}
+
+.chip-type {
+  background: var(--color-secondary-50);
+  color: var(--color-secondary-600);
+}
+
+.chip-subject {
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+}
+
 .meeting-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   margin: 0;
+}
+
+.meeting-card-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+.recurrence-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--space-md);
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: var(--surface-panel);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
 }
 
 .meeting-meta {
@@ -158,6 +205,105 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+}
+
+.meeting-card-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-md);
+}
+
+.detail-block {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-sm);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--surface-panel);
+}
+
+.detail-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--surface-card);
+  color: var(--color-primary-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.detail-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.meeting-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.stat-block {
+  flex: 1 1 220px;
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  border: 1px dashed var(--border-light);
+}
+
+.stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meeting-card-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.flag-recording {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.flag-transcription {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.flag-live {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
 }
 
 .meeting-info-grid {
@@ -226,6 +372,9 @@
   align-items: center;
   gap: var(--space-lg);
   flex-wrap: wrap;
+  border-top: 1px solid var(--border-light);
+  padding-top: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .participants-preview {

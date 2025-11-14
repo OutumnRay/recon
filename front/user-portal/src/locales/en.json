@@ -321,7 +321,15 @@
       "onlineCount": "({{count}} online)",
       "recording": "Recording",
       "transcription": "Transcription",
-      "viewRecordings": "View recordings"
+      "viewRecordings": "View recordings",
+      "participantsLabel": "Participants",
+      "participantsSummary": "{{total}} invited • {{online}} online",
+      "departmentsSummary": "{{count}} departments",
+      "scheduleLabel": "Schedule",
+      "durationLabel": "Duration",
+      "recurrenceLabel": "Recurrence",
+      "typeLabel": "Type",
+      "subjectLabel": "Subject"
     }
   },
   "meetingRecordings": {
@@ -350,7 +358,12 @@
     "participantFallback": "Participant {{id}}",
     "errors": {
       "loadFailed": "Failed to load recordings"
-    }
+    },
+    "toggleTracks": "Show participant tracks",
+    "tracksLabel": "Participant tracks",
+    "roomRecordingLabel": "Room recording",
+    "noTracks": "No individual tracks available",
+    "trackSelectedMessage": "Participant tracks include audio only. Select a room recording to view video."
   },
   "mediaSettings": {
     "title": "Video & audio settings",

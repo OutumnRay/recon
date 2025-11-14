@@ -7,9 +7,9 @@
 
 .searchable-select-label {
   display: block;
-  margin-bottom: var(--space-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
 
@@ -32,6 +32,7 @@
   cursor: pointer;
   transition: all var(--transition-base);
   text-align: left;
+  min-height: 48px;
 }
 
 .searchable-select-trigger:hover {

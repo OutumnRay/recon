@@ -8,6 +8,7 @@ import {
   LuVideo,
   LuMic,
   LuBookOpen,
+  LuLayers,
   LuRotateCcw,
   LuInfo,
   LuPlus,
@@ -19,6 +20,7 @@ import {
   LuCheck,
   LuX,
   LuFilm,
+  LuFileText,
 } from 'react-icons/lu';
 import {
   listMyMeetings,
@@ -524,133 +526,128 @@ export const Meetings: React.FC = () => {
               const statusInfo = getMeetingStatusInfo(meeting.status);
               const isNow = isMeetingNow(meeting);
               const isPast = isMeetingPast(meeting);
-
-              // Debug logging for recordings button
-              const now = new Date();
-              const scheduledTime = new Date(meeting.scheduled_at);
-              const endTime = new Date(scheduledTime.getTime() + meeting.duration * 60000);
-
-              console.log('🎬 [RECORDINGS] Meeting check:', {
-                id: meeting.id,
-                title: meeting.title,
-                status: meeting.status,
-                scheduled_at: meeting.scheduled_at,
-                duration: meeting.duration,
-                now: now.toISOString(),
-                scheduledTime: scheduledTime.toISOString(),
-                endTime: endTime.toISOString(),
-                isPast: isPast,
-                isNow: isNow,
-                shouldShowButton: isPast
-              });
+              const totalParticipants = meeting.participants.length;
+              const onlineParticipants = meeting.active_participants_count || 0;
+              const departmentsCount = meeting.departments ? meeting.departments.length : 0;
+              const recurrenceKey = meeting.is_permanent ? 'permanent' : (meeting.recurrence || 'none');
+              const recurrenceLabel = t(`meetings.recurrence.${recurrenceKey}`);
 
               return (
                 <div
                   key={meeting.id}
-                  className={`meeting-card ${isNow ? 'meeting-now' : ''} ${isPast ? 'meeting-past' : ''} ${meeting.is_permanent ? 'meeting-permanent' : ''}`}
+                  className={`meeting-card ${isNow ? 'meeting-now' : ''} ${isPast ? 'meeting-past' : ''} ${meeting.is_permanent ? 'meeting-card-permanent' : ''}`}
                   onClick={() => handleViewDetails(meeting)}
                 >
                   <div className="meeting-card-header">
-                    <div className="meeting-title-section">
+                    <div className="meeting-card-title">
                       <h3 className="meeting-title">{meeting.title}</h3>
-                      <div className="meeting-meta">
-                        <span className="meeting-type">
+                      <div className="meeting-card-chips">
+                        <span className="chip chip-type">
                           {t(`meetings.type.${meeting.type}`)}
                         </span>
                         {meeting.subject && (
-                          <span className="meeting-subject">
+                          <span className="chip chip-subject">
                             <LuBookOpen /> {meeting.subject.name}
                           </span>
                         )}
-                        {meeting.is_permanent && (
-                          <span className="permanent-badge" title={t('meetings.permanentMeetingTooltip')}>
-                            <LuClock /> {t('meetings.recurrence.permanent')}
-                          </span>
-                        )}
                       </div>
                     </div>
-                    <span className={`status-badge ${meeting.is_permanent ? 'permanent' : statusInfo.className}`}>
-                      {meeting.is_permanent ? t('meetings.recurrence.permanent') : t(`meetings.status.${meeting.status}`)}
-                    </span>
+                    <div className="meeting-card-status">
+                      {meeting.is_permanent && (
+                        <span className="permanent-badge" title={t('meetings.permanentMeetingTooltip')}>
+                          <LuClock /> {t('meetings.recurrence.permanent')}
+                        </span>
+                      )}
+                      <span className={`status-badge ${meeting.is_permanent ? 'permanent' : statusInfo.className}`}>
+                        {meeting.is_permanent ? t('meetings.recurrence.permanent') : t(`meetings.status.${meeting.status}`)}
+                      </span>
+                      <span className="recurrence-pill">
+                        <LuRotateCcw /> {recurrenceLabel}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="meeting-card-body">
-                    <div className="meeting-info-grid">
-                      <div className="info-item">
-                        <div className="info-icon">
-                          <LuCalendar />
-                        </div>
-                        <div className="info-text">
-                          <div className="info-label">{t('meetings.card.scheduledAt')}</div>
-                          <div className="info-value">{formatMeetingDate(meeting.scheduled_at)}</div>
+                  <div className="meeting-card-details-grid">
+                    <div className="detail-block">
+                      <LuCalendar className="detail-icon" />
+                      <div>
+                        <span className="detail-label">{t('meetings.card.scheduleLabel')}</span>
+                        <div className="detail-value">{formatMeetingDate(meeting.scheduled_at)}</div>
+                      </div>
+                    </div>
+                    <div className="detail-block">
+                      <LuClock className="detail-icon" />
+                      <div>
+                        <span className="detail-label">{t('meetings.card.durationLabel')}</span>
+                        <div className="detail-value">{formatDuration(meeting.duration)}</div>
+                      </div>
+                    </div>
+                    <div className="detail-block">
+                      <LuRotateCcw className="detail-icon" />
+                      <div>
+                        <span className="detail-label">{t('meetings.card.recurrenceLabel')}</span>
+                        <div className="detail-value">{recurrenceLabel}</div>
+                      </div>
+                    </div>
+                    <div className="detail-block">
+                      <LuBookOpen className="detail-icon" />
+                      <div>
+                        <span className="detail-label">{t('meetings.card.subjectLabel')}</span>
+                        <div className="detail-value">{meeting.subject?.name || t('common.loading')}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="meeting-card-stats">
+                    <div className="stat-block">
+                      <LuUsers className="stat-icon" />
+                      <div>
+                        <span className="detail-label">{t('meetings.card.participantsLabel')}</span>
+                        <div className="detail-value">
+                          {t('meetings.card.participantsSummary', {
+                            total: totalParticipants,
+                            online: onlineParticipants,
+                          })}
                         </div>
                       </div>
-                      <div className="info-item">
-                        <div className="info-icon">
-                          <LuClock />
-                        </div>
-                        <div className="info-text">
-                          <div className="info-label">{t('meetings.card.duration')}</div>
-                          <div className="info-value">{formatDuration(meeting.duration)}</div>
-                        </div>
-                      </div>
-                      <div className="info-item">
-                        <div className="info-icon">
-                          <LuUsers />
-                        </div>
-                        <div className="info-text">
-                          <div className="info-label">{t('meetings.card.participants')}</div>
-                          <div className="info-value">
-                            <span style={{ color: meeting.active_participants_count > 0 ? '#10b981' : 'inherit', fontWeight: meeting.active_participants_count > 0 ? 'bold' : 'normal' }}>
-                              {meeting.active_participants_count || 0}
-                            </span>
-                            {' / '}
-                            <span>{meeting.participants.length}</span>
+                    </div>
+                    {departmentsCount > 0 && (
+                      <div className="stat-block">
+                        <LuLayers className="stat-icon" />
+                        <div>
+                          <span className="detail-label">{t('meetings.details.departments')}</span>
+                          <div className="detail-value">
+                            {t('meetings.card.departmentsSummary', { count: departmentsCount })}
                           </div>
                         </div>
                       </div>
-                      {meeting.needs_video_record && (
-                        <div className="info-item">
-                          <LuVideo className="info-icon" />
-                          <span className="info-text">{t('meetings.card.videoRecording')}</span>
+                    )}
+                    {meeting.needs_video_record && (
+                      <div className="stat-block">
+                        <LuVideo className="stat-icon" />
+                        <div>
+                          <span className="detail-label">{t('meetings.card.videoRecording')}</span>
+                          <div className="detail-value">{t('common.yes')}</div>
                         </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
-                      {meeting.is_recording && (
-                        <span style={{
-                          backgroundColor: '#ef4444',
-                          color: 'white',
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          <LuCircle style={{ width: '8px', height: '8px' }} /> {t('meetings.card.recording')}
-                        </span>
-                      )}
-                      {meeting.is_transcribing && (
-                        <span style={{
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '11px',
-                          fontWeight: 'bold'
-                        }}>
-                          {t('meetings.card.transcription')}
-                        </span>
-                      )}
-                    </div>
-
-                    {isNow && (
-                      <div className="meeting-now-badge">
-                        <LuCircle className="pulse-icon" /> {t('meetings.meetingInProgress')}
                       </div>
+                    )}
+                  </div>
+
+                  <div className="meeting-card-flags">
+                    {meeting.is_recording && (
+                      <span className="flag flag-recording">
+                        <LuCircle /> {t('meetings.card.recording')}
+                      </span>
+                    )}
+                    {meeting.is_transcribing && (
+                      <span className="flag flag-transcription">
+                        <LuFileText /> {t('meetings.card.transcription')}
+                      </span>
+                    )}
+                    {isNow && (
+                      <span className="flag flag-live">
+                        <LuCircle className="pulse-icon" /> {t('meetings.meetingInProgress')}
+                      </span>
                     )}
                   </div>
 
@@ -673,10 +670,10 @@ export const Meetings: React.FC = () => {
                           +{meeting.participants.length - 3}
                         </div>
                       )}
-                      {meeting.active_participants_count > 0 && (
+                      {onlineParticipants > 0 && (
                         <div className="online-indicator">
                           <LuCircle className="pulse-icon-small" />
-                          <span>{meeting.active_participants_count} online</span>
+                          <span>{t('meetings.card.onlineCount', { count: onlineParticipants })}</span>
                         </div>
                       )}
                     </div>
@@ -686,14 +683,13 @@ export const Meetings: React.FC = () => {
                           className="btn-recordings"
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log('🎬 [RECORDINGS] Button clicked for meeting:', meeting.id);
                             navigate(`/meeting/${meeting.id}/recordings`);
                           }}
                           title={t('meetings.card.viewRecordings')}
                         >
                           <LuFilm />
                         </button>
-                      ) : !isPast && (meeting.status !== 'cancelled') && (
+                      ) : meeting.status !== 'cancelled' && (
                         <button
                           className="btn btn-join btn-sm"
                           onClick={(e) => {

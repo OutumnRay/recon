@@ -321,7 +321,15 @@
       "onlineCount": "({{count}} онлайн)",
       "recording": "Запись",
       "transcription": "Транскрибация",
-      "viewRecordings": "Просмотр записей"
+      "viewRecordings": "Просмотр записей",
+      "participantsLabel": "Участники",
+      "participantsSummary": "{{total}} приглашено • {{online}} онлайн",
+      "departmentsSummary": "{{count}} отделов",
+      "scheduleLabel": "Дата и время",
+      "durationLabel": "Длительность",
+      "recurrenceLabel": "Периодичность",
+      "typeLabel": "Тип",
+      "subjectLabel": "Предмет"
     }
   },
   "meetingRecordings": {
@@ -352,7 +360,12 @@
     "participantFallback": "Участник {{id}}",
     "errors": {
       "loadFailed": "Не удалось загрузить записи"
-    }
+    },
+    "toggleTracks": "Показывать треки участников",
+    "tracksLabel": "Треки участников",
+    "roomRecordingLabel": "Общая запись",
+    "noTracks": "Нет индивидуальных треков",
+    "trackSelectedMessage": "Треки участников содержат только аудио. Выберите общую запись, чтобы просмотреть видео."
   },
   "mediaSettings": {
     "title": "Настройки видео и аудио",
