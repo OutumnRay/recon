@@ -18,8 +18,8 @@ export default function HLSPlayer({ src, autoplay = false }: HLSPlayerProps) {
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
-      // Get JWT token from localStorage
-      const token = localStorage.getItem('token');
+      // Get JWT token from localStorage or sessionStorage
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
       // Initialize HLS.js
       const hls = new Hls({

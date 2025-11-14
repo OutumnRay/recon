@@ -59,12 +59,14 @@ services:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8081
       - DB_HOST=postgres
+ #     - DB_HOST=192.168.5.153
       - DB_PORT=5432
       - DB_USER=recontext
       - DB_PASSWORD=recontext
       - DB_NAME=recontext
       - MANAGING_PORTAL_URL=http://managing-portal:8080
       - MINIO_ENDPOINT=minio:9000
+#      - MINIO_ENDPOINT=api.storage.recontext.online
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_BUCKET=recontext

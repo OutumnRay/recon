@@ -23,11 +23,11 @@ type MinIOClient struct {
 
 // NewMinIOClient creates a new MinIO client
 func NewMinIOClient() (*MinIOClient, error) {
-	endpoint := getEnv("S3_ENDPOINT", "localhost:9000")
-	accessKey := getEnv("S3_ACCESS_KEY", "minioadmin")
-	secretKey := getEnv("S3_SECRET_KEY", "minioadmin")
-	bucket := getEnv("S3_BUCKET", "livekit-recordings")
-	useSSL := getEnv("S3_USE_SSL", "false") == "true"
+	endpoint := getEnv("MINIO_ENDPOINT", "localhost:9000")
+	accessKey := getEnv("MINIO_ACCESS_KEY", "minioadmin")
+	secretKey := getEnv("MINIO_SECRET_KEY", "minioadmin")
+	bucket := getEnv("MINIO_BUCKET", "livekit-recordings")
+	useSSL := getEnv("MINIO_USE_SSL", "false") == "true"
 
 	// Remove protocol prefix if present
 	endpoint = strings.TrimPrefix(endpoint, "http://")
@@ -60,11 +60,16 @@ func NewMinIOClient() (*MinIOClient, error) {
 // @Security BearerAuth
 // @Router /api/v1/recordings/{egress_id}/playlist [get]
 func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request) {
+	up.logger.Infof("📹 [PLAYLIST] Request: %s", r.URL.Path)
+
 	claims, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
+		up.logger.Errorf("📹 [PLAYLIST] Unauthorized - no user in context")
 		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
 		return
 	}
+
+	up.logger.Infof("📹 [PLAYLIST] User: %s", claims.UserID)
 
 	// Extract egress_id or track id from URL path
 	// Supports both /recordings/{egress_id}/playlist and /recordings/track/{track_sid}/playlist
@@ -76,7 +81,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 
 	var egressID string
 	var trackSID string
-	var roomSID string
+	var meetingID string
 	var isTrack bool
 
 	// Check if this is a track request
@@ -84,7 +89,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 		isTrack = true
 		trackSID = pathParts[1]
 
-		// Find track by SID to get egress_id for access check and room_sid for MinIO path
+		// Find track by SID to get egress_id for access check and meeting_id for MinIO path
 		var track models.Track
 		err := up.db.DB.Where("sid = ?", trackSID).First(&track).Error
 		if err != nil {
@@ -93,7 +98,16 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		egressID = track.EgressID
-		roomSID = track.RoomSID
+
+		// Get room to find meeting ID (room.Name = meetingID)
+		var room models.Room
+		err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
+		if err != nil {
+			up.logger.Errorf("Room not found for track %s: %v", trackSID, err)
+			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
+			return
+		}
+		meetingID = room.Name
 	} else {
 		egressID = pathParts[0]
 	}
@@ -115,10 +129,10 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 	// Determine playlist path based on type
 	var playlistPath string
 	if isTrack {
-		// For tracks, use room/tracks/track_sid.m3u8 path on MinIO
-		playlistPath = fmt.Sprintf("%s/tracks/%s.m3u8", roomSID, trackSID)
+		// For tracks, use meetingID/tracks/track_sid.m3u8 path on MinIO
+		playlistPath = fmt.Sprintf("%s/tracks/%s.m3u8", meetingID, trackSID)
 	} else {
-		// For room composites, get room SID and use room/composite.m3u8
+		// For room composites, get room and use meetingID/composite.m3u8
 		var room models.Room
 		err := up.db.DB.Where("egress_id = ?", egressID).First(&room).Error
 		if err != nil {
@@ -126,17 +140,20 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		playlistPath = fmt.Sprintf("%s/composite.m3u8", room.SID)
+		meetingID = room.Name
+		playlistPath = fmt.Sprintf("%s/composite.m3u8", meetingID)
 	}
 
 	// Get the playlist file from MinIO
+	up.logger.Infof("📹 [PLAYLIST] Fetching from MinIO: bucket=%s, path=%s", minioClient.bucket, playlistPath)
 	object, err := minioClient.client.GetObject(context.Background(), minioClient.bucket, playlistPath, minio.GetObjectOptions{})
 	if err != nil {
-		up.logger.Errorf("Failed to get playlist from MinIO (path: %s): %v", playlistPath, err)
+		up.logger.Errorf("📹 [PLAYLIST] Failed to get from MinIO (path: %s): %v", playlistPath, err)
 		up.respondWithError(w, http.StatusNotFound, "Playlist not found", err.Error())
 		return
 	}
 	defer object.Close()
+	up.logger.Infof("📹 [PLAYLIST] Successfully fetched from MinIO")
 
 	// Read and rewrite playlist URLs
 	scanner := bufio.NewScanner(object)
@@ -176,6 +193,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(modifiedPlaylist.String()))
+	up.logger.Infof("📹 [PLAYLIST] Sent modified playlist to client (%d bytes)", len(modifiedPlaylist.String()))
 }
 
 // GetSegment godoc
@@ -192,8 +210,11 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 // @Security BearerAuth
 // @Router /api/v1/recordings/{egress_id}/segment/{filename} [get]
 func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) {
+	up.logger.Infof("📹 [SEGMENT] Request: %s", r.URL.Path)
+
 	claims, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
+		up.logger.Errorf("📹 [SEGMENT] Unauthorized - no user in context")
 		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
 		return
 	}
@@ -208,7 +229,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 
 	var egressID string
 	var trackSID string
-	var roomSID string
+	var meetingID string
 	var filename string
 	var isTrack bool
 
@@ -218,7 +239,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 		trackSID = pathParts[1]
 		filename = pathParts[3]
 
-		// Find track by SID to get egress_id for access check and room_sid for MinIO path
+		// Find track by SID to get egress_id for access check and meeting_id for MinIO path
 		var track models.Track
 		err := up.db.DB.Where("sid = ?", trackSID).First(&track).Error
 		if err != nil {
@@ -227,7 +248,16 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		egressID = track.EgressID
-		roomSID = track.RoomSID
+
+		// Get room to find meeting ID (room.Name = meetingID)
+		var room models.Room
+		err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
+		if err != nil {
+			up.logger.Errorf("Room not found for track %s: %v", trackSID, err)
+			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
+			return
+		}
+		meetingID = room.Name
 	} else {
 		egressID = pathParts[0]
 		filename = pathParts[2]
@@ -256,10 +286,10 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 	// Construct segment path based on type
 	var segmentPath string
 	if isTrack {
-		// For tracks, use room/tracks/filename path on MinIO (filename already includes track SID prefix)
-		segmentPath = fmt.Sprintf("%s/tracks/%s", roomSID, filename)
+		// For tracks, use meetingID/tracks/filename path on MinIO (filename already includes track SID prefix)
+		segmentPath = fmt.Sprintf("%s/tracks/%s", meetingID, filename)
 	} else {
-		// For room composites, get room SID and use room/composite_XXXXX.ts
+		// For room composites, get room and use meetingID/composite_XXXXX.ts
 		var room models.Room
 		err := up.db.DB.Where("egress_id = ?", egressID).First(&room).Error
 		if err != nil {
@@ -267,24 +297,32 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		segmentPath = fmt.Sprintf("%s/%s", room.SID, filename)
+		meetingID = room.Name
+		segmentPath = fmt.Sprintf("%s/%s", meetingID, filename)
 	}
 
+	up.logger.Infof("📹 [SEGMENT] Fetching from MinIO: bucket=%s, path=%s", minioClient.bucket, segmentPath)
 	object, err := minioClient.client.GetObject(context.Background(), minioClient.bucket, segmentPath, minio.GetObjectOptions{})
 	if err != nil {
-		up.logger.Errorf("Failed to get segment from MinIO (path: %s): %v", segmentPath, err)
+		up.logger.Errorf("📹 [SEGMENT] Failed to get from MinIO (path: %s): %v", segmentPath, err)
 		up.respondWithError(w, http.StatusNotFound, "Segment not found", err.Error())
 		return
 	}
 	defer object.Close()
+
+	// Get object info for content length
+	objInfo, err := object.Stat()
+	if err != nil {
+		up.logger.Errorf("📹 [SEGMENT] Failed to get object info: %v", err)
+	} else {
+		up.logger.Infof("📹 [SEGMENT] Successfully fetched from MinIO (size: %d bytes)", objInfo.Size)
+	}
 
 	// Stream the segment to client
 	w.Header().Set("Content-Type", "video/mp2t")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "public, max-age=31536000") // Cache segments for 1 year
 
-	// Get object info for content length
-	objInfo, err := object.Stat()
 	if err == nil {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", objInfo.Size))
 	}
@@ -292,8 +330,11 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 
 	// Stream the data
-	if _, err := io.Copy(w, object); err != nil {
-		up.logger.Errorf("Failed to stream segment: %v", err)
+	bytesWritten, err := io.Copy(w, object)
+	if err != nil {
+		up.logger.Errorf("📹 [SEGMENT] Failed to stream segment: %v", err)
+	} else {
+		up.logger.Infof("📹 [SEGMENT] Streamed %d bytes to client", bytesWritten)
 	}
 }
 
