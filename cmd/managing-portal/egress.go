@@ -6,19 +6,19 @@ import (
 	"os"
 	"strconv"
 
-	lksdk "github.com/livekit/server-sdk-go/v2"
 	"github.com/livekit/protocol/livekit"
+	lksdk "github.com/livekit/server-sdk-go/v2"
 )
 
 // EgressConfig содержит настройки для запуска Egress
 type EgressConfig struct {
-	Enabled        bool
-	S3Endpoint     string
-	S3Bucket       string
-	S3AccessKey    string
-	S3Secret       string
-	S3Region       string
-	RecordTracks   bool
+	Enabled      bool
+	S3Endpoint   string
+	S3Bucket     string
+	S3AccessKey  string
+	S3Secret     string
+	S3Region     string
+	RecordTracks bool
 }
 
 // loadEgressConfig загружает конфигурацию Egress из переменных окружения
@@ -74,7 +74,7 @@ func (mp *ManagingPortal) startRoomCompositeEgress(roomName string, roomSID stri
 	// Используем структуру: {meetingID}_{sessionID}
 	req.SegmentOutputs = []*livekit.SegmentedFileOutput{
 		{
-			FilenamePrefix:   fmt.Sprintf("%s_%s", roomName, roomSID),
+			FilenamePrefix:   fmt.Sprintf("%s_%s/composite", roomName, roomSID),
 			PlaylistName:     "composite.m3u8",
 			LivePlaylistName: "composite-live.m3u8",
 			SegmentDuration:  10,
