@@ -74,7 +74,7 @@ func (ec *EgressClient) StartRoomCompositeEgress(ctx context.Context, roomName s
 		Options: &livekit.RoomCompositeEgressRequest_Preset{
 			Preset: preset,
 		},
-		// Структура: {meetingID}_{roomSID} - LiveKit сам добавит /composite
+		// Структура: {meetingID}_{roomSID}
 		SegmentOutputs: []*livekit.SegmentedFileOutput{
 			{
 				FilenamePrefix:   fmt.Sprintf("%s_%s", roomName, roomSID),

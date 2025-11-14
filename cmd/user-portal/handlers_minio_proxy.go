@@ -163,7 +163,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		meetingID = room.Name
-		playlistPath = fmt.Sprintf("%s_%s/composite/composite.m3u8", meetingID, room.SID)
+		playlistPath = fmt.Sprintf("%s_%s/composite.m3u8", meetingID, room.SID)
 	}
 
 	// Get the playlist file from MinIO
@@ -332,7 +332,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		segmentPath = fmt.Sprintf("%s_%s/tracks/%s/%s", meetingID, room.SID, trackSID, filename)
+		segmentPath = fmt.Sprintf("%s_%s/tracks/%s", meetingID, room.SID, filename)
 	} else {
 		// For room composites, get room and use meetingID/roomSID/composite_XXXXX.ts
 		var room models.Room
@@ -343,7 +343,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		meetingID = room.Name
-		segmentPath = fmt.Sprintf("%s_%s/composite/%s", meetingID, room.SID, filename)
+		segmentPath = fmt.Sprintf("%s_%s/%s", meetingID, room.SID, filename)
 	}
 
 	up.logger.Infof("📹 [SEGMENT] Fetching from MinIO: bucket=%s, path=%s", minioClient.bucket, segmentPath)
