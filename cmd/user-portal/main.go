@@ -65,6 +65,7 @@ type UserPortal struct {
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
 	embeddingsClient  *embeddings.EmbeddingsClient   // Embeddings client for RAG
 	emailService      EmailServiceInterface          // Email service for sending emails
+	wsHub             *WSHub                         // WebSocket hub for real-time communication
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -114,6 +115,9 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 	emailConfig := email.LoadConfigFromEnv()
 	mailer := email.NewMailer(emailConfig)
 
+	// Initialize WebSocket hub
+	wsHub := NewWSHub()
+
 	return &UserPortal{
 		config:            cfg,
 		logger:            log,
@@ -127,6 +131,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
 		embeddingsClient:  embeddingsClient,
 		emailService:      mailer,
+		wsHub:             wsHub,
 	}, nil
 }
 
@@ -869,6 +874,12 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				return
 			}
 
+			// Check if this is a WebSocket connection request
+			if strings.HasSuffix(r.URL.Path, "/ws") && r.Method == http.MethodGet {
+				up.handleWebSocket(w, r)
+				return
+			}
+
 			// Check if this is a recordings request
 			if strings.HasSuffix(r.URL.Path, "/recordings") && r.Method == http.MethodGet {
 				up.getMeetingRecordingsHandler(w, r)
@@ -963,6 +974,10 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 }
 
 func (up *UserPortal) Start() error {
+	// Start WebSocket hub in goroutine
+	go up.wsHub.Run()
+	up.logger.Info("WebSocket hub started")
+
 	mux := up.setupRoutes()
 
 	// Wrap with recovery and metrics middleware

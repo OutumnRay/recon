@@ -246,8 +246,8 @@ export const Meetings: React.FC = () => {
               </div>
               <div className="detail-item">
                 <span className="detail-label">{t('meetings.details.status')}:</span>
-                <span className={`status-badge ${getMeetingStatusInfo(selectedMeeting.status).className}`}>
-                  {t(`meetings.status.${selectedMeeting.status}`)}
+                <span className={`status-badge ${selectedMeeting.is_permanent ? 'permanent' : getMeetingStatusInfo(selectedMeeting.status).className}`}>
+                  {selectedMeeting.is_permanent ? 'Постоянная' : t(`meetings.status.${selectedMeeting.status}`)}
                 </span>
               </div>
               <div className="detail-item">
@@ -357,7 +357,7 @@ export const Meetings: React.FC = () => {
                 });
                 return null;
               })()}
-              {(selectedMeeting.status !== 'cancelled' || selectedMeeting.is_permanent) && (
+              {(selectedMeeting.status !== 'cancelled' && (selectedMeeting.status !== 'completed' || selectedMeeting.is_permanent)) && (
                 <button className="btn btn-primary" onClick={handleJoinMeeting}>
                   <LuPlay /> {t('meetings.details.joinMeeting')}
                 </button>
@@ -586,13 +586,50 @@ export const Meetings: React.FC = () => {
                       </div>
                       <div className="info-item">
                         <LuUsers className="info-icon" />
-                        <span className="info-text">{t('meetings.card.participants', { count: meeting.participants.length })}</span>
+                        <span className="info-text">
+                          {t('meetings.card.participants', { count: meeting.participants.length })}
+                          {meeting.active_participants_count > 0 && (
+                            <span style={{ color: '#10b981', fontWeight: 'bold', marginLeft: '4px' }}>
+                              ({meeting.active_participants_count} онлайн)
+                            </span>
+                          )}
+                        </span>
                       </div>
                       {meeting.needs_video_record && (
                         <div className="info-item">
                           <LuVideo className="info-icon" />
                           <span className="info-text">{t('meetings.card.videoRecording')}</span>
                         </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                      {meeting.is_recording && (
+                        <span style={{
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <LuCircle style={{ width: '8px', height: '8px' }} /> Запись
+                        </span>
+                      )}
+                      {meeting.is_transcribing && (
+                        <span style={{
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: 'bold'
+                        }}>
+                          Транскрибация
+                        </span>
                       )}
                     </div>
 

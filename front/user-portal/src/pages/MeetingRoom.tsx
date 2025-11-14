@@ -33,8 +33,13 @@ import {
   LuCircle,
   LuFileText,
   LuUsers,
+  LuSettings,
+  LuMonitor,
+  LuMonitorOff,
 } from 'react-icons/lu';
 import './MeetingRoom.css';
+import MediaSettingsModal from '../components/MediaSettingsModal';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 export default function MeetingRoom() {
   const { meetingId } = useParams<{ meetingId: string }>();
@@ -70,6 +75,11 @@ export default function MeetingRoom() {
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
   const [mouseIdleTimer, setMouseIdleTimer] = useState<number | null>(null);
+  const [showMediaSettings, setShowMediaSettings] = useState(false);
+  const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState<string>('');
+  const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string>('');
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [currentScreenSharer, setCurrentScreenSharer] = useState<string | null>(null);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const localPreviewRef = useRef<HTMLDivElement>(null);
@@ -81,6 +91,37 @@ export default function MeetingRoom() {
   const localPreviewTrackRef = useRef<Track | null>(null);
   const localPreviewElementRef = useRef<HTMLMediaElement | null>(null);
   const volumeRef = useRef<number>(100);
+
+  // WebSocket connection for real-time communication
+  const { sendMessage: sendWSMessage } = useWebSocket({
+    meetingId: meetingId || '',
+    enabled: !!meetingId && isConnected,
+    onMessage: (message) => {
+      console.log('[WebSocket] Received message:', message);
+
+      switch (message.type) {
+        case 'screen_share_started':
+          if (message.data?.user_id && message.data.user_id !== room.localParticipant?.sid) {
+            setCurrentScreenSharer(message.data.user_id);
+            console.log(`[Screen Share] User ${message.data.user_id} started sharing`);
+          }
+          break;
+
+        case 'screen_share_stopped':
+          if (message.data?.user_id === currentScreenSharer) {
+            setCurrentScreenSharer(null);
+            console.log(`[Screen Share] User ${message.data.user_id} stopped sharing`);
+          }
+          break;
+      }
+    },
+    onConnect: () => {
+      console.log('[WebSocket] Connected to meeting room');
+    },
+    onDisconnect: () => {
+      console.log('[WebSocket] Disconnected from meeting room');
+    },
+  });
 
   const getInitials = (value: string) => {
     const parts = value.trim().split(' ');
@@ -955,8 +996,23 @@ export default function MeetingRoom() {
         renderStageVideo(room.localParticipant.sid);
       }
     } catch (err) {
-      console.error('Failed to toggle camera:', err);
-      setError(err instanceof Error ? err.message : t('meetingRoom.errors.toggleCamera'));
+      console.warn('Failed to toggle camera:', err);
+      // Handle specific error types
+      if (err instanceof Error) {
+        if (err.name === 'NotFoundError') {
+          setError(t('meetingRoom.errors.cameraNotFound') || 'Camera not found. Please check your device.');
+        } else if (err.name === 'NotReadableError') {
+          setError(t('meetingRoom.errors.cameraInUse') || 'Camera is being used by another application.');
+        } else if (err.name === 'NotAllowedError') {
+          setError(t('meetingRoom.errors.cameraPermissionDenied') || 'Camera permission denied.');
+        } else {
+          setError(err.message || t('meetingRoom.errors.toggleCamera'));
+        }
+      } else {
+        setError(t('meetingRoom.errors.toggleCamera'));
+      }
+      // Ensure camera state reflects actual state
+      setIsCameraEnabled(false);
     }
   };
 
@@ -970,8 +1026,23 @@ export default function MeetingRoom() {
         setIsMicEnabled(true);
       }
     } catch (err) {
-      console.error('Failed to toggle microphone:', err);
-      setError(err instanceof Error ? err.message : t('meetingRoom.errors.toggleMicrophone'));
+      console.warn('Failed to toggle microphone:', err);
+      // Handle specific error types
+      if (err instanceof Error) {
+        if (err.name === 'NotFoundError') {
+          setError(t('meetingRoom.errors.micNotFound') || 'Microphone not found. Please check your device.');
+        } else if (err.name === 'NotReadableError') {
+          setError(t('meetingRoom.errors.micInUse') || 'Microphone is being used by another application.');
+        } else if (err.name === 'NotAllowedError') {
+          setError(t('meetingRoom.errors.micPermissionDenied') || 'Microphone permission denied.');
+        } else {
+          setError(err.message || t('meetingRoom.errors.toggleMicrophone'));
+        }
+      } else {
+        setError(t('meetingRoom.errors.toggleMicrophone'));
+      }
+      // Ensure microphone state reflects actual state
+      setIsMicEnabled(false);
     }
   };
 
@@ -1024,6 +1095,88 @@ export default function MeetingRoom() {
     } catch (err) {
       console.error('Failed to stop transcription:', err);
       setRecordingError(err instanceof Error ? err.message : 'Failed to stop transcription');
+    }
+  };
+
+  const handleApplyMediaSettings = async (videoDeviceId: string, audioDeviceId: string) => {
+    try {
+      console.log('[Media Settings] Applying settings:', { videoDeviceId, audioDeviceId });
+
+      // Update selected devices
+      setSelectedVideoDeviceId(videoDeviceId);
+      setSelectedAudioDeviceId(audioDeviceId);
+
+      // If camera is enabled, switch to new video device
+      if (isCameraEnabled && videoDeviceId) {
+        await room.localParticipant.setCameraEnabled(false);
+        await room.switchActiveDevice('videoinput', videoDeviceId);
+        await room.localParticipant.setCameraEnabled(true);
+        renderLocalPreview();
+        if (stageParticipantId === room.localParticipant?.sid) {
+          renderStageVideo(room.localParticipant.sid);
+        }
+      }
+
+      // If microphone is enabled, switch to new audio device
+      if (isMicEnabled && audioDeviceId) {
+        await room.localParticipant.setMicrophoneEnabled(false);
+        await room.switchActiveDevice('audioinput', audioDeviceId);
+        await room.localParticipant.setMicrophoneEnabled(true);
+      }
+
+      console.log('[Media Settings] Settings applied successfully');
+    } catch (err) {
+      console.error('[Media Settings] Failed to apply settings:', err);
+      setError(err instanceof Error ? err.message : 'Failed to apply media settings');
+    }
+  };
+
+  const toggleScreenShare = async () => {
+    try {
+      if (isScreenSharing) {
+        // Stop screen sharing
+        console.log('[Screen Share] Stopping screen share...');
+        await room.localParticipant.setScreenShareEnabled(false);
+        setIsScreenSharing(false);
+        setCurrentScreenSharer(null);
+
+        // Notify other participants via WebSocket
+        sendWSMessage('screen_share_stop');
+        console.log('[Screen Share] Screen share stopped');
+      } else {
+        // Check if someone else is already sharing
+        if (currentScreenSharer && currentScreenSharer !== room.localParticipant?.sid) {
+          setError('Другой участник уже демонстрирует экран. Только один участник может делиться экраном одновременно.');
+          return;
+        }
+
+        // Start screen sharing
+        console.log('[Screen Share] Starting screen share...');
+        await room.localParticipant.setScreenShareEnabled(true);
+        setIsScreenSharing(true);
+        setCurrentScreenSharer(room.localParticipant?.sid || null);
+
+        // Notify other participants via WebSocket
+        sendWSMessage('screen_share_start');
+        console.log('[Screen Share] Screen share started');
+
+        // Switch stage to show screen share
+        if (room.localParticipant?.sid) {
+          setStageParticipantId(room.localParticipant.sid);
+        }
+      }
+    } catch (err) {
+      console.error('[Screen Share] Failed to toggle screen share:', err);
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          setError('Отказано в доступе к экрану. Пожалуйста, разрешите демонстрацию экрана.');
+        } else {
+          setError(err.message || 'Не удалось начать демонстрацию экрана');
+        }
+      } else {
+        setError('Не удалось начать демонстрацию экрана');
+      }
+      setIsScreenSharing(false);
     }
   };
 
@@ -1188,6 +1341,24 @@ export default function MeetingRoom() {
               >
                 {isMicEnabled ? <LuMic /> : <LuMicOff />}
               </button>
+              <button
+                onClick={toggleScreenShare}
+                className={`icon-circle-button ${isScreenSharing ? 'active-share' : ''}`}
+                aria-label={isScreenSharing ? 'Остановить демонстрацию экрана' : 'Демонстрация экрана'}
+                title={isScreenSharing ? 'Остановить демонстрацию экрана' : 'Демонстрация экрана'}
+                disabled={!isConnected || (currentScreenSharer !== null && currentScreenSharer !== room.localParticipant?.sid)}
+              >
+                {isScreenSharing ? <LuMonitorOff /> : <LuMonitor />}
+              </button>
+              <button
+                onClick={() => setShowMediaSettings(true)}
+                className="icon-circle-button"
+                aria-label="Настройки видео и аудио"
+                title="Настройки видео и аудио"
+                disabled={!isConnected}
+              >
+                <LuSettings />
+              </button>
               {isMobile && (
                 <button
                   onClick={forceSubscribeToAllTracks}
@@ -1279,6 +1450,14 @@ export default function MeetingRoom() {
           </div>
         </div>
       )}
+
+      <MediaSettingsModal
+        isOpen={showMediaSettings}
+        onClose={() => setShowMediaSettings(false)}
+        onApplySettings={handleApplyMediaSettings}
+        currentVideoDeviceId={selectedVideoDeviceId}
+        currentAudioDeviceId={selectedAudioDeviceId}
+      />
     </div>
   );
 }

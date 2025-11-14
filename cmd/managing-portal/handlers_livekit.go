@@ -810,17 +810,26 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 		if err != nil {
 			mp.logger.Errorf("❌ Failed to get meeting %s: %v", *dbRoom.MeetingID, err)
 		} else {
-			mp.logger.Infof("🔄 Updating meeting status to completed and disabling recording flags...")
+			mp.logger.Infof("🔄 Updating meeting recording flags...")
 
-			// Set meeting as completed
-			meeting.Status = "completed"
+			// Only set status to completed if it's not a permanent meeting
+			if !meeting.IsPermanent {
+				mp.logger.Infof("  Setting meeting status to completed (not permanent)")
+				meeting.Status = "completed"
+			} else {
+				mp.logger.Infof("  Keeping meeting status unchanged (permanent meeting)")
+			}
 			meeting.IsRecording = false
 			meeting.IsTranscribing = false
 
 			if err := mp.meetingRepo.UpdateMeeting(meeting); err != nil {
 				mp.logger.Errorf("❌ Failed to update meeting status: %v", err)
 			} else {
-				mp.logger.Infof("✅ Meeting %s marked as completed (is_recording=false, is_transcribing=false)", *dbRoom.MeetingID)
+				if meeting.IsPermanent {
+					mp.logger.Infof("✅ Meeting %s recording stopped (is_recording=false, is_transcribing=false, permanent meeting)", *dbRoom.MeetingID)
+				} else {
+					mp.logger.Infof("✅ Meeting %s marked as completed (is_recording=false, is_transcribing=false)", *dbRoom.MeetingID)
+				}
 			}
 		}
 	} else {

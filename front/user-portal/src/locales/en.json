@@ -348,7 +348,13 @@
       "connect": "Failed to connect to room",
       "toggleCamera": "Failed to toggle camera",
       "toggleMicrophone": "Failed to toggle microphone",
-      "enableDevices": "Failed to enable camera and microphone"
+      "enableDevices": "Failed to enable camera and microphone",
+      "cameraNotFound": "Camera not found. Please check your device.",
+      "cameraInUse": "Camera is being used by another application.",
+      "cameraPermissionDenied": "Camera permission denied. Please allow camera access.",
+      "micNotFound": "Microphone not found. Please check your device.",
+      "micInUse": "Microphone is being used by another application.",
+      "micPermissionDenied": "Microphone permission denied. Please allow microphone access."
     }
   }
 }

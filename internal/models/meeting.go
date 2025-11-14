@@ -139,6 +139,8 @@ type MeetingWithDetails struct {
 	Departments     []Department           `json:"departments"`
 	// Пользователь, создавший встречу
 	CreatedByUser   *UserInfo              `json:"created_by_user,omitempty"`
+	// Количество активных (подключенных) участников в данный момент
+	ActiveParticipantsCount int `json:"active_participants_count"`
 }
 
 // MeetingParticipantInfo представляет информацию об участнике с деталями пользователя

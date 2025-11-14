@@ -125,7 +125,7 @@
 }
 
 .permanent-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #7c3aed;
   color: white;
   border-radius: var(--radius-full);
   padding: 0 var(--space-md);
@@ -135,14 +135,12 @@
   gap: var(--space-xs);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .status-badge.permanent {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #7c3aed;
   color: white;
   border: none;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .meeting-card-body {

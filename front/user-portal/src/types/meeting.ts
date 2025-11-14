@@ -108,6 +108,7 @@ export interface MeetingWithDetails {
   participants: MeetingParticipantInfo[];
   departments: Department[];
   creator?: User;
+  active_participants_count: number;
 }
 
 // Request types

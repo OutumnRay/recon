@@ -94,6 +94,12 @@
   border-color: #2563eb !important;
 }
 
+.icon-circle-button.active-share {
+  background: #10b981 !important;
+  color: white !important;
+  border-color: #059669 !important;
+}
+
 .recording-indicator,
 .transcription-indicator {
   font-family: monospace;
@@ -434,6 +440,25 @@
   flex-direction: column;
   gap: var(--space-md);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.participant-sidebar-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.participant-sidebar-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.participant-sidebar-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.participant-sidebar-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .remote-participant-tile {
