@@ -303,7 +303,11 @@ export const Meetings: React.FC = () => {
                 <div key={participant.user_id} className="participant-item">
                   <div className="participant-info">
                     <span className="participant-name">
-                      {participant.user?.full_name || participant.user?.username || participant.user_id}
+                      {participant.user ?
+                        (participant.user.first_name && participant.user.last_name ?
+                          `${participant.user.first_name} ${participant.user.last_name}` :
+                          participant.user.username) :
+                        participant.user_id}
                     </span>
                     <span className="participant-email">{participant.user?.email || ''}</span>
                   </div>
@@ -353,12 +357,12 @@ export const Meetings: React.FC = () => {
                 });
                 return null;
               })()}
-              {selectedMeeting.status !== 'cancelled' && (
+              {(selectedMeeting.status !== 'cancelled' || selectedMeeting.is_permanent) && (
                 <button className="btn btn-primary" onClick={handleJoinMeeting}>
                   <LuPlay /> {t('meetings.details.joinMeeting')}
                 </button>
               )}
-              {isMeetingPast(selectedMeeting) ? (
+              {(isMeetingPast(selectedMeeting) || (selectedMeeting.is_permanent && selectedMeeting.status === 'completed')) ? (
                 <button className="btn btn-secondary" onClick={handleViewRecordings}>
                   <LuFilm /> Записи встречи
                 </button>
@@ -565,8 +569,8 @@ export const Meetings: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <span className={`status-badge ${statusInfo.className}`}>
-                      {t(`meetings.status.${meeting.status}`)}
+                    <span className={`status-badge ${meeting.is_permanent ? 'permanent' : statusInfo.className}`}>
+                      {meeting.is_permanent ? 'Постоянная' : t(`meetings.status.${meeting.status}`)}
                     </span>
                   </div>
 
@@ -602,7 +606,11 @@ export const Meetings: React.FC = () => {
                   <div className="meeting-card-footer">
                     <div className="participants-preview">
                       {meeting.participants.slice(0, 3).map((participant) => {
-                        const displayName = participant.user?.full_name || participant.user?.username || 'U';
+                        const displayName = participant.user ?
+                          (participant.user.first_name && participant.user.last_name ?
+                            `${participant.user.first_name} ${participant.user.last_name}` :
+                            participant.user.username) :
+                          'U';
                         return (
                           <div key={participant.user_id} className="participant-avatar" title={displayName}>
                             {displayName.charAt(0).toUpperCase()}

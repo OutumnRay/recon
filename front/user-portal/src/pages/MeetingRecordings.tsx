@@ -135,7 +135,7 @@ export default function MeetingRecordings() {
         <div className="error">
           <h2>Ошибка</h2>
           <p>{error}</p>
-          <button onClick={() => navigate('/meetings')}>Вернуться к встречам</button>
+          <button onClick={() => navigate('/dashboard/meetings')}>Вернуться к встречам</button>
         </div>
       </div>
     );
@@ -144,7 +144,7 @@ export default function MeetingRecordings() {
   return (
     <div className="meeting-recordings-page">
       <div className="recordings-header">
-        <button className="back-button" onClick={() => navigate('/meetings')}>
+        <button className="back-button" onClick={() => navigate('/dashboard/meetings')}>
           ← Назад к встречам
         </button>
         <h1>Записи встречи: {meeting?.title || 'Встреча'}</h1>
@@ -219,7 +219,11 @@ export default function MeetingRecordings() {
                           <div className="recording-icon">🎤</div>
                           <div className="recording-info">
                             <div className="recording-title">
-                              {track.participant?.full_name || track.participant?.username || `Участник ${track.participant_id.slice(0, 8)}`}
+                              {track.participant ?
+                                (track.participant.first_name && track.participant.last_name ?
+                                  `${track.participant.first_name} ${track.participant.last_name}` :
+                                  track.participant.username) :
+                                `Участник ${track.participant_id.slice(0, 8)}`}
                             </div>
                             <div className="recording-details">
                               <span>{new Date(track.started_at).toLocaleTimeString('ru-RU')}</span>

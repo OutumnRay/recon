@@ -260,7 +260,11 @@ export const Meetings: React.FC = () => {
               {selectedMeeting.participants.map((participant) => (
                 <div key={participant.user_id} className="participant-item">
                   <div className="participant-info">
-                    <span className="participant-name">{participant.user.full_name}</span>
+                    <span className="participant-name">
+                      {participant.user.first_name && participant.user.last_name ?
+                        `${participant.user.first_name} ${participant.user.last_name}` :
+                        participant.user.username}
+                    </span>
                     <span className="participant-email">{participant.user.email}</span>
                   </div>
                   <div className="participant-badges">
@@ -514,7 +518,11 @@ export const Meetings: React.FC = () => {
                   <div className="meeting-card-footer">
                     <div className="participants-preview">
                       {meeting.participants.slice(0, 3).map((participant) => {
-                        const displayName = participant.user?.full_name || participant.user?.username || 'U';
+                        const displayName = participant.user ?
+                          (participant.user.first_name && participant.user.last_name ?
+                            `${participant.user.first_name} ${participant.user.last_name}` :
+                            participant.user.username) :
+                          'U';
                         return (
                           <div key={participant.user_id} className="participant-avatar" title={displayName}>
                             {displayName.charAt(0).toUpperCase()}

@@ -24,13 +24,14 @@ type RecordingInfo struct {
 
 // TrackRecordingInfo представляет информацию о записи трека участника
 type TrackRecordingInfo struct {
-	ID            string  `json:"id"`
-	Status        string  `json:"status"`
-	StartedAt     string  `json:"started_at"`
-	EndedAt       *string `json:"ended_at,omitempty"`
-	PlaylistURL   string  `json:"playlist_url"`
-	ParticipantID string  `json:"participant_id"`
-	TrackID       string  `json:"track_id"`
+	ID            string           `json:"id"`
+	Status        string           `json:"status"`
+	StartedAt     string           `json:"started_at"`
+	EndedAt       *string          `json:"ended_at,omitempty"`
+	PlaylistURL   string           `json:"playlist_url"`
+	ParticipantID string           `json:"participant_id"`
+	TrackID       string           `json:"track_id"`
+	Participant   *models.UserInfo `json:"participant,omitempty"`
 }
 
 // RoomRecordingInfo представляет информацию о записи комнаты с треками
@@ -159,6 +160,37 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 						endedAt := track.UnpublishedAt.Format("2006-01-02T15:04:05Z07:00")
 						trackRec.EndedAt = &endedAt
 					}
+
+					// Get participant info to retrieve user details
+					participant, err := up.liveKitRepo.GetParticipantBySID(track.ParticipantSID)
+					if err == nil && participant != nil {
+						// Parse user ID from participant identity
+						userID, err := uuid.Parse(participant.Identity)
+						if err == nil {
+							// Get user info
+							user, err := up.userRepo.GetByID(userID)
+							if err == nil && user != nil {
+								// Create UserInfo from User
+								userInfo := &models.UserInfo{
+									ID:           user.ID,
+									Username:     user.Username,
+									Email:        user.Email,
+									Role:         user.Role,
+									FirstName:    user.FirstName,
+									LastName:     user.LastName,
+									Phone:        user.Phone,
+									Bio:          user.Bio,
+									Avatar:       user.Avatar,
+									DepartmentID: user.DepartmentID,
+									Permissions:  user.Permissions,
+									Language:     user.Language,
+								}
+								trackRec.Participant = userInfo
+								up.logger.Infof("📹 [RECORDINGS] Added participant info: %s %s", user.FirstName, user.LastName)
+							}
+						}
+					}
+
 					roomRec.Tracks = append(roomRec.Tracks, trackRec)
 					up.logger.Infof("📹 [RECORDINGS] Added track recording: %s", track.EgressID)
 				}

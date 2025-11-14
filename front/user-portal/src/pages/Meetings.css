@@ -138,6 +138,13 @@
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
+.status-badge.permanent {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 .meeting-card-body {
   display: flex;
   flex-direction: column;
