@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import './MultiSelectWithSearch.css';
 
 interface Option {
@@ -25,14 +26,18 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
   options,
   selectedIds,
   onChange,
-  placeholder = 'Поиск...',
-  emptyMessage = 'Нет доступных элементов',
+  placeholder = '',
+  emptyMessage = '',
   disabled = false,
   disabledIds = [],
   organizerId,
 }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const resolvedPlaceholder = placeholder || t('multiSelect.searchPlaceholder');
+  const resolvedEmptyMessage = emptyMessage || t('multiSelect.noOptions');
 
   // Filter options based on search query
   const filteredOptions = useMemo(() => {
@@ -84,7 +89,7 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
         <input
           type="text"
           className="multi-select-search"
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setIsDropdownOpen(true)}
@@ -96,7 +101,7 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
             type="button"
             className="clear-all-btn"
             onClick={handleClearAll}
-            title="Очистить все"
+            title={t('multiSelect.clearAll')}
           >
             ✕
           </button>
@@ -111,7 +116,7 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
             <div className="multi-select-dropdown">
               {filteredOptions.length === 0 ? (
                 <div className="dropdown-empty">
-                  {options.length === 0 ? emptyMessage : 'Ничего не найдено'}
+                  {options.length === 0 ? resolvedEmptyMessage : t('multiSelect.noResults')}
                 </div>
               ) : (
                 <div className="dropdown-list">
@@ -155,7 +160,7 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
       {selectedOptions.length > 0 && (
         <div className="selected-items">
           <div className="selected-items-header">
-            <span>Выбрано: {selectedOptions.length}</span>
+            <span>{t('multiSelect.selectedCount', { count: selectedOptions.length })}</span>
           </div>
           <div className="selected-items-list">
             {selectedOptions.map((option) => {
@@ -180,7 +185,7 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
                           borderRadius: '4px',
                           fontWeight: '500'
                         }}>
-                          Организатор
+                          {t('multiSelect.organizer')}
                         </span>
                       )}
                     </span>
@@ -195,7 +200,7 @@ export const MultiSelectWithSearch: React.FC<MultiSelectWithSearchProps> = ({
                       type="button"
                       className="remove-item-btn"
                       onClick={() => handleRemove(option.id)}
-                      title="Удалить"
+                      title={t('multiSelect.remove')}
                     >
                       ✕
                     </button>

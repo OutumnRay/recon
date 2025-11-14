@@ -139,8 +139,8 @@ export const UserSettings: React.FC = () => {
               onChange={(e) => setLanguage(e.target.value)}
               className="form-select"
             >
-              <option value="en">English</option>
-              <option value="ru">Русский</option>
+              <option value="en">{t('languages.english')}</option>
+              <option value="ru">{t('languages.russian')}</option>
             </select>
             <p className="form-hint">{t('settings.languageHint')}</p>
           </div>

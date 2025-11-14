@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { LuX, LuSettings } from 'react-icons/lu';
+import { useTranslation } from 'react-i18next';
 import './MediaSettingsModal.css';
 
 interface MediaSettingsModalProps {
@@ -17,6 +18,7 @@ export default function MediaSettingsModal({
   currentVideoDeviceId,
   currentAudioDeviceId,
 }: MediaSettingsModalProps) {
+  const { t } = useTranslation();
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>(currentVideoDeviceId || '');
@@ -197,7 +199,7 @@ export default function MediaSettingsModal({
         <div className="media-settings-header">
           <div className="media-settings-title">
             <LuSettings />
-            <h2>Настройки видео и аудио</h2>
+            <h2>{t('mediaSettings.title')}</h2>
           </div>
           <button className="media-settings-close" onClick={onClose}>
             <LuX />
@@ -206,7 +208,7 @@ export default function MediaSettingsModal({
 
         <div className="media-settings-content">
           <div className="media-settings-section">
-            <label htmlFor="video-select">Камера</label>
+            <label htmlFor="video-select">{t('mediaSettings.camera')}</label>
             <select
               id="video-select"
               value={selectedVideoDevice}
@@ -214,7 +216,7 @@ export default function MediaSettingsModal({
             >
               {videoDevices.map((device) => (
                 <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Камера ${device.deviceId.slice(0, 8)}`}
+                  {device.label || t('mediaSettings.cameraFallback', { id: device.deviceId.slice(0, 8) })}
                 </option>
               ))}
             </select>
@@ -231,7 +233,7 @@ export default function MediaSettingsModal({
           </div>
 
           <div className="media-settings-section">
-            <label htmlFor="audio-select">Микрофон</label>
+            <label htmlFor="audio-select">{t('mediaSettings.microphone')}</label>
             <select
               id="audio-select"
               value={selectedAudioDevice}
@@ -239,7 +241,7 @@ export default function MediaSettingsModal({
             >
               {audioDevices.map((device) => (
                 <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Микрофон ${device.deviceId.slice(0, 8)}`}
+                  {device.label || t('mediaSettings.microphoneFallback', { id: device.deviceId.slice(0, 8) })}
                 </option>
               ))}
             </select>
@@ -248,17 +250,17 @@ export default function MediaSettingsModal({
               <div className="audio-level-meter">
                 <div className="audio-level-fill" style={{ height: `${audioLevel}%` }} />
               </div>
-              <span className="audio-level-label">Уровень звука</span>
+              <span className="audio-level-label">{t('mediaSettings.audioLevel')}</span>
             </div>
           </div>
         </div>
 
         <div className="media-settings-footer">
           <button className="btn btn-ghost" onClick={onClose}>
-            Отмена
+            {t('mediaSettings.cancel')}
           </button>
           <button className="btn btn-primary" onClick={handleApply}>
-            Применить
+            {t('mediaSettings.apply')}
           </button>
         </div>
       </div>

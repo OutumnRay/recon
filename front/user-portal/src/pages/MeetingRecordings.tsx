@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMeeting, getMeetingRecordings } from '../services/meetings';
 import type { Meeting, RoomRecording, TrackRecording } from '../types/meeting';
@@ -8,15 +9,19 @@ import './MeetingRecordings.css';
 type SelectedRecording = {
   type: 'room' | 'track';
   playlist_url: string;
-  title: string;
   started_at: string;
   ended_at?: string;
   status: string;
+  participantName?: string;
 };
 
 export default function MeetingRecordings() {
   const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('ru') ? 'ru-RU' : 'en-US';
+  const formatDateTime = (value: string) => new Date(value).toLocaleString(locale);
+  const formatTime = (value: string) => new Date(value).toLocaleTimeString(locale);
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [roomRecordings, setRoomRecordings] = useState<RoomRecording[]>([]);
@@ -52,7 +57,6 @@ export default function MeetingRecordings() {
             setSelectedRecording({
               type: 'room',
               playlist_url: firstRoom.playlist_url,
-              title: `Запись комнаты (${new Date(firstRoom.started_at).toLocaleString('ru-RU')})`,
               started_at: firstRoom.started_at,
               ended_at: firstRoom.ended_at,
               status: firstRoom.status,
@@ -63,16 +67,16 @@ export default function MeetingRecordings() {
             setSelectedRecording({
               type: 'track',
               playlist_url: firstTrack.playlist_url,
-              title: `Трек участника`,
               started_at: firstTrack.started_at,
               ended_at: firstTrack.ended_at,
               status: firstTrack.status,
+              participantName: getParticipantLabel(firstTrack),
             });
           }
         }
       } catch (err: any) {
         console.error('Failed to fetch recordings:', err);
-        setError(err.message || 'Failed to load recordings');
+        setError(err instanceof Error ? err.message : t('meetingRecordings.errors.loadFailed'));
       } finally {
         setLoading(false);
       }

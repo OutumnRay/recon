@@ -17,6 +17,10 @@
     "login": "Войти",
     "backToLogin": "Вернуться к входу"
   },
+  "languages": {
+    "english": "Английский",
+    "russian": "Русский"
+  },
   "forgotPassword": {
     "title": "Сброс пароля",
     "description": "Введите ваш email адрес и мы отправим вам код подтверждения для сброса пароля.",
@@ -225,8 +229,11 @@
       "none": "Разовая",
       "daily": "Ежедневно",
       "weekly": "Еженедельно",
-      "monthly": "Ежемесячно"
+      "monthly": "Ежемесячно",
+      "permanent": "Постоянная",
+      "alwaysAvailable": "всегда доступна"
     },
+    "permanentMeetingTooltip": "Постоянная встреча",
     "participantStatus": {
       "invited": "Приглашен",
       "accepted": "Принял",
@@ -308,8 +315,61 @@
     },
     "card": {
       "participants": "{{count}} участников",
-      "videoRecording": "Видеозапись"
+      "videoRecording": "Видеозапись",
+      "onlineCount": "({{count}} онлайн)",
+      "recording": "Запись",
+      "transcription": "Транскрибация",
+      "viewRecordings": "Просмотр записей"
     }
+  },
+  "meetingRecordings": {
+    "loading": "Загрузка записей...",
+    "errorTitle": "Ошибка",
+    "backToMeetings": "Назад к встречам",
+    "heading": "Записи встречи: {{title}}",
+    "defaultTitle": "Встреча",
+    "noRecordings": "Нет доступных записей для этой встречи",
+    "stats": {
+      "sessions": "Сессий: {{count}}",
+      "tracks": "Треков: {{count}}"
+    },
+    "sessionLabel": "Сессия {{number}}",
+    "roomRecordingTitle": "Запись комнаты ({{date}})",
+    "roomCompositeLabel": "Общая запись комнаты",
+    "participantTrack": "Трек участника",
+    "trackCount_one": "{{count}} трек",
+    "trackCount_few": "{{count}} трека",
+    "trackCount_many": "{{count}} треков",
+    "trackCount_other": "{{count}} трека",
+    "durationMinutes": "{{minutes}} мин",
+    "meta": {
+      "start": "Начало",
+      "end": "Окончание"
+    },
+    "selectPrompt": "Выберите запись для воспроизведения",
+    "participantFallback": "Участник {{id}}",
+    "errors": {
+      "loadFailed": "Не удалось загрузить записи"
+    }
+  },
+  "mediaSettings": {
+    "title": "Настройки видео и аудио",
+    "camera": "Камера",
+    "microphone": "Микрофон",
+    "cameraFallback": "Камера {{id}}",
+    "microphoneFallback": "Микрофон {{id}}",
+    "audioLevel": "Уровень звука",
+    "cancel": "Отмена",
+    "apply": "Применить"
+  },
+  "multiSelect": {
+    "searchPlaceholder": "Поиск...",
+    "noOptions": "Нет доступных элементов",
+    "clearAll": "Очистить все",
+    "noResults": "Ничего не найдено",
+    "selectedCount": "Выбрано: {{count}}",
+    "organizer": "Организатор",
+    "remove": "Удалить"
   },
   "meetingRoom": {
     "pageTitle": "Встреча",
@@ -339,6 +399,11 @@
     "expandHeader": "Показать детали",
     "toggleParticipants": "Свернуть панель участников",
     "speakingNow": "Сейчас говорит",
+    "controls": {
+      "screenShareStart": "Демонстрация экрана",
+      "screenShareStop": "Остановить демонстрацию",
+      "mediaSettings": "Настройки видео и аудио"
+    },
     "leaveConfirmTitle": "Выйти из встречи?",
     "leaveConfirmDescription": "Вы отключитесь от этой встречи. Продолжить?",
     "confirmLeave": "Выйти",
@@ -354,7 +419,10 @@
       "cameraPermissionDenied": "Доступ к камере запрещен. Разрешите доступ к камере.",
       "micNotFound": "Микрофон не найден. Проверьте подключение устройства.",
       "micInUse": "Микрофон используется другим приложением.",
-      "micPermissionDenied": "Доступ к микрофону запрещен. Разрешите доступ к микрофону."
+      "micPermissionDenied": "Доступ к микрофону запрещен. Разрешите доступ к микрофону.",
+      "screenShareInUse": "Другой участник уже демонстрирует экран. Только один участник может делиться экраном одновременно.",
+      "screenSharePermissionDenied": "Отказано в доступе к экрану. Пожалуйста, разрешите демонстрацию экрана.",
+      "screenShareFailed": "Не удалось начать демонстрацию экрана."
     }
   }
 }

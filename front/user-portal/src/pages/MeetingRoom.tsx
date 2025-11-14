@@ -184,16 +184,45 @@ export default function MeetingRoom() {
     let element: HTMLMediaElement | null = null;
 
     if (targetId && targetId === room.localParticipant?.sid) {
-      const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
-      if (publication?.track) {
-        track = publication.track;
-        element = publication.track.attach();
+      // For local participant, prioritize screen share over camera
+      const screenPublication = room.localParticipant.getTrackPublication(Track.Source.ScreenShare);
+      const cameraPublication = room.localParticipant.getTrackPublication(Track.Source.Camera);
+
+      if (screenPublication?.track) {
+        track = screenPublication.track;
+        element = screenPublication.track.attach();
+        console.log('[Stage] Rendering local screen share on stage');
+      } else if (cameraPublication?.track) {
+        track = cameraPublication.track;
+        element = cameraPublication.track.attach();
+        console.log('[Stage] Rendering local camera on stage');
       }
     } else if (targetId) {
-      const remoteTrack = participantVideoTracks.current.get(targetId);
-      if (remoteTrack) {
-        track = remoteTrack;
-        element = remoteTrack.attach();
+      // For remote participant, check for screen share first
+      const participant = room.remoteParticipants.get(targetId);
+      if (participant) {
+        const screenPub = Array.from(participant.videoTrackPublications.values())
+          .find(pub => pub.source === Track.Source.ScreenShare);
+        const cameraPub = Array.from(participant.videoTrackPublications.values())
+          .find(pub => pub.source === Track.Source.Camera);
+
+        if (screenPub?.track) {
+          track = screenPub.track as RemoteTrack;
+          element = track.attach();
+          console.log('[Stage] Rendering remote screen share on stage');
+        } else if (cameraPub?.track) {
+          track = cameraPub.track as RemoteTrack;
+          element = track.attach();
+          console.log('[Stage] Rendering remote camera on stage');
+        } else {
+          // Fallback to old method
+          const remoteTrack = participantVideoTracks.current.get(targetId);
+          if (remoteTrack) {
+            track = remoteTrack;
+            element = remoteTrack.attach();
+            console.log('[Stage] Rendering remote video (fallback) on stage');
+          }
+        }
       }
     }
 
@@ -766,10 +795,8 @@ export default function MeetingRoom() {
       console.error('[Leave] Error disconnecting:', err);
     }
 
-    // Navigate after a short delay to allow cleanup
-    setTimeout(() => {
-      navigate('/dashboard/meetings');
-    }, 100);
+    // Navigate immediately (no delay needed)
+    navigate('/dashboard/meetings', { replace: true });
   }, [room, navigate]);
 
   // Aggressive track subscription - force subscribe to all tracks
@@ -826,7 +853,7 @@ export default function MeetingRoom() {
     });
   }, [isConnected, room, stageParticipantId, renderStageVideo]);
 
-  // Periodically check and force subscribe to tracks
+  // Initial force subscription only (no periodic updates to prevent flickering)
   useEffect(() => {
     if (!isConnected) return;
 
@@ -836,29 +863,22 @@ export default function MeetingRoom() {
       forceSubscribeToAllTracks();
     }, 1000);
 
-    // Second check after 2 seconds
+    // Second check after 3 seconds
     const secondTimer = setTimeout(() => {
       console.log('[Force Subscribe] Running second check...');
       forceSubscribeToAllTracks();
-    }, 2000);
-
-    // Periodic check every 5 seconds
-    const intervalTimer = setInterval(() => {
-      console.log('[Force Subscribe] Running periodic check...');
-      forceSubscribeToAllTracks();
-    }, 5000);
+    }, 3000);
 
     return () => {
       clearTimeout(initialTimer);
       clearTimeout(secondTimer);
-      clearInterval(intervalTimer);
     };
   }, [isConnected, forceSubscribeToAllTracks]);
 
-  // Force subscribe when participants change
+  // Force subscribe only when NEW participants join (not on every change)
   useEffect(() => {
     if (isConnected && participants.size > 0) {
-      console.log('[Force Subscribe] Participants changed, running check...');
+      console.log('[Force Subscribe] New participant detected, running check...');
       const timer = setTimeout(() => {
         forceSubscribeToAllTracks();
       }, 500);
@@ -1143,6 +1163,11 @@ export default function MeetingRoom() {
         // Notify other participants via WebSocket
         sendWSMessage('screen_share_stop');
         console.log('[Screen Share] Screen share stopped');
+
+        // Update stage to show camera instead
+        if (stageParticipantId === room.localParticipant?.sid) {
+          renderStageVideo(room.localParticipant.sid);
+        }
       } else {
         // Check if someone else is already sharing
         if (currentScreenSharer && currentScreenSharer !== room.localParticipant?.sid) {
@@ -1163,6 +1188,9 @@ export default function MeetingRoom() {
         // Switch stage to show screen share
         if (room.localParticipant?.sid) {
           setStageParticipantId(room.localParticipant.sid);
+          setTimeout(() => {
+            renderStageVideo(room.localParticipant.sid);
+          }, 100);
         }
       }
     } catch (err) {

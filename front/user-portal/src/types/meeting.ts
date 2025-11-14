@@ -4,7 +4,7 @@
 
 export type MeetingType = 'presentation' | 'conference';
 export type MeetingStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-export type MeetingRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
+export type MeetingRecurrence = 'none' | 'daily' | 'weekly' | 'monthly' | 'permanent';
 export type ParticipantRole = 'speaker' | 'participant';
 export type ParticipantStatus = 'invited' | 'accepted' | 'declined' | 'tentative';
 

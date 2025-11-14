@@ -28,10 +28,11 @@ const (
 type MeetingRecurrence string
 
 const (
-	MeetingRecurrenceNone    MeetingRecurrence = "none"    // Не повторяется
-	MeetingRecurrenceDaily   MeetingRecurrence = "daily"   // Ежедневно
-	MeetingRecurrenceWeekly  MeetingRecurrence = "weekly"  // Еженедельно
-	MeetingRecurrenceMonthly MeetingRecurrence = "monthly" // Ежемесячно
+	MeetingRecurrenceNone      MeetingRecurrence = "none"      // Не повторяется
+	MeetingRecurrenceDaily     MeetingRecurrence = "daily"     // Ежедневно
+	MeetingRecurrenceWeekly    MeetingRecurrence = "weekly"    // Еженедельно
+	MeetingRecurrenceMonthly   MeetingRecurrence = "monthly"   // Ежемесячно
+	MeetingRecurrencePermanent MeetingRecurrence = "permanent" // Постоянная встреча (всегда доступна)
 )
 
 // MeetingSubject представляет тему/категорию встречи

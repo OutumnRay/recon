@@ -17,6 +17,10 @@
     "login": "Login",
     "backToLogin": "Back to Login"
   },
+  "languages": {
+    "english": "English",
+    "russian": "Russian"
+  },
   "forgotPassword": {
     "title": "Reset Password",
     "description": "Enter your email address and we'll send you a verification code to reset your password.",
@@ -225,8 +229,11 @@
       "none": "None (One-time)",
       "daily": "Daily",
       "weekly": "Weekly",
-      "monthly": "Monthly"
+      "monthly": "Monthly",
+      "permanent": "Permanent",
+      "alwaysAvailable": "always available"
     },
+    "permanentMeetingTooltip": "Permanent meeting",
     "participantStatus": {
       "invited": "Invited",
       "accepted": "Accepted",
@@ -308,8 +315,59 @@
     },
     "card": {
       "participants": "{{count}} participants",
-      "videoRecording": "Video Recording"
+      "videoRecording": "Video Recording",
+      "onlineCount": "({{count}} online)",
+      "recording": "Recording",
+      "transcription": "Transcription",
+      "viewRecordings": "View recordings"
     }
+  },
+  "meetingRecordings": {
+    "loading": "Loading recordings...",
+    "errorTitle": "Error",
+    "backToMeetings": "Back to meetings",
+    "heading": "Meeting recordings: {{title}}",
+    "defaultTitle": "Meeting",
+    "noRecordings": "No recordings available for this meeting",
+    "stats": {
+      "sessions": "Sessions: {{count}}",
+      "tracks": "Tracks: {{count}}"
+    },
+    "sessionLabel": "Session {{number}}",
+    "roomRecordingTitle": "Room recording ({{date}})",
+    "roomCompositeLabel": "Room composite",
+    "participantTrack": "Participant track",
+    "trackCount_one": "{{count}} track",
+    "trackCount_other": "{{count}} tracks",
+    "durationMinutes": "{{minutes}} min",
+    "meta": {
+      "start": "Start",
+      "end": "End"
+    },
+    "selectPrompt": "Select a recording to play",
+    "participantFallback": "Participant {{id}}",
+    "errors": {
+      "loadFailed": "Failed to load recordings"
+    }
+  },
+  "mediaSettings": {
+    "title": "Video & audio settings",
+    "camera": "Camera",
+    "microphone": "Microphone",
+    "cameraFallback": "Camera {{id}}",
+    "microphoneFallback": "Microphone {{id}}",
+    "audioLevel": "Audio level",
+    "cancel": "Cancel",
+    "apply": "Apply"
+  },
+  "multiSelect": {
+    "searchPlaceholder": "Search...",
+    "noOptions": "No options available",
+    "clearAll": "Clear all",
+    "noResults": "No results found",
+    "selectedCount": "Selected: {{count}}",
+    "organizer": "Organizer",
+    "remove": "Remove"
   },
   "meetingRoom": {
     "pageTitle": "Meeting",
@@ -339,6 +397,11 @@
     "expandHeader": "Show Details",
     "toggleParticipants": "Toggle participant panel",
     "speakingNow": "Speaking now",
+    "controls": {
+      "screenShareStart": "Share screen",
+      "screenShareStop": "Stop sharing",
+      "mediaSettings": "Video & audio settings"
+    },
     "leaveConfirmTitle": "Leave meeting?",
     "leaveConfirmDescription": "You will disconnect from this meeting. Continue?",
     "confirmLeave": "Leave",
@@ -354,7 +417,10 @@
       "cameraPermissionDenied": "Camera permission denied. Please allow camera access.",
       "micNotFound": "Microphone not found. Please check your device.",
       "micInUse": "Microphone is being used by another application.",
-      "micPermissionDenied": "Microphone permission denied. Please allow microphone access."
+      "micPermissionDenied": "Microphone permission denied. Please allow microphone access.",
+      "screenShareInUse": "Another participant is already sharing their screen. Only one screen share is allowed at a time.",
+      "screenSharePermissionDenied": "Screen sharing permission denied. Please allow screen capture access.",
+      "screenShareFailed": "Failed to start screen sharing."
     }
   }
 }

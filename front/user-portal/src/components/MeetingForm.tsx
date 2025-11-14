@@ -437,13 +437,21 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             <select
               id="recurrence"
               value={recurrence}
-              onChange={(e) => setRecurrence(e.target.value as MeetingRecurrence)}
+              onChange={(e) => {
+                const newRecurrence = e.target.value as MeetingRecurrence;
+                setRecurrence(newRecurrence);
+                // Auto-set isPermanent when selecting permanent recurrence
+                setIsPermanent(newRecurrence === 'permanent');
+              }}
               className="form-select"
             >
               <option value="none">{t('meetings.recurrence.none')}</option>
               <option value="daily">{t('meetings.recurrence.daily')}</option>
               <option value="weekly">{t('meetings.recurrence.weekly')}</option>
               <option value="monthly">{t('meetings.recurrence.monthly')}</option>
+              <option value="permanent">
+                {t('meetings.recurrence.permanent')} ({t('meetings.recurrence.alwaysAvailable')})
+              </option>
             </select>
           </div>
         </div>
@@ -559,24 +567,6 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 <LuClock className="checkbox-icon" /> {t('meetings.form.forceEndAtDuration')}
               </span>
             </label>
-          </div>
-
-          <div className="form-group">
-            <label className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={isPermanent}
-                onChange={(e) => setIsPermanent(e.target.checked)}
-              />
-              <span className="checkbox-label">
-                <LuClock className="checkbox-icon" /> Постоянная встреча
-              </span>
-            </label>
-            {isPermanent && (
-              <p className="form-help-text">
-                Постоянная встреча всегда доступна для входа и не завершается автоматически
-              </p>
-            )}
           </div>
         </div>
 

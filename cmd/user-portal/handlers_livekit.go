@@ -87,10 +87,15 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Check if meeting is already completed (unless it's a permanent meeting)
-	if meeting.Status == models.MeetingStatusCompleted && !meeting.IsPermanent {
-		fmt.Printf("ERROR: Meeting %s is already completed\n", meetingID)
+	isPermanent := meeting.IsPermanent || meeting.Recurrence == models.MeetingRecurrencePermanent
+	if meeting.Status == models.MeetingStatusCompleted && !isPermanent {
+		fmt.Printf("ERROR: Meeting %s is already completed (not permanent)\n", meetingID)
 		up.respondWithError(w, http.StatusForbidden, "Meeting has ended", "")
 		return
+	}
+
+	if isPermanent {
+		fmt.Printf("INFO: Meeting %s is permanent, allowing access regardless of status\n", meetingID)
 	}
 
 	// Check if user is a participant

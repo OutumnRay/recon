@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX, LuUser, LuChevronDown } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { APP_VERSION } from '../config/version';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
@@ -187,6 +188,9 @@ export const Dashboard: React.FC = () => {
             <span className="nav-icon"><LuLogOut /></span>
             <span className="nav-label">{t('common.logout')}</span>
           </button>
+          <div className="sidebar-version">
+            v{APP_VERSION}
+          </div>
         </div>
       </aside>
 

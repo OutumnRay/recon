@@ -247,7 +247,7 @@ export const Meetings: React.FC = () => {
               <div className="detail-item">
                 <span className="detail-label">{t('meetings.details.status')}:</span>
                 <span className={`status-badge ${selectedMeeting.is_permanent ? 'permanent' : getMeetingStatusInfo(selectedMeeting.status).className}`}>
-                  {selectedMeeting.is_permanent ? 'Постоянная' : t(`meetings.status.${selectedMeeting.status}`)}
+                  {selectedMeeting.is_permanent ? t('meetings.recurrence.permanent') : t(`meetings.status.${selectedMeeting.status}`)}
                 </span>
               </div>
               <div className="detail-item">
@@ -357,14 +357,14 @@ export const Meetings: React.FC = () => {
                 });
                 return null;
               })()}
-              {(selectedMeeting.status !== 'cancelled' && (selectedMeeting.status !== 'completed' || selectedMeeting.is_permanent)) && (
+              {(selectedMeeting.status !== 'cancelled' && (selectedMeeting.status !== 'completed' || selectedMeeting.is_permanent || selectedMeeting.recurrence === 'permanent')) && (
                 <button className="btn btn-primary" onClick={handleJoinMeeting}>
                   <LuPlay /> {t('meetings.details.joinMeeting')}
                 </button>
               )}
               {(isMeetingPast(selectedMeeting) || (selectedMeeting.is_permanent && selectedMeeting.status === 'completed')) ? (
                 <button className="btn btn-secondary" onClick={handleViewRecordings}>
-                  <LuFilm /> Записи встречи
+                  <LuFilm /> {t('meetings.card.viewRecordings')}
                 </button>
               ) : (
                 <span style={{ fontSize: '11px', color: '#999' }}>
@@ -563,14 +563,14 @@ export const Meetings: React.FC = () => {
                           </span>
                         )}
                         {meeting.is_permanent && (
-                          <span className="permanent-badge" title="Постоянная встреча">
-                            <LuClock /> Постоянная
+                          <span className="permanent-badge" title={t('meetings.permanentMeetingTooltip')}>
+                            <LuClock /> {t('meetings.recurrence.permanent')}
                           </span>
                         )}
                       </div>
                     </div>
                     <span className={`status-badge ${meeting.is_permanent ? 'permanent' : statusInfo.className}`}>
-                      {meeting.is_permanent ? 'Постоянная' : t(`meetings.status.${meeting.status}`)}
+                      {meeting.is_permanent ? t('meetings.recurrence.permanent') : t(`meetings.status.${meeting.status}`)}
                     </span>
                   </div>
 
@@ -590,7 +590,7 @@ export const Meetings: React.FC = () => {
                           {t('meetings.card.participants', { count: meeting.participants.length })}
                           {meeting.active_participants_count > 0 && (
                             <span style={{ color: '#10b981', fontWeight: 'bold', marginLeft: '4px' }}>
-                              ({meeting.active_participants_count} онлайн)
+                              {t('meetings.card.onlineCount', { count: meeting.active_participants_count })}
                             </span>
                           )}
                         </span>
@@ -616,7 +616,7 @@ export const Meetings: React.FC = () => {
                           alignItems: 'center',
                           gap: '4px'
                         }}>
-                          <LuCircle style={{ width: '8px', height: '8px' }} /> Запись
+                          <LuCircle style={{ width: '8px', height: '8px' }} /> {t('meetings.card.recording')}
                         </span>
                       )}
                       {meeting.is_transcribing && (
@@ -628,7 +628,7 @@ export const Meetings: React.FC = () => {
                           fontSize: '11px',
                           fontWeight: 'bold'
                         }}>
-                          Транскрибация
+                          {t('meetings.card.transcription')}
                         </span>
                       )}
                     </div>
@@ -669,7 +669,7 @@ export const Meetings: React.FC = () => {
                             console.log('🎬 [RECORDINGS] Button clicked for meeting:', meeting.id);
                             navigate(`/meeting/${meeting.id}/recordings`);
                           }}
-                          title="Просмотр записей"
+                          title={t('meetings.card.viewRecordings')}
                         >
                           <LuFilm />
                         </button>
