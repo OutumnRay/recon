@@ -358,7 +358,7 @@ export const Meetings: React.FC = () => {
                 return null;
               })()}
               {(selectedMeeting.status !== 'cancelled' && (selectedMeeting.status !== 'completed' || selectedMeeting.is_permanent || selectedMeeting.recurrence === 'permanent')) && (
-                <button className="btn btn-primary" onClick={handleJoinMeeting}>
+                <button className="btn btn-join" onClick={handleJoinMeeting}>
                   <LuPlay /> {t('meetings.details.joinMeeting')}
                 </button>
               )}
@@ -659,6 +659,12 @@ export const Meetings: React.FC = () => {
                           +{meeting.participants.length - 3}
                         </div>
                       )}
+                      {meeting.active_participants_count > 0 && (
+                        <div className="online-indicator">
+                          <LuCircle className="pulse-icon-small" />
+                          <span>{meeting.active_participants_count} online</span>
+                        </div>
+                      )}
                     </div>
                     <div className="meeting-card-actions">
                       {isPast ? (
@@ -673,10 +679,17 @@ export const Meetings: React.FC = () => {
                         >
                           <LuFilm />
                         </button>
-                      ) : (
-                        <span style={{ fontSize: '10px', color: '#999' }}>
-                          {/* Debug: not past */}
-                        </span>
+                      ) : !isPast && (meeting.status !== 'cancelled') && (
+                        <button
+                          className="btn btn-join btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/meeting/${meeting.id}`;
+                          }}
+                          title={t('meetings.details.joinMeeting')}
+                        >
+                          <LuPlay /> {t('meetings.details.joinMeeting')}
+                        </button>
                       )}
                       <button className="view-details-btn">
                         {t('meetings.viewDetails')} →

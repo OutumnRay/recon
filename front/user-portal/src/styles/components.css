@@ -79,6 +79,25 @@
   transform: translateY(-1px);
 }
 
+.btn-join {
+  background: #16a34a;
+  color: var(--text-inverse);
+  border-color: #16a34a;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-join:hover:not(:disabled) {
+  background: #15803d;
+  border-color: #15803d;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn-join:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);

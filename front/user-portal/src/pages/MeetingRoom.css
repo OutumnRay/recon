@@ -330,6 +330,96 @@
   color: var(--text-inverse);
 }
 
+.mic-button-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.volume-slider-vertical {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 12px;
+  padding: 16px 12px;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 1001;
+}
+
+.vertical-slider {
+  -webkit-appearance: slider-vertical;
+  writing-mode: bt-lr;
+  width: 32px;
+  height: 120px;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  background: transparent;
+}
+
+.vertical-slider::-webkit-slider-runnable-track {
+  width: 8px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.vertical-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #46afba;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.vertical-slider::-webkit-slider-thumb:hover {
+  background: #5ec9d3;
+  transform: scale(1.1);
+}
+
+.vertical-slider::-moz-range-track {
+  width: 8px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.vertical-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #46afba;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.vertical-slider::-moz-range-thumb:hover {
+  background: #5ec9d3;
+  transform: scale(1.1);
+}
+
+.volume-label {
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  min-width: 40px;
+}
+
 .volume-control input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -532,10 +622,31 @@
   gap: var(--space-sm);
 }
 
+.participant-name-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
 .remote-participant-name {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: white;
+}
+
+.mic-indicator {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.mic-indicator.muted {
+  display: flex;
 }
 
 .remote-participant-video {

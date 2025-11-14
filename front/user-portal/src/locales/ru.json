@@ -356,8 +356,12 @@
     "title": "Настройки видео и аудио",
     "camera": "Камера",
     "microphone": "Микрофон",
+    "screenShareQuality": "Качество демонстрации экрана",
     "cameraFallback": "Камера {{id}}",
     "microphoneFallback": "Микрофон {{id}}",
+    "qualityLow": "Низкое",
+    "qualityMedium": "Среднее",
+    "qualityHigh": "Высокое",
     "audioLevel": "Уровень звука",
     "cancel": "Отмена",
     "apply": "Применить"

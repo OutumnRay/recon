@@ -9,6 +9,7 @@ import {
   LocalTrackPublication,
   LocalParticipant,
   Track,
+  TrackPublication,
   VideoPresets,
   Participant,
 } from 'livekit-client';
@@ -61,6 +62,8 @@ export default function MeetingRoom() {
   const [activeSpeakers, setActiveSpeakers] = useState<Participant[]>([]);
   const [isCameraEnabled, setIsCameraEnabled] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [micVolume, setMicVolume] = useState(100);
   const [tokenData, setTokenData] = useState<MeetingTokenResponse | null>(null);
   const [meetingTitle, setMeetingTitle] = useState('');
   const [stageParticipantId, setStageParticipantId] = useState<string | null>(null);
@@ -77,6 +80,7 @@ export default function MeetingRoom() {
   const [showMediaSettings, setShowMediaSettings] = useState(false);
   const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState<string>('');
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string>('');
+  const [screenShareQuality, setScreenShareQuality] = useState<'low' | 'medium' | 'high'>('medium');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [currentScreenSharer, setCurrentScreenSharer] = useState<string | null>(null);
 
@@ -176,11 +180,21 @@ export default function MeetingRoom() {
       avatar.textContent = getInitials(displayName);
       header.appendChild(avatar);
 
+      const nameContainer = document.createElement('div');
+      nameContainer.className = 'participant-name-container';
+
       const name = document.createElement('div');
       name.className = 'remote-participant-name';
       name.textContent = `${displayName} (You)`;
-      header.appendChild(name);
+      nameContainer.appendChild(name);
 
+      const micIndicator = document.createElement('div');
+      micIndicator.className = 'mic-indicator muted';
+      micIndicator.innerHTML = '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="1em" width="1em"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+      micIndicator.style.display = 'none';
+      nameContainer.appendChild(micIndicator);
+
+      header.appendChild(nameContainer);
       container.appendChild(header);
 
       const videoSlot = document.createElement('div');
@@ -195,6 +209,8 @@ export default function MeetingRoom() {
   }, [room, tokenData]);
 
   const renderLocalPreview = useCallback(() => {
+    const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
+
     const container = ensureLocalParticipantTile();
     if (!container) return;
 
@@ -204,22 +220,18 @@ export default function MeetingRoom() {
     // Clear previous video
     videoSlot.innerHTML = '';
 
-    const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
+    // Only show video if track exists
     if (publication?.track) {
       const element = publication.track.attach();
       element.classList.add('meeting-video-element');
       videoSlot.appendChild(element);
       localPreviewTrackRef.current = publication.track;
       localPreviewElementRef.current = element;
+      showParticipantVideo(room.localParticipant.sid);
     } else {
-      // Show avatar if no video
-      const avatarPlaceholder = document.createElement('div');
-      avatarPlaceholder.className = 'participant-avatar-large';
-      const displayName = tokenData?.participantName || 'You';
-      avatarPlaceholder.textContent = getInitials(displayName);
-      videoSlot.appendChild(avatarPlaceholder);
+      hideParticipantVideo(room.localParticipant.sid);
     }
-  }, [ensureLocalParticipantTile, room, tokenData]);
+  }, [ensureLocalParticipantTile, room]);
 
   const renderStageVideo = useCallback((preferredId?: string) => {
     const container = stageVideoRef.current;
@@ -317,11 +329,21 @@ export default function MeetingRoom() {
       avatar.textContent = getInitials(displayName);
       header.appendChild(avatar);
 
+      const nameContainer = document.createElement('div');
+      nameContainer.className = 'participant-name-container';
+
       const name = document.createElement('div');
       name.className = 'remote-participant-name';
       name.textContent = displayName;
-      header.appendChild(name);
+      nameContainer.appendChild(name);
 
+      const micIndicator = document.createElement('div');
+      micIndicator.className = 'mic-indicator muted';
+      micIndicator.innerHTML = '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="1em" width="1em"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+      micIndicator.style.display = 'none';
+      nameContainer.appendChild(micIndicator);
+
+      header.appendChild(nameContainer);
       container.appendChild(header);
 
       const videoSlot = document.createElement('div');
@@ -334,17 +356,42 @@ export default function MeetingRoom() {
     return container;
   };
 
-  const showParticipantAvatar = (participant: RemoteParticipant) => {
-    const container = ensureParticipantTile(participant);
-    const videoSlot = container.querySelector<HTMLDivElement>('.remote-participant-video');
+  const updateMicIndicator = useCallback((participantSid: string, isMuted: boolean) => {
+    const container = document.getElementById(`participant-${participantSid}`);
+    if (!container) return;
 
-    if (videoSlot) {
-      videoSlot.innerHTML = '';
-      const avatarPlaceholder = document.createElement('div');
-      avatarPlaceholder.className = 'participant-avatar-large';
-      const displayName = getParticipantDisplayName(participant);
-      avatarPlaceholder.textContent = getInitials(displayName);
-      videoSlot.appendChild(avatarPlaceholder);
+    const micIndicator = container.querySelector<HTMLElement>('.mic-indicator');
+    if (micIndicator) {
+      if (isMuted) {
+        micIndicator.style.display = 'flex';
+        micIndicator.classList.add('muted');
+      } else {
+        micIndicator.style.display = 'none';
+        micIndicator.classList.remove('muted');
+      }
+    }
+  }, []);
+
+  const hideParticipantVideo = (participantSid: string) => {
+    const container = document.getElementById(`participant-${participantSid}`);
+    if (container) {
+      const videoSlot = container.querySelector<HTMLDivElement>('.remote-participant-video');
+      if (videoSlot) {
+        videoSlot.style.display = 'none';
+        videoSlot.innerHTML = '';
+        console.log(`[Hide Video] Hidden video for participant ${participantSid}`);
+      }
+    }
+  };
+
+  const showParticipantVideo = (participantSid: string) => {
+    const container = document.getElementById(`participant-${participantSid}`);
+    if (container) {
+      const videoSlot = container.querySelector<HTMLDivElement>('.remote-participant-video');
+      if (videoSlot) {
+        videoSlot.style.display = '';
+        console.log(`[Show Video] Shown video for participant ${participantSid}`);
+      }
     }
   };
 
@@ -496,8 +543,8 @@ export default function MeetingRoom() {
 
       if (track.kind === Track.Kind.Video) {
         participantVideoTracks.current.delete(participant.sid);
-        // Show avatar when video is unsubscribed
-        showParticipantAvatar(participant);
+        // Hide video when video is unsubscribed
+        hideParticipantVideo(participant.sid);
       }
 
       if (stageParticipantId === participant.sid) {
@@ -539,6 +586,11 @@ export default function MeetingRoom() {
     ) => {
       const displayName = getParticipantDisplayName(participant);
       console.log(`[Track Unpublished] Participant: ${displayName}, Track: ${publication.kind}`);
+
+      // Hide video when video is unpublished
+      if (publication.kind === Track.Kind.Video) {
+        hideParticipantVideo(participant.sid);
+      }
     };
 
     const handleLocalTrackPublished = (
@@ -559,6 +611,8 @@ export default function MeetingRoom() {
     ) => {
       if (publication.track && publication.kind === Track.Kind.Video) {
         detachLocalPreview();
+        // Hide video when local video is unpublished
+        hideParticipantVideo(room.localParticipant.sid);
         if (stageParticipantId === room.localParticipant?.sid) {
           renderStageVideo();
         }
@@ -567,6 +621,39 @@ export default function MeetingRoom() {
 
     const handleActiveSpeakerChange = (speakers: Participant[]) => {
       setActiveSpeakers(speakers);
+    };
+
+    const handleTrackMuted = (publication: TrackPublication, participant: Participant) => {
+      if (publication.kind === Track.Kind.Audio) {
+        console.log(`[Track Muted] ${getParticipantDisplayName(participant)} muted their microphone`);
+        updateMicIndicator(participant.sid, true);
+      } else if (publication.kind === Track.Kind.Video) {
+        console.log(`[Track Muted] ${getParticipantDisplayName(participant)} muted their camera`);
+        // Hide video when video is muted
+        hideParticipantVideo(participant.sid);
+      }
+    };
+
+    const handleTrackUnmuted = (publication: TrackPublication, participant: Participant) => {
+      if (publication.kind === Track.Kind.Audio) {
+        console.log(`[Track Unmuted] ${getParticipantDisplayName(participant)} unmuted their microphone`);
+        updateMicIndicator(participant.sid, false);
+      } else if (publication.kind === Track.Kind.Video) {
+        console.log(`[Track Unmuted] ${getParticipantDisplayName(participant)} unmuted their camera`);
+        // Show video and re-attach video when unmuted
+        showParticipantVideo(participant.sid);
+        if (participant instanceof RemoteParticipant) {
+          const videoPublication = participant.getTrackPublication(Track.Source.Camera);
+          if (videoPublication?.track) {
+            const element = videoPublication.track.attach();
+            element.classList.add('meeting-video-element');
+            attachTrackToTile(participant, element);
+          }
+        } else if (participant === room.localParticipant) {
+          // For local participant, re-render which will show video
+          renderLocalPreview();
+        }
+      }
     };
 
     const handleDisconnect = () => {
@@ -586,14 +673,16 @@ export default function MeetingRoom() {
       console.log(`[Participant Tracks] Video publications:`, participant.videoTrackPublications.size);
 
       setParticipants(prev => new Map(prev).set(participant.sid, participant));
+
+      // Always create tile for participant
       ensureParticipantTile(participant);
 
-      // Show avatar initially if no video track is published
+      // Hide video initially if no video track is published
       const hasVideoTrack = Array.from(participant.videoTrackPublications.values()).some(
         pub => pub.isSubscribed || pub.track
       );
       if (!hasVideoTrack) {
-        showParticipantAvatar(participant);
+        hideParticipantVideo(participant.sid);
       }
 
       // Check if participant already has published tracks that we need to subscribe to
@@ -662,6 +751,8 @@ export default function MeetingRoom() {
       .on(RoomEvent.LocalTrackPublished, handleLocalTrackPublished)
       .on(RoomEvent.LocalTrackUnpublished, handleLocalTrackUnpublished)
       .on(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakerChange)
+      .on(RoomEvent.TrackMuted, handleTrackMuted)
+      .on(RoomEvent.TrackUnmuted, handleTrackUnmuted)
       .on(RoomEvent.Disconnected, handleDisconnect)
       .on(RoomEvent.ParticipantConnected, handleParticipantConnected)
       .on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
@@ -678,6 +769,7 @@ export default function MeetingRoom() {
     room,
     stageParticipantId,
     updateSidebarHighlight,
+    updateMicIndicator,
   ]);
 
   useEffect(() => {
@@ -1001,6 +1093,8 @@ export default function MeetingRoom() {
         await room.localParticipant.setCameraEnabled(false);
         setIsCameraEnabled(false);
         detachLocalPreview();
+        // Hide video when camera is disabled
+        hideParticipantVideo(room.localParticipant.sid);
       } else {
         await room.localParticipant.setCameraEnabled(true);
         setIsCameraEnabled(true);
@@ -1028,6 +1122,8 @@ export default function MeetingRoom() {
       }
       // Ensure camera state reflects actual state
       setIsCameraEnabled(false);
+      // Hide video when camera fails
+      hideParticipantVideo(room.localParticipant.sid);
     }
   };
 
@@ -1036,9 +1132,11 @@ export default function MeetingRoom() {
       if (isMicEnabled) {
         await room.localParticipant.setMicrophoneEnabled(false);
         setIsMicEnabled(false);
+        updateMicIndicator(room.localParticipant.sid, true);
       } else {
         await room.localParticipant.setMicrophoneEnabled(true);
         setIsMicEnabled(true);
+        updateMicIndicator(room.localParticipant.sid, false);
       }
     } catch (err) {
       console.warn('Failed to toggle microphone:', err);
@@ -1060,6 +1158,13 @@ export default function MeetingRoom() {
       setIsMicEnabled(false);
     }
   };
+
+  const handleVolumeChange = useCallback((newVolume: number) => {
+    setMicVolume(newVolume);
+    // Note: Volume control affects the local participant's microphone gain
+    // This is a UI-only control for now - actual audio processing would need
+    // to be handled at the track level with Web Audio API if needed
+  }, []);
 
   // Reserved for future use - manual start recording
   // @ts-ignore - unused variable kept for future use
@@ -1113,13 +1218,14 @@ export default function MeetingRoom() {
     }
   };
 
-  const handleApplyMediaSettings = async (videoDeviceId: string, audioDeviceId: string) => {
+  const handleApplyMediaSettings = async (videoDeviceId: string, audioDeviceId: string, quality: 'low' | 'medium' | 'high') => {
     try {
-      console.log('[Media Settings] Applying settings:', { videoDeviceId, audioDeviceId });
+      console.log('[Media Settings] Applying settings:', { videoDeviceId, audioDeviceId, screenShareQuality: quality });
 
-      // Update selected devices
+      // Update selected devices and screen share quality
       setSelectedVideoDeviceId(videoDeviceId);
       setSelectedAudioDeviceId(audioDeviceId);
+      setScreenShareQuality(quality);
 
       // If camera is enabled, switch to new video device
       if (isCameraEnabled && videoDeviceId) {
@@ -1170,10 +1276,28 @@ export default function MeetingRoom() {
           return;
         }
 
-        // Start screen sharing with high quality settings (1080p)
-        console.log('[Screen Share] Starting screen share with 1080p quality...');
+        // Get resolution based on selected quality
+        let resolution;
+        switch (screenShareQuality) {
+          case 'low':
+            resolution = VideoPresets.h720.resolution;
+            console.log('[Screen Share] Starting screen share with 720p quality...');
+            break;
+          case 'medium':
+            resolution = VideoPresets.h1080.resolution;
+            console.log('[Screen Share] Starting screen share with 1080p quality...');
+            break;
+          case 'high':
+            resolution = VideoPresets.h1440.resolution;
+            console.log('[Screen Share] Starting screen share with 2K quality...');
+            break;
+          default:
+            resolution = VideoPresets.h1080.resolution;
+            console.log('[Screen Share] Starting screen share with default 1080p quality...');
+        }
+
         await room.localParticipant.setScreenShareEnabled(true, {
-          resolution: VideoPresets.h1080.resolution,
+          resolution,
         });
         setIsScreenSharing(true);
         setCurrentScreenSharer(room.localParticipant?.sid || null);
@@ -1370,15 +1494,34 @@ export default function MeetingRoom() {
               >
                 {isCameraEnabled ? <LuVideo /> : <LuVideoOff />}
               </button>
-              <button
-                onClick={toggleMicrophone}
-                className="icon-circle-button"
-                aria-label={isMicEnabled ? t('meetingRoom.disableMic') : t('meetingRoom.enableMic')}
-                title={isMicEnabled ? t('meetingRoom.disableMic') : t('meetingRoom.enableMic')}
-                disabled={!isConnected}
+              <div
+                className="mic-button-container"
+                onMouseEnter={() => setShowVolumeSlider(true)}
+                onMouseLeave={() => setShowVolumeSlider(false)}
               >
-                {isMicEnabled ? <LuMic /> : <LuMicOff />}
-              </button>
+                <button
+                  onClick={toggleMicrophone}
+                  className="icon-circle-button"
+                  aria-label={isMicEnabled ? t('meetingRoom.disableMic') : t('meetingRoom.enableMic')}
+                  title={isMicEnabled ? t('meetingRoom.disableMic') : t('meetingRoom.enableMic')}
+                  disabled={!isConnected}
+                >
+                  {isMicEnabled ? <LuMic /> : <LuMicOff />}
+                </button>
+                {showVolumeSlider && isMicEnabled && (
+                  <div className="volume-slider-vertical">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={micVolume}
+                      onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                      className="vertical-slider"
+                    />
+                    <span className="volume-label">{micVolume}%</span>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={toggleScreenShare}
                 className={`icon-circle-button ${isScreenSharing ? 'active-share' : ''}`}
@@ -1495,6 +1638,7 @@ export default function MeetingRoom() {
         onApplySettings={handleApplyMediaSettings}
         currentVideoDeviceId={selectedVideoDeviceId}
         currentAudioDeviceId={selectedAudioDeviceId}
+        currentScreenShareQuality={screenShareQuality}
       />
     </div>
   );

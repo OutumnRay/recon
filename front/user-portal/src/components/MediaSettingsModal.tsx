@@ -3,12 +3,15 @@ import { LuX, LuSettings } from 'react-icons/lu';
 import { useTranslation } from 'react-i18next';
 import './MediaSettingsModal.css';
 
+export type ScreenShareQuality = 'low' | 'medium' | 'high';
+
 interface MediaSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApplySettings: (videoDeviceId: string, audioDeviceId: string) => void;
+  onApplySettings: (videoDeviceId: string, audioDeviceId: string, screenShareQuality: ScreenShareQuality) => void;
   currentVideoDeviceId?: string;
   currentAudioDeviceId?: string;
+  currentScreenShareQuality?: ScreenShareQuality;
 }
 
 export default function MediaSettingsModal({
@@ -17,12 +20,14 @@ export default function MediaSettingsModal({
   onApplySettings,
   currentVideoDeviceId,
   currentAudioDeviceId,
+  currentScreenShareQuality = 'medium',
 }: MediaSettingsModalProps) {
   const { t } = useTranslation();
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>(currentVideoDeviceId || '');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>(currentAudioDeviceId || '');
+  const [selectedScreenShareQuality, setSelectedScreenShareQuality] = useState<ScreenShareQuality>(currentScreenShareQuality);
   const [audioLevel, setAudioLevel] = useState<number>(0);
 
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -187,7 +192,7 @@ export default function MediaSettingsModal({
   }, [isOpen]);
 
   const handleApply = () => {
-    onApplySettings(selectedVideoDevice, selectedAudioDevice);
+    onApplySettings(selectedVideoDevice, selectedAudioDevice, selectedScreenShareQuality);
     onClose();
   };
 
@@ -247,11 +252,24 @@ export default function MediaSettingsModal({
             </select>
 
             <div className="audio-level-container">
-              <div className="audio-level-meter">
-                <div className="audio-level-fill" style={{ height: `${audioLevel}%` }} />
-              </div>
               <span className="audio-level-label">{t('mediaSettings.audioLevel')}</span>
+              <div className="audio-level-meter-horizontal">
+                <div className="audio-level-fill-horizontal" style={{ width: `${audioLevel}%` }} />
+              </div>
             </div>
+          </div>
+
+          <div className="media-settings-section">
+            <label htmlFor="screen-quality-select">{t('mediaSettings.screenShareQuality')}</label>
+            <select
+              id="screen-quality-select"
+              value={selectedScreenShareQuality}
+              onChange={(e) => setSelectedScreenShareQuality(e.target.value as ScreenShareQuality)}
+            >
+              <option value="low">{t('mediaSettings.qualityLow')} (720p)</option>
+              <option value="medium">{t('mediaSettings.qualityMedium')} (1080p)</option>
+              <option value="high">{t('mediaSettings.qualityHigh')} (2K)</option>
+            </select>
           </div>
         </div>
 

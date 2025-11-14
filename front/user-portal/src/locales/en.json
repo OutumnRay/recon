@@ -354,8 +354,12 @@
     "title": "Video & audio settings",
     "camera": "Camera",
     "microphone": "Microphone",
+    "screenShareQuality": "Screen share quality",
     "cameraFallback": "Camera {{id}}",
     "microphoneFallback": "Microphone {{id}}",
+    "qualityLow": "Low",
+    "qualityMedium": "Medium",
+    "qualityHigh": "High",
     "audioLevel": "Audio level",
     "cancel": "Cancel",
     "apply": "Apply"
