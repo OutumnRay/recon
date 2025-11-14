@@ -1374,46 +1374,6 @@ export default function MeetingRoom() {
             </div>
           </div>
           <div className="meeting-room-header-actions">
-            <div className="recording-controls">
-              {/* Recording control - shows when recording is active */}
-              {isRecording && (
-                <>
-                  <button
-                    onClick={handleStopRecording}
-                    className="icon-circle-button recording"
-                    aria-label={t('meetingRoom.controls.stopRecording')}
-                    title={t('meetingRoom.controls.stopRecording')}
-                    disabled={!isConnected}
-                    style={{ color: '#ef4444' }}
-                  >
-                    <LuCircle />
-                  </button>
-                  <span className="recording-indicator" style={{ color: '#ef4444', fontSize: '12px', fontWeight: 'bold' }}>
-                    REC
-                  </span>
-                </>
-              )}
-
-              {/* Transcription control - shows when transcription is active */}
-              {isTranscribing && (
-                <>
-                  <button
-                    onClick={handleStopTranscription}
-                    className="icon-circle-button transcribing"
-                    aria-label={t('meetingRoom.controls.stopTranscription')}
-                    title={t('meetingRoom.controls.stopTranscription')}
-                    disabled={!isConnected}
-                    style={{ color: '#3b82f6' }}
-                  >
-                    <LuFileText />
-                  </button>
-                  <span className="transcription-indicator" style={{ color: '#3b82f6', fontSize: '12px', fontWeight: 'bold' }}>
-                    TXT
-                  </span>
-                </>
-              )}
-            </div>
-
             <button
               onClick={() => setIsParticipantsCollapsed(prev => !prev)}
               className="icon-circle-button"
@@ -1530,6 +1490,31 @@ export default function MeetingRoom() {
               >
                 <LuSettings />
               </button>
+
+              {/* Recording button */}
+              <button
+                onClick={isRecording ? handleStopRecording : handleStartRecording}
+                className={`icon-circle-button ${isRecording ? 'recording' : ''}`}
+                aria-label={isRecording ? t('meetingRoom.controls.stopRecording') : t('meetingRoom.controls.startRecording')}
+                title={isRecording ? t('meetingRoom.controls.stopRecording') : t('meetingRoom.controls.startRecording')}
+                disabled={!isConnected}
+                style={isRecording ? { color: '#ef4444' } : {}}
+              >
+                <LuCircle />
+              </button>
+
+              {/* Transcription button */}
+              <button
+                onClick={isTranscribing ? handleStopTranscription : handleStartTranscription}
+                className={`icon-circle-button ${isTranscribing ? 'transcribing' : ''}`}
+                aria-label={isTranscribing ? t('meetingRoom.controls.stopTranscription') : t('meetingRoom.controls.startTranscription')}
+                title={isTranscribing ? t('meetingRoom.controls.stopTranscription') : t('meetingRoom.controls.startTranscription')}
+                disabled={!isConnected}
+                style={isTranscribing ? { color: '#3b82f6' } : {}}
+              >
+                <LuFileText />
+              </button>
+
               {isMobile && (
                 <button
                   onClick={forceSubscribeToAllTracks}
