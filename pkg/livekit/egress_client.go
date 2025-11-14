@@ -19,12 +19,12 @@ type EgressConfig struct {
 
 // S3Config contains S3/MinIO configuration for recording storage
 type S3Config struct {
-	Endpoint        string
-	Bucket          string
-	Region          string
-	AccessKey       string
-	SecretKey       string
-	ForcePathStyle  bool
+	Endpoint       string
+	Bucket         string
+	Region         string
+	AccessKey      string
+	SecretKey      string
+	ForcePathStyle bool
 }
 
 // EgressClient wraps LiveKit Egress client
@@ -61,7 +61,7 @@ func NewEgressClientFromEnv() *EgressClient {
 }
 
 // StartRoomCompositeEgress starts recording entire room (composite view)
-func (ec *EgressClient) StartRoomCompositeEgress(ctx context.Context, roomName string, audioOnly bool) (*livekit.EgressInfo, error) {
+func (ec *EgressClient) StartRoomCompositeEgress(ctx context.Context, roomName string, roomSID string, audioOnly bool) (*livekit.EgressInfo, error) {
 	preset := livekit.EncodingOptionsPreset_H264_720P_30
 	if audioOnly {
 		preset = livekit.EncodingOptionsPreset_H264_720P_30 // LiveKit doesn't have audio-only preset, we use video preset
@@ -74,11 +74,12 @@ func (ec *EgressClient) StartRoomCompositeEgress(ctx context.Context, roomName s
 		Options: &livekit.RoomCompositeEgressRequest_Preset{
 			Preset: preset,
 		},
+		// Структура: {meetingID}_{roomSID} - LiveKit сам добавит /composite
 		SegmentOutputs: []*livekit.SegmentedFileOutput{
 			{
-				FilenamePrefix:   fmt.Sprintf("%s/composite", roomName),
-				PlaylistName:     fmt.Sprintf("%s/composite.m3u8", roomName),
-				LivePlaylistName: fmt.Sprintf("%s/composite-live.m3u8", roomName),
+				FilenamePrefix:   fmt.Sprintf("%s_%s", roomName, roomSID),
+				PlaylistName:     "composite.m3u8",
+				LivePlaylistName: "composite-live.m3u8",
 				SegmentDuration:  2, // 2 seconds per segment
 				Output: &livekit.SegmentedFileOutput_S3{
 					S3: &livekit.S3Upload{
@@ -103,7 +104,9 @@ func (ec *EgressClient) StartRoomCompositeEgress(ctx context.Context, roomName s
 }
 
 // StartTrackCompositeEgress starts recording a specific track (audio or video)
-func (ec *EgressClient) StartTrackCompositeEgress(ctx context.Context, roomName, audioTrackID, videoTrackID string) (*livekit.EgressInfo, error) {
+func (ec *EgressClient) StartTrackCompositeEgress(ctx context.Context, roomName, roomSID, audioTrackID, videoTrackID string) (*livekit.EgressInfo, error) {
+	trackFilename := getTrackFilename(audioTrackID, videoTrackID)
+
 	req := &livekit.TrackCompositeEgressRequest{
 		RoomName:     roomName,
 		AudioTrackId: audioTrackID,
@@ -111,11 +114,12 @@ func (ec *EgressClient) StartTrackCompositeEgress(ctx context.Context, roomName,
 		Options: &livekit.TrackCompositeEgressRequest_Preset{
 			Preset: livekit.EncodingOptionsPreset_H264_720P_30,
 		},
+		// Структура: {meetingID}_{roomSID} - LiveKit сам добавит /tracks/{trackID}
 		SegmentOutputs: []*livekit.SegmentedFileOutput{
 			{
-				FilenamePrefix:   fmt.Sprintf("%s/%s", roomName, getTrackFilename(audioTrackID, videoTrackID)),
-				PlaylistName:     fmt.Sprintf("%s/%s.m3u8", roomName, getTrackFilename(audioTrackID, videoTrackID)),
-				LivePlaylistName: fmt.Sprintf("%s/live-%s.m3u8", roomName, getTrackFilename(audioTrackID, videoTrackID)),
+				FilenamePrefix:   fmt.Sprintf("%s_%s", roomName, roomSID),
+				PlaylistName:     fmt.Sprintf("%s.m3u8", trackFilename),
+				LivePlaylistName: fmt.Sprintf("%s-live.m3u8", trackFilename),
 				SegmentDuration:  20, // 20 seconds per segment for tracks
 				Output: &livekit.SegmentedFileOutput_S3{
 					S3: &livekit.S3Upload{

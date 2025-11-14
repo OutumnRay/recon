@@ -62,6 +62,16 @@ func NewMinIOClient() (*MinIOClient, error) {
 func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	up.logger.Infof("📹 [PLAYLIST] Request: %s", r.URL.Path)
 
+	// Handle CORS preflight
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	claims, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		up.logger.Errorf("📹 [PLAYLIST] Unauthorized - no user in context")
@@ -142,7 +152,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		roomSID = room.SID
-		playlistPath = fmt.Sprintf("%s/%s/tracks/%s.m3u8", meetingID, roomSID, trackSID)
+		playlistPath = fmt.Sprintf("%s_%s/tracks/%s.m3u8", meetingID, roomSID, trackSID)
 	} else {
 		// For room composites, get room and use meetingID/roomSID/composite.m3u8
 		var room models.Room
@@ -153,7 +163,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		meetingID = room.Name
-		playlistPath = fmt.Sprintf("%s/%s/composite.m3u8", meetingID, room.SID)
+		playlistPath = fmt.Sprintf("%s_%s/composite/composite.m3u8", meetingID, room.SID)
 	}
 
 	// Get the playlist file from MinIO
@@ -202,6 +212,9 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 	// Return modified playlist
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+	w.Header().Set("Access-Control-Max-Age", "3600")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(modifiedPlaylist.String()))
@@ -223,6 +236,16 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 // @Router /api/v1/recordings/{egress_id}/segment/{filename} [get]
 func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) {
 	up.logger.Infof("📹 [SEGMENT] Request: %s", r.URL.Path)
+
+	// Handle CORS preflight
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
 	claims, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
@@ -309,7 +332,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		segmentPath = fmt.Sprintf("%s/%s/tracks/%s", meetingID, room.SID, filename)
+		segmentPath = fmt.Sprintf("%s_%s/tracks/%s", meetingID, room.SID, filename)
 	} else {
 		// For room composites, get room and use meetingID/roomSID/composite_XXXXX.ts
 		var room models.Room
@@ -320,7 +343,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		meetingID = room.Name
-		segmentPath = fmt.Sprintf("%s/%s/%s", meetingID, room.SID, filename)
+		segmentPath = fmt.Sprintf("%s_%s/composite/%s", meetingID, room.SID, filename)
 	}
 
 	up.logger.Infof("📹 [SEGMENT] Fetching from MinIO: bucket=%s, path=%s", minioClient.bucket, segmentPath)
@@ -343,6 +366,9 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 	// Stream the segment to client
 	w.Header().Set("Content-Type", "video/mp2t")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+	w.Header().Set("Access-Control-Max-Age", "3600")
 	w.Header().Set("Cache-Control", "public, max-age=31536000") // Cache segments for 1 year
 
 	if err == nil {

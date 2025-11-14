@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'api_client.dart';
 import '../models/meeting.dart';
+import '../models/recording.dart';
 import '../utils/logger.dart';
 
 class MeetingsService {
@@ -161,6 +162,116 @@ class MeetingsService {
         throw _apiClient.handleError(response);
       }
     } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Start recording for a meeting
+  Future<void> startRecording(String meetingId) async {
+    try {
+      Logger.logInfo('Starting recording for meeting', data: {'meetingId': meetingId});
+
+      final response = await _apiClient.post(
+        '/api/v1/meetings/$meetingId/recording/start',
+        {},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _apiClient.handleError(response);
+      }
+
+      Logger.logSuccess('Recording started successfully');
+    } catch (e) {
+      Logger.logError('Failed to start recording', error: e);
+      rethrow;
+    }
+  }
+
+  /// Stop recording for a meeting
+  Future<void> stopRecording(String meetingId) async {
+    try {
+      Logger.logInfo('Stopping recording for meeting', data: {'meetingId': meetingId});
+
+      final response = await _apiClient.post(
+        '/api/v1/meetings/$meetingId/recording/stop',
+        {},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _apiClient.handleError(response);
+      }
+
+      Logger.logSuccess('Recording stopped successfully');
+    } catch (e) {
+      Logger.logError('Failed to stop recording', error: e);
+      rethrow;
+    }
+  }
+
+  /// Start transcription for a meeting
+  Future<void> startTranscription(String meetingId) async {
+    try {
+      Logger.logInfo('Starting transcription for meeting', data: {'meetingId': meetingId});
+
+      final response = await _apiClient.post(
+        '/api/v1/meetings/$meetingId/transcription/start',
+        {},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _apiClient.handleError(response);
+      }
+
+      Logger.logSuccess('Transcription started successfully');
+    } catch (e) {
+      Logger.logError('Failed to start transcription', error: e);
+      rethrow;
+    }
+  }
+
+  /// Stop transcription for a meeting
+  Future<void> stopTranscription(String meetingId) async {
+    try {
+      Logger.logInfo('Stopping transcription for meeting', data: {'meetingId': meetingId});
+
+      final response = await _apiClient.post(
+        '/api/v1/meetings/$meetingId/transcription/stop',
+        {},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _apiClient.handleError(response);
+      }
+
+      Logger.logSuccess('Transcription stopped successfully');
+    } catch (e) {
+      Logger.logError('Failed to stop transcription', error: e);
+      rethrow;
+    }
+  }
+
+  /// Get recordings for a meeting
+  Future<List<RoomRecording>> getMeetingRecordings(String meetingId) async {
+    try {
+      Logger.logInfo('Fetching recordings for meeting', data: {'meetingId': meetingId});
+
+      final response = await _apiClient.get(
+        '/api/v1/meetings/$meetingId/recordings',
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final recordings = (data as List<dynamic>)
+            .map((item) => RoomRecording.fromJson(item as Map<String, dynamic>))
+            .toList();
+
+        Logger.logSuccess('Found ${recordings.length} recording(s)');
+        return recordings;
+      } else {
+        throw _apiClient.handleError(response);
+      }
+    } catch (e) {
+      Logger.logError('Failed to fetch recordings', error: e);
       rethrow;
     }
   }

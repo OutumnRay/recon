@@ -54,6 +54,12 @@ dependencies:
 
   permission_handler: ^11.3.0
 
+  # Video player for HLS streams
+  video_player: ^2.10.0
+
+  # Better video player with controls
+  chewie: ^1.8.5
+
 
 dev_dependencies:
   flutter_test:

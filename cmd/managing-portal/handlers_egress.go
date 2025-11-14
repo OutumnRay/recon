@@ -55,7 +55,7 @@ func (mp *ManagingPortal) startRoomRecordingHandler(w http.ResponseWriter, r *ht
 	defer cancel()
 
 	audioOnly := req.AudioOnly != nil && *req.AudioOnly
-	egressInfo, err := mp.egressClient.StartRoomCompositeEgress(ctx, req.RoomName, audioOnly)
+	egressInfo, err := mp.egressClient.StartRoomCompositeEgress(ctx, req.RoomName, room.SID, audioOnly)
 	if err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to start room recording", err.Error())
 		return
@@ -185,7 +185,7 @@ func (mp *ManagingPortal) startTrackRecordingHandler(w http.ResponseWriter, r *h
 		videoTrackID = ""
 	}
 
-	egressInfo, err := mp.egressClient.StartTrackCompositeEgress(ctx, req.RoomName, audioTrackID, videoTrackID)
+	egressInfo, err := mp.egressClient.StartTrackCompositeEgress(ctx, req.RoomName, room.SID, audioTrackID, videoTrackID)
 	if err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to start track recording", err.Error())
 		return

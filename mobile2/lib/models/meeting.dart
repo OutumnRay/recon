@@ -9,6 +9,8 @@ class Meeting {
   final String status;
   final bool needsVideoRecord;
   final bool needsAudioRecord;
+  final bool isRecording;
+  final bool isTranscribing;
   final String? additionalNotes;
   final String? liveKitRoomId;
   final String createdBy;
@@ -26,6 +28,8 @@ class Meeting {
     required this.status,
     required this.needsVideoRecord,
     required this.needsAudioRecord,
+    required this.isRecording,
+    required this.isTranscribing,
     this.additionalNotes,
     this.liveKitRoomId,
     required this.createdBy,
@@ -45,6 +49,8 @@ class Meeting {
       status: json['status'] as String,
       needsVideoRecord: json['needs_video_record'] as bool? ?? false,
       needsAudioRecord: json['needs_audio_record'] as bool? ?? false,
+      isRecording: json['is_recording'] as bool? ?? false,
+      isTranscribing: json['is_transcribing'] as bool? ?? false,
       additionalNotes: json['additional_notes'] as String?,
       liveKitRoomId: json['livekit_room_id'] as String?,
       createdBy: json['created_by'] as String,
@@ -65,6 +71,8 @@ class Meeting {
       'status': status,
       'needs_video_record': needsVideoRecord,
       'needs_audio_record': needsAudioRecord,
+      'is_recording': isRecording,
+      'is_transcribing': isTranscribing,
       'additional_notes': additionalNotes,
       'livekit_room_id': liveKitRoomId,
       'created_by': createdBy,
@@ -90,6 +98,8 @@ class MeetingWithDetails extends Meeting {
     required super.status,
     required super.needsVideoRecord,
     required super.needsAudioRecord,
+    required super.isRecording,
+    required super.isTranscribing,
     super.additionalNotes,
     super.liveKitRoomId,
     required super.createdBy,
@@ -112,6 +122,8 @@ class MeetingWithDetails extends Meeting {
       status: json['status'] as String,
       needsVideoRecord: json['needs_video_record'] as bool? ?? false,
       needsAudioRecord: json['needs_audio_record'] as bool? ?? false,
+      isRecording: json['is_recording'] as bool? ?? false,
+      isTranscribing: json['is_transcribing'] as bool? ?? false,
       additionalNotes: json['additional_notes'] as String?,
       liveKitRoomId: json['livekit_room_id'] as String?,
       createdBy: json['created_by'] as String,

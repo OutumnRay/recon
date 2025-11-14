@@ -71,12 +71,12 @@ func (mp *ManagingPortal) startRoomCompositeEgress(roomName string, roomSID stri
 	}
 
 	// Настройки сегментированного вывода в S3
-	// Используем структуру: {meetingID}/{sessionID}/composite
+	// Используем структуру: {meetingID}_{sessionID} - LiveKit сам добавит /composite
 	req.SegmentOutputs = []*livekit.SegmentedFileOutput{
 		{
-			FilenamePrefix:   fmt.Sprintf("%s/%s/composite", roomName, roomSID),
-			PlaylistName:     fmt.Sprintf("%s/%s/composite.m3u8", roomName, roomSID),
-			LivePlaylistName: fmt.Sprintf("%s/%s/composite-live.m3u8", roomName, roomSID),
+			FilenamePrefix:   fmt.Sprintf("%s_%s", roomName, roomSID),
+			PlaylistName:     "composite.m3u8",
+			LivePlaylistName: "composite-live.m3u8",
 			SegmentDuration:  10,
 			Output: &livekit.SegmentedFileOutput_S3{
 				S3: &livekit.S3Upload{
@@ -129,12 +129,12 @@ func (mp *ManagingPortal) startTrackCompositeEgress(roomName, roomSID, trackID s
 	}
 
 	// Настройки сегментированного вывода в S3
-	// Используем структуру: {meetingID}/{sessionID}/tracks/{trackID}
+	// Используем структуру: {meetingID}_{sessionID} - LiveKit сам добавит /tracks/{trackID}
 	req.SegmentOutputs = []*livekit.SegmentedFileOutput{
 		{
-			FilenamePrefix:   fmt.Sprintf("%s/%s/tracks/%s", roomName, roomSID, trackID),
-			PlaylistName:     fmt.Sprintf("%s/%s/tracks/%s.m3u8", roomName, roomSID, trackID),
-			LivePlaylistName: fmt.Sprintf("%s/%s/tracks/%s-live.m3u8", roomName, roomSID, trackID),
+			FilenamePrefix:   fmt.Sprintf("%s_%s", roomName, roomSID),
+			PlaylistName:     fmt.Sprintf("%s.m3u8", trackID),
+			LivePlaylistName: fmt.Sprintf("%s-live.m3u8", trackID),
 			SegmentDuration:  20,
 			Output: &livekit.SegmentedFileOutput_S3{
 				S3: &livekit.S3Upload{
