@@ -79,6 +79,17 @@
   opacity: 0.92;
 }
 
+.meeting-card.meeting-permanent {
+  border-color: #7c3aed;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
+  background: linear-gradient(to bottom right, rgba(124, 58, 237, 0.02), transparent);
+}
+
+.meeting-card.meeting-permanent:hover {
+  border-color: #6d28d9;
+  box-shadow: 0 12px 30px rgba(124, 58, 237, 0.25);
+}
+
 .meeting-card-header {
   display: flex;
   justify-content: space-between;
@@ -157,7 +168,7 @@
 
 .info-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-md);
 }
 
@@ -170,14 +181,30 @@
   align-items: center;
   justify-content: center;
   color: var(--color-primary-500);
+  flex-shrink: 0;
 }
 
 .info-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   font-size: var(--font-size-sm);
   color: var(--text-primary);
+  flex: 1;
+}
+
+.info-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-medium);
+}
+
+.info-value {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
 }
 
 .meeting-now-badge {

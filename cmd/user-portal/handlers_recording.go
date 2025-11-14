@@ -59,12 +59,6 @@ func (up *UserPortal) startRecordingHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Check if meeting is in progress
-	if meeting.Status != models.MeetingStatusInProgress {
-		up.respondWithError(w, http.StatusBadRequest, "Meeting is not in progress", "")
-		return
-	}
-
 	// Update meeting status
 	meeting.IsRecording = true
 	if err := up.meetingRepo.UpdateMeeting(meeting); err != nil {
@@ -176,12 +170,6 @@ func (up *UserPortal) startTranscriptionHandler(w http.ResponseWriter, r *http.R
 	// Check permissions
 	if claims.Role != models.RoleAdmin && meeting.CreatedBy != claims.UserID {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "Only meeting creator or admin can control transcription")
-		return
-	}
-
-	// Check if meeting is in progress
-	if meeting.Status != models.MeetingStatusInProgress {
-		up.respondWithError(w, http.StatusBadRequest, "Meeting is not in progress", "")
 		return
 	}
 

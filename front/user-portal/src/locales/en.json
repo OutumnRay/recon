@@ -314,7 +314,9 @@
       "info": "Page {{page}} of {{total}} ({{count}} total meetings)"
     },
     "card": {
-      "participants": "{{count}} participants",
+      "scheduledAt": "Scheduled",
+      "duration": "Duration",
+      "participants": "Participants",
       "videoRecording": "Video Recording",
       "onlineCount": "({{count}} online)",
       "recording": "Recording",

@@ -547,7 +547,7 @@ export const Meetings: React.FC = () => {
               return (
                 <div
                   key={meeting.id}
-                  className={`meeting-card ${isNow ? 'meeting-now' : ''} ${isPast ? 'meeting-past' : ''}`}
+                  className={`meeting-card ${isNow ? 'meeting-now' : ''} ${isPast ? 'meeting-past' : ''} ${meeting.is_permanent ? 'meeting-permanent' : ''}`}
                   onClick={() => handleViewDetails(meeting)}
                 >
                   <div className="meeting-card-header">
@@ -577,23 +577,37 @@ export const Meetings: React.FC = () => {
                   <div className="meeting-card-body">
                     <div className="meeting-info-grid">
                       <div className="info-item">
-                        <LuCalendar className="info-icon" />
-                        <span className="info-text">{formatMeetingDate(meeting.scheduled_at)}</span>
+                        <div className="info-icon">
+                          <LuCalendar />
+                        </div>
+                        <div className="info-text">
+                          <div className="info-label">{t('meetings.card.scheduledAt')}</div>
+                          <div className="info-value">{formatMeetingDate(meeting.scheduled_at)}</div>
+                        </div>
                       </div>
                       <div className="info-item">
-                        <LuClock className="info-icon" />
-                        <span className="info-text">{formatDuration(meeting.duration)}</span>
+                        <div className="info-icon">
+                          <LuClock />
+                        </div>
+                        <div className="info-text">
+                          <div className="info-label">{t('meetings.card.duration')}</div>
+                          <div className="info-value">{formatDuration(meeting.duration)}</div>
+                        </div>
                       </div>
                       <div className="info-item">
-                        <LuUsers className="info-icon" />
-                        <span className="info-text">
-                          {t('meetings.card.participants', { count: meeting.participants.length })}
-                          {meeting.active_participants_count > 0 && (
-                            <span style={{ color: '#10b981', fontWeight: 'bold', marginLeft: '4px' }}>
-                              {t('meetings.card.onlineCount', { count: meeting.active_participants_count })}
+                        <div className="info-icon">
+                          <LuUsers />
+                        </div>
+                        <div className="info-text">
+                          <div className="info-label">{t('meetings.card.participants')}</div>
+                          <div className="info-value">
+                            <span style={{ color: meeting.active_participants_count > 0 ? '#10b981' : 'inherit', fontWeight: meeting.active_participants_count > 0 ? 'bold' : 'normal' }}>
+                              {meeting.active_participants_count || 0}
                             </span>
-                          )}
-                        </span>
+                            {' / '}
+                            <span>{meeting.participants.length}</span>
+                          </div>
+                        </div>
                       </div>
                       {meeting.needs_video_record && (
                         <div className="info-item">

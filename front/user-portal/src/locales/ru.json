@@ -314,7 +314,9 @@
       "info": "Страница {{page}} из {{total}} (всего {{count}} встреч)"
     },
     "card": {
-      "participants": "{{count}} участников",
+      "scheduledAt": "Запланировано",
+      "duration": "Длительность",
+      "participants": "Участники",
       "videoRecording": "Видеозапись",
       "onlineCount": "({{count}} онлайн)",
       "recording": "Запись",
