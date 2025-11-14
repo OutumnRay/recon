@@ -99,6 +99,10 @@
   transition: border var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
+.form-input:not(.form-textarea) {
+  height: 48px;
+}
+
 .meeting-form .datetime-picker-wrapper {
   width: 100%;
 }

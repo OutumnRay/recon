@@ -17,8 +17,6 @@ import {
   LuTrash2,
   LuPlay,
   LuCircle,
-  LuCheck,
-  LuX,
   LuFilm,
   LuFileText,
 } from 'react-icons/lu';
@@ -229,64 +227,69 @@ export const Meetings: React.FC = () => {
   if (viewMode === 'details' && selectedMeeting) {
     return (
       <div className="page-container">
-        <div className="meeting-details-header">
-          <button onClick={handleBackToList} className="btn btn-ghost">
-            <LuArrowLeft /> {t('meetings.backToList')}
-          </button>
-          <h1 className="page-title">{selectedMeeting.title}</h1>
-        </div>
+        <button onClick={handleBackToList} className="btn btn-ghost meeting-details-back">
+          <LuArrowLeft /> {t('meetings.backToList')}
+        </button>
 
         <div className="meeting-details-card">
-          <div className="details-section">
-            <h3>{t('meetings.details.information')}</h3>
-            <div className="details-grid">
-              <div className="detail-item">
-                <span className="detail-label">{t('meetings.details.type')}:</span>
-                <span className="detail-value">
-                  {t(`meetings.type.${selectedMeeting.type}`)}
+          <div className="meeting-details-hero">
+            <div>
+              <h1>{selectedMeeting.title}</h1>
+              <div className="hero-chips">
+                <span className="chip chip-type">{t(`meetings.type.${selectedMeeting.type}`)}</span>
+                {selectedMeeting.subject && (
+                  <span className="chip chip-subject">
+                    <LuBookOpen /> {selectedMeeting.subject.name}
+                  </span>
+                )}
+                <span className="chip chip-recurrence">
+                  <LuRotateCcw /> {t(`meetings.recurrence.${selectedMeeting.is_permanent ? 'permanent' : selectedMeeting.recurrence}`)}
                 </span>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">{t('meetings.details.status')}:</span>
-                <span className={`status-badge ${selectedMeeting.is_permanent ? 'permanent' : getMeetingStatusInfo(selectedMeeting.status).className}`}>
-                  {selectedMeeting.is_permanent ? t('meetings.recurrence.permanent') : t(`meetings.status.${selectedMeeting.status}`)}
+            </div>
+            <div className="hero-status">
+              {selectedMeeting.is_permanent && (
+                <span className="permanent-badge">
+                  <LuClock /> {t('meetings.recurrence.permanent')}
                 </span>
+              )}
+              <span className={`status-badge ${selectedMeeting.is_permanent ? 'permanent' : getMeetingStatusInfo(selectedMeeting.status).className}`}>
+                {selectedMeeting.is_permanent ? t('meetings.recurrence.permanent') : t(`meetings.status.${selectedMeeting.status}`)}
+              </span>
+            </div>
+          </div>
+
+          <div className="meeting-details-grid">
+            <div className="detail-block">
+              <LuCalendar className="detail-icon" />
+              <div>
+                <span className="detail-label">{t('meetings.details.scheduled')}</span>
+                <div className="detail-value">{formatMeetingDate(selectedMeeting.scheduled_at)}</div>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">{t('meetings.details.scheduled')}:</span>
-                <span className="detail-value">{formatMeetingDate(selectedMeeting.scheduled_at)}</span>
+            </div>
+            <div className="detail-block">
+              <LuClock className="detail-icon" />
+              <div>
+                <span className="detail-label">{t('meetings.details.duration')}</span>
+                <div className="detail-value">{formatDuration(selectedMeeting.duration)}</div>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">{t('meetings.details.duration')}:</span>
-                <span className="detail-value">{formatDuration(selectedMeeting.duration)}</span>
+            </div>
+            <div className="detail-block">
+              <LuVideo className="detail-icon" />
+              <div>
+                <span className="detail-label">{t('meetings.details.videoRecording')}</span>
+                <div className="detail-value">
+                  {selectedMeeting.needs_video_record ? t('common.yes') : t('common.no')}
+                </div>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">{t('meetings.details.subject')}:</span>
-                <span className="detail-value">{selectedMeeting.subject?.name || 'N/A'}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">{t('meetings.details.recurrence')}:</span>
-                <span className="detail-value">{t(`meetings.recurrence.${selectedMeeting.recurrence}`)}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">{t('meetings.details.videoRecording')}:</span>
-                <span className="detail-value">
-                  {selectedMeeting.needs_video_record ? (
-                    <><LuCheck className="icon-success" /> {t('common.yes')}</>
-                  ) : (
-                    <><LuX className="icon-muted" /> {t('common.no')}</>
-                  )}
-                </span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">{t('meetings.details.audioRecording')}:</span>
-                <span className="detail-value">
-                  {selectedMeeting.needs_audio_record ? (
-                    <><LuCheck className="icon-success" /> {t('common.yes')}</>
-                  ) : (
-                    <><LuX className="icon-muted" /> {t('common.no')}</>
-                  )}
-                </span>
+            </div>
+            <div className="detail-block">
+              <LuMic className="detail-icon" />
+              <div>
+                <span className="detail-label">{t('meetings.details.audioRecording')}</span>
+                <div className="detail-value">
+                  {selectedMeeting.needs_audio_record ? t('common.yes') : t('common.no')}
+                </div>
               </div>
             </div>
           </div>
@@ -299,40 +302,47 @@ export const Meetings: React.FC = () => {
           )}
 
           <div className="details-section">
-            <h3>{t('meetings.details.participants')} ({selectedMeeting.participants.length})</h3>
-            <div className="participants-list">
-              {selectedMeeting.participants.map((participant) => (
-                <div key={participant.user_id} className="participant-item">
-                  <div className="participant-info">
-                    <span className="participant-name">
-                      {participant.user ?
-                        (participant.user.first_name && participant.user.last_name ?
-                          `${participant.user.first_name} ${participant.user.last_name}` :
-                          participant.user.username) :
-                        participant.user_id}
-                    </span>
-                    <span className="participant-email">{participant.user?.email || ''}</span>
+            <div className="section-heading">
+              <h3>{t('meetings.details.participants')}</h3>
+              <span className="section-count">{selectedMeeting.participants.length}</span>
+            </div>
+            <div className="participants-grid">
+              {selectedMeeting.participants.map((participant) => {
+                const displayName = participant.user ?
+                  (participant.user.first_name && participant.user.last_name ?
+                    `${participant.user.first_name} ${participant.user.last_name}` :
+                    participant.user.username) :
+                  participant.user_id;
+                return (
+                  <div key={participant.user_id} className="participant-card">
+                    <div className="participant-avatar">
+                      {displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="participant-card-body">
+                      <span className="participant-name">{displayName}</span>
+                      <span className="participant-email">{participant.user?.email || '—'}</span>
+                    </div>
+                    <div className="participant-tags">
+                      <span className={`role-badge role-${participant.role}`}>
+                        {participant.role === 'speaker' ? <LuMic /> : <LuUsers />}
+                        {participant.role === 'speaker' ? t('meetings.type.presentation') : t('meetings.details.participants')}
+                      </span>
+                      <span className={`status-badge ${participant.status}`}>
+                        {t(`meetings.participantStatus.${participant.status}`)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="participant-badges">
-                    <span className={`role-badge role-${participant.role}`}>
-                      {participant.role === 'speaker' ? (
-                        <><LuMic /> {t('meetings.type.presentation')}</>
-                      ) : (
-                        <><LuUsers /> {t('meetings.details.participants')}</>
-                      )}
-                    </span>
-                    <span className={`status-badge ${participant.status}`}>
-                      {t(`meetings.participantStatus.${participant.status}`)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {selectedMeeting.departments.length > 0 && (
             <div className="details-section">
-              <h3>{t('meetings.details.departments')} ({selectedMeeting.departments.length})</h3>
+              <div className="section-heading">
+                <h3>{t('meetings.details.departments')}</h3>
+                <span className="section-count">{selectedMeeting.departments.length}</span>
+              </div>
               <div className="departments-list">
                 {selectedMeeting.departments.map((dept) => (
                   <div key={dept.id} className="department-tag">
@@ -345,33 +355,16 @@ export const Meetings: React.FC = () => {
 
           <div className="details-section">
             <h3>{t('meetings.details.actions')}</h3>
-            <div className="meeting-actions">
-              {(() => {
-                const isPast = isMeetingPast(selectedMeeting);
-                const isUpcoming = isMeetingUpcoming(selectedMeeting);
-                console.log('🎬 [RECORDINGS DETAILS] Meeting state:', {
-                  id: selectedMeeting.id,
-                  status: selectedMeeting.status,
-                  scheduled_at: selectedMeeting.scheduled_at,
-                  duration: selectedMeeting.duration,
-                  isPast: isPast,
-                  isUpcoming: isUpcoming
-                });
-                return null;
-              })()}
+            <div className="meeting-details-actions">
               {(selectedMeeting.status !== 'cancelled' && (selectedMeeting.status !== 'completed' || selectedMeeting.is_permanent || selectedMeeting.recurrence === 'permanent')) && (
                 <button className="btn btn-join" onClick={handleJoinMeeting}>
                   <LuPlay /> {t('meetings.details.joinMeeting')}
                 </button>
               )}
-              {(isMeetingPast(selectedMeeting) || (selectedMeeting.is_permanent && selectedMeeting.status === 'completed')) ? (
+              {(isMeetingPast(selectedMeeting) || (selectedMeeting.is_permanent && selectedMeeting.status === 'completed')) && (
                 <button className="btn btn-secondary" onClick={handleViewRecordings}>
                   <LuFilm /> {t('meetings.card.viewRecordings')}
                 </button>
-              ) : (
-                <span style={{ fontSize: '11px', color: '#999' }}>
-                  {/* Recordings not available yet */}
-                </span>
               )}
               {isMeetingUpcoming(selectedMeeting) && (
                 <button className="btn btn-secondary">

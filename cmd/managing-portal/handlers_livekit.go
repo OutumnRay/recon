@@ -283,7 +283,7 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 		// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
 		// meetingUUID is already set above
 		go func(roomName string, audioOnly bool, roomSID string, meetingID *uuid.UUID) {
-			egressID, err := mp.startRoomCompositeEgress(roomName, audioOnly)
+			egressID, err := mp.startRoomCompositeEgress(roomName, roomSID, audioOnly)
 			if err != nil {
 				mp.logger.Errorf("❌ Failed to start room composite egress: %v", err)
 			} else if egressID != "" {
@@ -563,7 +563,7 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 
 			// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
 			go func(roomName string, trackSID string, roomSID string, partSID string, meetingID *uuid.UUID) {
-				egressID, err := mp.startTrackCompositeEgress(roomName, trackSID)
+				egressID, err := mp.startTrackCompositeEgress(roomName, roomSID, trackSID)
 				if err != nil {
 					mp.logger.Errorf("❌ Failed to start track composite egress: %v", err)
 				} else if egressID != "" {

@@ -16,7 +16,7 @@ import type {
 import { SearchableSelect } from './SearchableSelect';
 import { MultiSelectWithSearch } from './MultiSelectWithSearch';
 import { DateTimePicker } from './DateTimePicker';
-import { LuUsers, LuMic, LuVideo, LuClock, LuInfo, LuLoader } from 'react-icons/lu';
+import { LuMic, LuVideo, LuClock, LuInfo, LuLoader } from 'react-icons/lu';
 import './MeetingForm.css';
 
 interface MeetingFormProps {
@@ -364,23 +364,20 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
               <label htmlFor="type" className="form-label required">
                 {t('meetings.form.type')}
               </label>
-              <div className="select-with-icon">
-                {type === 'conference' ? <LuUsers className="select-icon" /> : <LuMic className="select-icon" />}
-                <select
-                  id="type"
-                  value={type}
-                  onChange={(e) => setType(e.target.value as MeetingType)}
-                  className="form-select"
-                  required
-                >
-                  <option value="conference">
-                    {t('meetings.type.conference')}
-                  </option>
-                  <option value="presentation">
-                    {t('meetings.type.presentation')}
-                  </option>
-                </select>
-              </div>
+              <select
+                id="type"
+                value={type}
+                onChange={(e) => setType(e.target.value as MeetingType)}
+                className="form-select"
+                required
+              >
+                <option value="conference">
+                  {t('meetings.type.conference')}
+                </option>
+                <option value="presentation">
+                  {t('meetings.type.presentation')}
+                </option>
+              </select>
             </div>
 
             <div className="form-group">
@@ -599,7 +596,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           )}
           <button
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-success"
             disabled={loading}
           >
             {loading

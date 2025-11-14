@@ -3,6 +3,9 @@
 .searchable-select-wrapper {
   position: relative;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 }
 
 .searchable-select-label {
@@ -23,7 +26,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-sm) var(--space-md);
+  padding: 0 var(--space-md);
   background: var(--surface-panel);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
@@ -36,14 +39,16 @@
 }
 
 .searchable-select-trigger:hover {
-  border-color: var(--border-medium);
+  border-color: var(--color-primary-300);
+  background: var(--bg-primary);
 }
 
 .searchable-select-trigger:focus,
 .searchable-select-trigger.open {
   outline: none;
   border-color: var(--color-primary-400);
-  box-shadow: 0 0 0 3px var(--color-primary-50);
+  box-shadow: 0 0 0 3px rgba(70, 175, 186, 0.15);
+  background: var(--bg-primary);
 }
 
 .searchable-select-value {
@@ -127,13 +132,14 @@
 
 .search-input {
   width: 100%;
-  padding: var(--space-sm) var(--space-md) var(--space-sm) calc(var(--space-2xl) + var(--space-sm));
+  padding: 0 var(--space-md) 0 calc(var(--space-2xl) + var(--space-sm));
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
   color: var(--text-primary);
   background: var(--surface-card);
   transition: all var(--transition-base);
+  min-height: 48px;
 }
 
 .search-input:focus {

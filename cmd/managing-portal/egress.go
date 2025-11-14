@@ -38,7 +38,7 @@ func loadEgressConfig() EgressConfig {
 }
 
 // startRoomCompositeEgress запускает запись всей комнаты
-func (mp *ManagingPortal) startRoomCompositeEgress(roomName string, audioOnly bool) (string, error) {
+func (mp *ManagingPortal) startRoomCompositeEgress(roomName string, roomSID string, audioOnly bool) (string, error) {
 	config := loadEgressConfig()
 
 	if !config.Enabled {
@@ -71,11 +71,12 @@ func (mp *ManagingPortal) startRoomCompositeEgress(roomName string, audioOnly bo
 	}
 
 	// Настройки сегментированного вывода в S3
+	// Используем структуру: {meetingID}/{sessionID}/composite
 	req.SegmentOutputs = []*livekit.SegmentedFileOutput{
 		{
-			FilenamePrefix:   fmt.Sprintf("%s/composite", roomName),
-			PlaylistName:     fmt.Sprintf("%s/composite.m3u8", roomName),
-			LivePlaylistName: fmt.Sprintf("%s/composite-live.m3u8", roomName),
+			FilenamePrefix:   fmt.Sprintf("%s/%s/composite", roomName, roomSID),
+			PlaylistName:     fmt.Sprintf("%s/%s/composite.m3u8", roomName, roomSID),
+			LivePlaylistName: fmt.Sprintf("%s/%s/composite-live.m3u8", roomName, roomSID),
 			SegmentDuration:  10,
 			Output: &livekit.SegmentedFileOutput_S3{
 				S3: &livekit.S3Upload{
@@ -96,12 +97,12 @@ func (mp *ManagingPortal) startRoomCompositeEgress(roomName string, audioOnly bo
 		return "", fmt.Errorf("failed to start room composite egress: %w", err)
 	}
 
-	mp.logger.Infof("Started room composite egress for room %s: EgressID=%s", roomName, res.EgressId)
+	mp.logger.Infof("Started room composite egress for room %s (SID: %s): EgressID=%s", roomName, roomSID, res.EgressId)
 	return res.EgressId, nil
 }
 
 // startTrackCompositeEgress запускает запись отдельного аудио трека
-func (mp *ManagingPortal) startTrackCompositeEgress(roomName, trackID string) (string, error) {
+func (mp *ManagingPortal) startTrackCompositeEgress(roomName, roomSID, trackID string) (string, error) {
 	config := loadEgressConfig()
 
 	if !config.Enabled || !config.RecordTracks {
@@ -128,11 +129,12 @@ func (mp *ManagingPortal) startTrackCompositeEgress(roomName, trackID string) (s
 	}
 
 	// Настройки сегментированного вывода в S3
+	// Используем структуру: {meetingID}/{sessionID}/tracks/{trackID}
 	req.SegmentOutputs = []*livekit.SegmentedFileOutput{
 		{
-			FilenamePrefix:   fmt.Sprintf("%s/tracks/%s", roomName, trackID),
-			PlaylistName:     fmt.Sprintf("%s/tracks/%s.m3u8", roomName, trackID),
-			LivePlaylistName: fmt.Sprintf("%s/tracks/%s-live.m3u8", roomName, trackID),
+			FilenamePrefix:   fmt.Sprintf("%s/%s/tracks/%s", roomName, roomSID, trackID),
+			PlaylistName:     fmt.Sprintf("%s/%s/tracks/%s.m3u8", roomName, roomSID, trackID),
+			LivePlaylistName: fmt.Sprintf("%s/%s/tracks/%s-live.m3u8", roomName, roomSID, trackID),
 			SegmentDuration:  20,
 			Output: &livekit.SegmentedFileOutput_S3{
 				S3: &livekit.S3Upload{
@@ -153,7 +155,7 @@ func (mp *ManagingPortal) startTrackCompositeEgress(roomName, trackID string) (s
 		return "", fmt.Errorf("failed to start track composite egress: %w", err)
 	}
 
-	mp.logger.Infof("Started track composite egress for track %s in room %s: EgressID=%s", trackID, roomName, res.EgressId)
+	mp.logger.Infof("Started track composite egress for track %s in room %s (SID: %s): EgressID=%s", trackID, roomName, roomSID, res.EgressId)
 	return res.EgressId, nil
 }
 

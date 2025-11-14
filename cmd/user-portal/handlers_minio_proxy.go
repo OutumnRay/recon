@@ -128,11 +128,23 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 
 	// Determine playlist path based on type
 	var playlistPath string
+	var roomSID string
 	if isTrack {
-		// For tracks, use meetingID/tracks/track_sid.m3u8 path on MinIO
-		playlistPath = fmt.Sprintf("%s/tracks/%s.m3u8", meetingID, trackSID)
+		// For tracks, we already have meetingID from earlier. Get room SID.
+		var room models.Room
+		err := up.db.DB.Where("name = ?", meetingID).
+			Joins("JOIN tracks ON tracks.room_sid = rooms.sid").
+			Where("tracks.sid = ?", trackSID).
+			First(&room).Error
+		if err != nil {
+			up.logger.Errorf("Room not found for track %s: %v", trackSID, err)
+			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
+			return
+		}
+		roomSID = room.SID
+		playlistPath = fmt.Sprintf("%s/%s/tracks/%s.m3u8", meetingID, roomSID, trackSID)
 	} else {
-		// For room composites, get room and use meetingID/composite.m3u8
+		// For room composites, get room and use meetingID/roomSID/composite.m3u8
 		var room models.Room
 		err := up.db.DB.Where("egress_id = ?", egressID).First(&room).Error
 		if err != nil {
@@ -141,7 +153,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		meetingID = room.Name
-		playlistPath = fmt.Sprintf("%s/composite.m3u8", meetingID)
+		playlistPath = fmt.Sprintf("%s/%s/composite.m3u8", meetingID, room.SID)
 	}
 
 	// Get the playlist file from MinIO
@@ -286,10 +298,20 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 	// Construct segment path based on type
 	var segmentPath string
 	if isTrack {
-		// For tracks, use meetingID/tracks/filename path on MinIO (filename already includes track SID prefix)
-		segmentPath = fmt.Sprintf("%s/tracks/%s", meetingID, filename)
+		// For tracks, we already have meetingID from earlier. Get room SID.
+		var room models.Room
+		err := up.db.DB.Where("name = ?", meetingID).
+			Joins("JOIN tracks ON tracks.room_sid = rooms.sid").
+			Where("tracks.sid = ?", trackSID).
+			First(&room).Error
+		if err != nil {
+			up.logger.Errorf("Room not found for track %s: %v", trackSID, err)
+			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
+			return
+		}
+		segmentPath = fmt.Sprintf("%s/%s/tracks/%s", meetingID, room.SID, filename)
 	} else {
-		// For room composites, get room and use meetingID/composite_XXXXX.ts
+		// For room composites, get room and use meetingID/roomSID/composite_XXXXX.ts
 		var room models.Room
 		err := up.db.DB.Where("egress_id = ?", egressID).First(&room).Error
 		if err != nil {
@@ -298,7 +320,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		meetingID = room.Name
-		segmentPath = fmt.Sprintf("%s/%s", meetingID, filename)
+		segmentPath = fmt.Sprintf("%s/%s/%s", meetingID, room.SID, filename)
 	}
 
 	up.logger.Infof("📹 [SEGMENT] Fetching from MinIO: bucket=%s, path=%s", minioClient.bucket, segmentPath)
