@@ -69,7 +69,6 @@ export default function MeetingRoom() {
   const [stageParticipantId, setStageParticipantId] = useState<string | null>(null);
   const [isParticipantsCollapsed, setIsParticipantsCollapsed] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [volume, setVolume] = useState(100);
   const [isMobile, setIsMobile] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -891,15 +890,6 @@ export default function MeetingRoom() {
     updateSidebarHighlight(stageParticipantId);
   }, [stageParticipantId, updateSidebarHighlight]);
 
-  // Update volume for all audio elements when volume changes
-  useEffect(() => {
-    volumeRef.current = volume;
-    const audioElements = document.querySelectorAll<HTMLAudioElement>('audio');
-    console.log(`[Volume] Updating volume to ${volume}% for ${audioElements.length} audio elements`);
-    audioElements.forEach(audio => {
-      audio.volume = volume / 100;
-    });
-  }, [volume]);
 
   const confirmLeave = useCallback(() => {
     console.log('[Leave] Disconnecting from room and navigating to dashboard...');
@@ -1551,21 +1541,6 @@ export default function MeetingRoom() {
                   <LuRefreshCw />
                 </button>
               )}
-              <div className="volume-control">
-                <label htmlFor="volume-slider" style={{ fontSize: '14px', marginRight: '8px' }}>
-                  🔊 {volume}%
-                </label>
-                <input
-                  id="volume-slider"
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={volume}
-                  onChange={(e) => setVolume(Number(e.target.value))}
-                  style={{ width: '100px' }}
-                  title={t('meetingRoom.volumeControl') || 'Volume'}
-                />
-              </div>
             </div>}
           </div>
         </div>

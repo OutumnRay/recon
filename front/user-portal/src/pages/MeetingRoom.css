@@ -642,11 +642,17 @@
   width: 18px;
   height: 18px;
   font-size: 14px;
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .mic-indicator.muted {
   display: flex;
+}
+
+.mic-indicator svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
 }
 
 .remote-participant-video {
