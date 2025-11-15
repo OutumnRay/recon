@@ -148,19 +148,25 @@ export default function MeetingRecordings() {
                     </span>
                   </div>
                 </div>
-                <div className="player-surface">
-                  {selectedRecording.audio_only ? (
-                    <audio controls style={{ width: '100%' }}>
-                      <source src={selectedRecording.playlist_url} type="application/x-mpegURL" />
-                      Your browser does not support the audio element.
-                    </audio>
-                  ) : (
+                {/* Show video player only if video recording is enabled */}
+                {meeting && meeting.needs_video_record && !selectedRecording.audio_only ? (
+                  <div className="player-surface">
                     <HLSPlayer
                       src={selectedRecording.playlist_url}
                       autoplay={false}
                     />
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  /* Show audio player for audio-only recordings */
+                  meeting && meeting.needs_audio_record && (
+                    <div className="audio-player-container">
+                      <audio controls style={{ width: '100%' }}>
+                        <source src={selectedRecording.playlist_url} type="application/x-mpegURL" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  )
+                )}
               </>
             ) : (
               <div className="no-selection">

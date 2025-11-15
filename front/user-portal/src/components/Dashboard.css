@@ -40,12 +40,15 @@
 .sidebar-logo {
   width: 40px;
   height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   border-radius: var(--radius-lg);
   background: var(--color-primary-50);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  object-fit: contain;
 }
 
 .sidebar-title {
@@ -125,6 +128,55 @@
 .nav-label {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+}
+
+.sidebar-language-switcher {
+  padding: 0 var(--space-xl) var(--space-lg);
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.sidebar-language-switcher .language-switcher {
+  width: fit-content;
+}
+
+.sidebar.collapsed .sidebar-language-switcher {
+  padding: 0 var(--space-md) var(--space-lg);
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-language-switcher .language-switcher {
+  width: auto;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.sidebar.collapsed .sidebar-language-switcher .lang-btn {
+  min-width: 36px;
+  padding: var(--space-xs);
+}
+
+.sidebar.collapsed .sidebar-logo {
+  margin: 0 auto;
+}
+
+.sidebar.collapsed .logout-btn {
+  justify-content: center;
+  padding: var(--space-md);
+}
+
+.sidebar.collapsed .sidebar-version {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm);
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .logout-btn .nav-label {
+  display: none;
 }
 
 .sidebar-footer {
@@ -223,16 +275,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-lg);
-}
-
-.header-language-switcher {
-  display: flex;
-  align-items: center;
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-full);
-  background: var(--surface-panel);
-  box-shadow: var(--shadow-sm);
 }
 
 .user-info {
@@ -575,6 +617,10 @@
   .content-area {
     padding: 0;
   }
+
+  .sidebar-language-switcher {
+    padding: 0 var(--space-lg) var(--space-lg);
+  }
 }
 
 @media (max-width: 480px) {
@@ -593,10 +639,6 @@
 
   .page-current-description {
     display: none;
-  }
-
-  .header-language-switcher {
-    padding: var(--space-xs);
   }
 
   .user-display-name {
@@ -618,6 +660,10 @@
 
   .logout-btn {
     padding: var(--space-sm) var(--space-md);
+  }
+
+  .sidebar-language-switcher {
+    padding: 0 var(--space-md) var(--space-md);
   }
 }
 

@@ -67,16 +67,14 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		up.respondWithError(w, http.StatusBadRequest, "Type is required", "")
 		return
 	}
-	if req.SubjectID == uuid.Nil {
-		up.respondWithError(w, http.StatusBadRequest, "Subject ID is required", "")
-		return
-	}
 
-	// Verify subject exists
-	_, err := up.meetingRepo.GetSubjectByID(req.SubjectID)
-	if err != nil {
-		up.respondWithError(w, http.StatusBadRequest, "Invalid subject ID", err.Error())
-		return
+	// Verify subject exists if provided
+	if req.SubjectID != uuid.Nil {
+		_, err := up.meetingRepo.GetSubjectByID(req.SubjectID)
+		if err != nil {
+			up.respondWithError(w, http.StatusBadRequest, "Invalid subject ID", err.Error())
+			return
+		}
 	}
 
 	// Create meeting
@@ -98,6 +96,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		AdditionalNotes:    req.AdditionalNotes,
 		ForceEndAtDuration: req.ForceEndAtDuration,
 		IsPermanent:        req.IsPermanent,
+		AllowAnonymous:     req.AllowAnonymous,
 		LiveKitRoomID:      nil, // Will be set below
 		CreatedBy:          claims.UserID,
 		CreatedAt:          time.Now(),
@@ -285,12 +284,6 @@ func (up *UserPortal) listMyMeetingsHandler(w http.ResponseWriter, r *http.Reque
 // @Security BearerAuth
 // @Router /api/v1/meetings/{id} [get]
 func (up *UserPortal) getMeetingHandler(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.GetUserFromContext(r.Context())
-	if !ok {
-		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
-		return
-	}
-
 	// Extract meeting ID from path
 	meetingID := strings.TrimPrefix(r.URL.Path, "/api/v1/meetings/")
 
@@ -298,6 +291,20 @@ func (up *UserPortal) getMeetingHandler(w http.ResponseWriter, r *http.Request) 
 	meeting, err := up.meetingRepo.GetMeetingWithDetails(uuid.Must(uuid.Parse(meetingID)))
 	if err != nil {
 		up.respondWithError(w, http.StatusNotFound, "Meeting not found", err.Error())
+		return
+	}
+
+	// If meeting allows anonymous access, allow anyone to view it
+	if meeting.AllowAnonymous {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(meeting)
+		return
+	}
+
+	// Otherwise, require authentication
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
 		return
 	}
 
@@ -413,6 +420,9 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	}
 	if req.IsPermanent != nil {
 		meeting.IsPermanent = *req.IsPermanent
+	}
+	if req.AllowAnonymous != nil {
+		meeting.AllowAnonymous = *req.AllowAnonymous
 	}
 	if req.AdditionalNotes != nil {
 		meeting.AdditionalNotes = *req.AdditionalNotes

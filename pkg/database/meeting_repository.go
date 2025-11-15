@@ -206,6 +206,7 @@ func (r *MeetingRepository) CreateMeeting(meeting *models.Meeting) error {
 		IsTranscribing:     meeting.IsTranscribing,
 		ForceEndAtDuration: meeting.ForceEndAtDuration,
 		IsPermanent:        meeting.IsPermanent,
+		AllowAnonymous:     meeting.AllowAnonymous,
 		AdditionalNotes:    meeting.AdditionalNotes,
 		LiveKitRoomID:      meeting.LiveKitRoomID,
 		CreatedBy:          meeting.CreatedBy,
@@ -248,6 +249,7 @@ func (r *MeetingRepository) GetMeetingByID(id uuid.UUID) (*models.Meeting, error
 		IsTranscribing:     dbMeeting.IsTranscribing,
 		ForceEndAtDuration: dbMeeting.ForceEndAtDuration,
 		IsPermanent:        dbMeeting.IsPermanent,
+		AllowAnonymous:     dbMeeting.AllowAnonymous,
 		AdditionalNotes:    dbMeeting.AdditionalNotes,
 		LiveKitRoomID:      dbMeeting.LiveKitRoomID,
 		CreatedBy:          dbMeeting.CreatedBy,
@@ -298,6 +300,36 @@ func (r *MeetingRepository) GetMeetingWithDetails(id uuid.UUID) (*models.Meeting
 			Role:         creator.Role,
 			DepartmentID: creator.DepartmentID,
 			Permissions:  creator.Permissions,
+		}
+	}
+
+	// Count active participants in LiveKit room
+	if meeting.LiveKitRoomID != nil {
+		livekitRepo := NewLiveKitRepository(r.db)
+		// Get the room by meeting ID (room name = meeting ID)
+		rooms, err := livekitRepo.GetRoomsByName(id.String())
+		if err == nil && len(rooms) > 0 {
+			// Use the most recent room
+			room := rooms[0]
+			// Count participants that are not DISCONNECTED
+			var activeCount int64
+			err = r.db.DB.Model(&LiveKitParticipant{}).
+				Where("room_sid = ? AND state != ?", room.SID, "DISCONNECTED").
+				Count(&activeCount).Error
+			if err == nil {
+				details.ActiveParticipantsCount = int(activeCount)
+			}
+		}
+	}
+
+	// Count anonymous guests for allow_anonymous meetings
+	if meeting.AllowAnonymous {
+		var guestCount int64
+		err = r.db.DB.Model(&TemporaryUser{}).
+			Where("meeting_id = ?", id).
+			Count(&guestCount).Error
+		if err == nil {
+			details.AnonymousGuestsCount = int(guestCount)
 		}
 	}
 
@@ -391,6 +423,7 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 			IsTranscribing:     dbMeeting.IsTranscribing,
 			ForceEndAtDuration: dbMeeting.ForceEndAtDuration,
 			IsPermanent:        dbMeeting.IsPermanent,
+			AllowAnonymous:     dbMeeting.AllowAnonymous,
 			AdditionalNotes:    dbMeeting.AdditionalNotes,
 			LiveKitRoomID:      liveKitRoomID,
 			CreatedBy:          createdBy,
@@ -419,6 +452,9 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 
 		// Load creators
 		r.loadMeetingCreators(meetingsMap, meetingIDs)
+
+		// Load participant counts
+		r.loadParticipantCounts(meetingsMap, meetingIDs)
 	}
 
 	// Convert map to slice
@@ -485,13 +521,16 @@ func (r *MeetingRepository) loadMeetingParticipants(meetingsMap map[uuid.UUID]*m
 		MeetingParticipant
 		Username     string  `gorm:"column:username"`
 		Email        string  `gorm:"column:email"`
+		FirstName    *string `gorm:"column:first_name"`
+		LastName     *string `gorm:"column:last_name"`
+		AvatarURL    *string `gorm:"column:avatar_url"`
 		UserRole     string  `gorm:"column:user_role"`
 		DepartmentID *string `gorm:"column:department_id"`
 	}
 
 	var results []ParticipantWithUser
 	if err := r.db.DB.Table("meeting_participants mp").
-		Select("mp.id, mp.meeting_id, mp.user_id, mp.role, mp.status, mp.joined_at, mp.left_at, mp.created_at, u.username, u.email, u.role as user_role, u.department_id").
+		Select("mp.id, mp.meeting_id, mp.user_id, mp.role, mp.status, mp.joined_at, mp.left_at, mp.created_at, u.username, u.email, u.first_name, u.last_name, u.avatar_url, u.role as user_role, u.department_id").
 		Joins("JOIN users u ON mp.user_id = u.id").
 		Where("mp.meeting_id IN ?", meetingIDs).
 		Order("mp.role DESC, u.username ASC").
@@ -514,6 +553,25 @@ func (r *MeetingRepository) loadMeetingParticipants(meetingsMap map[uuid.UUID]*m
 			}
 		}
 
+		userInfo := &models.UserInfo{
+			ID:           userID,
+			Username:     result.Username,
+			Email:        result.Email,
+			Role:         models.UserRole(result.UserRole),
+			DepartmentID: deptID,
+		}
+
+		// Add optional fields
+		if result.FirstName != nil {
+			userInfo.FirstName = *result.FirstName
+		}
+		if result.LastName != nil {
+			userInfo.LastName = *result.LastName
+		}
+		if result.AvatarURL != nil {
+			userInfo.Avatar = *result.AvatarURL
+		}
+
 		participant := models.MeetingParticipantInfo{
 			MeetingParticipant: models.MeetingParticipant{
 				ID:        partID,
@@ -525,13 +583,7 @@ func (r *MeetingRepository) loadMeetingParticipants(meetingsMap map[uuid.UUID]*m
 				LeftAt:    result.LeftAt,
 				CreatedAt: result.CreatedAt,
 			},
-			User: &models.UserInfo{
-				ID:           userID,
-				Username:     result.Username,
-				Email:        result.Email,
-				Role:         models.UserRole(result.UserRole),
-				DepartmentID: deptID,
-			},
+			User: userInfo,
 		}
 
 		if meeting, ok := meetingsMap[result.MeetingID]; ok {
@@ -636,6 +688,41 @@ func (r *MeetingRepository) loadMeetingCreators(meetingsMap map[uuid.UUID]*model
 	}
 }
 
+func (r *MeetingRepository) loadParticipantCounts(meetingsMap map[uuid.UUID]*models.MeetingWithDetails, meetingIDs []uuid.UUID) {
+	livekitRepo := NewLiveKitRepository(r.db)
+
+	for meetingID, meeting := range meetingsMap {
+		// Count active participants in LiveKit room
+		if meeting.LiveKitRoomID != nil {
+			// Get the room by meeting ID (room name = meeting ID)
+			rooms, err := livekitRepo.GetRoomsByName(meetingID.String())
+			if err == nil && len(rooms) > 0 {
+				// Use the most recent room
+				room := rooms[0]
+				// Count participants that are not DISCONNECTED
+				var activeCount int64
+				err = r.db.DB.Model(&LiveKitParticipant{}).
+					Where("room_sid = ? AND state != ?", room.SID, "DISCONNECTED").
+					Count(&activeCount).Error
+				if err == nil {
+					meeting.ActiveParticipantsCount = int(activeCount)
+				}
+			}
+		}
+
+		// Count anonymous guests for allow_anonymous meetings
+		if meeting.AllowAnonymous {
+			var guestCount int64
+			err := r.db.DB.Model(&TemporaryUser{}).
+				Where("meeting_id = ?", meetingID).
+				Count(&guestCount).Error
+			if err == nil {
+				meeting.AnonymousGuestsCount = int(guestCount)
+			}
+		}
+	}
+}
+
 // UpdateMeeting updates a meeting
 func (r *MeetingRepository) UpdateMeeting(meeting *models.Meeting) error {
 	meeting.UpdatedAt = time.Now()
@@ -661,6 +748,7 @@ func (r *MeetingRepository) UpdateMeeting(meeting *models.Meeting) error {
 		"is_transcribing":       meeting.IsTranscribing,
 		"force_end_at_duration": meeting.ForceEndAtDuration,
 		"is_permanent":          meeting.IsPermanent,
+		"allow_anonymous":       meeting.AllowAnonymous,
 		"additional_notes":      meeting.AdditionalNotes,
 		"livekit_room_id":       liveKitRoomID,
 		"updated_at":            meeting.UpdatedAt,
@@ -737,13 +825,16 @@ func (r *MeetingRepository) GetMeetingParticipants(meetingID uuid.UUID) ([]model
 		MeetingParticipant
 		Username     string  `gorm:"column:username"`
 		Email        string  `gorm:"column:email"`
+		FirstName    *string `gorm:"column:first_name"`
+		LastName     *string `gorm:"column:last_name"`
+		AvatarURL    *string `gorm:"column:avatar_url"`
 		UserRole     string  `gorm:"column:user_role"`
 		DepartmentID *string `gorm:"column:department_id"`
 	}
 
 	var results []ParticipantWithUser
 	if err := r.db.DB.Table("meeting_participants mp").
-		Select("mp.id, mp.meeting_id, mp.user_id, mp.role, mp.status, mp.joined_at, mp.left_at, mp.created_at, u.username, u.email, u.role as user_role, u.department_id").
+		Select("mp.id, mp.meeting_id, mp.user_id, mp.role, mp.status, mp.joined_at, mp.left_at, mp.created_at, u.username, u.email, u.first_name, u.last_name, u.avatar_url, u.role as user_role, u.department_id").
 		Joins("JOIN users u ON mp.user_id = u.id").
 		Where("mp.meeting_id = ?", meetingID).
 		Order("mp.role DESC, u.username ASC").
@@ -767,6 +858,25 @@ func (r *MeetingRepository) GetMeetingParticipants(meetingID uuid.UUID) ([]model
 			}
 		}
 
+		userInfo := &models.UserInfo{
+			ID:           userID,
+			Username:     result.Username,
+			Email:        result.Email,
+			Role:         models.UserRole(result.UserRole),
+			DepartmentID: deptID,
+		}
+
+		// Add optional fields
+		if result.FirstName != nil {
+			userInfo.FirstName = *result.FirstName
+		}
+		if result.LastName != nil {
+			userInfo.LastName = *result.LastName
+		}
+		if result.AvatarURL != nil {
+			userInfo.Avatar = *result.AvatarURL
+		}
+
 		participants = append(participants, models.MeetingParticipantInfo{
 			MeetingParticipant: models.MeetingParticipant{
 				ID:        partID,
@@ -778,13 +888,7 @@ func (r *MeetingRepository) GetMeetingParticipants(meetingID uuid.UUID) ([]model
 				LeftAt:    result.LeftAt,
 				CreatedAt: result.CreatedAt,
 			},
-			User: &models.UserInfo{
-				ID:           userID,
-				Username:     result.Username,
-				Email:        result.Email,
-				Role:         models.UserRole(result.UserRole),
-				DepartmentID: deptID,
-			},
+			User: userInfo,
 		})
 	}
 

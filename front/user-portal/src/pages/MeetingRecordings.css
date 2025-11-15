@@ -126,6 +126,21 @@
   justify-content: center;
 }
 
+.audio-player-container {
+  flex: 1;
+  background: linear-gradient(135deg, #1e293b, #334155);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xl);
+}
+
+.audio-player-container audio {
+  max-width: 800px;
+  width: 100%;
+  filter: brightness(1.1) saturate(1.2);
+}
+
 .recording-meta {
   display: flex;
   flex-wrap: wrap;

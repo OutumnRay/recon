@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuUser, LuMail, LuCamera, LuSave, LuX } from 'react-icons/lu';
+import { LuUser, LuMail, LuCamera, LuSave, LuX, LuGlobe } from 'react-icons/lu';
 import './Profile.css';
 
 interface User {
@@ -17,7 +17,7 @@ interface User {
 }
 
 export const Profile: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
@@ -34,6 +34,7 @@ export const Profile: React.FC = () => {
     lastName: '',
     phone: '',
     bio: '',
+    language: 'en',
   });
 
   useEffect(() => {
@@ -50,14 +51,19 @@ export const Profile: React.FC = () => {
         lastName: userData.lastName || '',
         phone: userData.phone || '',
         bio: userData.bio || '',
+        language: userData.language || 'en',
       });
       if (userData.avatar) {
         setAvatarPreview(userData.avatar);
       }
+      // Set i18n language to match user preference
+      if (userData.language && userData.language !== i18n.language) {
+        i18n.changeLanguage(userData.language);
+      }
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -196,6 +202,7 @@ export const Profile: React.FC = () => {
           lastName: formData.lastName,
           phone: formData.phone,
           bio: formData.bio,
+          language: formData.language,
           avatar: avatarUrl,
         }),
       });
@@ -233,6 +240,12 @@ export const Profile: React.FC = () => {
       setUser(updatedUser);
       setSelectedFile(null);
       setEditMode(false);
+
+      // Change language if it was updated
+      if (formData.language !== i18n.language) {
+        await i18n.changeLanguage(formData.language);
+      }
+
       setSuccess(t('profile.saveSuccess'));
 
       setTimeout(() => setSuccess(null), 3000);
@@ -250,6 +263,7 @@ export const Profile: React.FC = () => {
         lastName: user.lastName || '',
         phone: user.phone || '',
         bio: user.bio || '',
+        language: user.language || 'en',
       });
       setAvatarPreview(user.avatar || null);
       setSelectedFile(null);
@@ -381,6 +395,29 @@ export const Profile: React.FC = () => {
             </div>
 
             <div className="profile-section">
+              <h2 className="section-title">{t('profile.preferences')}</h2>
+
+              <div className="form-group">
+                <label htmlFor="language" className="form-label">
+                  <LuGlobe className="info-icon" />
+                  {t('profile.language')}
+                </label>
+                <select
+                  id="language"
+                  name="language"
+                  value={formData.language}
+                  onChange={handleInputChange}
+                  disabled={!editMode}
+                  className="form-input"
+                >
+                  <option value="en">{t('languages.english')}</option>
+                  <option value="ru">{t('languages.russian')}</option>
+                </select>
+                <p className="form-hint">{t('profile.languageDescription')}</p>
+              </div>
+            </div>
+
+            <div className="profile-section">
               <h2 className="section-title">{t('profile.personalInfo')}</h2>
 
               <div className="form-group">
@@ -460,7 +497,7 @@ export const Profile: React.FC = () => {
                 <button
                   onClick={handleSave}
                   disabled={loading || uploading}
-                  className="btn btn-primary"
+                  className="btn btn-success"
                 >
                   {loading || uploading ? (
                     <>

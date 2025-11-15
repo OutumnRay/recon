@@ -144,6 +144,8 @@ type MeetingWithDetails struct {
 	CreatedByUser   *UserInfo              `json:"created_by_user,omitempty"`
 	// Количество активных (подключенных) участников в данный момент
 	ActiveParticipantsCount int `json:"active_participants_count"`
+	// Количество анонимных гостей в данный момент (для allow_anonymous встреч)
+	AnonymousGuestsCount int `json:"anonymous_guests_count"`
 }
 
 // MeetingParticipantInfo представляет информацию об участнике с деталями пользователя
@@ -188,7 +190,7 @@ type CreateMeetingRequest struct {
 	// Тип встречи
 	Type               MeetingType       `json:"type" binding:"required" example:"conference"`
 	// Идентификатор темы
-	SubjectID          uuid.UUID         `json:"subject_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	SubjectID          uuid.UUID         `json:"subject_id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Требуется ли видеозапись
 	NeedsVideoRecord   bool              `json:"needs_video_record" example:"true"`
 	// Требуется ли аудиозапись
@@ -201,6 +203,8 @@ type CreateMeetingRequest struct {
 	ForceEndAtDuration bool              `json:"force_end_at_duration" example:"true"`
 	// Постоянная встреча (всегда доступна)
 	IsPermanent        bool              `json:"is_permanent" example:"false"`
+	// Разрешить анонимный доступ
+	AllowAnonymous     bool              `json:"allow_anonymous" example:"false"`
 	// Идентификатор докладчика (для презентаций)
 	SpeakerID          *uuid.UUID        `json:"speaker_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Идентификаторы участников
@@ -237,6 +241,8 @@ type UpdateMeetingRequest struct {
 	ForceEndAtDuration *bool              `json:"force_end_at_duration,omitempty" example:"true"`
 	// Постоянная встреча (всегда доступна)
 	IsPermanent        *bool              `json:"is_permanent,omitempty" example:"false"`
+	// Разрешить анонимный доступ
+	AllowAnonymous     *bool              `json:"allow_anonymous,omitempty" example:"false"`
 	// Идентификатор докладчика
 	SpeakerID          *uuid.UUID         `json:"speaker_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Идентификаторы участников

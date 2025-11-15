@@ -82,6 +82,7 @@
     "subtitle": "Manage your profile information and avatar",
     "accountInfo": "Account Information",
     "personalInfo": "Personal Information",
+    "preferences": "Preferences",
     "username": "Username",
     "email": "Email",
     "firstName": "First Name",
@@ -92,6 +93,8 @@
     "phonePlaceholder": "Enter your phone number",
     "bio": "Bio",
     "bioPlaceholder": "Tell us about yourself...",
+    "language": "Language",
+    "languageDescription": "Choose your preferred language",
     "changeAvatar": "Change Avatar",
     "removeAvatar": "Remove Avatar",
     "saveSuccess": "Profile updated successfully",
@@ -129,6 +132,21 @@
     "errors": {
       "loginFailed": "Login failed",
       "networkError": "An error occurred during login"
+    }
+  },
+  "anonymousJoin": {
+    "title": "Join as Guest",
+    "description": "Enter your display name to join this meeting without creating an account.",
+    "nameLabel": "Display name",
+    "namePlaceholder": "e.g. Alex Johnson",
+    "nameHint": "Participants will see this name during the meeting.",
+    "joinButton": "Join meeting",
+    "joining": "Connecting...",
+    "footer": "By joining, you agree to follow the meeting rules and privacy policy.",
+    "errors": {
+      "nameRequired": "Please enter your name",
+      "nameTooLong": "Name must be 255 characters or fewer",
+      "joinFailed": "Failed to join the meeting"
     }
   },
   "documents": {
@@ -286,6 +304,8 @@
       "transcription": "Transcription (Individual Track Recording)",
       "transcriptionHelp": "Records each participant's audio separately for transcription",
       "forceEndAtDuration": "Force end meeting at scheduled duration",
+      "allowAnonymous": "Allow anonymous participants",
+      "allowAnonymousHelp": "Guests can join using a direct link without authentication",
       "notesPlaceholder": "Add any additional notes or agenda items...",
       "selectedCount": "Selected: {{users}} users, {{departments}} departments",
       "noUsersAvailable": "No users available. Users list will be loaded from the API.",
@@ -319,6 +339,7 @@
       "participants": "Participants",
       "videoRecording": "Video Recording",
       "onlineCount": "({{count}} online)",
+      "anonymousGuestsCount": "({{count}} guests)",
       "recording": "Recording",
       "transcription": "Transcription",
       "viewRecordings": "View recordings",
@@ -329,7 +350,13 @@
       "durationLabel": "Duration",
       "recurrenceLabel": "Recurrence",
       "typeLabel": "Type",
-      "subjectLabel": "Subject"
+      "subjectLabel": "Subject",
+      "anonymousJoinLink": "Anonymous Join Link",
+      "anonymousLinkLabel": "Guest Link",
+      "anonymousLinkDescription": "Share this link with guests to join without authentication",
+      "copyLink": "Copy Link",
+      "linkCopied": "Link copied!",
+      "copyFailed": "Failed to copy"
     }
   },
   "meetingRecordings": {

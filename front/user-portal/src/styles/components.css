@@ -59,10 +59,12 @@
   background: var(--color-secondary-500);
   color: var(--text-inverse);
   box-shadow: var(--shadow-sm);
+  border-color: var(--color-secondary-500);
 }
 
 .btn-success:hover:not(:disabled) {
   background: var(--color-secondary-600);
+  border-color: var(--color-secondary-600);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }

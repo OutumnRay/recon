@@ -229,11 +229,19 @@
 }
 
 .form-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   margin-bottom: var(--space-sm);
   font-size: var(--font-size-sm);
+}
+
+.form-hint {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .form-input,

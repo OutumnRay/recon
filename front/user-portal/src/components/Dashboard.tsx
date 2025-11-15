@@ -12,6 +12,8 @@ export const Dashboard: React.FC = () => {
   const location = useLocation();
   const [hasFilePermission, setHasFilePermission] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +31,27 @@ export const Dashboard: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const updateViewMode = () => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+      const isMobile = window.innerWidth <= 1024;
+      setIsMobileView(isMobile);
+      if (!isMobile) {
+        setIsMobileMenuOpen(false);
+      } else {
+        setIsSidebarCollapsed(false);
+      }
+    };
+
+    updateViewMode();
+    window.addEventListener('resize', updateViewMode);
+    return () => {
+      window.removeEventListener('resize', updateViewMode);
     };
   }, []);
 
@@ -115,8 +138,12 @@ export const Dashboard: React.FC = () => {
     return { title: 'Recontext', subtitle: t('nav.dashboard', { defaultValue: '' }) };
   })();
 
-  const handleMobileMenuToggle = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  const handleSidebarToggle = () => {
+    if (isMobileView) {
+      setIsMobileMenuOpen((prev) => !prev);
+    } else {
+      setIsSidebarCollapsed((prev) => !prev);
+    }
   };
 
   const closeMobileMenu = () => {
@@ -128,7 +155,7 @@ export const Dashboard: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="sidebar-overlay active" onClick={closeMobileMenu}></div>
       )}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+      <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <img src="/logo.png" alt="Recontext Logo" className="sidebar-logo" />
           <h1 className="sidebar-title">Recontext</h1>
@@ -183,6 +210,10 @@ export const Dashboard: React.FC = () => {
           </NavLink>
         </nav>
 
+        <div className="sidebar-language-switcher">
+          <LanguageSwitcher />
+        </div>
+
         <div className="sidebar-footer">
           <button onClick={handleLogout} className="logout-btn">
             <span className="nav-icon"><LuLogOut /></span>
@@ -194,15 +225,21 @@ export const Dashboard: React.FC = () => {
         </div>
       </aside>
 
-      <div className="main-content">
+      <div className={`main-content ${isSidebarCollapsed ? 'expanded' : ''}`}>
         <header className="top-header">
           <div className="header-left">
             <button
               className="sidebar-toggle"
-              onClick={handleMobileMenuToggle}
-              title={isMobileMenuOpen ? t('common.close') : t('common.menu')}
+              onClick={handleSidebarToggle}
+              title={
+                isMobileView
+                  ? (isMobileMenuOpen ? t('common.close') : t('common.menu'))
+                  : (isSidebarCollapsed ? t('common.menu') : t('common.close'))
+              }
             >
-              {isMobileMenuOpen ? <LuX /> : <LuMenu />}
+              {isMobileView
+                ? (isMobileMenuOpen ? <LuX /> : <LuMenu />)
+                : (isSidebarCollapsed ? <LuMenu /> : <LuX />)}
             </button>
             <div className="page-context">
               <h2 className="page-current-title">{pageMeta.title}</h2>
@@ -212,10 +249,6 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="header-right">
-            <div className="header-language-switcher">
-              <LanguageSwitcher />
-            </div>
-
             <div className="user-menu-container" ref={userMenuRef}>
               <button
                 className="user-menu-trigger"

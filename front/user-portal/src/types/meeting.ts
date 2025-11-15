@@ -48,6 +48,7 @@ export interface User {
   email: string;
   first_name?: string;
   last_name?: string;
+  avatar?: string;
   role: string;
 }
 
@@ -111,6 +112,7 @@ export interface MeetingWithDetails {
   departments: Department[];
   creator?: User;
   active_participants_count: number;
+  anonymous_guests_count: number;
 }
 
 // Request types

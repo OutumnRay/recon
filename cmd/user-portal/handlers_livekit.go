@@ -48,13 +48,6 @@ type GetMeetingTokenResponse struct {
 // @Security BearerAuth
 // @Router /api/v1/meetings/{meetingId}/token [get]
 func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.GetUserFromContext(r.Context())
-	if !ok {
-		fmt.Printf("ERROR: Unauthorized token request\n")
-		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
-		return
-	}
-
 	// Get meeting ID from URL path
 	meetingID := r.URL.Path[len("/api/v1/meetings/"):]
 	if idx := len(meetingID) - len("/token"); idx > 0 && meetingID[idx:] == "/token" {
@@ -67,8 +60,6 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	fmt.Printf("INFO: User %s requesting token for meeting %s\n", claims.UserID, meetingID)
-
 	// Get meeting with details
 	meeting, err := up.meetingRepo.GetMeetingByID(func() uuid.UUID { id, _ := uuid.Parse(meetingID); return id }())
 	if err != nil {
@@ -77,7 +68,7 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	fmt.Printf("INFO: Meeting %s found, status: %s, title: %s\n", meetingID, meeting.Status, meeting.Title)
+	fmt.Printf("INFO: Meeting %s found, status: %s, title: %s, allow_anonymous: %v\n", meetingID, meeting.Status, meeting.Title, meeting.AllowAnonymous)
 
 	// Check if meeting is cancelled
 	if meeting.Status == models.MeetingStatusCancelled {
@@ -98,42 +89,71 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 		fmt.Printf("INFO: Meeting %s is permanent, allowing access regardless of status\n", meetingID)
 	}
 
-	// Check if user is a participant
-	participants, err := up.meetingRepo.GetMeetingParticipants(uuid.Must(uuid.Parse(meetingID)))
-	if err != nil {
-		fmt.Printf("ERROR: Failed to get participants for meeting %s: %v\n", meetingID, err)
-		up.respondWithError(w, http.StatusInternalServerError, "Failed to get participants", err.Error())
-		return
+	// Check authentication - required unless meeting allows anonymous
+	claims, ok := auth.GetUserFromContext(r.Context())
+	var userID uuid.UUID
+	var userName string
+	participantRole := "participant"
+	isAnonymous := false
+
+	if !ok {
+		// No authentication - check if anonymous is allowed
+		if !meeting.AllowAnonymous {
+			fmt.Printf("ERROR: Unauthorized token request for non-anonymous meeting %s\n", meetingID)
+			up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+			return
+		}
+		// Anonymous user
+		isAnonymous = true
+		fmt.Printf("INFO: Anonymous user requesting token for meeting %s\n", meetingID)
+	} else {
+		// Authenticated user
+		userID = claims.UserID
+		userName = claims.Username
+		fmt.Printf("INFO: User %s requesting token for meeting %s\n", userID, meetingID)
 	}
 
-	fmt.Printf("INFO: Meeting %s has %d participants\n", meetingID, len(participants))
+	// For authenticated users, check if they are a participant
+	if !isAnonymous {
+		participants, err := up.meetingRepo.GetMeetingParticipants(uuid.Must(uuid.Parse(meetingID)))
+		if err != nil {
+			fmt.Printf("ERROR: Failed to get participants for meeting %s: %v\n", meetingID, err)
+			up.respondWithError(w, http.StatusInternalServerError, "Failed to get participants", err.Error())
+			return
+		}
 
-	isParticipant := false
-	participantRole := "participant"
+		fmt.Printf("INFO: Meeting %s has %d participants\n", meetingID, len(participants))
 
-	// Check if user is the meeting creator
-	if meeting.CreatedBy == claims.UserID {
-		isParticipant = true
-		participantRole = "organizer"
-		fmt.Printf("INFO: User %s is the creator of meeting %s\n", claims.UserID, meetingID)
-	} else {
-		// Check if user is in the participants list
-		for _, p := range participants {
-			if p.UserID == claims.UserID {
-				isParticipant = true
-				participantRole = p.Role
-				break
+		isParticipant := false
+
+		// Check if user is the meeting creator
+		if meeting.CreatedBy == userID {
+			isParticipant = true
+			participantRole = "organizer"
+			fmt.Printf("INFO: User %s is the creator of meeting %s\n", userID, meetingID)
+		} else {
+			// Check if user is in the participants list
+			for _, p := range participants {
+				if p.UserID == userID {
+					isParticipant = true
+					participantRole = p.Role
+					break
+				}
 			}
 		}
-	}
 
-	if !isParticipant {
-		fmt.Printf("ERROR: User %s is not invited to meeting %s\n", claims.UserID, meetingID)
-		up.respondWithError(w, http.StatusForbidden, "You are not invited to this meeting", "")
-		return
-	}
+		if !isParticipant && !meeting.AllowAnonymous {
+			fmt.Printf("ERROR: User %s is not invited to meeting %s\n", userID, meetingID)
+			up.respondWithError(w, http.StatusForbidden, "You are not invited to this meeting", "")
+			return
+		}
 
-	fmt.Printf("INFO: User %s is a %s in meeting %s\n", claims.UserID, participantRole, meetingID)
+		if isParticipant {
+			fmt.Printf("INFO: User %s is a %s in meeting %s\n", userID, participantRole, meetingID)
+		} else {
+			fmt.Printf("INFO: User %s joining anonymous meeting %s\n", userID, meetingID)
+		}
+	}
 
 	// Get current time
 	now := time.Now()
@@ -190,17 +210,26 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	roomName := meetingID
 	fmt.Printf("INFO: Using LiveKit room name: %s (meeting ID)\n", roomName)
 
-	// Get user info for participant name
-	fmt.Printf("DEBUG: Getting user info for user ID: %s\n", claims.UserID.String())
-	user, err := up.userRepo.GetByID(claims.UserID)
-	if err != nil {
-		fmt.Printf("ERROR: Failed to get user info for %s: %v\n", claims.UserID.String(), err)
-		up.respondWithError(w, http.StatusInternalServerError, "Failed to get user info", err.Error())
-		return
-	}
+	// Get participant name
+	var participantName string
+	if isAnonymous {
+		// For anonymous users, use "Guest" as default name
+		// The actual name will be set by the AnonymousJoin page through location state
+		participantName = "Guest"
+		fmt.Printf("DEBUG: Anonymous participant, using default name: %s\n", participantName)
+	} else {
+		// Get user info for participant name
+		fmt.Printf("DEBUG: Getting user info for user ID: %s\n", userID.String())
+		user, err := up.userRepo.GetByID(userID)
+		if err != nil {
+			fmt.Printf("ERROR: Failed to get user info for %s: %v\n", userID.String(), err)
+			up.respondWithError(w, http.StatusInternalServerError, "Failed to get user info", err.Error())
+			return
+		}
 
-	participantName := user.Username
-	fmt.Printf("DEBUG: Participant name: %s\n", participantName)
+		participantName = user.Username
+		fmt.Printf("DEBUG: Participant name: %s\n", participantName)
+	}
 
 	// Calculate token validity duration
 	fmt.Printf("DEBUG: Calculating token validity...\n")
@@ -245,8 +274,17 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	metadata := fmt.Sprintf(`{"meetingId":"%s","role":"%s"}`, meetingID, participantRole)
 	fmt.Printf("DEBUG: Setting token metadata: %s\n", metadata)
 
+	// Use userID for identity, or generate a random one for anonymous users
+	var identity string
+	if isAnonymous {
+		identity = uuid.New().String()
+		fmt.Printf("DEBUG: Generated identity for anonymous user: %s\n", identity)
+	} else {
+		identity = userID.String()
+	}
+
 	at.SetVideoGrant(grant).
-		SetIdentity(claims.UserID.String()).
+		SetIdentity(identity).
 		SetName(participantName).
 		SetValidFor(tokenValidity).
 		SetMetadata(metadata)
@@ -255,12 +293,12 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 
 	token, err := at.ToJWT()
 	if err != nil {
-		fmt.Printf("ERROR: Failed to generate JWT token for user %s in meeting %s: %v\n", claims.UserID, meetingID, err)
+		fmt.Printf("ERROR: Failed to generate JWT token for identity %s in meeting %s: %v\n", identity, meetingID, err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to generate token", err.Error())
 		return
 	}
 
-	fmt.Printf("INFO: Successfully generated token for user %s (%s) in room %s\n", claims.UserID, participantName, roomName)
+	fmt.Printf("INFO: Successfully generated token for identity %s (%s) in room %s\n", identity, participantName, roomName)
 
 	// Prepare response
 	response := GetMeetingTokenResponse{

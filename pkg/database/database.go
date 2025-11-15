@@ -194,6 +194,7 @@ func (db *DB) RunMigrations() error {
 		&Meeting{},
 		&MeetingParticipant{},
 		&MeetingDepartment{},
+		&TemporaryUser{},
 		&PasswordResetToken{},
 	}
 

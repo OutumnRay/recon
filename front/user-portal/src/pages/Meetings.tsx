@@ -19,6 +19,9 @@ import {
   LuCircle,
   LuFilm,
   LuFileText,
+  LuLink,
+  LuCopy,
+  LuCheck,
 } from 'react-icons/lu';
 import {
   listMyMeetings,
@@ -75,6 +78,9 @@ export const Meetings: React.FC = () => {
 
   // View mode: list, details, create, or edit
   const [viewMode, setViewMode] = useState<'list' | 'details' | 'create' | 'edit'>('list');
+
+  // Copy link state
+  const [copiedMeetingId, setCopiedMeetingId] = useState<string | null>(null);
 
   // Fetch subjects on mount
   useEffect(() => {
@@ -176,6 +182,43 @@ export const Meetings: React.FC = () => {
   const handleViewRecordings = () => {
     if (!selectedMeeting) return;
     navigate(`/meeting/${selectedMeeting.id}/recordings`);
+  };
+
+  const handleCopyAnonymousLink = async (meetingId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent card click
+
+    // Get portal URL from environment or use current origin
+    const portalUrl = window.location.origin;
+    const anonymousLink = `${portalUrl}/meeting/${meetingId}/join`;
+
+    try {
+      await navigator.clipboard.writeText(anonymousLink);
+      setCopiedMeetingId(meetingId);
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedMeetingId(null);
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = anonymousLink;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedMeetingId(meetingId);
+        setTimeout(() => {
+          setCopiedMeetingId(null);
+        }, 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy failed:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleDeleteMeeting = async () => {
@@ -313,10 +356,15 @@ export const Meetings: React.FC = () => {
                     `${participant.user.first_name} ${participant.user.last_name}` :
                     participant.user.username) :
                   participant.user_id;
+                const avatarUrl = participant.user?.avatar;
                 return (
                   <div key={participant.user_id} className="participant-card">
                     <div className="participant-avatar">
-                      {displayName.charAt(0).toUpperCase()}
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt={displayName} />
+                      ) : (
+                        displayName.charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div className="participant-card-body">
                       <span className="participant-name">{displayName}</span>
@@ -521,6 +569,7 @@ export const Meetings: React.FC = () => {
               const isPast = isMeetingPast(meeting);
               const totalParticipants = meeting.participants.length;
               const onlineParticipants = meeting.active_participants_count || 0;
+              const anonymousGuests = meeting.anonymous_guests_count || 0;
               const departmentsCount = meeting.departments ? meeting.departments.length : 0;
               const recurrenceKey = meeting.is_permanent ? 'permanent' : (meeting.recurrence || 'none');
               const recurrenceLabel = t(`meetings.recurrence.${recurrenceKey}`);
@@ -529,7 +578,6 @@ export const Meetings: React.FC = () => {
                 <div
                   key={meeting.id}
                   className={`meeting-card ${isNow ? 'meeting-now' : ''} ${isPast ? 'meeting-past' : ''} ${meeting.is_permanent ? 'meeting-card-permanent' : ''}`}
-                  onClick={() => handleViewDetails(meeting)}
                 >
                   <div className="meeting-card-header">
                     <div className="meeting-card-title">
@@ -546,17 +594,20 @@ export const Meetings: React.FC = () => {
                       </div>
                     </div>
                     <div className="meeting-card-status">
-                      {meeting.is_permanent && (
+                      {meeting.is_permanent ? (
                         <span className="permanent-badge" title={t('meetings.permanentMeetingTooltip')}>
                           <LuClock /> {t('meetings.recurrence.permanent')}
                         </span>
+                      ) : (
+                        <>
+                          <span className={`status-badge ${statusInfo.className}`}>
+                            {t(`meetings.status.${meeting.status}`)}
+                          </span>
+                          <span className="recurrence-pill">
+                            <LuRotateCcw /> {recurrenceLabel}
+                          </span>
+                        </>
                       )}
-                      <span className={`status-badge ${meeting.is_permanent ? 'permanent' : statusInfo.className}`}>
-                        {meeting.is_permanent ? t('meetings.recurrence.permanent') : t(`meetings.status.${meeting.status}`)}
-                      </span>
-                      <span className="recurrence-pill">
-                        <LuRotateCcw /> {recurrenceLabel}
-                      </span>
                     </div>
                   </div>
 
@@ -644,6 +695,38 @@ export const Meetings: React.FC = () => {
                     )}
                   </div>
 
+                  {meeting.allow_anonymous && (
+                    <div className="meeting-card-anonymous-link">
+                      <div className="anonymous-link-header">
+                        <LuLink className="link-icon" />
+                        <span className="link-label">{t('meetings.card.anonymousLinkLabel')}</span>
+                      </div>
+                      <div className="anonymous-link-body">
+                        <code className="anonymous-link-url">
+                          {`${window.location.origin}/meeting/${meeting.id}/join`}
+                        </code>
+                        <button
+                          className={`copy-link-btn ${copiedMeetingId === meeting.id ? 'copied' : ''}`}
+                          onClick={(e) => handleCopyAnonymousLink(meeting.id, e)}
+                          title={t('meetings.card.copyLink')}
+                        >
+                          {copiedMeetingId === meeting.id ? (
+                            <>
+                              <LuCheck /> {t('meetings.card.linkCopied')}
+                            </>
+                          ) : (
+                            <>
+                              <LuCopy /> {t('meetings.card.copyLink')}
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <p className="anonymous-link-description">
+                        {t('meetings.card.anonymousLinkDescription')}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="meeting-card-footer">
                     <div className="participants-preview">
                       {meeting.participants.slice(0, 3).map((participant) => {
@@ -652,9 +735,14 @@ export const Meetings: React.FC = () => {
                             `${participant.user.first_name} ${participant.user.last_name}` :
                             participant.user.username) :
                           'U';
+                        const avatarUrl = participant.user?.avatar;
                         return (
                           <div key={participant.user_id} className="participant-avatar" title={displayName}>
-                            {displayName.charAt(0).toUpperCase()}
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt={displayName} />
+                            ) : (
+                              displayName.charAt(0).toUpperCase()
+                            )}
                           </div>
                         );
                       })}
@@ -667,6 +755,12 @@ export const Meetings: React.FC = () => {
                         <div className="online-indicator">
                           <LuCircle className="pulse-icon-small" />
                           <span>{t('meetings.card.onlineCount', { count: onlineParticipants })}</span>
+                        </div>
+                      )}
+                      {meeting.allow_anonymous && anonymousGuests > 0 && (
+                        <div className="online-indicator">
+                          <LuCircle className="pulse-icon-small" />
+                          <span>{t('meetings.card.anonymousGuestsCount', { count: anonymousGuests })}</span>
                         </div>
                       )}
                     </div>
@@ -694,7 +788,13 @@ export const Meetings: React.FC = () => {
                           <LuPlay /> {t('meetings.details.joinMeeting')}
                         </button>
                       )}
-                      <button className="view-details-btn">
+                      <button
+                        className="view-details-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewDetails(meeting);
+                        }}
+                      >
                         {t('meetings.viewDetails')} →
                       </button>
                     </div>

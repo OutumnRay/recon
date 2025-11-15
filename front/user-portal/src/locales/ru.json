@@ -82,6 +82,7 @@
     "subtitle": "Управление информацией профиля и аватаром",
     "accountInfo": "Информация об аккаунте",
     "personalInfo": "Личная информация",
+    "preferences": "Настройки",
     "username": "Имя пользователя",
     "email": "Email",
     "firstName": "Имя",
@@ -92,6 +93,8 @@
     "phonePlaceholder": "Введите ваш номер телефона",
     "bio": "О себе",
     "bioPlaceholder": "Расскажите о себе...",
+    "language": "Язык",
+    "languageDescription": "Выберите предпочитаемый язык",
     "changeAvatar": "Сменить аватар",
     "removeAvatar": "Удалить аватар",
     "saveSuccess": "Профиль успешно обновлен",
@@ -129,6 +132,21 @@
     "errors": {
       "loginFailed": "Ошибка входа",
       "networkError": "Произошла ошибка при входе"
+    }
+  },
+  "anonymousJoin": {
+    "title": "Вход без регистрации",
+    "description": "Введите отображаемое имя, чтобы присоединиться к встрече без учетной записи.",
+    "nameLabel": "Имя для отображения",
+    "namePlaceholder": "Например, Иван Иванов",
+    "nameHint": "Это имя будут видеть участники во время встречи.",
+    "joinButton": "Присоединиться",
+    "joining": "Подключаем...",
+    "footer": "Продолжая, вы подтверждаете согласие с правилами встречи и политикой конфиденциальности.",
+    "errors": {
+      "nameRequired": "Введите имя",
+      "nameTooLong": "Имя не должно превышать 255 символов",
+      "joinFailed": "Не удалось присоединиться к встрече"
     }
   },
   "documents": {
@@ -286,6 +304,8 @@
       "transcription": "Транскрипция (запись отдельных треков)",
       "transcriptionHelp": "Записывает аудио каждого участника отдельно для транскрибации",
       "forceEndAtDuration": "Принудительно завершить по истечении времени",
+      "allowAnonymous": "Разрешить анонимных участников",
+      "allowAnonymousHelp": "Гости смогут присоединиться по прямой ссылке без авторизации",
       "notesPlaceholder": "Добавьте дополнительные заметки или пункты повестки...",
       "selectedCount": "Выбрано: {{users}} пользователей, {{departments}} отделов",
       "noUsersAvailable": "Пользователи недоступны. Список будет загружен из API.",
@@ -319,6 +339,7 @@
       "participants": "Участники",
       "videoRecording": "Видеозапись",
       "onlineCount": "({{count}} онлайн)",
+      "anonymousGuestsCount": "({{count}} гостей)",
       "recording": "Запись",
       "transcription": "Транскрибация",
       "viewRecordings": "Просмотр записей",
@@ -329,7 +350,13 @@
       "durationLabel": "Длительность",
       "recurrenceLabel": "Периодичность",
       "typeLabel": "Тип",
-      "subjectLabel": "Предмет"
+      "subjectLabel": "Предмет",
+      "anonymousJoinLink": "Анонимная ссылка",
+      "anonymousLinkLabel": "Ссылка для гостей",
+      "anonymousLinkDescription": "Поделитесь этой ссылкой с гостями для подключения без регистрации",
+      "copyLink": "Скопировать ссылку",
+      "linkCopied": "Ссылка скопирована!",
+      "copyFailed": "Не удалось скопировать"
     }
   },
   "meetingRecordings": {

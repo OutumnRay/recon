@@ -30,6 +30,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/join/:meetingId" element={<AnonymousJoin />} />
+        <Route path="/meeting/:meetingId/join" element={<AnonymousJoin />} />
         <Route path="/forbidden" element={<Forbidden />} />
         <Route path="/dashboard" element={<Dashboard />}>
           <Route index element={<Navigate to="/dashboard/meetings" replace />} />
@@ -40,6 +41,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="/meeting/:meetingId" element={<MeetingRoom />} />
+        <Route path="/meeting-room/:meetingId" element={<MeetingRoom />} />
         <Route path="/meeting/:meetingId/recordings" element={<MeetingRecordings />} />
       </Routes>
     </BrowserRouter>
