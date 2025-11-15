@@ -200,7 +200,7 @@ services:
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
       - RABBITMQ_QUEUE=transcription_queue
-      - DB_HOST=postgres
+      - DB_HOST=192.168.5.153
       - DB_PORT=5432
       - DB_NAME=recontext
       - DB_USER=recontext

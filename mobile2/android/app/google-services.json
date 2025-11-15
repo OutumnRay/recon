@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "894325541384",
+    "project_id": "recontext-eec58",
+    "storage_bucket": "recontext-eec58.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:894325541384:android:PLACEHOLDER",
+        "android_client_info": {
+          "package_name": "uk.team21.recontext"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB11gQxutEB1R4GG-N3rQDzKQX0ABSGE64"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

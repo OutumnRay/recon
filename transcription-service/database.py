@@ -4,6 +4,7 @@ from psycopg2.extras import RealDictCursor
 from datetime import datetime
 from typing import List, Dict, Optional
 import uuid
+import time
 from config import Config
 
 
@@ -14,10 +15,25 @@ class DatabaseManager:
         self.connection_string = Config.get_db_connection_string()
         self.conn = None
 
-    def connect(self):
-        """Establish database connection."""
-        self.conn = psycopg2.connect(self.connection_string)
-        return self.conn
+    def connect(self, max_retries=5, retry_delay=2):
+        """Establish database connection with retry logic."""
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                print(f"Attempting to connect to database (attempt {attempt + 1}/{max_retries})...")
+                self.conn = psycopg2.connect(self.connection_string)
+                print("✅ Database connection established successfully")
+                return self.conn
+            except psycopg2.OperationalError as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    print(f"⚠️  Database connection failed: {e}")
+                    print(f"   Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:
+                    print(f"❌ Failed to connect to database after {max_retries} attempts")
+                    raise
+        raise last_error
 
     def close(self):
         """Close database connection."""
