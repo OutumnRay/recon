@@ -745,6 +745,10 @@ export default function MeetingRoom() {
           } else {
             console.log(`[Active Speaker] ${displayName} has no video track, keeping current stage`);
           }
+        } else {
+          // No remote participant is speaking (only local participant or no one)
+          // Don't change the stage, keep showing current remote participant
+          console.log(`[Active Speaker] Only local participant speaking, keeping current stage`);
         }
       }
     };
