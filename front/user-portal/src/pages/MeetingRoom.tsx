@@ -209,6 +209,14 @@ export default function MeetingRoom() {
       const videoSlot = document.createElement('div');
       videoSlot.className = 'remote-participant-video';
       videoSlot.dataset.slot = sid;
+
+      // Add large avatar for when video is hidden
+      const displayName = tokenData?.participantName || 'You';
+      const largeAvatar = document.createElement('div');
+      largeAvatar.className = 'participant-avatar-large';
+      largeAvatar.textContent = getInitials(displayName);
+      videoSlot.appendChild(largeAvatar);
+
       container.appendChild(videoSlot);
 
       // Insert at the beginning of the list
@@ -365,6 +373,13 @@ export default function MeetingRoom() {
       const videoSlot = document.createElement('div');
       videoSlot.className = 'remote-participant-video';
       videoSlot.dataset.slot = participant.sid;
+
+      // Add large avatar for when video is hidden
+      const largeAvatar = document.createElement('div');
+      largeAvatar.className = 'participant-avatar-large';
+      largeAvatar.textContent = getInitials(displayName);
+      videoSlot.appendChild(largeAvatar);
+
       container.appendChild(videoSlot);
 
       videoContainerRef.current?.appendChild(container);
@@ -1399,6 +1414,58 @@ export default function MeetingRoom() {
     }
   };
 
+  const flipCamera = async () => {
+    try {
+      console.log('[Camera Flip] Flipping camera...');
+
+      // Get current video track
+      const videoTrack = room.localParticipant.videoTrackPublications.values().next().value?.track;
+
+      if (!videoTrack) {
+        console.warn('[Camera Flip] No video track found');
+        return;
+      }
+
+      // Get all video devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      if (videoDevices.length < 2) {
+        console.warn('[Camera Flip] Only one camera available');
+        return;
+      }
+
+      // Get current device ID
+      const currentDeviceId = videoTrack.mediaStreamTrack.getSettings().deviceId;
+      console.log('[Camera Flip] Current device:', currentDeviceId);
+
+      // Find the other camera (front/back)
+      const otherCamera = videoDevices.find(device => device.deviceId !== currentDeviceId);
+
+      if (!otherCamera) {
+        console.warn('[Camera Flip] Could not find another camera');
+        return;
+      }
+
+      console.log('[Camera Flip] Switching to:', otherCamera.label);
+
+      // Disable camera, switch device, re-enable
+      await room.localParticipant.setCameraEnabled(false);
+      await room.switchActiveDevice('videoinput', otherCamera.deviceId);
+      await room.localParticipant.setCameraEnabled(true);
+
+      // Re-render preview and stage
+      renderLocalPreview();
+      if (stageParticipantId === room.localParticipant?.sid) {
+        renderStageVideo(room.localParticipant.sid);
+      }
+
+      console.log('[Camera Flip] Camera flipped successfully');
+    } catch (err) {
+      console.error('[Camera Flip] Failed to flip camera:', err);
+    }
+  };
+
   const toggleMicrophone = async () => {
     try {
       if (isMicEnabled) {
@@ -1811,11 +1878,11 @@ export default function MeetingRoom() {
 
               {isMobile && (
                 <button
-                  onClick={forceSubscribeToAllTracks}
+                  onClick={flipCamera}
                   className="icon-circle-button refresh-button"
-                  aria-label="Refresh participants"
-                  title="Refresh participants video"
-                  disabled={!isConnected}
+                  aria-label="Flip camera"
+                  title={t('meetingRoom.controls.flipCamera') || 'Flip camera'}
+                  disabled={!isConnected || !isCameraEnabled}
                 >
                   <LuRefreshCw />
                 </button>

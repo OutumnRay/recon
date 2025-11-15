@@ -454,7 +454,8 @@
       "stopTranscription": "Stop transcription",
       "anonymousDisabled": "Available only for authenticated users",
       "showParticipants": "Show participants",
-      "hideParticipants": "Hide participants"
+      "hideParticipants": "Hide participants",
+      "flipCamera": "Flip camera"
     },
     "indicators": {
       "recording": "Recording",

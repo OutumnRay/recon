@@ -456,7 +456,8 @@
       "stopTranscription": "Остановить транскрибацию",
       "anonymousDisabled": "Доступно только для авторизованных пользователей",
       "showParticipants": "Показать участников",
-      "hideParticipants": "Скрыть участников"
+      "hideParticipants": "Скрыть участников",
+      "flipCamera": "Переключить камеру"
     },
     "indicators": {
       "recording": "Запись",
