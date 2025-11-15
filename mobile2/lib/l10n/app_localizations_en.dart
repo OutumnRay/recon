@@ -726,4 +726,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allowsAnonymousJoin => 'Allows anonymous join';
+
+  @override
+  String get audioOnlyRecording => 'Audio Only';
+
+  @override
+  String get failedToLoadRecording => 'Failed to load recording';
+
+  @override
+  String get unknownError => 'Unknown error';
 }

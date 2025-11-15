@@ -6,14 +6,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'screens/splash_screen.dart';
 import 'services/locale_service.dart';
+import 'services/fcm_service.dart';
 import 'l10n/app_localizations.dart';
-
-/// Background message handler for FCM (must be top-level)
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  debugPrint('Background message received: ${message.notification?.title}');
-}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +16,7 @@ void main() async {
   await Firebase.initializeApp();
 
   // Set up background message handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   runApp(
     ChangeNotifierProvider(

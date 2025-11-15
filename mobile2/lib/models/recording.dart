@@ -64,6 +64,7 @@ class TrackRecording {
   final String playlistUrl;
   final String participantId;
   final String trackId;
+  final String? type; // "audio" or "video"
   final ParticipantInfo? participant;
 
   TrackRecording({
@@ -74,6 +75,7 @@ class TrackRecording {
     required this.playlistUrl,
     required this.participantId,
     required this.trackId,
+    this.type,
     this.participant,
   });
 
@@ -88,6 +90,7 @@ class TrackRecording {
       playlistUrl: json['playlist_url'] as String,
       participantId: json['participant_id'] as String,
       trackId: json['track_id'] as String,
+      type: json['type'] as String?,
       participant: json['participant'] != null
           ? ParticipantInfo.fromJson(json['participant'] as Map<String, dynamic>)
           : null,
@@ -103,6 +106,7 @@ class TrackRecording {
       'playlist_url': playlistUrl,
       'participant_id': participantId,
       'track_id': trackId,
+      if (type != null) 'type': type,
       if (participant != null) 'participant': participant!.toJson(),
     };
   }
@@ -125,6 +129,12 @@ class TrackRecording {
     }
     return 'Unknown';
   }
+
+  /// Check if this is an audio-only recording
+  bool get isAudioOnly => type?.toLowerCase() == 'audio';
+
+  /// Check if this is a video recording
+  bool get isVideo => type?.toLowerCase() == 'video';
 }
 
 class ParticipantInfo {

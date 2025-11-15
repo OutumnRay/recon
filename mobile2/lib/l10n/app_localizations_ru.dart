@@ -727,4 +727,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get allowsAnonymousJoin => 'Разрешен анонимный вход';
+
+  @override
+  String get audioOnlyRecording => 'Только аудио';
+
+  @override
+  String get failedToLoadRecording => 'Не удалось загрузить запись';
+
+  @override
+  String get unknownError => 'Неизвестная ошибка';
 }

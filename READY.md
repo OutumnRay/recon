@@ -786,14 +786,127 @@
   - Summarization queue
   - Processing results queue
 
+### Phase 9: Track Recording Transcription System (Completed)
+
+#### Backend (Go)
+- ✅ Implemented RabbitMQ Publisher (`pkg/rabbitmq/publisher.go`)
+  - Connection management with automatic reconnection
+  - Queue declaration and message publishing
+  - TranscriptionMessage struct with track_id, user_id, audio_url fields
+  - Persistent message delivery mode
+  - Added dependency: github.com/rabbitmq/amqp091-go v1.10.0
+- ✅ Integrated RabbitMQ into Managing Portal (`cmd/managing-portal/main.go`)
+  - Added RabbitMQ publisher to ManagingPortal struct
+  - Non-blocking initialization (logs warning if RabbitMQ unavailable)
+  - Environment variable configuration (RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD)
+- ✅ Enhanced LiveKit webhook handler (`cmd/managing-portal/handlers_livekit.go`)
+  - Modified `egress_ended` event handler to detect track completion
+  - Constructs m3u8 playlist URLs from egress file paths
+  - Queries database for track and room information
+  - Sends transcription tasks to RabbitMQ queue when track recording completes
+  - Comprehensive logging for debugging transcription workflow
+  - Fixed model type references (models.Track, models.Room)
+
+#### Python Transcription Service
+- ✅ Created complete transcription service (`transcription-service/`)
+  - `main.py` - Entry point that starts RabbitMQ consumer worker
+  - `config.py` - Environment-based configuration for RabbitMQ, PostgreSQL, Whisper, MinIO
+  - `worker.py` - RabbitMQ consumer that processes transcription tasks
+  - `transcriber.py` - Core transcription logic with Faster Whisper (medium model)
+  - `database.py` - PostgreSQL operations for storing transcription results
+- ✅ Implemented M3U8 playlist handling (`transcriber.py`)
+  - Downloads m3u8 playlists from MinIO storage
+  - Parses playlist to extract segment URLs
+  - Downloads all audio segments (.ts files)
+  - Combines segments using FFmpeg into single audio file
+  - Comprehensive logging of download progress
+  - Temporary file cleanup after processing
+- ✅ Implemented Faster Whisper integration (`transcriber.py`)
+  - Loads Faster Whisper medium model on startup
+  - Transcribes audio with phrase-level timestamps
+  - Returns structured data: phrase_index, start_time, end_time, text
+  - Configurable device (CPU/CUDA) and compute type (int8/float16/float32)
+  - Model caching for faster subsequent loads
+- ✅ Implemented database schema for transcriptions (`database.py`)
+  - `transcription_phrases` table: stores individual phrases with timestamps
+    - Columns: id, track_id, user_id, phrase_index, start_time, end_time, text, created_at
+    - Indexed on track_id for fast retrieval
+  - `transcription_status` table: tracks transcription job status
+    - Columns: track_id (PK), status, phrase_count, error_message, started_at, completed_at
+    - Status values: pending, processing, completed, failed
+  - Automatic table creation on service startup
+  - Methods: initialize_tables, save_transcription_phrases, update_transcription_status, mark_track_ready
+- ✅ Created Dockerfile for transcription service
+  - Base image: python:3.11-slim
+  - System dependencies: FFmpeg, libpq-dev, gcc
+  - Optimized layer caching for faster rebuilds
+  - Separate RUN commands to reduce memory usage during build
+  - Python dependencies: faster-whisper, pika, psycopg2-binary, python-dotenv, requests
+  - Volume mount for Whisper model caching
+  - Environment variables for configuration
+- ✅ Added transcription service to docker-compose.yml
+  - Container name: recontext-transcription-service
+  - Image: sivanov2018/recontext-transcription-service:latest
+  - Environment configuration:
+    - RABBITMQ_HOST=192.168.5.153
+    - DB_HOST=postgres
+    - WHISPER_MODEL=medium
+    - STORAGE_BASE_URL=https://api.storage.recontext.online
+    - MINIO_SECRET_KEY=32a4953d5bff4a1c6aea4d4ccfb757e5
+  - Volume: whisper-models for model caching
+  - Network: recontext-network
+  - Depends on: postgres, rabbitmq (external services)
+
+#### Documentation
+- ✅ Created comprehensive implementation guide (`TRANSCRIPTION_IMPLEMENTATION.md`)
+  - Complete workflow from track completion to transcription
+  - Backend changes documentation
+  - Python service architecture
+  - Database schema details
+  - Configuration and deployment instructions
+  - Testing procedures
+- ✅ Created M3U8 handling documentation (`transcription-service/M3U8_HANDLING.md`)
+  - Detailed explanation of playlist download process
+  - Segment combining with FFmpeg
+  - Code examples and logging output
+  - Error handling and troubleshooting
+- ✅ Created deployment guide (`BUILD_AND_DEPLOY.md`)
+  - Quick start commands
+  - Build and deployment steps
+  - Service verification procedures
+  - End-to-end testing workflow
+  - Troubleshooting common issues
+  - Performance tuning (model selection, GPU acceleration)
+  - Maintenance and monitoring
+
+#### Features Delivered
+- ✅ **Automatic transcription workflow**:
+  1. LiveKit track recording completes → egress_ended webhook
+  2. Managing Portal detects track completion
+  3. Constructs m3u8 playlist URL from egress file path
+  4. Sends transcription message to RabbitMQ queue
+  5. Python service consumes message
+  6. Downloads and combines m3u8 segments
+  7. Transcribes audio with Faster Whisper (medium model)
+  8. Saves phrase-level transcriptions to database
+  9. Marks track as ready when complete
+- ✅ **M3U8 playlist support**: Full HLS stream handling
+- ✅ **Phrase-level timestamps**: Each phrase has start and end time
+- ✅ **Database persistence**: All transcriptions stored in PostgreSQL
+- ✅ **Status tracking**: pending → processing → completed/failed
+- ✅ **Error handling**: Comprehensive logging and error messages
+- ✅ **Docker deployment**: Complete containerization with docker-compose
+- ✅ **External service integration**: Uses external RabbitMQ, PostgreSQL, MinIO on 192.168.5.153
+
 ### Phase 5: Worker Services Full Implementation
-- [ ] Complete Transcription Worker integration
-  - [ ] Implement RabbitMQ message consumption
-  - [ ] Integrate Whisper for audio transcription
-  - [ ] Implement speaker diarization pipeline
-  - [ ] Add MinIO integration for file storage
-  - [ ] Add PostgreSQL integration for metadata
-  - [ ] Implement result publishing to RabbitMQ
+- ✅ Complete Transcription Service integration
+  - ✅ Implement RabbitMQ message consumption
+  - ✅ Integrate Whisper for audio transcription (Faster Whisper medium model)
+  - ✅ Add MinIO integration for m3u8 playlist download
+  - ✅ Add PostgreSQL integration for transcription storage
+  - ✅ Implement phrase-level transcription with timestamps
+  - [ ] Implement speaker diarization pipeline (future enhancement)
+  - [ ] Implement result publishing to RabbitMQ (future enhancement)
 - [ ] Complete Summarization Worker integration
   - [ ] Implement RabbitMQ message consumption
   - [ ] Integrate LLM API (OpenAI/Anthropic/local model)

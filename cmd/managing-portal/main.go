@@ -24,6 +24,7 @@ import (
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 	"Recontext.online/pkg/prometheus"
+	"Recontext.online/pkg/rabbitmq"
 
 	_ "Recontext.online/cmd/managing-portal/docs" // Import generated docs
 )
@@ -71,6 +72,7 @@ type ManagingPortal struct {
 	logs              []models.LogEntry              // In-memory logs store
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
 	prometheusClient  *prometheus.Client             // Prometheus query client
+	rabbitMQPublisher *rabbitmq.Publisher            // RabbitMQ publisher for transcription tasks
 }
 
 func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal, error) {
@@ -120,6 +122,28 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 	// Initialize Prometheus client (uses internal Docker networ
 	prometheusClient := prometheus.NewClient("http://prometheus:9090")
 
+	// Initialize RabbitMQ publisher for transcription tasks
+	rabbitMQHost := getEnv("RABBITMQ_HOST", "localhost")
+	rabbitMQPort := getEnvInt("RABBITMQ_PORT", 5672)
+	rabbitMQUser := getEnv("RABBITMQ_USER", "guest")
+	rabbitMQPassword := getEnv("RABBITMQ_PASSWORD", "guest")
+	rabbitMQQueue := getEnv("RABBITMQ_QUEUE", "transcription_queue")
+
+	rabbitMQPublisher, err := rabbitmq.NewPublisher(
+		rabbitMQHost,
+		rabbitMQPort,
+		rabbitMQUser,
+		rabbitMQPassword,
+		rabbitMQQueue,
+	)
+	if err != nil {
+		log.Errorf("Failed to initialize RabbitMQ publisher: %v (transcription tasks will not be sent)", err)
+		// Don't fail startup if RabbitMQ is not available
+		rabbitMQPublisher = nil
+	} else {
+		log.Info("RabbitMQ publisher initialized successfully")
+	}
+
 	return &ManagingPortal{
 		config:            cfg,
 		logger:            log,
@@ -138,6 +162,7 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 		logs:              make([]models.LogEntry, 0),
 		prometheusMetrics: metrics.NewServiceMetrics("managing_portal"),
 		prometheusClient:  prometheusClient,
+		rabbitMQPublisher: rabbitMQPublisher,
 	}, nil
 }
 

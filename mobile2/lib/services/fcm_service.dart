@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/logger.dart';
@@ -6,15 +7,23 @@ import 'api_client.dart';
 
 /// FCM Service for handling push notifications
 class FCMService {
-  final ApiClient _apiClient;
+  static FCMService? _instance;
+
+  factory FCMService(ApiClient apiClient) {
+    _instance ??= FCMService._internal(apiClient);
+    _instance!._apiClient = apiClient;
+    return _instance!;
+  }
+
+  FCMService._internal(this._apiClient);
+
+  ApiClient _apiClient;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
   String? _currentToken;
   bool _isInitialized = false;
-
-  FCMService(this._apiClient);
 
   /// Initialize FCM and request permissions
   Future<void> initialize() async {
@@ -249,6 +258,7 @@ class FCMService {
 /// Background message handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
   Logger.logInfo('Background message received', data: {
     'title': message.notification?.title,
     'body': message.notification?.body,

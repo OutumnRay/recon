@@ -14,18 +14,18 @@ services:
       - APP_VERSION=${APP_VERSION:-0.1.0+0}
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
-      - DB_HOST=postgres
+      - DB_HOST=192.168.5.153
       - DB_PORT=5432
       - DB_USER=recontext
       - DB_PASSWORD=recontext
       - DB_NAME=recontext
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=192.168.5.153
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
-      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ENDPOINT=192.168.5.153:9000
       - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECRET_KEY=32a4953d5bff4a1c6aea4d4ccfb757e5
       - MINIO_BUCKET=recontext
       - LIVEKIT_URL=wss://video.recontext.online
       - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
@@ -37,7 +37,7 @@ services:
       - LIVEKIT_EGRESS_S3_ENDPOINT=https://api.storage.recontext.online
       - LIVEKIT_EGRESS_S3_BUCKET=recontext
       - LIVEKIT_EGRESS_S3_ACCESS_KEY=minioadmin
-      - LIVEKIT_EGRESS_S3_SECRET=minioadmin
+      - LIVEKIT_EGRESS_S3_SECRET=32a4953d5bff4a1c6aea4d4ccfb757e5
       - LIVEKIT_EGRESS_S3_REGION=
       - LIVEKIT_EGRESS_RECORD_TRACKS=true
       # SMTP Configuration for email sending
@@ -49,10 +49,10 @@ services:
       - SMTP_FROM_NAME=Служба поддержки Recontext
       # Portal URL for generating anonymous join links
       - PORTAL_URL=https://portal.recontext.online
-    depends_on:
-      - postgres
-      - rabbitmq
-      - minio
+#    depends_on:
+#      - postgres
+#      - rabbitmq
+#      - minio
     networks:
       - recontext-network
     restart: unless-stopped
@@ -76,14 +76,14 @@ services:
       - DB_USER=recontext
       - DB_PASSWORD=recontext
       - DB_NAME=recontext
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=192.168.5.153
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
  #     - MINIO_ENDPOINT=minio:9000
       - MINIO_ENDPOINT=192.168.5.153:9000
       - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECRET_KEY=32a4953d5bff4a1c6aea4d4ccfb757e5
       - MINIO_BUCKET=recontext
       - LIVEKIT_URL=wss://video.recontext.online
       - LIVEKIT_API_KEY=APIBj3yrXtyPRNq
@@ -95,7 +95,7 @@ services:
       - LIVEKIT_EGRESS_S3_ENDPOINT=https://api.storage.recontext.online
       - LIVEKIT_EGRESS_S3_BUCKET=recontext
       - LIVEKIT_EGRESS_S3_ACCESS_KEY=minioadmin
-      - LIVEKIT_EGRESS_S3_SECRET=minioadmin
+      - LIVEKIT_EGRESS_S3_SECRET=32a4953d5bff4a1c6aea4d4ccfb757e5
       - LIVEKIT_EGRESS_S3_REGION=
       - LIVEKIT_EGRESS_RECORD_TRACKS=true
       # SMTP Configuration for email sending
@@ -107,85 +107,119 @@ services:
       - SMTP_FROM_NAME=Служба поддержки Recontext
       # Portal URL for generating anonymous join links
       - PORTAL_URL=https://portal.recontext.online
-    depends_on:
-      - managing-portal
-      - postgres
-      - minio
+#    depends_on:
+#      - managing-portal
+#      - postgres
+#      - minio
 #      - ollama
     networks:
       - recontext-network
     restart: unless-stopped
 
   # 3. RabbitMQ - Message Broker
-  rabbitmq:
-    image: rabbitmq:3.12-management-alpine
-    container_name: recontext-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-      - "15692:15692"   # Prometheus metrics
-    environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
-    command: >
-      sh -c "rabbitmq-plugins enable --offline rabbitmq_prometheus rabbitmq_management &&
-             rabbitmq-server"
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    networks:
-      - recontext-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+  # rabbitmq:
+  #   image: rabbitmq:3.12-management-alpine
+  #   container_name: recontext-rabbitmq
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #     - "15692:15692"   # Prometheus metrics
+  #   environment:
+  #     - RABBITMQ_DEFAULT_USER=guest
+  #     - RABBITMQ_DEFAULT_PASS=guest
+  #   command: >
+  #     sh -c "rabbitmq-plugins enable --offline rabbitmq_prometheus rabbitmq_management &&
+  #            rabbitmq-server"
+  #   volumes:
+  #     - rabbitmq-data:/var/lib/rabbitmq
+  #   networks:
+  #     - recontext-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "rabbitmq-diagnostics", "ping"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
 
 
 
   # 7. MinIO Storage
-  minio:
-    image: minio/minio:latest
-    container_name: recontext-minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
-      - MINIO_PROMETHEUS_AUTH_TYPE=public
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio-data:/data
-    networks:
-      - recontext-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+  # minio:
+  #   image: minio/minio:latest
+  #   container_name: recontext-minio
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   environment:
+  #     - MINIO_ROOT_USER=minioadmin
+  #     - MINIO_ROOT_PASSWORD=minioadmin
+  #     - MINIO_PROMETHEUS_AUTH_TYPE=public
+  #   command: server /data --console-address ":9001"
+  #   volumes:
+  #     - minio-data:/data
+  #   networks:
+  #     - recontext-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+  #     interval: 30s
+  #     timeout: 20s
+  #     retries: 3
 
   # 8. PostgreSQL Database with pgvector extension
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: recontext-postgres
-    ports:
-      - "5432:5432"
+  # postgres:
+  #   image: pgvector/pgvector:pg16
+  #   container_name: recontext-postgres
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_USER=recontext
+  #     - POSTGRES_PASSWORD=recontext
+  #     - POSTGRES_DB=recontext
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - recontext-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U recontext"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # 9. Transcription Service - Audio transcription using Faster Whisper
+  transcription-service:
+    build:
+      context: ./transcription-service
+      dockerfile: Dockerfile
+    image: sivanov2018/recontext-transcription-service:latest
+    container_name: recontext-transcription-service
     environment:
-      - POSTGRES_USER=recontext
-      - POSTGRES_PASSWORD=recontext
-      - POSTGRES_DB=recontext
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - RABBITMQ_HOST=192.168.5.153
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_QUEUE=transcription_queue
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=recontext
+      - DB_USER=recontext
+      - DB_PASSWORD=recontext
+      - WHISPER_MODEL=medium
+      - WHISPER_DEVICE=cpu
+      - WHISPER_COMPUTE_TYPE=int8
+      - STORAGE_BASE_URL=https://api.storage.recontext.online
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=32a4953d5bff4a1c6aea4d4ccfb757e5
+#    depends_on:
+#      - postgres
+#      - rabbitmq
+#      - minio
     networks:
       - recontext-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U recontext"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    volumes:
+      - whisper-models:/app/models
 
 
 networks:
@@ -201,3 +235,4 @@ volumes:
   prometheus-data:
   grafana-data:
   ollama-data:
+  whisper-models:

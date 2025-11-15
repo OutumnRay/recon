@@ -353,5 +353,10 @@
   "copyLink": "Copy Link",
   "linkCopied": "Copied!",
   "anonymousLinkCopied": "Anonymous link copied to clipboard",
-  "allowsAnonymousJoin": "Allows anonymous join"
+  "allowsAnonymousJoin": "Allows anonymous join",
+
+  "audioOnlyRecording": "Audio Only",
+  "failedToLoadRecording": "Failed to load recording",
+  "unknownError": "Unknown error",
+  "retry": "Retry"
 }

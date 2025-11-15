@@ -1477,6 +1477,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Allows anonymous join'**
   String get allowsAnonymousJoin;
+
+  /// No description provided for @audioOnlyRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio Only'**
+  String get audioOnlyRecording;
+
+  /// No description provided for @failedToLoadRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load recording'**
+  String get failedToLoadRecording;
+
+  /// No description provided for @unknownError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown error'**
+  String get unknownError;
 }
 
 class _AppLocalizationsDelegate

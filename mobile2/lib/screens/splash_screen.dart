@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 import '../services/config_service.dart';
 import '../services/api_client.dart';
+import '../services/fcm_service.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
 
@@ -44,6 +45,7 @@ class _SplashScreenState extends State<SplashScreen> {
           if (!mounted) return;
 
           if (response.statusCode == 200) {
+            await _registerPushNotifications(apiClient);
             // Токен валиден - переходим на главную страницу
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
@@ -75,6 +77,16 @@ class _SplashScreenState extends State<SplashScreen> {
           builder: (context) => const LoginScreen(),
         ),
       );
+    }
+  }
+
+  Future<void> _registerPushNotifications(ApiClient apiClient) async {
+    try {
+      final fcmService = FCMService(apiClient);
+      await fcmService.initialize();
+      await fcmService.registerDevice();
+    } catch (e) {
+      debugPrint('Failed to register push notifications: $e');
     }
   }
 

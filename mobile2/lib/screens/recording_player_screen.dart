@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fijkplayer/fijkplayer.dart';
-import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import '../models/recording.dart';
 import '../utils/logger.dart';
 import '../services/storage_service.dart';
@@ -38,8 +35,6 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
   final FijkPlayer _player = FijkPlayer();
   bool _isLoading = true;
   String? _error;
-  bool _isDownloading = false;
-  double _downloadProgress = 0.0;
 
   @override
   void initState() {
@@ -66,7 +61,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
         throw Exception('No playlist URL available');
       }
 
-      Logger.logInfo('Initializing video player', data: {'url': playlistUrl});
+      Logger.logInfo('Initializing media player', data: {'url': playlistUrl});
 
       // Get base URL from config service
       final configService = ConfigService();
@@ -99,9 +94,9 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
         _isLoading = false;
       });
 
-      Logger.logSuccess('Video player initialized');
+      Logger.logSuccess('Media player initialized');
     } catch (e) {
-      Logger.logError('Failed to initialize video player', error: e);
+      Logger.logError('Failed to initialize media player', error: e);
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -117,114 +112,16 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
     super.dispose();
   }
 
-  Future<void> _downloadRecording() async {
-    final l10n = AppLocalizations.of(context)!;
-
-    try {
-      setState(() {
-        _isDownloading = true;
-        _downloadProgress = 0.0;
-      });
-
-      // Get the playlist URL
-      String playlistUrl;
-      if (widget.isTrack && widget.track != null) {
-        playlistUrl = widget.track!.playlistUrl;
-      } else {
-        playlistUrl = widget.recording.playlistUrl ?? '';
-      }
-
-      if (playlistUrl.isEmpty) {
-        throw Exception('No playlist URL available');
-      }
-
-      // Get base URL and build full URL
-      final configService = ConfigService();
-      final baseUrl = await configService.getApiUrl();
-      final fullUrl = playlistUrl.startsWith('http')
-          ? playlistUrl
-          : '$baseUrl$playlistUrl';
-
-      // Get authentication token
-      final storageService = StorageService();
-      final token = await storageService.getToken();
-
-      // Get download directory
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = Directory('/storage/emulated/0/Download');
-        if (!await directory.exists()) {
-          directory = await getExternalStorageDirectory();
-        }
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
-
-      // Generate filename
-      final timestamp = widget.recording.startedAt.toIso8601String().split('T')[0];
-      final title = _getTitle().replaceAll(RegExp(r'[^\w\s-]'), '');
-      final filename = 'recording_${title}_$timestamp.m3u8';
-      final savePath = '${directory?.path}/$filename';
-
-      // Download with Dio
-      final dio = Dio();
-      await dio.download(
-        fullUrl,
-        savePath,
-        options: Options(
-          headers: {
-            if (token != null) 'Authorization': 'Bearer $token',
-          },
-        ),
-        onReceiveProgress: (received, total) {
-          if (total != -1 && mounted) {
-            setState(() {
-              _downloadProgress = received / total;
-            });
-          }
-        },
-      );
-
-      if (mounted) {
-        setState(() {
-          _isDownloading = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.recordingSaved),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-
-      Logger.logSuccess('Recording downloaded successfully to: $savePath');
-    } catch (e) {
-      Logger.logError('Failed to download recording', error: e);
-
-      if (mounted) {
-        setState(() {
-          _isDownloading = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.downloadFailed),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   String _getTitle() {
+    final l10n = AppLocalizations.of(context)!;
     if (widget.isTrack && widget.track != null) {
       return widget.track!.participantName;
     }
-    return 'Room Recording';
+    return l10n.roomRecording;
   }
 
   String _getDuration() {
+    final l10n = AppLocalizations.of(context)!;
     if (widget.isTrack && widget.track != null) {
       final duration = widget.track!.duration;
       if (duration != null) {
@@ -248,7 +145,14 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
         return '${minutes}m ${seconds}s';
       }
     }
-    return 'Unknown duration';
+    return l10n.unknownError;
+  }
+
+  bool get _isAudioOnly {
+    if (widget.isTrack && widget.track != null) {
+      return widget.track!.isAudioOnly;
+    }
+    return false;
   }
 
   @override
@@ -266,33 +170,10 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
           onPressed: () => Navigator.of(context).pop(),
           tooltip: l10n.close,
         ),
-        actions: [
-          if (_isDownloading)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    value: _downloadProgress > 0 ? _downloadProgress : null,
-                    strokeWidth: 2,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.download),
-              tooltip: l10n.downloadRecording,
-              onPressed: _downloadRecording,
-            ),
-        ],
       ),
       body: Column(
         children: [
-          // Video player
+          // Media player or audio-only indicator
           Expanded(
             child: _isLoading
                 ? const Center(
@@ -302,14 +183,16 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
                   )
                 : _error != null
                     ? _buildErrorWidget()
-                    : FijkView(
-                        player: _player,
-                        color: Colors.black,
-                        fit: FijkFit.contain,
-                        panelBuilder: fijkPanel2Builder(
-                          onBack: () => Navigator.of(context).pop(),
-                        ),
-                      ),
+                    : _isAudioOnly
+                        ? _buildAudioOnlyWidget()
+                        : FijkView(
+                            player: _player,
+                            color: Colors.black,
+                            fit: FijkFit.contain,
+                            panelBuilder: fijkPanel2Builder(
+                              onBack: () => Navigator.of(context).pop(),
+                            ),
+                          ),
           ),
           // Info section
           Container(
@@ -318,13 +201,42 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _getTitle(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _getTitle(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (_isAudioOnly)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7C3AED),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.audiotrack, size: 12, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              l10n.audioOnlyRecording,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -347,7 +259,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
                 if (widget.isTrack && widget.track?.participant != null) ...[
                   const SizedBox(height: 8),
                   Row(
-                    children: [
+                  children: [
                       const Icon(Icons.person, color: Colors.grey, size: 16),
                       const SizedBox(width: 4),
                       Text(
@@ -365,7 +277,49 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
     );
   }
 
+  Widget _buildAudioOnlyWidget() {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7C3AED).withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.audiotrack,
+              size: 64,
+              color: Color(0xFF7C3AED),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            l10n.audioOnlyRecording,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.playRecording,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildErrorWidget() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -373,20 +327,20 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
         children: [
           const Icon(Icons.error_outline, color: Colors.red, size: 64),
           const SizedBox(height: 16),
-          const Text(
-            'Failed to load recording',
-            style: TextStyle(color: Colors.white, fontSize: 18),
+          Text(
+            l10n.failedToLoadRecording,
+            style: const TextStyle(color: Colors.white, fontSize: 18),
           ),
           const SizedBox(height: 8),
           Text(
-            _error ?? 'Unknown error',
+            _error ?? l10n.unknownError,
             style: const TextStyle(color: Colors.grey, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _initializePlayer,
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),

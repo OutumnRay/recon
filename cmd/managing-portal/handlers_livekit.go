@@ -1002,6 +1002,82 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 		}
 	}
 
+	// Send transcription task to RabbitMQ if this is a track recording that completed successfully
+	if egressID != "" && status != "failed" && filePath != "" && mp.rabbitMQPublisher != nil {
+		// Check if this egress is associated with a track
+		var track models.Track
+		err := mp.db.DB.Where("egress_id = ?", egressID).First(&track).Error
+		if err == nil {
+			// Found a track with this egress ID - send transcription task
+			mp.logger.Infof("📝 Sending transcription task for track %s (egress: %s)", track.SID, egressID)
+
+			// Build audio URL from file path
+			// File path format from LiveKit: "recontext/<egress_id>/..." or just "<egress_id>/..."
+			// For track recordings, LiveKit creates m3u8 playlists
+			storageURL := os.Getenv("MINIO_ENDPOINT")
+			if storageURL == "" {
+				storageURL = "minio:9000"
+			}
+			bucket := os.Getenv("MINIO_BUCKET")
+			if bucket == "" {
+				bucket = "recontext"
+			}
+
+			// Construct URL to m3u8 playlist
+			// LiveKit stores track recordings in: <bucket>/<egress_id>/playlist.m3u8
+			var audioURL string
+			if strings.HasSuffix(filePath, ".m3u8") {
+				// File path already points to playlist
+				audioURL = fmt.Sprintf("http://%s/%s/%s", storageURL, bucket, filePath)
+			} else if strings.Contains(filePath, "/") {
+				// File path is a directory or file path, append playlist.m3u8
+				audioURL = fmt.Sprintf("http://%s/%s/%s/playlist.m3u8", storageURL, bucket, strings.TrimSuffix(filePath, "/"))
+			} else {
+				// File path is just egress ID
+				audioURL = fmt.Sprintf("http://%s/%s/%s/playlist.m3u8", storageURL, bucket, filePath)
+			}
+
+			mp.logger.Infof("📌 Constructed audio URL: %s", audioURL)
+
+			// Get room to find user_id
+			var room models.Room
+			err := mp.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
+			if err != nil {
+				mp.logger.Errorf("❌ Failed to get room for track %s: %v", track.SID, err)
+			} else {
+				// Get meeting to find user_id
+				var meeting models.Meeting
+				err := mp.db.DB.Where("id = ?", room.Name).First(&meeting).Error
+				if err != nil {
+					mp.logger.Errorf("❌ Failed to get meeting for room %s: %v", room.Name, err)
+				} else {
+					// Parse track ID as UUID
+					trackUUID, err := uuid.Parse(track.ID.String())
+					if err != nil {
+						mp.logger.Errorf("❌ Invalid track ID format: %v", err)
+					} else {
+						// Send message to RabbitMQ
+						err := mp.rabbitMQPublisher.PublishTranscriptionTask(
+							trackUUID,
+							meeting.CreatedBy,
+							audioURL,
+							"",   // Auto-detect language
+							"",   // No auth token needed for MinIO access from transcription service
+						)
+						if err != nil {
+							mp.logger.Errorf("❌ Failed to send transcription task to RabbitMQ: %v", err)
+						} else {
+							mp.logger.Infof("✅ Transcription task sent to RabbitMQ for track %s", track.SID)
+						}
+					}
+				}
+			}
+		} else {
+			// Not a track egress, might be room composite egress
+			mp.logger.Infof("ℹ️  Egress %s is not associated with a track (might be room composite)", egressID)
+		}
+	}
+
 	mp.logger.Infof("✅ egress_ended event processed successfully")
 	return nil
 }

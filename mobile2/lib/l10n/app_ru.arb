@@ -262,5 +262,10 @@
   "copyLink": "Копировать",
   "linkCopied": "Скопировано!",
   "anonymousLinkCopied": "Анонимная ссылка скопирована в буфер обмена",
-  "allowsAnonymousJoin": "Разрешен анонимный вход"
+  "allowsAnonymousJoin": "Разрешен анонимный вход",
+
+  "audioOnlyRecording": "Только аудио",
+  "failedToLoadRecording": "Не удалось загрузить запись",
+  "unknownError": "Неизвестная ошибка",
+  "retry": "Повторить"
 }
