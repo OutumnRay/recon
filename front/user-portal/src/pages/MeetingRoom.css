@@ -841,13 +841,13 @@
     width: 100%;
     max-width: 100%;
     justify-content: center;
-    gap: var(--space-md);
-    padding: var(--space-md);
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
     background: rgba(17, 49, 51, 0.95);
     backdrop-filter: blur(16px);
     border-radius: 0;
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
 
   .volume-control {
@@ -855,10 +855,10 @@
   }
 
   .icon-circle-button {
-    min-width: 52px;
-    min-height: 52px;
-    width: 52px;
-    height: 52px;
+    min-width: 46px;
+    min-height: 46px;
+    width: 46px;
+    height: 46px;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: var(--text-inverse);
@@ -866,8 +866,8 @@
   }
 
   .icon-circle-button svg {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
   }
 
   .icon-circle-button:hover {
@@ -1190,15 +1190,15 @@
   }
 
   .icon-circle-button {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
   }
 
   .icon-circle-button svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 
   .remote-participant-tile {

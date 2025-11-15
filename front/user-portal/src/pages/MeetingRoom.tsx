@@ -551,6 +551,17 @@ export default function MeetingRoom() {
           element.classList.add('meeting-video-element');
           attachTrackToTile(participant, element);
 
+          // Show video by default when track is subscribed
+          showParticipantVideo(participant.sid);
+          console.log(`[Video Track] Showing video for ${displayName}`);
+
+          // Ensure video plays (required for mobile browsers)
+          if (element instanceof HTMLVideoElement) {
+            element.play().catch(err => {
+              console.warn(`[Video Track] Failed to autoplay video for ${displayName}:`, err);
+            });
+          }
+
           if (stageParticipantId === participant.sid) {
             renderStageVideo(participant.sid);
           }
@@ -560,6 +571,11 @@ export default function MeetingRoom() {
           if (element instanceof HTMLAudioElement) {
             element.volume = volumeRef.current / 100;
             console.log(`[Audio Track] Set volume to ${volumeRef.current}%`);
+
+            // Ensure audio plays (required for mobile browsers)
+            element.play().catch(err => {
+              console.warn(`[Audio Track] Failed to autoplay audio for ${displayName}:`, err);
+            });
           }
           element.style.display = 'none';
           attachTrackToTile(participant, element);
@@ -747,12 +763,35 @@ export default function MeetingRoom() {
             participantVideoTracks.current.set(participant.sid, track);
             element.classList.add('meeting-video-element');
             attachTrackToTile(participant, element);
+
+            // Show video if track is enabled (not muted)
+            if (publication.isEnabled) {
+              showParticipantVideo(participant.sid);
+              console.log(`[Existing Track] Video track is enabled, showing video for ${displayName}`);
+            } else {
+              hideParticipantVideo(participant.sid);
+              console.log(`[Existing Track] Video track is muted, hiding video for ${displayName}`);
+            }
+
+            // Ensure video plays (required for mobile browsers)
+            if (element instanceof HTMLVideoElement) {
+              element.play().catch(err => {
+                console.warn(`[Existing Track] Failed to autoplay video for ${displayName}:`, err);
+              });
+            }
+
+            // Update stage if this participant is selected
             if (stageParticipantId === participant.sid) {
               renderStageVideo(participant.sid);
             }
           } else if (track.kind === Track.Kind.Audio) {
             if (element instanceof HTMLAudioElement) {
               element.volume = volumeRef.current / 100;
+
+              // Ensure audio plays (required for mobile browsers)
+              element.play().catch(err => {
+                console.warn(`[Existing Track] Failed to autoplay audio for ${displayName}:`, err);
+              });
             }
             element.style.display = 'none';
             attachTrackToTile(participant, element);
@@ -893,11 +932,37 @@ export default function MeetingRoom() {
                 participantVideoTracks.current.set(participant.sid, track);
                 element.classList.add('meeting-video-element');
                 attachTrackToTile(participant, element);
+
+                // Show video if track is enabled (not muted)
+                if (publication.isEnabled) {
+                  showParticipantVideo(participant.sid);
+                  console.log(`  - Video track is enabled, showing video for ${displayName}`);
+                } else {
+                  hideParticipantVideo(participant.sid);
+                  console.log(`  - Video track is muted, hiding video for ${displayName}`);
+                }
+
+                // Ensure video plays (required for mobile browsers)
+                if (element instanceof HTMLVideoElement) {
+                  element.play().catch(err => {
+                    console.warn(`  - Failed to autoplay video for ${displayName}:`, err);
+                  });
+                }
+
+                // Update stage if this participant is selected
+                if (stageParticipantId === participant.sid) {
+                  renderStageVideo(participant.sid);
+                }
               } else if (track.kind === Track.Kind.Audio) {
                 // Apply current volume to audio element
                 if (element instanceof HTMLAudioElement) {
                   element.volume = volumeRef.current / 100;
                   console.log(`[Existing Audio] Set volume to ${volumeRef.current}%`);
+
+                  // Ensure audio plays (required for mobile browsers)
+                  element.play().catch(err => {
+                    console.warn(`  - Failed to autoplay audio for ${displayName}:`, err);
+                  });
                 }
                 element.style.display = 'none';
                 attachTrackToTile(participant, element);
@@ -950,7 +1015,7 @@ export default function MeetingRoom() {
 
 
   const confirmLeave = useCallback(() => {
-    console.log('[Leave] Disconnecting from room and navigating to dashboard...');
+    console.log('[Leave] Disconnecting from room...');
     setShowLeaveConfirm(false);
 
     // Disconnect from room
@@ -960,9 +1025,52 @@ export default function MeetingRoom() {
       console.error('[Leave] Error disconnecting:', err);
     }
 
-    // Use window.location for full page reload to dashboard
-    window.location.href = '/dashboard';
-  }, [room]);
+    // Check if user is anonymous
+    const isAnonymous = anonymousTokenData?.isAnonymous || false;
+    const hasAuthToken = !!(localStorage.getItem('token') || sessionStorage.getItem('token'));
+
+    if (isAnonymous || !hasAuthToken) {
+      // Anonymous user - redirect to main page
+      console.log('[Leave] Anonymous user, redirecting to main page');
+      window.location.href = 'https://recontext.online';
+    } else {
+      // Authenticated user - redirect to dashboard
+      console.log('[Leave] Authenticated user, redirecting to dashboard');
+      window.location.href = '/dashboard';
+    }
+  }, [room, anonymousTokenData]);
+
+  // Start playback for all audio/video elements (required for mobile browsers)
+  const startAllMediaPlayback = useCallback(() => {
+    console.log('[Media Playback] Starting playback for all audio/video elements...');
+
+    // Find all audio and video elements in participant tiles
+    const audioElements = document.querySelectorAll<HTMLAudioElement>('audio');
+    const videoElements = document.querySelectorAll<HTMLVideoElement>('video.meeting-video-element');
+
+    let audioCount = 0;
+    let videoCount = 0;
+
+    audioElements.forEach(audio => {
+      audio.play().then(() => {
+        audioCount++;
+        console.log(`[Media Playback] ✓ Started audio playback`);
+      }).catch(err => {
+        console.warn(`[Media Playback] ✗ Failed to start audio playback:`, err);
+      });
+    });
+
+    videoElements.forEach(video => {
+      video.play().then(() => {
+        videoCount++;
+        console.log(`[Media Playback] ✓ Started video playback`);
+      }).catch(err => {
+        console.warn(`[Media Playback] ✗ Failed to start video playback:`, err);
+      });
+    });
+
+    console.log(`[Media Playback] Attempted to start ${audioCount} audio and ${videoCount} video elements`);
+  }, []);
 
   // Aggressive track subscription - force subscribe to all tracks
   const forceSubscribeToAllTracks = useCallback(async () => {
@@ -1119,6 +1227,12 @@ export default function MeetingRoom() {
         setIsCameraEnabled(true);
         renderLocalPreview();
         console.log('[Media] Camera enabled successfully');
+
+        // Start playback for all remote audio/video (required for mobile browsers)
+        // User's camera/mic activation counts as interaction
+        setTimeout(() => {
+          startAllMediaPlayback();
+        }, 500);
       } catch (camErr) {
         console.error('[Media] Failed to enable camera:', camErr);
         const errorMsg = camErr instanceof Error ? camErr.message : 'Unknown error';
@@ -1147,6 +1261,10 @@ export default function MeetingRoom() {
         await room.localParticipant.setCameraEnabled(true);
         setIsCameraEnabled(true);
         renderLocalPreview();
+
+        // Start playback for all remote audio/video (required for mobile browsers)
+        // User interaction (enabling camera) allows us to start playback
+        startAllMediaPlayback();
       }
 
       if (stageParticipantId === room.localParticipant?.sid) {
@@ -1185,6 +1303,10 @@ export default function MeetingRoom() {
         await room.localParticipant.setMicrophoneEnabled(true);
         setIsMicEnabled(true);
         updateMicIndicator(room.localParticipant.sid, false);
+
+        // Start playback for all remote audio/video (required for mobile browsers)
+        // User interaction (enabling microphone) allows us to start playback
+        startAllMediaPlayback();
       }
     } catch (err) {
       console.warn('Failed to toggle microphone:', err);
