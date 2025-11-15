@@ -328,6 +328,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     onPressed: _toggleCamera,
                   ),
                   _buildControlButton(
+                    icon: Icons.flip_camera_ios,
+                    label: l10n.flipCamera,
+                    color: Colors.white,
+                    onPressed: _isCameraEnabled ? _switchCamera : null,
+                  ),
+                  _buildControlButton(
                     icon: Icons.call_end,
                     label: l10n.leave,
                     color: Colors.red,
@@ -378,95 +384,131 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       return _buildParticipantView(_participantTracks[0]);
     }
 
-    return GridView.builder(
+    return ListView.builder(
       padding: const EdgeInsets.all(8),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: _participantTracks.length <= 4 ? 2 : 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
       itemCount: _participantTracks.length,
       itemBuilder: (context, index) {
-        return _buildParticipantView(_participantTracks[index]);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildParticipantView(_participantTracks[index]),
+        );
       },
     );
   }
 
   Widget _buildParticipantView(ParticipantTrack participantTrack) {
     final l10n = AppLocalizations.of(context)!;
+    final displayName = participantTrack.isLocal
+        ? l10n.you
+        : _getDisplayName(participantTrack.participant.identity);
+
+    // Get initials for avatar
+    String getInitials(String name) {
+      final parts = name.trim().split(' ');
+      if (parts.isEmpty) return '?';
+      if (parts.length == 1) return parts[0][0].toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
 
     return Container(
+      height: 70,
       decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.grey[900]?.withOpacity(0.05),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Stack(
+      padding: const EdgeInsets.all(8),
+      child: Row(
         children: [
-          // Video
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: VideoTrackRenderer(
-              participantTrack.track as VideoTrack,
-              fit: VideoViewFit.cover,
+          // Video/Avatar section (left)
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
             ),
-          ),
-          // Participant name overlay
-          Positioned(
-            bottom: 8,
-            left: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (participantTrack.isLocal)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 4),
-                      child: Icon(
-                        Icons.person,
-                        size: 12,
-                        color: Colors.white,
+            clipBehavior: Clip.antiAlias,
+            child: participantTrack.participant.isCameraEnabled()
+                ? VideoTrackRenderer(
+                    participantTrack.track as VideoTrack,
+                    fit: VideoViewFit.cover,
+                  )
+                : Center(
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          getInitials(displayName),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
-                  Text(
-                    participantTrack.isLocal
-                        ? l10n.you
-                        : _getDisplayName(participantTrack.participant.identity),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
                   ),
-                ],
-              ),
+          ),
+          const SizedBox(width: 12),
+          // Participant info (right)
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // Muted indicator
+                    if (!participantTrack.participant.isMicrophoneEnabled())
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.mic_off,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
-          // Muted indicator
-          if (!participantTrack.participant.isMicrophoneEnabled())
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.8),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.mic_off,
-                  size: 16,
-                  color: Colors.white,
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -476,44 +518,48 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     required IconData icon,
     required String label,
     required Color color,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: color == Colors.red
-                ? Colors.red.withOpacity(0.9)
-                : const Color(0xFF4CAF50).withOpacity(0.15),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    final isDisabled = onPressed == null;
+    return Opacity(
+      opacity: isDisabled ? 0.5 : 1.0,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: color == Colors.red
+                  ? Colors.red.withOpacity(0.9)
+                  : const Color(0xFF4CAF50).withOpacity(0.15),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(icon),
+              color: color == Colors.red ? Colors.white : color,
+              iconSize: 32,
+              onPressed: onPressed,
+            ),
           ),
-          child: IconButton(
-            icon: Icon(icon),
-            color: color == Colors.red ? Colors.white : color,
-            iconSize: 32,
-            onPressed: onPressed,
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

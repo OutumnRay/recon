@@ -250,6 +250,7 @@
   "camera": "Camera",
   "leave": "Leave",
   "switchCamera": "Switch Camera",
+  "flipCamera": "Flip",
 
   "userRoleUser": "User",
   "userRoleAdmin": "Administrator",
