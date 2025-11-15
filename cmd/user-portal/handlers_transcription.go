@@ -109,8 +109,11 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 	}
 
 	// Construct audio URL for MinIO
-	// Format: {meeting_id}_{room_sid}/tracks/{track_sid}.m3u8
-	audioURL := fmt.Sprintf("%s_%s/tracks/%s.m3u8", room.Name, room.SID, track.SID)
+	// Format: https://api.storage.recontext.online/recontext/{meeting_id}_{room_sid}/tracks/{track_sid}.m3u8
+	storageURL := "https://api.storage.recontext.online"
+	bucket := "recontext"
+	audioURL := fmt.Sprintf("%s/%s/%s_%s/tracks/%s.m3u8",
+		storageURL, bucket, meeting.ID.String(), room.SID, track.SID)
 	up.logger.Infof("[Transcription] Track %s audio URL: %s", trackSID, audioURL)
 
 	// Update track status to processing

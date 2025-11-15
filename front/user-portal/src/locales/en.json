@@ -411,7 +411,10 @@
     "transcriptComingSoon": "Transcript feature will be available soon. This will include automatic transcription of the meeting with speaker identification.",
     "memoComingSoon": "Memo feature will be available soon. This will include automatic summaries, action items, and key decisions from the meeting.",
     "forceTranscribe": "Transcribe",
-    "transcribing": "Transcribing..."
+    "transcribing": "Transcribing...",
+    "transcribed": "Track transcribed",
+    "noTranscription": "No transcription available",
+    "transcriptionAvailable": "Transcription available for {{count}} tracks"
   },
   "mediaSettings": {
     "title": "Video & audio settings",

@@ -218,6 +218,13 @@ export interface Recording {
   participant?: User;
 }
 
+export interface TranscriptionPhrase {
+  start: number; // Start time in seconds
+  end: number; // End time in seconds
+  text: string; // Transcribed text
+  speaker?: string; // Speaker identifier (if diarization is available)
+}
+
 export interface TrackRecording {
   id: string;
   status: string;
@@ -228,6 +235,8 @@ export interface TrackRecording {
   track_id: string;
   participant?: User;
   transcription?: string; // URL or identifier for the transcription
+  transcription_status?: string; // Transcription status: pending, processing, completed, failed
+  transcription_phrases?: TranscriptionPhrase[]; // Parsed transcription phrases
   type?: string; // Track type (audio, video)
 }
 

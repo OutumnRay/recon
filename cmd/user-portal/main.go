@@ -54,21 +54,22 @@ const version = "0.1.0"
 // @description Type "Bearer" followed by a space and JWT token.
 
 type UserPortal struct {
-	config            *config.Config
-	logger            *logger.Logger
-	jwtManager        *auth.JWTManager
-	db                *database.DB                   // Database connection
-	userRepo          *database.UserRepository       // User repository
-	departmentRepo    *database.DepartmentRepository // Department repository
-	meetingRepo       *database.MeetingRepository    // Meeting repository
-	liveKitRepo       *database.LiveKitRepository    // LiveKit repository
-	fcmDeviceRepo     *database.FCMDeviceRepository  // FCM device repository
-	recordings        map[string]*models.Recording   // In-memory recordings store
-	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
-	embeddingsClient  *embeddings.EmbeddingsClient   // Embeddings client for RAG
-	emailService      EmailServiceInterface          // Email service for sending emails
-	wsHub             *WSHub                         // WebSocket hub for real-time communication
-	rabbitMQPublisher *rabbitmq.Publisher            // RabbitMQ publisher for transcription tasks
+	config                  *config.Config
+	logger                  *logger.Logger
+	jwtManager              *auth.JWTManager
+	db                      *database.DB                   // Database connection
+	userRepo                *database.UserRepository       // User repository
+	departmentRepo          *database.DepartmentRepository // Department repository
+	meetingRepo             *database.MeetingRepository    // Meeting repository
+	liveKitRepo             *database.LiveKitRepository    // LiveKit repository
+	fcmDeviceRepo           *database.FCMDeviceRepository  // FCM device repository
+	recordings              map[string]*models.Recording   // In-memory recordings store
+	prometheusMetrics       *metrics.ServiceMetrics        // Prometheus metrics
+	embeddingsClient        *embeddings.EmbeddingsClient   // Embeddings client for RAG
+	emailService            EmailServiceInterface          // Email service for sending emails
+	wsHub                   *WSHub                         // WebSocket hub for real-time communication
+	rabbitMQPublisher       *rabbitmq.Publisher            // RabbitMQ publisher for transcription tasks
+	transcriptionScheduler  *TranscriptionScheduler        // Automatic transcription scheduler
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -1131,6 +1132,14 @@ func (up *UserPortal) Start() error {
 	// Start WebSocket hub in goroutine
 	go up.wsHub.Run()
 	up.logger.Info("WebSocket hub started")
+
+	// Start transcription scheduler if RabbitMQ is available
+	if up.rabbitMQPublisher != nil {
+		up.transcriptionScheduler = NewTranscriptionScheduler(up)
+		up.transcriptionScheduler.Start()
+	} else {
+		up.logger.Info("🎙️ [TRANSCRIPTION SCHEDULER] Skipped - RabbitMQ not available")
+	}
 
 	mux := up.setupRoutes()
 

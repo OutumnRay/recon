@@ -22,16 +22,26 @@ type RecordingInfo struct {
 	TrackID       *string  `json:"track_id,omitempty"`
 }
 
+// TranscriptionPhrase представляет одну фразу в транскрипции
+type TranscriptionPhrase struct {
+	Start   float64 `json:"start"`             // Время начала в секундах
+	End     float64 `json:"end"`               // Время окончания в секундах
+	Text    string  `json:"text"`              // Текст фразы
+	Speaker *string `json:"speaker,omitempty"` // Идентификатор говорящего (если есть диаризация)
+}
+
 // TrackRecordingInfo представляет информацию о записи трека участника
 type TrackRecordingInfo struct {
-	ID            string           `json:"id"`
-	Status        string           `json:"status"`
-	StartedAt     string           `json:"started_at"`
-	EndedAt       *string          `json:"ended_at,omitempty"`
-	PlaylistURL   string           `json:"playlist_url"`
-	ParticipantID string           `json:"participant_id"`
-	TrackID       string           `json:"track_id"`
-	Participant   *models.UserInfo `json:"participant,omitempty"`
+	ID                   string                 `json:"id"`
+	Status               string                 `json:"status"`
+	StartedAt            string                 `json:"started_at"`
+	EndedAt              *string                `json:"ended_at,omitempty"`
+	PlaylistURL          string                 `json:"playlist_url"`
+	ParticipantID        string                 `json:"participant_id"`
+	TrackID              string                 `json:"track_id"`
+	Participant          *models.UserInfo       `json:"participant,omitempty"`
+	TranscriptionStatus  *string                `json:"transcription_status,omitempty"`
+	TranscriptionPhrases []TranscriptionPhrase  `json:"transcription_phrases,omitempty"`
 }
 
 // RoomRecordingInfo представляет информацию о записи комнаты с треками
@@ -160,6 +170,44 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 						endedAt := track.UnpublishedAt.Format("2006-01-02T15:04:05Z07:00")
 						trackRec.EndedAt = &endedAt
 					}
+
+				// Add transcription status if available
+				if track.TranscriptionStatus != "" {
+					trackRec.TranscriptionStatus = &track.TranscriptionStatus
+				}
+
+				// Load transcription phrases if transcription is completed
+				if track.TranscriptionStatus == "completed" {
+					var dbPhrases []struct {
+						StartTime  float64 `db:"start_time"`
+						EndTime    float64 `db:"end_time"`
+						Text       string  `db:"text"`
+						Speaker    *string `db:"speaker"`
+					}
+
+					err := up.db.DB.Raw(`
+						SELECT start_time, end_time, text, speaker
+						FROM transcription_phrases
+						WHERE track_id = ?
+						ORDER BY phrase_index ASC
+					`, track.ID).Scan(&dbPhrases).Error
+
+					if err == nil && len(dbPhrases) > 0 {
+						// Convert database phrases to API format
+						trackRec.TranscriptionPhrases = make([]TranscriptionPhrase, len(dbPhrases))
+						for i, p := range dbPhrases {
+							trackRec.TranscriptionPhrases[i] = TranscriptionPhrase{
+								Start:   p.StartTime,
+								End:     p.EndTime,
+								Text:    p.Text,
+								Speaker: p.Speaker,
+							}
+						}
+						up.logger.Infof("📹 [RECORDINGS] Loaded %d transcription phrases for track %s", len(dbPhrases), track.SID)
+					} else if err != nil {
+						up.logger.Errorf("📹 [RECORDINGS] Failed to load transcription phrases for track %s: %v", track.SID, err)
+					}
+				}
 
 					// Get participant info to retrieve user details
 					participant, err := up.liveKitRepo.GetParticipantBySID(track.ParticipantSID)

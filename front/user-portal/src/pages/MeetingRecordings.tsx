@@ -366,15 +366,23 @@ export default function MeetingRecordings() {
                                             audioOnly={true}
                                             className="track-player"
                                           />
-                                          {!track.transcription && (
+                                          {track.transcription_phrases && track.transcription_phrases.length > 0 ? (
+                                            <div className="transcribed-badge">
+                                              ✓ {t('meetingRecordings.transcribed')}
+                                            </div>
+                                          ) : track.transcription_status === 'processing' || transcribingTracks.has(track.id) ? (
+                                            <button
+                                              className="transcribe-button"
+                                              disabled
+                                            >
+                                              {t('meetingRecordings.transcribing')}
+                                            </button>
+                                          ) : (
                                             <button
                                               className="transcribe-button"
                                               onClick={() => forceTranscription(track.id)}
-                                              disabled={transcribingTracks.has(track.id)}
                                             >
-                                              {transcribingTracks.has(track.id)
-                                                ? t('meetingRecordings.transcribing')
-                                                : t('meetingRecordings.forceTranscribe')}
+                                              {t('meetingRecordings.forceTranscribe')}
                                             </button>
                                           )}
                                         </div>
@@ -391,22 +399,79 @@ export default function MeetingRecordings() {
                     return null;
                   })()}
 
-                  {/* Transcript Section (Coming Soon) */}
-                  <div className="accordion-item">
-                    <button
-                      className={`accordion-header ${openSection === 'transcript' ? 'active' : ''}`}
-                      onClick={() => toggleSection('transcript')}
-                    >
-                      <span>{t('meetingRecordings.sections.transcript')}</span>
-                      <span className="accordion-badge">{t('meetingRecordings.comingSoon')}</span>
-                      <span className="accordion-icon">{openSection === 'transcript' ? '▼' : '▶'}</span>
-                    </button>
-                    {openSection === 'transcript' && (
-                      <div className="accordion-content">
-                        <p className="coming-soon-message">{t('meetingRecordings.transcriptComingSoon')}</p>
+                  {/* Transcript Section */}
+                  {(() => {
+                    // Collect all transcription phrases from all recordings
+                    const allPhrases: Array<{
+                      timestamp: number;
+                      text: string;
+                      speaker: string;
+                      trackId: string;
+                      startedAt: string;
+                    }> = [];
+
+                    roomRecordings.forEach((room) => {
+                      if (room.tracks && room.tracks.length > 0) {
+                        room.tracks.forEach((track) => {
+                          if (track.transcription_phrases && track.transcription_phrases.length > 0) {
+                            const trackStartTime = new Date(track.started_at).getTime();
+                            const participantName = getParticipantName(track);
+
+                            track.transcription_phrases.forEach((phrase: any) => {
+                              allPhrases.push({
+                                timestamp: trackStartTime + (phrase.timestamp || 0) * 1000,
+                                text: phrase.text,
+                                speaker: participantName,
+                                trackId: track.id,
+                                startedAt: track.started_at,
+                              });
+                            });
+                          }
+                        });
+                      }
+                    });
+
+                    // Sort by timestamp
+                    allPhrases.sort((a, b) => a.timestamp - b.timestamp);
+
+                    const hasTranscriptions = allPhrases.length > 0;
+
+                    return (
+                      <div className="accordion-item">
+                        <button
+                          className={`accordion-header ${openSection === 'transcript' ? 'active' : ''}`}
+                          onClick={() => toggleSection('transcript')}
+                        >
+                          <span>{t('meetingRecordings.sections.transcript')}</span>
+                          {!hasTranscriptions && (
+                            <span className="accordion-badge">{t('meetingRecordings.comingSoon')}</span>
+                          )}
+                          <span className="accordion-icon">{openSection === 'transcript' ? '▼' : '▶'}</span>
+                        </button>
+                        {openSection === 'transcript' && (
+                          <div className="accordion-content">
+                            {hasTranscriptions ? (
+                              <div className="transcript-timeline">
+                                {allPhrases.map((phrase, idx) => (
+                                  <div key={`${phrase.trackId}-${idx}`} className="transcript-entry">
+                                    <div className="transcript-timestamp">
+                                      {new Date(phrase.timestamp).toLocaleTimeString(locale)}
+                                    </div>
+                                    <div className="transcript-content">
+                                      <div className="transcript-speaker">{phrase.speaker}</div>
+                                      <div className="transcript-text">{phrase.text}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="coming-soon-message">{t('meetingRecordings.transcriptComingSoon')}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
 
                   {/* Memo Section (Coming Soon) */}
                   <div className="accordion-item">

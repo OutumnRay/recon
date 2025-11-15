@@ -191,8 +191,8 @@ services:
   transcription-service:
     build:
       context: ./transcription-service
-      dockerfile: Dockerfile
-    image: sivanov2018/recontext-transcription-service:latest
+      dockerfile: Dockerfile.gpu
+    image: sivanov2018/recontext-transcription-service:gpu
     container_name: recontext-transcription-service
     environment:
       - RABBITMQ_HOST=192.168.5.153
@@ -206,8 +206,8 @@ services:
       - DB_USER=recontext
       - DB_PASSWORD=recontext
       - WHISPER_MODEL=medium
-      - WHISPER_DEVICE=cpu
-      - WHISPER_COMPUTE_TYPE=int8
+      - WHISPER_DEVICE=cuda
+      - WHISPER_COMPUTE_TYPE=float16
       - STORAGE_BASE_URL=https://api.storage.recontext.online
       - MINIO_ENDPOINT=192.168.5.153:9000
       - MINIO_ACCESS_KEY=minioadmin
@@ -217,6 +217,13 @@ services:
 #      - postgres
 #      - rabbitmq
 #      - minio
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     networks:
       - recontext-network
     restart: unless-stopped

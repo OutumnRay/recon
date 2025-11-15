@@ -1,0 +1,61 @@
+# Use NVIDIA CUDA base image with Python
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+
+# Set working directory
+WORKDIR /app
+
+# Install Python and system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3-pip \
+        python3.11-dev \
+        gcc \
+        g++ \
+        libpq-dev \
+        ffmpeg \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symbolic links for python and pip
+RUN ln -s /usr/bin/python3.11 /usr/bin/python && \
+    ln -s /usr/bin/pip3 /usr/bin/pip
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+# Install PyTorch with CUDA support first
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Install other requirements
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install faster-whisper with CUDA support
+RUN pip install --no-cache-dir faster-whisper
+
+# Copy application code
+COPY . .
+
+# Create directory for Whisper models
+RUN mkdir -p /app/models
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV WHISPER_CACHE_DIR=/app/models
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Pre-download Whisper model during build
+# Download for CPU first (to cache the model), will use GPU at runtime
+RUN python -c "from faster_whisper import WhisperModel; \
+    import os; \
+    model_name = os.getenv('WHISPER_MODEL', 'medium'); \
+    print(f'Downloading Whisper model: {model_name}'); \
+    model = WhisperModel(model_name, device='cpu', compute_type='int8'); \
+    print(f'Model {model_name} downloaded successfully')"
+
+# Run the worker
+CMD ["python", "main.py"]
