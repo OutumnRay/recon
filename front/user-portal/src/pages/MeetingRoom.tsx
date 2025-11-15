@@ -91,6 +91,7 @@ export default function MeetingRoom() {
   const [screenShareQuality, setScreenShareQuality] = useState<'low' | 'medium' | 'high'>('medium');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [currentScreenSharer, setCurrentScreenSharer] = useState<string | null>(null);
+  const [playbackUnlocked, setPlaybackUnlocked] = useState(false);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const stageVideoRef = useRef<HTMLDivElement>(null);
@@ -231,6 +232,9 @@ export default function MeetingRoom() {
     // Only show video if track exists
     if (publication?.track) {
       const element = publication.track.attach();
+      if (element instanceof HTMLVideoElement) {
+        prepareVideoElement(element, true);
+      }
       element.classList.add('meeting-video-element');
       videoSlot.appendChild(element);
       localPreviewTrackRef.current = publication.track;
@@ -297,6 +301,10 @@ export default function MeetingRoom() {
     }
 
     if (element) {
+      if (element instanceof HTMLVideoElement) {
+        const shouldMute = targetId === room.localParticipant?.sid;
+        prepareVideoElement(element, shouldMute);
+      }
       element.classList.add('meeting-video-element');
       container.appendChild(element);
       stageTrackRef.current = track;
@@ -401,6 +409,18 @@ export default function MeetingRoom() {
         console.log(`[Show Video] Shown video for participant ${participantSid}`);
       }
     }
+  };
+
+  const prepareVideoElement = (element: HTMLVideoElement, shouldMute = false) => {
+    element.autoplay = true;
+    element.playsInline = true;
+    element.muted = shouldMute;
+    element.controls = false;
+  };
+
+  const prepareAudioElement = (element: HTMLAudioElement) => {
+    element.autoplay = true;
+    element.controls = false;
   };
 
   const attachTrackToTile = (participant: RemoteParticipant, element: HTMLElement) => {
@@ -549,6 +569,11 @@ export default function MeetingRoom() {
       if (track.kind === Track.Kind.Video || track.kind === Track.Kind.Audio) {
         const element = track.attach();
         element.id = `${participant.sid}-${track.kind}`;
+        if (track.kind === Track.Kind.Video && element instanceof HTMLVideoElement) {
+          prepareVideoElement(element, false);
+        } else if (track.kind === Track.Kind.Audio && element instanceof HTMLAudioElement) {
+          prepareAudioElement(element);
+        }
 
         if (track.kind === Track.Kind.Video) {
           console.log(`[Video Track] Attaching video for ${displayName}`, element);
@@ -678,20 +703,6 @@ export default function MeetingRoom() {
 
     const handleActiveSpeakerChange = (speakers: Participant[]) => {
       setActiveSpeakers(speakers);
-
-      // Automatically switch stage to active speaker (excluding local participant)
-      if (speakers.length > 0) {
-        // Find the first remote participant who is speaking
-        const activeSpeaker = speakers.find(speaker => speaker instanceof RemoteParticipant);
-
-        if (activeSpeaker) {
-          const displayName = getParticipantDisplayName(activeSpeaker);
-          console.log(`[Active Speaker] Switching stage to ${displayName} (${activeSpeaker.sid})`);
-          setStageParticipantId(activeSpeaker.sid);
-          renderStageVideo(activeSpeaker.sid);
-          updateSidebarHighlight(activeSpeaker.sid);
-        }
-      }
     };
 
     const handleTrackMuted = (publication: TrackPublication, participant: Participant) => {
@@ -717,6 +728,9 @@ export default function MeetingRoom() {
           const videoPublication = participant.getTrackPublication(Track.Source.Camera);
           if (videoPublication?.track) {
             const element = videoPublication.track.attach();
+            if (element instanceof HTMLVideoElement) {
+              prepareVideoElement(element, false);
+            }
             element.classList.add('meeting-video-element');
             attachTrackToTile(participant, element);
           }
@@ -766,10 +780,15 @@ export default function MeetingRoom() {
 
         // Re-attach tracks for each participant
         participant.trackPublications.forEach((publication) => {
-          if (publication.isSubscribed && publication.track) {
-            const track = publication.track as RemoteTrack;
-            const element = track.attach();
-            element.id = `${participant.sid}-${track.kind}`;
+            if (publication.isSubscribed && publication.track) {
+              const track = publication.track as RemoteTrack;
+              const element = track.attach();
+              element.id = `${participant.sid}-${track.kind}`;
+              if (track.kind === Track.Kind.Video && element instanceof HTMLVideoElement) {
+                prepareVideoElement(element, false);
+              } else if (track.kind === Track.Kind.Audio && element instanceof HTMLAudioElement) {
+                prepareAudioElement(element);
+              }
 
             if (track.kind === Track.Kind.Video) {
               participantVideoTracks.current.set(participant.sid, track);
@@ -839,11 +858,16 @@ export default function MeetingRoom() {
         }
 
         // Check again after subscription attempt
-        if (publication.isSubscribed && publication.track) {
-          console.log(`[Existing Track] Track already subscribed, manually attaching...`);
-          const track = publication.track as RemoteTrack;
-          const element = track.attach();
-          element.id = `${participant.sid}-${track.kind}`;
+          if (publication.isSubscribed && publication.track) {
+            console.log(`[Existing Track] Track already subscribed, manually attaching...`);
+            const track = publication.track as RemoteTrack;
+            const element = track.attach();
+            element.id = `${participant.sid}-${track.kind}`;
+            if (track.kind === Track.Kind.Video && element instanceof HTMLVideoElement) {
+              prepareVideoElement(element, false);
+            } else if (track.kind === Track.Kind.Audio && element instanceof HTMLAudioElement) {
+              prepareAudioElement(element);
+            }
 
           if (track.kind === Track.Kind.Video) {
             participantVideoTracks.current.set(participant.sid, track);
@@ -1071,12 +1095,6 @@ export default function MeetingRoom() {
           }
         }
 
-        // Enable camera and microphone by default after processing existing participants
-        // Give a bit more time for event handlers to be registered
-        setTimeout(() => {
-          enableMediaByDefault();
-        }, 1000);
-
       } catch (err) {
         console.error('Failed to connect:', err);
         setError(err instanceof Error ? err.message : t('meetingRoom.errors.connect'));
@@ -1119,6 +1137,26 @@ export default function MeetingRoom() {
   useEffect(() => {
     updateSidebarHighlight(stageParticipantId);
   }, [stageParticipantId, updateSidebarHighlight]);
+
+  useEffect(() => {
+    if (currentScreenSharer) {
+      if (stageParticipantId !== currentScreenSharer) {
+        console.log('[Stage] Switching to screen sharer', currentScreenSharer);
+        setStageParticipantId(currentScreenSharer);
+      }
+      return;
+    }
+
+    if (activeSpeakers.length === 0) return;
+
+    const localSid = room.localParticipant?.sid;
+    const nextSpeaker = activeSpeakers.find((speaker) => speaker.sid !== localSid) || activeSpeakers[0];
+
+    if (nextSpeaker && nextSpeaker.sid !== stageParticipantId) {
+      console.log('[Stage] Switching to active speaker', nextSpeaker.sid);
+      setStageParticipantId(nextSpeaker.sid);
+    }
+  }, [activeSpeakers, currentScreenSharer, room, stageParticipantId]);
 
 
   const confirmLeave = useCallback(() => {
@@ -1179,6 +1217,27 @@ export default function MeetingRoom() {
     console.log(`[Media Playback] Attempted to start ${audioCount} audio and ${videoCount} video elements`);
   }, []);
 
+  useEffect(() => {
+    if (playbackUnlocked || typeof document === 'undefined') return;
+
+    const events: Array<keyof DocumentEventMap> = ['click', 'touchstart', 'keydown'];
+    let unlocked = false;
+
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      startAllMediaPlayback();
+      setPlaybackUnlocked(true);
+      events.forEach(evt => document.removeEventListener(evt, unlock));
+    };
+
+    events.forEach(evt => document.addEventListener(evt, unlock, { passive: true }));
+
+    return () => {
+      events.forEach(evt => document.removeEventListener(evt, unlock));
+    };
+  }, [playbackUnlocked, startAllMediaPlayback]);
+
   // Aggressive track subscription - force subscribe to all tracks
   const forceSubscribeToAllTracks = useCallback(async () => {
     if (!isConnected) return;
@@ -1202,29 +1261,33 @@ export default function MeetingRoom() {
 
           // Wait a bit for track to be ready
           setTimeout(() => {
-            if (publication.track) {
-              const track = publication.track as RemoteTrack;
-              const element = track.attach();
-              element.id = `${participant.sid}-${track.kind}`;
+              if (publication.track) {
+                const track = publication.track as RemoteTrack;
+                const element = track.attach();
+                element.id = `${participant.sid}-${track.kind}`;
 
-              if (track.kind === Track.Kind.Video) {
-                console.log(`[Force Subscribe] Attaching video for ${displayName}`);
-                participantVideoTracks.current.set(participant.sid, track);
-                element.classList.add('meeting-video-element');
-                attachTrackToTile(participant, element);
+                if (track.kind === Track.Kind.Video) {
+                  console.log(`[Force Subscribe] Attaching video for ${displayName}`);
+                  participantVideoTracks.current.set(participant.sid, track);
+                  if (element instanceof HTMLVideoElement) {
+                    prepareVideoElement(element, false);
+                  }
+                  element.classList.add('meeting-video-element');
+                  attachTrackToTile(participant, element);
 
-                if (stageParticipantId === participant.sid) {
-                  renderStageVideo(participant.sid);
+                  if (stageParticipantId === participant.sid) {
+                    renderStageVideo(participant.sid);
+                  }
+                } else if (track.kind === Track.Kind.Audio) {
+                  console.log(`[Force Subscribe] Attaching audio for ${displayName}`);
+                  if (element instanceof HTMLAudioElement) {
+                    element.volume = volumeRef.current / 100;
+                    prepareAudioElement(element);
+                  }
+                  element.style.display = 'none';
+                  attachTrackToTile(participant, element);
                 }
-              } else if (track.kind === Track.Kind.Audio) {
-                console.log(`[Force Subscribe] Attaching audio for ${displayName}`);
-                if (element instanceof HTMLAudioElement) {
-                  element.volume = volumeRef.current / 100;
-                }
-                element.style.display = 'none';
-                attachTrackToTile(participant, element);
               }
-            }
           }, 500);
         } catch (err) {
           console.error(`[Force Subscribe] ✗ Failed to subscribe to ${publication.kind} track:`, err);
@@ -1259,100 +1322,6 @@ export default function MeetingRoom() {
       setIsParticipantsCollapsed(false);
     } else if (isDownSwipe && !isParticipantsCollapsed) {
       setIsParticipantsCollapsed(true);
-    }
-  };
-
-  const enableMediaByDefault = async () => {
-    try {
-      console.log('[Media] Enabling camera and microphone by default...');
-      console.log('[Media] Navigator available:', typeof navigator);
-      console.log('[Media] Navigator.mediaDevices available:', typeof navigator?.mediaDevices);
-      console.log('[Media] Protocol:', window.location.protocol);
-      console.log('[Media] User agent:', navigator.userAgent);
-
-      // Check if mediaDevices is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        const protocol = window.location.protocol;
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-        let errorMsg = 'Camera and microphone access is not available.\n\n';
-
-        if (protocol === 'http:' && !isLocalhost) {
-          errorMsg += '⚠️ The page is loaded via HTTP (not HTTPS).\n';
-          errorMsg += 'WebRTC requires HTTPS for security.\n\n';
-          errorMsg += 'Please access this page via HTTPS:\n';
-          errorMsg += `https://${window.location.host}${window.location.pathname}`;
-        } else {
-          errorMsg += 'Your browser does not support WebRTC or camera/microphone access is blocked.\n\n';
-          errorMsg += 'Please:\n';
-          errorMsg += '1. Use a modern browser (Chrome, Firefox, Safari, Edge)\n';
-          errorMsg += '2. Allow camera and microphone permissions when prompted\n';
-          errorMsg += '3. Check that no other app is using the camera';
-        }
-
-        console.error('[Media] WebRTC not supported:', errorMsg);
-        setError(errorMsg);
-        return;
-      }
-
-      // For iOS Safari, we need to request permissions explicitly first
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      console.log('[Media] iOS device:', isIOS);
-
-      if (isIOS) {
-        console.log('[Media] iOS detected, requesting permissions explicitly...');
-        try {
-          // Request permissions first on iOS
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: { facingMode: 'user' }
-          });
-          console.log('[Media] iOS permissions granted, stopping test stream');
-          stream.getTracks().forEach(track => track.stop());
-        } catch (permErr) {
-          console.error('[Media] Failed to get iOS permissions:', permErr);
-          setError(`Please allow camera and microphone access: ${permErr instanceof Error ? permErr.message : 'Unknown error'}`);
-          return;
-        }
-      }
-
-      // Enable microphone first (more likely to succeed)
-      try {
-        await room.localParticipant.setMicrophoneEnabled(true);
-        setIsMicEnabled(true);
-        console.log('[Media] Microphone enabled successfully');
-      } catch (micErr) {
-        console.error('[Media] Failed to enable microphone:', micErr);
-        const errorMsg = micErr instanceof Error ? micErr.message : 'Unknown error';
-        console.error('[Media] Microphone error details:', errorMsg);
-        // Don't set error state for mic, continue trying camera
-      }
-
-      // Then enable camera
-      try {
-        await room.localParticipant.setCameraEnabled(true);
-        setIsCameraEnabled(true);
-        renderLocalPreview();
-        console.log('[Media] Camera enabled successfully');
-
-        // Start playback for all remote audio/video (required for mobile browsers)
-        // User's camera/mic activation counts as interaction
-        setTimeout(() => {
-          startAllMediaPlayback();
-        }, 500);
-      } catch (camErr) {
-        console.error('[Media] Failed to enable camera:', camErr);
-        const errorMsg = camErr instanceof Error ? camErr.message : 'Unknown error';
-        console.error('[Media] Camera error details:', errorMsg);
-        // Don't set error state, user can enable manually
-      }
-
-      if (stageParticipantId === room.localParticipant?.sid) {
-        renderStageVideo(room.localParticipant.sid);
-      }
-    } catch (err) {
-      console.error('[Media] Failed to enable media:', err);
-      setError(err instanceof Error ? err.message : 'Failed to enable camera/microphone');
     }
   };
 
