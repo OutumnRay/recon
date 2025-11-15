@@ -46,7 +46,7 @@
 
 .meetings-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-xl);
   margin-top: var(--space-xl);
 }
@@ -82,8 +82,6 @@
 
 .meeting-card.meeting-past {
   opacity: 0.92;
-  grid-column: 1 / -1; /* past meetings should always span the full row */
-  width: 100%;
 }
 
 .meeting-card-header {
@@ -828,7 +826,7 @@
   }
 
   .meetings-list {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--space-lg);
   }
 
