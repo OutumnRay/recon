@@ -225,7 +225,6 @@ export default function MeetingRecordings() {
                         className={`session-recording ${roomSelected ? 'active' : ''}`}
                         onClick={() => selectRoomRecording(room)}
                       >
-                        <div className="session-recording-icon">{room.audio_only ? '🎙️' : '🎥'}</div>
                         <div className="session-recording-info">
                           <span className="session-recording-label">{t('meetingRecordings.roomRecordingLabel')}</span>
                           <span className="session-recording-time">{formatTime(room.started_at)}</span>

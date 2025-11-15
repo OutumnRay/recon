@@ -405,6 +405,7 @@
     "qualityMedium": "Среднее",
     "qualityHigh": "Высокое",
     "audioLevel": "Уровень звука",
+    "refreshDevices": "Обновить устройства",
     "cancel": "Отмена",
     "apply": "Применить"
   },

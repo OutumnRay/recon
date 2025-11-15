@@ -403,6 +403,7 @@
     "qualityMedium": "Medium",
     "qualityHigh": "High",
     "audioLevel": "Audio level",
+    "refreshDevices": "Refresh devices",
     "cancel": "Cancel",
     "apply": "Apply"
   },

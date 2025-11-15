@@ -48,6 +48,13 @@
   color: #3b82f6;
 }
 
+.media-settings-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.media-settings-refresh,
 .media-settings-close {
   background: none;
   border: none;
@@ -61,14 +68,39 @@
   justify-content: center;
 }
 
+.media-settings-refresh:hover,
 .media-settings-close:hover {
   background: #e5e7eb;
   color: #111827;
 }
 
+.media-settings-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.media-settings-refresh:disabled:hover {
+  background: none;
+  color: #6b7280;
+}
+
+.media-settings-refresh svg,
 .media-settings-close svg {
   width: 24px;
   height: 24px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.media-settings-refresh svg.spinning {
+  animation: spin 1s linear infinite;
 }
 
 .media-settings-content {

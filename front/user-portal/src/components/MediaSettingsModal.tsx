@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { LuX, LuSettings } from 'react-icons/lu';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { LuX, LuSettings, LuRefreshCw } from 'react-icons/lu';
 import { useTranslation } from 'react-i18next';
 import './MediaSettingsModal.css';
 
@@ -29,6 +29,7 @@ export default function MediaSettingsModal({
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>(currentAudioDeviceId || '');
   const [selectedScreenShareQuality, setSelectedScreenShareQuality] = useState<ScreenShareQuality>(currentScreenShareQuality);
   const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [isLoadingDevices, setIsLoadingDevices] = useState<boolean>(false);
 
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const previewStreamRef = useRef<MediaStream | null>(null);
@@ -36,37 +37,63 @@ export default function MediaSettingsModal({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  // Load available devices
-  useEffect(() => {
-    const loadDevices = async () => {
-      try {
-        // Request permissions first
-        await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          .then(stream => stream.getTracks().forEach(track => track.stop()));
+  // Load available devices function
+  const loadDevices = useCallback(async () => {
+    try {
+      setIsLoadingDevices(true);
+      console.log('[Media Settings] Loading devices...');
 
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoInputs = devices.filter(device => device.kind === 'videoinput');
-        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+      // Request permissions first to ensure device labels are available
+      await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => stream.getTracks().forEach(track => track.stop()));
 
-        setVideoDevices(videoInputs);
-        setAudioDevices(audioInputs);
+      // Enumerate all media devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter(device => device.kind === 'videoinput');
+      const audioInputs = devices.filter(device => device.kind === 'audioinput');
 
-        // Set default devices if not already set
-        if (!selectedVideoDevice && videoInputs.length > 0) {
-          setSelectedVideoDevice(videoInputs[0].deviceId);
-        }
-        if (!selectedAudioDevice && audioInputs.length > 0) {
-          setSelectedAudioDevice(audioInputs[0].deviceId);
-        }
-      } catch (err) {
-        console.error('Failed to enumerate devices:', err);
+      console.log('[Media Settings] Found devices:', {
+        video: videoInputs.length,
+        audio: audioInputs.length
+      });
+
+      setVideoDevices(videoInputs);
+      setAudioDevices(audioInputs);
+
+      // Set default devices if not already set
+      if (!selectedVideoDevice && videoInputs.length > 0) {
+        setSelectedVideoDevice(videoInputs[0].deviceId);
       }
-    };
+      if (!selectedAudioDevice && audioInputs.length > 0) {
+        setSelectedAudioDevice(audioInputs[0].deviceId);
+      }
+    } catch (err) {
+      console.error('[Media Settings] Failed to enumerate devices:', err);
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  }, [selectedVideoDevice, selectedAudioDevice]);
+
+  // Load available devices on open
+  useEffect(() => {
 
     if (isOpen) {
+      // Always reload devices when modal opens
       loadDevices();
+
+      // Listen for device changes while modal is open
+      const handleDeviceChange = () => {
+        console.log('[Media Settings] Device change detected, reloading...');
+        loadDevices();
+      };
+
+      navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+
+      return () => {
+        navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      };
     }
-  }, [isOpen, selectedVideoDevice, selectedAudioDevice]);
+  }, [isOpen, loadDevices]);
 
   // Update preview when selected video device changes
   useEffect(() => {
@@ -206,9 +233,19 @@ export default function MediaSettingsModal({
             <LuSettings />
             <h2>{t('mediaSettings.title')}</h2>
           </div>
-          <button className="media-settings-close" onClick={onClose}>
-            <LuX />
-          </button>
+          <div className="media-settings-header-actions">
+            <button
+              className="media-settings-refresh"
+              onClick={loadDevices}
+              disabled={isLoadingDevices}
+              title={t('mediaSettings.refreshDevices')}
+            >
+              <LuRefreshCw className={isLoadingDevices ? 'spinning' : ''} />
+            </button>
+            <button className="media-settings-close" onClick={onClose}>
+              <LuX />
+            </button>
+          </div>
         </div>
 
         <div className="media-settings-content">
