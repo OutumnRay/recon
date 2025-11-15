@@ -227,6 +227,8 @@ export interface TrackRecording {
   participant_id: string;
   track_id: string;
   participant?: User;
+  transcription?: string; // URL or identifier for the transcription
+  type?: string; // Track type (audio, video)
 }
 
 export interface RoomRecording {

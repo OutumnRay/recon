@@ -42,7 +42,6 @@ import {
 } from 'react-icons/lu';
 import './MeetingRoom.css';
 import MediaSettingsModal from '../components/MediaSettingsModal';
-import { useWebSocket } from '../hooks/useWebSocket';
 
 export default function MeetingRoom() {
   const { meetingId } = useParams<{ meetingId: string }>();
@@ -105,37 +104,6 @@ export default function MeetingRoom() {
   const localPreviewElementRef = useRef<HTMLMediaElement | null>(null);
   const volumeRef = useRef<number>(100);
   const manualDisconnectRef = useRef(false);
-
-  // WebSocket connection for real-time communication
-  const { sendMessage: sendWSMessage } = useWebSocket({
-    meetingId: meetingId || '',
-    enabled: !!meetingId && isConnected,
-    onMessage: (message) => {
-      console.log('[WebSocket] Received message:', message);
-
-      switch (message.type) {
-        case 'screen_share_started':
-          if (message.data?.user_id && message.data.user_id !== room.localParticipant?.sid) {
-            setCurrentScreenSharer(message.data.user_id);
-            console.log(`[Screen Share] User ${message.data.user_id} started sharing`);
-          }
-          break;
-
-        case 'screen_share_stopped':
-          if (message.data?.user_id === currentScreenSharer) {
-            setCurrentScreenSharer(null);
-            console.log(`[Screen Share] User ${message.data.user_id} stopped sharing`);
-          }
-          break;
-      }
-    },
-    onConnect: () => {
-      console.log('[WebSocket] Connected to meeting room');
-    },
-    onDisconnect: () => {
-      console.log('[WebSocket] Disconnected from meeting room');
-    },
-  });
 
   const getInitials = (value: string) => {
     const parts = value.trim().split(' ');
@@ -1577,9 +1545,6 @@ export default function MeetingRoom() {
         await room.localParticipant.setScreenShareEnabled(false);
         setIsScreenSharing(false);
         setCurrentScreenSharer(null);
-
-        // Notify other participants via WebSocket
-        sendWSMessage('screen_share_stop');
         console.log('[Screen Share] Screen share stopped');
 
         // Update stage to show camera instead
@@ -1618,9 +1583,6 @@ export default function MeetingRoom() {
         });
         setIsScreenSharing(true);
         setCurrentScreenSharer(room.localParticipant?.sid || null);
-
-        // Notify other participants via WebSocket
-        sendWSMessage('screen_share_start');
         console.log('[Screen Share] Screen share started');
 
         // Switch stage to show screen share

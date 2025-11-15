@@ -368,7 +368,13 @@
     "noRecordings": "No recordings available for this meeting",
     "stats": {
       "sessions": "Sessions: {{count}}",
-      "tracks": "Tracks: {{count}}"
+      "sessionsLabel": "Sessions",
+      "tracks": "Tracks: {{count}}",
+      "tracksLabel": "Speaker tracks",
+      "tracksSubtitle": "Individual streams from participants",
+      "completed": "completed",
+      "duration": "Total duration",
+      "durationSubtitle": "Across every captured session"
     },
     "sessionLabel": "Session {{number}}",
     "roomRecordingTitle": "Room recording ({{date}})",
@@ -389,8 +395,23 @@
     "toggleTracks": "Show participant tracks",
     "tracksLabel": "Participant tracks",
     "roomRecordingLabel": "Room recording",
+    "playRecording": "Play recording",
+    "nowPlaying": "Now playing",
     "noTracks": "No individual tracks available",
-    "trackSelectedMessage": "Participant tracks include audio only. Select a room recording to view video."
+    "trackSelectedMessage": "Participant tracks include audio only. Select a room recording to view video.",
+    "participantTracks": "Participant Audio Tracks",
+    "unknownParticipant": "Unknown Participant",
+    "sections": {
+      "video": "Video",
+      "tracks": "Tracks",
+      "transcript": "Transcript",
+      "memo": "Memo"
+    },
+    "comingSoon": "Coming Soon",
+    "transcriptComingSoon": "Transcript feature will be available soon. This will include automatic transcription of the meeting with speaker identification.",
+    "memoComingSoon": "Memo feature will be available soon. This will include automatic summaries, action items, and key decisions from the meeting.",
+    "forceTranscribe": "Transcribe",
+    "transcribing": "Transcribing..."
   },
   "mediaSettings": {
     "title": "Video & audio settings",

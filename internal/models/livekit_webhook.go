@@ -149,6 +149,10 @@ type Track struct {
 	PublishedAt      time.Time       `gorm:"column:published_at" json:"publishedAt" db:"published_at"`
 	// Время отмены публикации
 	UnpublishedAt    *time.Time      `gorm:"column:unpublished_at" json:"unpublishedAt,omitempty" db:"unpublished_at"`
+	// Статус транскрипции (pending, processing, completed, failed)
+	TranscriptionStatus string       `gorm:"column:transcription_status;type:varchar(50);default:'pending'" json:"transcription_status,omitempty" db:"transcription_status"`
+	// URL результата транскрипции
+	TranscriptionURL *string          `gorm:"column:transcription_url;type:text" json:"transcription_url,omitempty" db:"transcription_url"`
 	// Время создания записи в БД
 	CreatedAtDB      time.Time       `gorm:"column:created_at;autoCreateTime" json:"-" db:"created_at"`
 	// Время последнего обновления

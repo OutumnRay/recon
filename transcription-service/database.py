@@ -201,16 +201,16 @@ class DatabaseManager:
 
     def mark_track_ready(self, track_id: str):
         """
-        Mark track as ready in the track_recordings table.
+        Mark track as ready in the livekit_tracks table.
 
         Args:
             track_id: UUID of the track
         """
         with self.connect() as conn:
             with conn.cursor() as cur:
-                # Update track_recordings table to mark as ready
+                # Update livekit_tracks table to mark as ready
                 cur.execute("""
-                    UPDATE track_recordings
+                    UPDATE livekit_tracks
                     SET transcription_status = 'completed', updated_at = NOW()
                     WHERE id = %s
                 """, (track_id,))

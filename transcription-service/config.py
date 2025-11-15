@@ -29,8 +29,10 @@ class Config:
 
     # Storage Configuration
     STORAGE_BASE_URL = os.getenv('STORAGE_BASE_URL', 'http://localhost:9000')
+    MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'api.storage.recontext.online:9000')
     MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
     MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+    MINIO_SECURE = os.getenv('MINIO_SECURE', 'true').lower() == 'true'  # Use HTTPS by default
 
     @classmethod
     def get_db_connection_string(cls):

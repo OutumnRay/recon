@@ -159,18 +159,25 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 	var roomSID string
 	if isTrack {
 		// For tracks, we already have meetingID from earlier. Get room SID.
+		// First find the track to get room_sid
+		var track models.Track
+		err := up.db.DB.Where("sid = ?", trackSID).First(&track).Error
+		if err != nil {
+			up.logger.Errorf("Track not found: %s, error: %v", trackSID, err)
+			up.respondWithError(w, http.StatusNotFound, "Track not found", err.Error())
+			return
+		}
+
+		// Then get the room using the room_sid from track
 		var room models.Room
-		err := up.db.DB.Where("name = ?", meetingID).
-			Joins("JOIN tracks ON tracks.room_sid = rooms.sid").
-			Where("tracks.sid = ?", trackSID).
-			First(&room).Error
+		err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
 		if err != nil {
 			up.logger.Errorf("Room not found for track %s: %v", trackSID, err)
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
 		roomSID = room.SID
-		playlistPath = fmt.Sprintf("%s_%s/tracks/%s/%s.m3u8", meetingID, roomSID, trackSID, trackSID)
+		playlistPath = fmt.Sprintf("%s_%s/tracks/%s.m3u8", meetingID, roomSID, trackSID)
 	} else {
 		// For room composites, get room and use meetingID/roomSID/composite.m3u8
 		var room models.Room
@@ -349,11 +356,18 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 	var segmentPath string
 	if isTrack {
 		// For tracks, we already have meetingID from earlier. Get room SID.
+		// First find the track to get room_sid
+		var track models.Track
+		err := up.db.DB.Where("sid = ?", trackSID).First(&track).Error
+		if err != nil {
+			up.logger.Errorf("Track not found: %s, error: %v", trackSID, err)
+			up.respondWithError(w, http.StatusNotFound, "Track not found", err.Error())
+			return
+		}
+
+		// Then get the room using the room_sid from track
 		var room models.Room
-		err := up.db.DB.Where("name = ?", meetingID).
-			Joins("JOIN tracks ON tracks.room_sid = rooms.sid").
-			Where("tracks.sid = ?", trackSID).
-			First(&room).Error
+		err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
 		if err != nil {
 			up.logger.Errorf("Room not found for track %s: %v", trackSID, err)
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())

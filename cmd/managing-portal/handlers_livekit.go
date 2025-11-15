@@ -89,47 +89,49 @@ func (mp *ManagingPortal) liveKitWebhookHandler(w http.ResponseWriter, r *http.R
 	// 	// Continue processing even if logging fails
 	// }
 
-	// Process event based on type
-	switch webhookReq.Event {
-	case "room_started":
-		err = mp.handleRoomStarted(webhookReq)
-	case "participant_joined":
-		err = mp.handleParticipantJoined(webhookReq)
-	case "track_published":
-		err = mp.handleTrackPublished(webhookReq)
-	case "track_unpublished":
-		err = mp.handleTrackUnpublished(webhookReq)
-	case "participant_left":
-		err = mp.handleParticipantLeft(webhookReq)
-	case "room_finished":
-		err = mp.handleRoomFinished(webhookReq)
-	case "egress_started":
-		err = mp.handleEgressStarted(webhookReq)
-	case "egress_updated":
-		err = mp.handleEgressUpdated(webhookReq)
-	case "egress_ended":
-		err = mp.handleEgressEnded(webhookReq)
-	default:
-		mp.logger.Errorf("Unknown webhook event type: %s", webhookReq.Event)
-		mp.respondWithError(w, http.StatusBadRequest, "Unknown event type", "")
-		return
-	}
-
-	if err != nil {
-		mp.logger.Errorf("Failed to process %s event: %s", webhookReq.Event, err.Error())
-		mp.respondWithError(w, http.StatusInternalServerError, "Failed to process event", err.Error())
-		return
-	}
-
-	// Return success response
+	// Return success response immediately (async processing)
 	response := models.WebhookResponse{
 		Status:  "success",
-		Message: fmt.Sprintf("Event %s processed successfully", webhookReq.Event),
+		Message: fmt.Sprintf("Event %s accepted for processing", webhookReq.Event),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+
+	// Process event asynchronously in background goroutine
+	go func() {
+		var err error
+		switch webhookReq.Event {
+		case "room_started":
+			err = mp.handleRoomStarted(webhookReq)
+		case "participant_joined":
+			err = mp.handleParticipantJoined(webhookReq)
+		case "track_published":
+			err = mp.handleTrackPublished(webhookReq)
+		case "track_unpublished":
+			err = mp.handleTrackUnpublished(webhookReq)
+		case "participant_left":
+			err = mp.handleParticipantLeft(webhookReq)
+		case "room_finished":
+			err = mp.handleRoomFinished(webhookReq)
+		case "egress_started":
+			err = mp.handleEgressStarted(webhookReq)
+		case "egress_updated":
+			err = mp.handleEgressUpdated(webhookReq)
+		case "egress_ended":
+			err = mp.handleEgressEnded(webhookReq)
+		default:
+			mp.logger.Errorf("Unknown webhook event type: %s", webhookReq.Event)
+			return
+		}
+
+		if err != nil {
+			mp.logger.Errorf("Failed to process %s event: %s", webhookReq.Event, err.Error())
+		} else {
+			mp.logger.Infof("✅ Successfully processed %s event asynchronously", webhookReq.Event)
+		}
+	}()
 }
 
 func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
@@ -687,6 +689,115 @@ func (mp *ManagingPortal) handleTrackUnpublished(req models.WebhookRequest) erro
 		return err
 	}
 
+	// Create transcription task if track has egress and is audio
+	if track != nil && track.EgressID != "" {
+		mp.logger.Infof("🎙️ Checking if transcription is needed for track %s...", trackSID)
+
+		// Check if this is an audio track
+		isAudioTrack := false
+		if strings.EqualFold(track.Source, "microphone") || track.Type == "audio" {
+			isAudioTrack = true
+		}
+
+		if isAudioTrack {
+			mp.logger.Infof("✅ Track is audio, will create transcription task...")
+
+			// Get room to find meeting
+			room, err := mp.liveKitRepo.GetRoomBySID(roomSID)
+			if err != nil {
+				mp.logger.Errorf("❌ Failed to get room for transcription task: %v", err)
+			} else if room.MeetingID != nil {
+				// Get meeting to check if transcription is enabled
+				meeting, err := mp.meetingRepo.GetMeetingByID(*room.MeetingID)
+				if err != nil {
+					mp.logger.Errorf("❌ Failed to get meeting for transcription task: %v", err)
+				} else if meeting.NeedsTranscription {
+					mp.logger.Infof("✅ Transcription is enabled for meeting %s", meeting.ID)
+
+					// Get participant to find user identity
+					participant, err := mp.liveKitRepo.GetParticipantBySID(participantSID)
+					if err != nil {
+						mp.logger.Errorf("❌ Failed to get participant for transcription: %v", err)
+					} else {
+						// Parse participant identity as user UUID
+						userUUID, err := uuid.Parse(participant.Identity)
+						if err != nil {
+							mp.logger.Errorf("❌ Invalid participant identity format: %v", err)
+						} else {
+							// Construct audio URL from meeting ID, room SID and track SID
+							// Pattern: https://api.storage.recontext.online/recontext/{meetingId}_{roomSid}/tracks/{trackSid}.m3u8
+							storageURL := "https://api.storage.recontext.online"
+							bucket := "recontext"
+							audioURL := fmt.Sprintf("%s/%s/%s_%s/tracks/%s.m3u8",
+								storageURL, bucket, meeting.ID.String(), room.SID, track.SID)
+
+							// Parse track ID as UUID
+							trackUUID, err := uuid.Parse(track.ID.String())
+							if err != nil {
+								mp.logger.Errorf("❌ Invalid track ID format: %v", err)
+							} else {
+								// Log the task details
+								mp.logger.Infof("📋 ========================================")
+								mp.logger.Infof("📋 TRANSCRIPTION TASK DETAILS:")
+								mp.logger.Infof("📋 ========================================")
+								mp.logger.Infof("📋 Track ID:       %s", trackUUID.String())
+								mp.logger.Infof("📋 Track SID:      %s", track.SID)
+								mp.logger.Infof("📋 User ID:        %s", userUUID.String())
+								mp.logger.Infof("📋 Audio URL:      %s", audioURL)
+								mp.logger.Infof("📋 Room SID:       %s", room.SID)
+								mp.logger.Infof("📋 Room Name:      %s", room.Name)
+								mp.logger.Infof("📋 Meeting ID:     %s", meeting.ID.String())
+								mp.logger.Infof("📋 Meeting Title:  %s", meeting.Title)
+								mp.logger.Infof("📋 Egress ID:      %s", track.EgressID)
+								mp.logger.Infof("📋 Source:         track_unpublished event")
+								mp.logger.Infof("📋 ========================================")
+
+								// Wait 10 seconds for egress to finish writing the file
+								mp.logger.Infof("⏳ Waiting 10 seconds for egress to finish writing audio file...")
+
+								// Send task in background goroutine with delay
+								go func(trackID uuid.UUID, userID uuid.UUID, url string, sid string) {
+									time.Sleep(10 * time.Second)
+
+									mp.logger.Infof("⏰ 10 seconds elapsed, sending transcription task...")
+
+									// Send message to RabbitMQ
+									if mp.rabbitMQPublisher != nil {
+										err := mp.rabbitMQPublisher.PublishTranscriptionTask(
+											trackID,
+											userID,
+											url,
+											"",   // Auto-detect language
+											"",   // No auth token needed
+										)
+										if err != nil {
+											mp.logger.Errorf("❌ Failed to send transcription task to RabbitMQ: %v", err)
+										} else {
+											mp.logger.Infof("✅ ========================================")
+											mp.logger.Infof("✅ Transcription task SUCCESSFULLY sent to RabbitMQ!")
+											mp.logger.Infof("✅ Track: %s (SID: %s)", trackID.String(), sid)
+											mp.logger.Infof("✅ Queue: transcription_queue")
+											mp.logger.Infof("✅ Event: track_unpublished (delayed 10s)")
+											mp.logger.Infof("✅ ========================================")
+										}
+									} else {
+										mp.logger.Infof("⚠️ RabbitMQ publisher not initialized, skipping transcription task")
+									}
+								}(trackUUID, userUUID, audioURL, track.SID)
+							}
+						}
+					}
+				} else {
+					mp.logger.Infof("ℹ️ Transcription is disabled for meeting %s", meeting.ID)
+				}
+			} else {
+				mp.logger.Infof("ℹ️ Room has no associated meeting, skipping transcription")
+			}
+		} else {
+			mp.logger.Infof("ℹ️ Track is not audio (Source: %s, Type: %s), skipping transcription", track.Source, track.Type)
+		}
+	}
+
 	mp.logger.Infof("✅ track_unpublished event processed successfully (Track: %s, Room: %s, Participant: %s)",
 		trackSID, roomSID, participantSID)
 	return nil
@@ -1056,6 +1167,23 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 					if err != nil {
 						mp.logger.Errorf("❌ Invalid track ID format: %v", err)
 					} else {
+						// Log the complete task details before sending
+						mp.logger.Infof("📋 ========================================")
+						mp.logger.Infof("📋 TRANSCRIPTION TASK DETAILS:")
+						mp.logger.Infof("📋 ========================================")
+						mp.logger.Infof("📋 Track ID:       %s", trackUUID.String())
+						mp.logger.Infof("📋 Track SID:      %s", track.SID)
+						mp.logger.Infof("📋 User ID:        %s", meeting.CreatedBy.String())
+						mp.logger.Infof("📋 Audio URL:      %s", audioURL)
+						mp.logger.Infof("📋 Room SID:       %s", room.SID)
+						mp.logger.Infof("📋 Room Name:      %s", room.Name)
+						mp.logger.Infof("📋 Meeting ID:     %s", meeting.ID.String())
+						mp.logger.Infof("📋 Meeting Title:  %s", meeting.Title)
+						mp.logger.Infof("📋 Egress ID:      %s", egressID)
+						mp.logger.Infof("📋 File Path:      %s", filePath)
+						mp.logger.Infof("📋 Language:       auto-detect")
+						mp.logger.Infof("📋 ========================================")
+
 						// Send message to RabbitMQ
 						err := mp.rabbitMQPublisher.PublishTranscriptionTask(
 							trackUUID,
@@ -1066,8 +1194,15 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 						)
 						if err != nil {
 							mp.logger.Errorf("❌ Failed to send transcription task to RabbitMQ: %v", err)
+							mp.logger.Errorf("❌ Task that failed: track_id=%s, user_id=%s, audio_url=%s",
+								trackUUID.String(), meeting.CreatedBy.String(), audioURL)
 						} else {
-							mp.logger.Infof("✅ Transcription task sent to RabbitMQ for track %s", track.SID)
+							mp.logger.Infof("✅ ========================================")
+							mp.logger.Infof("✅ Transcription task SUCCESSFULLY sent to RabbitMQ!")
+							mp.logger.Infof("✅ Track: %s (SID: %s)", trackUUID.String(), track.SID)
+							mp.logger.Infof("✅ Queue: transcription_queue")
+							mp.logger.Infof("✅ Message format: {track_id, user_id, audio_url}")
+							mp.logger.Infof("✅ ========================================")
 						}
 					}
 				}

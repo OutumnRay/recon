@@ -28,5 +28,14 @@ RUN mkdir -p /app/models
 ENV PYTHONUNBUFFERED=1
 ENV WHISPER_CACHE_DIR=/app/models
 
+# Pre-download Whisper model during build
+# This downloads the model once during image build instead of on every container start
+RUN python -c "from faster_whisper import WhisperModel; \
+    import os; \
+    model_name = os.getenv('WHISPER_MODEL', 'medium'); \
+    print(f'Downloading Whisper model: {model_name}'); \
+    model = WhisperModel(model_name, device='cpu', compute_type='int8'); \
+    print(f'Model {model_name} downloaded successfully')"
+
 # Run the worker
 CMD ["python", "main.py"]

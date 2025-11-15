@@ -23,6 +23,7 @@ import (
 	"Recontext.online/pkg/embeddings"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
+	"Recontext.online/pkg/rabbitmq"
 
 	_ "Recontext.online/cmd/user-portal/docs" // Import generated docs
 )
@@ -67,6 +68,7 @@ type UserPortal struct {
 	embeddingsClient  *embeddings.EmbeddingsClient   // Embeddings client for RAG
 	emailService      EmailServiceInterface          // Email service for sending emails
 	wsHub             *WSHub                         // WebSocket hub for real-time communication
+	rabbitMQPublisher *rabbitmq.Publisher            // RabbitMQ publisher for transcription tasks
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -120,6 +122,27 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 	// Initialize WebSocket hub
 	wsHub := NewWSHub()
 
+	// Initialize RabbitMQ publisher for transcription tasks
+	rabbitMQHost := getEnv("RABBITMQ_HOST", "localhost")
+	rabbitMQPort := getEnvInt("RABBITMQ_PORT", 5672)
+	rabbitMQUser := getEnv("RABBITMQ_USER", "guest")
+	rabbitMQPassword := getEnv("RABBITMQ_PASSWORD", "guest")
+	rabbitMQQueue := getEnv("RABBITMQ_QUEUE", "transcription_queue")
+
+	rabbitMQPublisher, err := rabbitmq.NewPublisher(
+		rabbitMQHost,
+		rabbitMQPort,
+		rabbitMQUser,
+		rabbitMQPassword,
+		rabbitMQQueue,
+	)
+	if err != nil {
+		log.Error("Failed to initialize RabbitMQ publisher: " + err.Error())
+		log.Error("Transcription features will be unavailable")
+	} else {
+		log.Info("RabbitMQ publisher initialized successfully")
+	}
+
 	return &UserPortal{
 		config:            cfg,
 		logger:            log,
@@ -135,6 +158,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		embeddingsClient:  embeddingsClient,
 		emailService:      mailer,
 		wsHub:             wsHub,
+		rabbitMQPublisher: rabbitMQPublisher,
 	}, nil
 }
 
@@ -1036,6 +1060,19 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/fcm/unregister", chainMiddleware(
 		http.HandlerFunc(up.unregisterFCMDeviceHandler),
+		authMiddleware,
+	))
+
+	// Track transcription endpoint
+	mux.Handle("/api/tracks/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Check if this is a transcribe request: /api/tracks/{id}/transcribe
+			if strings.Contains(r.URL.Path, "/transcribe") && r.Method == http.MethodPost {
+				up.forceTranscribeTrackHandler(w, r)
+				return
+			}
+			http.Error(w, "Not found", http.StatusNotFound)
+		}),
 		authMiddleware,
 	))
 

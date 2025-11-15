@@ -5,16 +5,25 @@ import './HLSPlayer.css';
 interface HLSPlayerProps {
   src: string;
   autoplay?: boolean;
+  audioOnly?: boolean;
+  className?: string;
 }
 
-export default function HLSPlayer({ src, autoplay = false }: HLSPlayerProps) {
+export default function HLSPlayer({ src, autoplay = false, audioOnly = false, className }: HLSPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
   useEffect(() => {
-    if (!videoRef.current) return;
+    const mediaElement = audioOnly ? audioRef.current : videoRef.current;
+    if (!mediaElement) return;
 
-    const video = videoRef.current;
+    const video = mediaElement;
+
+    // Convert relative URL to absolute if needed
+    const absoluteSrc = src.startsWith('http') || src.startsWith('blob:')
+      ? src
+      : `${window.location.origin}${src}`;
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
@@ -47,8 +56,8 @@ export default function HLSPlayer({ src, autoplay = false }: HLSPlayerProps) {
         }
       });
 
-      // Load source
-      hls.loadSource(src);
+      // Load source with absolute URL
+      hls.loadSource(absoluteSrc);
 
       // Handle errors
       hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -81,7 +90,7 @@ export default function HLSPlayer({ src, autoplay = false }: HLSPlayerProps) {
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari, iOS)
       console.log('Using native HLS support');
-      video.src = src;
+      video.src = absoluteSrc;
       if (autoplay) {
         video.play().catch(err => console.error('Autoplay failed:', err));
       }
@@ -92,16 +101,24 @@ export default function HLSPlayer({ src, autoplay = false }: HLSPlayerProps) {
     } else {
       console.error('HLS is not supported in this browser');
     }
-  }, [src, autoplay]);
+  }, [src, autoplay, audioOnly]);
 
   return (
-    <div className="hls-player">
-      <video
-        ref={videoRef}
-        controls
-        playsInline
-        className="hls-video"
-      />
+    <div className={`hls-player ${className || ''}`}>
+      {audioOnly ? (
+        <audio
+          ref={audioRef}
+          controls
+          className="hls-audio"
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          controls
+          playsInline
+          className="hls-video"
+        />
+      )}
     </div>
   );
 }
