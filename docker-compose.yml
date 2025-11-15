@@ -107,6 +107,10 @@ services:
       - SMTP_FROM_NAME=Служба поддержки Recontext
       # Portal URL for generating anonymous join links
       - PORTAL_URL=https://portal.recontext.online
+      # Firebase Cloud Messaging for push notifications
+      - FCM_CREDENTIALS_PATH=/app/credentials/recontext-firebase.json
+    volumes:
+      - ./recontext-firebase.json:/app/credentials/recontext-firebase.json:ro
 #    depends_on:
 #      - managing-portal
 #      - postgres

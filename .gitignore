@@ -33,3 +33,11 @@ mobile2/android/keystore.jks
 front/user-portal/src/config/version.ts
 front/managing-portal/src/config/version.ts
 internal/version/version.go
+
+# Firebase credentials (NEVER commit these!)
+recontext-firebase.json
+*-firebase.json
+!*-firebase.json.example
+firebase-credentials.json
+google-services.json
+GoogleService-Info.plist

@@ -178,19 +178,11 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 
 				// Load transcription phrases if transcription is completed
 				if track.TranscriptionStatus == "completed" {
-					var dbPhrases []struct {
-						StartTime  float64 `db:"start_time"`
-						EndTime    float64 `db:"end_time"`
-						Text       string  `db:"text"`
-						Speaker    *string `db:"speaker"`
-					}
+					var dbPhrases []models.TranscriptionPhrase
 
-					err := up.db.DB.Raw(`
-						SELECT start_time, end_time, text, speaker
-						FROM transcription_phrases
-						WHERE track_id = ?
-						ORDER BY phrase_index ASC
-					`, track.ID).Scan(&dbPhrases).Error
+					err := up.db.DB.Where("track_id = ?", track.ID).
+						Order("phrase_index ASC").
+						Find(&dbPhrases).Error
 
 					if err == nil && len(dbPhrases) > 0 {
 						// Convert database phrases to API format
@@ -200,7 +192,7 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 								Start:   p.StartTime,
 								End:     p.EndTime,
 								Text:    p.Text,
-								Speaker: p.Speaker,
+								Speaker: nil, // Speaker diarization not yet implemented
 							}
 						}
 						up.logger.Infof("📹 [RECORDINGS] Loaded %d transcription phrases for track %s", len(dbPhrases), track.SID)

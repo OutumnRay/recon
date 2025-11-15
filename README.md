@@ -86,3 +86,15 @@ MS Teams / Zoom / Telegram / WhatsApp — парсинг звонков чере
 Создать видеоконференцию (на Jitsi) и автоматически сохранить её результаты.
 
 Хранить записи в каталогах по проектам/клиентам.
+## Push Notifications Setup
+
+Проект использует Firebase Cloud Messaging для отправки push-уведомлений о завершении транскрибации.
+
+### Быстрая настройка:
+
+1. Получите Firebase Service Account credentials из [Firebase Console](https://console.firebase.google.com/)
+2. Сохраните JSON файл как `recontext-firebase.json` в корне проекта
+3. Перезапустите user-portal: `docker-compose up -d user-portal`
+
+**Подробная инструкция:** См. [FCM_SETUP.md](FCM_SETUP.md)
+
