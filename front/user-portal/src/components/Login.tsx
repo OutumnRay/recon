@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import './Login.css';
@@ -26,6 +26,10 @@ interface ErrorResponse {
 export const Login: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the page user was trying to access before being redirected to login
+  const from = (location.state as any)?.from || '/dashboard/meetings';
 
   // Set page title
   React.useEffect(() => {
@@ -36,9 +40,9 @@ export const Login: React.FC = () => {
   React.useEffect(() => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (token) {
-      navigate('/dashboard/meetings');
+      navigate(from);
     }
-  }, [navigate]);
+  }, [navigate, from]);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -88,9 +92,9 @@ export const Login: React.FC = () => {
 
       setSuccess(t('login.loginSuccess'));
 
-      // Redirect to dashboard after short delay
+      // Redirect to the page user was trying to access, or dashboard
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = from;
       }, 1000);
 
     } catch (err) {

@@ -17,6 +17,15 @@ export const Dashboard: React.FC = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // Check authentication on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      // Save current location to redirect back after login
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  }, [navigate, location.pathname]);
+
   useEffect(() => {
     checkFilePermission();
   }, []);

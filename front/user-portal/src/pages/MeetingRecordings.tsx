@@ -39,6 +39,17 @@ export default function MeetingRecordings() {
         const meetingData = await getMeeting(meetingId);
         setMeeting(meetingData);
 
+        // Check if authentication is required for non-anonymous meetings
+        if (!meetingData.allow_anonymous) {
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          if (!token) {
+            // Redirect to login page for non-anonymous meetings
+            console.log('[Auth] Meeting recordings require authentication, redirecting to login');
+            navigate('/login', { state: { from: `/meeting/${meetingId}/recordings` } });
+            return;
+          }
+        }
+
         // Fetch room recordings with tracks
         const recordingsData = await getMeetingRecordings(meetingId);
         setRoomRecordings(recordingsData);
@@ -59,13 +70,17 @@ export default function MeetingRecordings() {
       } catch (err: any) {
         console.error('Failed to fetch recordings:', err);
         setError(err instanceof Error ? err.message : t('meetingRecordings.errors.loadFailed'));
+        // If meeting fetch fails with 401/403, it might be auth issue
+        if (err instanceof Error && (err.message.includes('401') || err.message.includes('403'))) {
+          navigate('/login', { state: { from: `/meeting/${meetingId}/recordings` } });
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [meetingId]);
+  }, [meetingId, navigate, t]);
 
   const selectRoomRecording = (room: RoomRecording) => {
     if (!room.playlist_url) return;

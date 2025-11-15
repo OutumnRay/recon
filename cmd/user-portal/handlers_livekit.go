@@ -92,7 +92,6 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	// Check authentication - required unless meeting allows anonymous
 	claims, ok := auth.GetUserFromContext(r.Context())
 	var userID uuid.UUID
-	var userName string
 	participantRole := "participant"
 	isAnonymous := false
 
@@ -109,7 +108,6 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 	} else {
 		// Authenticated user
 		userID = claims.UserID
-		userName = claims.Username
 		fmt.Printf("INFO: User %s requesting token for meeting %s\n", userID, meetingID)
 	}
 

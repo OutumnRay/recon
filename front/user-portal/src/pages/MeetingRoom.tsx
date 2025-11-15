@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Room,
   RoomEvent,
@@ -45,7 +45,11 @@ import { useWebSocket } from '../hooks/useWebSocket';
 export default function MeetingRoom() {
   const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
+
+  // Check if we have token data from AnonymousJoin page
+  const anonymousTokenData = location.state as any;
 
   const [room] = useState(() => new Room({
     adaptiveStream: true,
@@ -432,6 +436,16 @@ export default function MeetingRoom() {
       return;
     }
 
+    // If we have token data from AnonymousJoin, use it and skip meeting details loading
+    if (anonymousTokenData?.token && anonymousTokenData?.isAnonymous) {
+      console.log('[Anonymous Join] Using token data from AnonymousJoin page');
+      if (anonymousTokenData.meetingTitle) {
+        setMeetingTitle(anonymousTokenData.meetingTitle);
+      }
+      // Skip the meeting details loading - we'll connect directly
+      return;
+    }
+
     const loadMeetingTitle = async () => {
       try {
         const meeting = await getMeeting(meetingId);
@@ -447,8 +461,30 @@ export default function MeetingRoom() {
         console.log('[Meeting Settings] needs_transcription:', meeting.needs_transcription);
         console.log('[Meeting Settings] is_recording:', meeting.is_recording);
         console.log('[Meeting Settings] is_transcribing:', meeting.is_transcribing);
+
+        // Check authentication and handle redirects based on meeting type
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+        if (!token) {
+          // No authentication
+          if (meeting.allow_anonymous) {
+            // For anonymous meetings, redirect to join page to enter name
+            console.log('[Auth] Anonymous meeting, redirecting to join page');
+            navigate(`/meeting/${meetingId}/join`);
+            return;
+          } else {
+            // For non-anonymous meetings, redirect to login
+            console.log('[Auth] Meeting requires authentication, redirecting to login');
+            navigate('/login', { state: { from: `/meeting/${meetingId}` } });
+            return;
+          }
+        }
       } catch (err) {
         console.error('Failed to load meeting details:', err);
+        // If meeting fetch fails with 401/403, it might be auth issue
+        if (err instanceof Error && (err.message.includes('401') || err.message.includes('403'))) {
+          navigate('/login', { state: { from: `/meeting/${meetingId}` } });
+        }
       }
     };
 
@@ -474,7 +510,8 @@ export default function MeetingRoom() {
     }, 10000); // Update every 10 seconds
 
     return () => clearInterval(statusInterval);
-  }, [meetingId, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId, t, navigate]);
 
   useEffect(() => {
     const pageTitle = meetingTitle || tokenData?.roomName || t('meetingRoom.pageTitle');
@@ -780,7 +817,27 @@ export default function MeetingRoom() {
 
     const joinRoom = async () => {
       try {
-        const data = await getMeetingToken(meetingId);
+        let data: MeetingTokenResponse;
+
+        // If we have token data from AnonymousJoin, use it directly
+        if (anonymousTokenData?.token && anonymousTokenData?.isAnonymous) {
+          console.log('[Anonymous Join] Using token from AnonymousJoin page');
+          data = {
+            token: anonymousTokenData.token,
+            url: anonymousTokenData.url,
+            roomName: anonymousTokenData.roomName,
+            participantName: anonymousTokenData.participantName,
+            meetingId: meetingId,
+            scheduledAt: anonymousTokenData.scheduledAt,
+            duration: anonymousTokenData.duration,
+            forceEndAt: anonymousTokenData.forceEndAt,
+          };
+        } else {
+          // Otherwise, fetch token from API
+          console.log('[Auth Join] Fetching token from API');
+          data = await getMeetingToken(meetingId);
+        }
+
         setTokenData(data);
 
         console.log('[Room Connect] Connecting to room:', data.url);
@@ -861,6 +918,7 @@ export default function MeetingRoom() {
     return () => {
       room.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, room, t]);
 
   useEffect(() => {

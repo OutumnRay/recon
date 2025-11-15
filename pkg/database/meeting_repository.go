@@ -311,25 +311,32 @@ func (r *MeetingRepository) GetMeetingWithDetails(id uuid.UUID) (*models.Meeting
 		if err == nil && len(rooms) > 0 {
 			// Use the most recent room
 			room := rooms[0]
-			// Count participants that are not DISCONNECTED
+
+			// Count participants that are ACTIVE and NOT hidden (not bots/recorders)
+			// hidden = true means it's a bot/recorder that should not be counted
 			var activeCount int64
 			err = r.db.DB.Model(&LiveKitParticipant{}).
-				Where("room_sid = ? AND state != ?", room.SID, "DISCONNECTED").
+				Where("room_sid = ? AND state = ? AND (permission->>'hidden' IS NULL OR permission->>'hidden' = 'false')",
+					room.SID, "ACTIVE").
 				Count(&activeCount).Error
 			if err == nil {
 				details.ActiveParticipantsCount = int(activeCount)
 			}
-		}
-	}
 
-	// Count anonymous guests for allow_anonymous meetings
-	if meeting.AllowAnonymous {
-		var guestCount int64
-		err = r.db.DB.Model(&TemporaryUser{}).
-			Where("meeting_id = ?", id).
-			Count(&guestCount).Error
-		if err == nil {
-			details.AnonymousGuestsCount = int(guestCount)
+			// Count anonymous guests - participants in LiveKit who are in temporary_users table
+			// and are ACTIVE and not hidden
+			if meeting.AllowAnonymous {
+				var guestCount int64
+				err = r.db.DB.Table("livekit_participants").
+					Joins("INNER JOIN temporary_users ON livekit_participants.identity = temporary_users.id::text").
+					Where("livekit_participants.room_sid = ? AND livekit_participants.state = ? AND (livekit_participants.permission->>'hidden' IS NULL OR livekit_participants.permission->>'hidden' = 'false')",
+						room.SID, "ACTIVE").
+					Where("temporary_users.meeting_id = ?", id).
+					Count(&guestCount).Error
+				if err == nil {
+					details.AnonymousGuestsCount = int(guestCount)
+				}
+			}
 		}
 	}
 
@@ -699,25 +706,32 @@ func (r *MeetingRepository) loadParticipantCounts(meetingsMap map[uuid.UUID]*mod
 			if err == nil && len(rooms) > 0 {
 				// Use the most recent room
 				room := rooms[0]
-				// Count participants that are not DISCONNECTED
+
+				// Count participants that are ACTIVE and NOT hidden (not bots/recorders)
+				// hidden = true means it's a bot/recorder that should not be counted
 				var activeCount int64
 				err = r.db.DB.Model(&LiveKitParticipant{}).
-					Where("room_sid = ? AND state != ?", room.SID, "DISCONNECTED").
+					Where("room_sid = ? AND state = ? AND (permission->>'hidden' IS NULL OR permission->>'hidden' = 'false')",
+						room.SID, "ACTIVE").
 					Count(&activeCount).Error
 				if err == nil {
 					meeting.ActiveParticipantsCount = int(activeCount)
 				}
-			}
-		}
 
-		// Count anonymous guests for allow_anonymous meetings
-		if meeting.AllowAnonymous {
-			var guestCount int64
-			err := r.db.DB.Model(&TemporaryUser{}).
-				Where("meeting_id = ?", meetingID).
-				Count(&guestCount).Error
-			if err == nil {
-				meeting.AnonymousGuestsCount = int(guestCount)
+				// Count anonymous guests - participants in LiveKit who are in temporary_users table
+				// and are ACTIVE and not hidden
+				if meeting.AllowAnonymous {
+					var guestCount int64
+					err = r.db.DB.Table("livekit_participants").
+						Joins("INNER JOIN temporary_users ON livekit_participants.identity = temporary_users.id::text").
+						Where("livekit_participants.room_sid = ? AND livekit_participants.state = ? AND (livekit_participants.permission->>'hidden' IS NULL OR livekit_participants.permission->>'hidden' = 'false')",
+							room.SID, "ACTIVE").
+						Where("temporary_users.meeting_id = ?", meetingID).
+						Count(&guestCount).Error
+					if err == nil {
+						meeting.AnonymousGuestsCount = int(guestCount)
+					}
+				}
 			}
 		}
 	}
