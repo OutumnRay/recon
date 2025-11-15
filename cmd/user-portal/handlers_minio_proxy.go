@@ -26,7 +26,7 @@ func NewMinIOClient() (*MinIOClient, error) {
 	endpoint := getEnv("MINIO_ENDPOINT", "localhost:9000")
 	accessKey := getEnv("MINIO_ACCESS_KEY", "minioadmin")
 	secretKey := getEnv("MINIO_SECRET_KEY", "minioadmin")
-	bucket := getEnv("MINIO_BUCKET", "livekit-recordings")
+	bucket := getEnv("MINIO_BUCKET", "recontext")
 	useSSL := getEnv("MINIO_USE_SSL", "false") == "true"
 
 	// Remove protocol prefix if present
