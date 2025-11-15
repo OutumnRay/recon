@@ -437,6 +437,28 @@ export default function MeetingRoom() {
     element.controls = false;
   };
 
+  const subscribeToParticipantVideo = useCallback(async (participantId: string | null) => {
+    if (!participantId || participantId === room.localParticipant?.sid) {
+      return;
+    }
+
+    const participant = room.remoteParticipants.get(participantId);
+    if (!participant) {
+      return;
+    }
+
+    for (const publication of participant.videoTrackPublications.values()) {
+      if (!publication.isSubscribed && publication.kind === Track.Kind.Video) {
+        try {
+          console.log(`[Subscribe] Subscribing to video of ${getParticipantDisplayName(participant)}`);
+          await publication.setSubscribed(true);
+        } catch (err) {
+          console.error('[Subscribe] Failed to subscribe to participant video:', err);
+        }
+      }
+    }
+  }, [room]);
+
   const attachTrackToTile = (participant: RemoteParticipant, element: HTMLElement) => {
     const container = ensureParticipantTile(participant);
     const videoSlot = container.querySelector<HTMLDivElement>('.remote-participant-video');
@@ -1184,7 +1206,10 @@ export default function MeetingRoom() {
 
   useEffect(() => {
     updateSidebarHighlight(stageParticipantId);
-  }, [stageParticipantId, updateSidebarHighlight]);
+    if (stageParticipantId) {
+      subscribeToParticipantVideo(stageParticipantId);
+    }
+  }, [stageParticipantId, updateSidebarHighlight, subscribeToParticipantVideo]);
 
   useEffect(() => {
     if (currentScreenSharer) {
