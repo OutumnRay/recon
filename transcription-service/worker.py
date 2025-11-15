@@ -23,9 +23,30 @@ class TranscriptionConsumer:
         self.connection = pika.BlockingConnection(Config.get_rabbitmq_connection_params())
         self.channel = self.connection.channel()
 
-        # Declare queue
+        # Declare transcription queue
         self.channel.queue_declare(queue=Config.RABBITMQ_QUEUE, durable=True)
+
+        # Declare notification queue
+        self.channel.queue_declare(queue='transcription_completed', durable=True)
         print(f"Connected to queue: {Config.RABBITMQ_QUEUE}")
+
+    def send_transcription_completed_notification(self, track_id):
+        """Send notification that transcription is completed."""
+        message = {
+            'track_id': track_id,
+            'event': 'transcription_completed'
+        }
+
+        self.channel.basic_publish(
+            exchange='',
+            routing_key='transcription_completed',
+            body=json.dumps(message),
+            properties=pika.BasicProperties(
+                delivery_mode=2,  # Make message persistent
+                content_type='application/json'
+            )
+        )
+        print(f"📢 Sent transcription completed notification for track {track_id}")
 
     def process_message(self, ch, method, properties, body):
         """
@@ -98,6 +119,12 @@ class TranscriptionConsumer:
             print(f"  Phrases: {phrase_count}")
             print(f"  Duration: {total_duration:.2f}s")
             print(f"{'='*60}\n")
+
+            # Send notification about transcription completion
+            try:
+                self.send_transcription_completed_notification(track_id)
+            except Exception as e:
+                print(f"⚠️  Failed to send completion notification: {e}")
 
             # Acknowledge message
             ch.basic_ack(delivery_tag=method.delivery_tag)

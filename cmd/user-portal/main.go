@@ -21,6 +21,7 @@ import (
 	"Recontext.online/pkg/database"
 	"Recontext.online/pkg/email"
 	"Recontext.online/pkg/embeddings"
+	"Recontext.online/pkg/fcm"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 	"Recontext.online/pkg/rabbitmq"
@@ -54,22 +55,24 @@ const version = "0.1.0"
 // @description Type "Bearer" followed by a space and JWT token.
 
 type UserPortal struct {
-	config                  *config.Config
-	logger                  *logger.Logger
-	jwtManager              *auth.JWTManager
-	db                      *database.DB                   // Database connection
-	userRepo                *database.UserRepository       // User repository
-	departmentRepo          *database.DepartmentRepository // Department repository
-	meetingRepo             *database.MeetingRepository    // Meeting repository
-	liveKitRepo             *database.LiveKitRepository    // LiveKit repository
-	fcmDeviceRepo           *database.FCMDeviceRepository  // FCM device repository
-	recordings              map[string]*models.Recording   // In-memory recordings store
-	prometheusMetrics       *metrics.ServiceMetrics        // Prometheus metrics
-	embeddingsClient        *embeddings.EmbeddingsClient   // Embeddings client for RAG
-	emailService            EmailServiceInterface          // Email service for sending emails
-	wsHub                   *WSHub                         // WebSocket hub for real-time communication
-	rabbitMQPublisher       *rabbitmq.Publisher            // RabbitMQ publisher for transcription tasks
-	transcriptionScheduler  *TranscriptionScheduler        // Automatic transcription scheduler
+	config                   *config.Config
+	logger                   *logger.Logger
+	jwtManager               *auth.JWTManager
+	db                       *database.DB                   // Database connection
+	userRepo                 *database.UserRepository       // User repository
+	departmentRepo           *database.DepartmentRepository // Department repository
+	meetingRepo              *database.MeetingRepository    // Meeting repository
+	liveKitRepo              *database.LiveKitRepository    // LiveKit repository
+	fcmDeviceRepo            *database.FCMDeviceRepository  // FCM device repository
+	recordings               map[string]*models.Recording   // In-memory recordings store
+	prometheusMetrics        *metrics.ServiceMetrics        // Prometheus metrics
+	embeddingsClient         *embeddings.EmbeddingsClient   // Embeddings client for RAG
+	emailService             EmailServiceInterface          // Email service for sending emails
+	wsHub                    *WSHub                         // WebSocket hub for real-time communication
+	rabbitMQPublisher        *rabbitmq.Publisher            // RabbitMQ publisher for transcription tasks
+	transcriptionScheduler   *TranscriptionScheduler        // Automatic transcription scheduler
+	fcmService               *fcm.FCMService                // FCM service for push notifications
+	transcriptionNotifier    *TranscriptionNotifier         // Notifier for transcription completion events
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -144,6 +147,21 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		log.Info("RabbitMQ publisher initialized successfully")
 	}
 
+	// Initialize FCM service for push notifications
+	var fcmService *fcm.FCMService
+	fcmCredentialsPath := getEnv("FCM_CREDENTIALS_PATH", "")
+	if fcmCredentialsPath != "" {
+		fcmService, err = fcm.NewFCMService(fcmCredentialsPath)
+		if err != nil {
+			log.Error("Failed to initialize FCM service: " + err.Error())
+			log.Error("Push notifications will be unavailable")
+		} else {
+			log.Info("FCM service initialized successfully")
+		}
+	} else {
+		log.Info("FCM_CREDENTIALS_PATH not set, push notifications disabled")
+	}
+
 	return &UserPortal{
 		config:            cfg,
 		logger:            log,
@@ -160,6 +178,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		emailService:      mailer,
 		wsHub:             wsHub,
 		rabbitMQPublisher: rabbitMQPublisher,
+		fcmService:        fcmService,
 	}, nil
 }
 
@@ -1139,6 +1158,22 @@ func (up *UserPortal) Start() error {
 		up.transcriptionScheduler.Start()
 	} else {
 		up.logger.Info("🎙️ [TRANSCRIPTION SCHEDULER] Skipped - RabbitMQ not available")
+	}
+
+	// Start transcription notifier if RabbitMQ and FCM are available
+	if up.rabbitMQPublisher != nil {
+		rabbitmqURL := fmt.Sprintf("amqp://%s:%s@%s:%d/",
+			getEnv("RABBITMQ_USER", "guest"),
+			getEnv("RABBITMQ_PASSWORD", "guest"),
+			getEnv("RABBITMQ_HOST", "localhost"),
+			getEnvInt("RABBITMQ_PORT", 5672))
+
+		up.transcriptionNotifier = NewTranscriptionNotifier(up, up.fcmService)
+		if err := up.transcriptionNotifier.Start(rabbitmqURL); err != nil {
+			up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to start: %v", err)
+		}
+	} else {
+		up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Skipped - RabbitMQ not available")
 	}
 
 	mux := up.setupRoutes()

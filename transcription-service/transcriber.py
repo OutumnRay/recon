@@ -14,11 +14,34 @@ class TranscriptionWorker:
 
     def __init__(self):
         """Initialize Whisper model and MinIO client."""
+        # Auto-detect device and compute type
+        device = Config.WHISPER_DEVICE
+        compute_type = Config.WHISPER_COMPUTE_TYPE
+
+        # Try to detect CUDA availability
+        if device == 'cuda':
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    print(f"✅ CUDA detected: {torch.cuda.get_device_name(0)}")
+                    device = 'cuda'
+                    compute_type = 'float16'
+                else:
+                    print("⚠️  CUDA requested but not available, falling back to CPU")
+                    device = 'cpu'
+                    compute_type = 'int8'
+            except Exception as e:
+                print(f"⚠️  Could not detect CUDA ({e}), using CPU")
+                device = 'cpu'
+                compute_type = 'int8'
+
         print(f"Loading Whisper model: {Config.WHISPER_MODEL}")
+        print(f"Device: {device}, Compute type: {compute_type}")
+
         self.model = WhisperModel(
             Config.WHISPER_MODEL,
-            device=Config.WHISPER_DEVICE,
-            compute_type=Config.WHISPER_COMPUTE_TYPE
+            device=device,
+            compute_type=compute_type
         )
         print("Whisper model loaded successfully")
 

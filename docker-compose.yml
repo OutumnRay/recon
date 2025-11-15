@@ -188,11 +188,13 @@ services:
   #     retries: 5
 
   # 9. Transcription Service - Audio transcription using Faster Whisper
+  # Supports both CPU and GPU modes
+  # To enable GPU: uncomment deploy section and set WHISPER_DEVICE=cuda
   transcription-service:
     build:
       context: ./transcription-service
-      dockerfile: Dockerfile.gpu
-    image: sivanov2018/recontext-transcription-service:gpu
+      dockerfile: Dockerfile
+    image: sivanov2018/recontext-transcription-service:latest
     container_name: recontext-transcription-service
     environment:
       - RABBITMQ_HOST=192.168.5.153
@@ -206,8 +208,8 @@ services:
       - DB_USER=recontext
       - DB_PASSWORD=recontext
       - WHISPER_MODEL=medium
-#      - WHISPER_DEVICE=cuda
-#      - WHISPER_COMPUTE_TYPE=float16
+      # GPU mode: set WHISPER_DEVICE=cuda and uncomment deploy section below
+      # CPU mode: set WHISPER_DEVICE=cpu (default)
       - WHISPER_DEVICE=cpu
       - WHISPER_COMPUTE_TYPE=int8
       - STORAGE_BASE_URL=https://api.storage.recontext.online
@@ -219,6 +221,7 @@ services:
 #      - postgres
 #      - rabbitmq
 #      - minio
+    # Uncomment to enable GPU support (requires NVIDIA GPU and nvidia-docker)
 #    deploy:
 #      resources:
 #        reservations:
