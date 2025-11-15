@@ -115,6 +115,20 @@
   background: rgba(59, 130, 246, 0.9);
 }
 
+.recording-status-floating .status-pill.reconnecting {
+  background: rgba(251, 146, 60, 0.9);
+  animation: pulse-reconnect 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-reconnect {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 .recording-status-floating .status-icon {
   width: 14px;
   height: 14px;
@@ -139,6 +153,20 @@
   background: #3b82f6 !important;
   color: white !important;
   border-color: #2563eb !important;
+}
+
+.icon-circle-button.active-recording {
+  background: #ef4444 !important;
+  color: white !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important;
+}
+
+.icon-circle-button.active-transcribing {
+  background: #3b82f6 !important;
+  color: white !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
 }
 
 .icon-circle-button.active-share {

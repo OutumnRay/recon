@@ -458,7 +458,8 @@
     },
     "indicators": {
       "recording": "Recording",
-      "transcribing": "Transcription"
+      "transcribing": "Transcription",
+      "reconnecting": "Reconnecting..."
     },
     "leaveConfirmTitle": "Leave meeting?",
     "leaveConfirmDescription": "You will disconnect from this meeting. Continue?",

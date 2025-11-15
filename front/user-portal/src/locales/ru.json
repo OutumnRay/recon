@@ -460,7 +460,8 @@
     },
     "indicators": {
       "recording": "Запись",
-      "transcribing": "Транскрибация"
+      "transcribing": "Транскрибация",
+      "reconnecting": "Переподключение..."
     },
     "leaveConfirmTitle": "Выйти из встречи?",
     "leaveConfirmDescription": "Вы отключитесь от этой встречи. Продолжить?",

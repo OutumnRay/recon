@@ -37,6 +37,7 @@ import {
   LuSettings,
   LuMonitor,
   LuMonitorOff,
+  LuWifi,
 } from 'react-icons/lu';
 import './MeetingRoom.css';
 import MediaSettingsModal from '../components/MediaSettingsModal';
@@ -63,6 +64,7 @@ export default function MeetingRoom() {
   }));
 
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [isJoining, setIsJoining] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Map<string, RemoteParticipant>>(new Map());
@@ -712,6 +714,7 @@ export default function MeetingRoom() {
     };
 
     const handleDisconnect = () => {
+      console.log('[Disconnect] Room disconnected');
       setIsConnected(false);
       setParticipants(new Map());
       setIsCameraEnabled(false);
@@ -719,6 +722,72 @@ export default function MeetingRoom() {
       participantVideoTracks.current.clear();
       renderStageVideo();
       detachLocalPreview();
+    };
+
+    const handleReconnecting = () => {
+      console.log('[Reconnecting] Attempting to reconnect to room...');
+      setIsReconnecting(true);
+      // Keep isConnected as true during reconnection to avoid UI flicker
+    };
+
+    const handleReconnected = async () => {
+      console.log('[Reconnected] Successfully reconnected to room');
+      setIsReconnecting(false);
+
+      // Restore local media state
+      if (isCameraEnabled) {
+        console.log('[Reconnected] Restoring camera...');
+        await room.localParticipant.setCameraEnabled(true);
+      }
+      if (isMicEnabled) {
+        console.log('[Reconnected] Restoring microphone...');
+        await room.localParticipant.setMicrophoneEnabled(true);
+      }
+
+      // Re-process existing participants to ensure all tracks are attached
+      console.log('[Reconnected] Re-processing participants...');
+      const existingParticipants = new Map<string, RemoteParticipant>();
+      room.remoteParticipants.forEach((participant) => {
+        existingParticipants.set(participant.sid, participant);
+
+        // Re-attach tracks for each participant
+        participant.trackPublications.forEach((publication) => {
+          if (publication.isSubscribed && publication.track) {
+            const track = publication.track as RemoteTrack;
+            const element = track.attach();
+            element.id = `${participant.sid}-${track.kind}`;
+
+            if (track.kind === Track.Kind.Video) {
+              participantVideoTracks.current.set(participant.sid, track);
+              element.classList.add('meeting-video-element');
+              attachTrackToTile(participant, element);
+
+              if (publication.isEnabled) {
+                showParticipantVideo(participant.sid);
+              }
+
+              if (element instanceof HTMLVideoElement) {
+                element.play().catch(err => {
+                  console.warn(`[Reconnected] Failed to play video:`, err);
+                });
+              }
+            } else if (track.kind === Track.Kind.Audio) {
+              if (element instanceof HTMLAudioElement) {
+                element.volume = volumeRef.current / 100;
+                element.play().catch(err => {
+                  console.warn(`[Reconnected] Failed to play audio:`, err);
+                });
+              }
+              element.style.display = 'none';
+              attachTrackToTile(participant, element);
+            }
+          }
+        });
+      });
+
+      setParticipants(existingParticipants);
+      renderStageVideo();
+      renderLocalPreview();
     };
 
     const handleParticipantConnected = (participant: RemoteParticipant) => {
@@ -832,6 +901,8 @@ export default function MeetingRoom() {
       .on(RoomEvent.TrackMuted, handleTrackMuted)
       .on(RoomEvent.TrackUnmuted, handleTrackUnmuted)
       .on(RoomEvent.Disconnected, handleDisconnect)
+      .on(RoomEvent.Reconnecting, handleReconnecting)
+      .on(RoomEvent.Reconnected, handleReconnected)
       .on(RoomEvent.ParticipantConnected, handleParticipantConnected)
       .on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
 
@@ -1592,8 +1663,14 @@ export default function MeetingRoom() {
           </div>
       </div>
 
-      {(isRecording || isTranscribing) && (
+      {(isRecording || isTranscribing || isReconnecting) && (
         <div className="recording-status-floating">
+          {isReconnecting && (
+            <div className="status-pill reconnecting">
+              <LuWifi className="status-icon" />
+              <span>{t('meetingRoom.indicators.reconnecting')}</span>
+            </div>
+          )}
           {isRecording && (
             <div className="status-pill recording">
               <LuCircle className="status-icon" />
@@ -1671,15 +1748,19 @@ export default function MeetingRoom() {
                   </div>
                 )}
               </div>
-              <button
-                onClick={toggleScreenShare}
-                className={`icon-circle-button ${isScreenSharing ? 'active-share' : ''}`}
-                aria-label={isScreenSharing ? t('meetingRoom.controls.screenShareStop') : t('meetingRoom.controls.screenShareStart')}
-                title={isScreenSharing ? t('meetingRoom.controls.screenShareStop') : t('meetingRoom.controls.screenShareStart')}
-                disabled={!isConnected || (currentScreenSharer !== null && currentScreenSharer !== room.localParticipant?.sid)}
-              >
-                {isScreenSharing ? <LuMonitorOff /> : <LuMonitor />}
-              </button>
+              {/* Screen share button - hidden on mobile */}
+              {!isMobile && (
+                <button
+                  onClick={toggleScreenShare}
+                  className={`icon-circle-button ${isScreenSharing ? 'active-share' : ''}`}
+                  aria-label={isScreenSharing ? t('meetingRoom.controls.screenShareStop') : t('meetingRoom.controls.screenShareStart')}
+                  title={isScreenSharing ? t('meetingRoom.controls.screenShareStop') : t('meetingRoom.controls.screenShareStart')}
+                  disabled={!isConnected || (currentScreenSharer !== null && currentScreenSharer !== room.localParticipant?.sid)}
+                >
+                  {isScreenSharing ? <LuMonitorOff /> : <LuMonitor />}
+                </button>
+              )}
+
               <button
                 onClick={() => setShowMediaSettings(true)}
                 className="icon-circle-button"
@@ -1693,11 +1774,10 @@ export default function MeetingRoom() {
               {/* Recording button */}
               <button
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
-                className={`icon-circle-button ${isRecording ? 'recording' : ''}`}
+                className={`icon-circle-button ${isRecording ? 'active-recording' : ''}`}
                 aria-label={isRecording ? t('meetingRoom.controls.stopRecording') : t('meetingRoom.controls.startRecording')}
                 title={isAnonymousUser ? t('meetingRoom.controls.anonymousDisabled') : (isRecording ? t('meetingRoom.controls.stopRecording') : t('meetingRoom.controls.startRecording'))}
                 disabled={!isConnected || isAnonymousUser}
-                style={isRecording ? { color: '#ef4444' } : {}}
               >
                 <LuCircle />
               </button>
@@ -1705,11 +1785,10 @@ export default function MeetingRoom() {
               {/* Transcription button */}
               <button
                 onClick={isTranscribing ? handleStopTranscription : handleStartTranscription}
-                className={`icon-circle-button ${isTranscribing ? 'transcribing' : ''}`}
+                className={`icon-circle-button ${isTranscribing ? 'active-transcribing' : ''}`}
                 aria-label={isTranscribing ? t('meetingRoom.controls.stopTranscription') : t('meetingRoom.controls.startTranscription')}
                 title={isAnonymousUser ? t('meetingRoom.controls.anonymousDisabled') : (isTranscribing ? t('meetingRoom.controls.stopTranscription') : t('meetingRoom.controls.startTranscription'))}
                 disabled={!isConnected || isAnonymousUser}
-                style={isTranscribing ? { color: '#3b82f6' } : {}}
               >
                 <LuFileText />
               </button>
