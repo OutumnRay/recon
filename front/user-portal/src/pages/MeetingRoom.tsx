@@ -211,7 +211,6 @@ export default function MeetingRoom() {
       videoSlot.dataset.slot = sid;
 
       // Add large avatar for when video is hidden
-      const displayName = tokenData?.participantName || 'You';
       const largeAvatar = document.createElement('div');
       largeAvatar.className = 'participant-avatar-large';
       largeAvatar.textContent = getInitials(displayName);
@@ -1282,67 +1281,6 @@ export default function MeetingRoom() {
       events.forEach(evt => document.removeEventListener(evt, unlock));
     };
   }, [playbackUnlocked, startAllMediaPlayback]);
-
-  // Aggressive track subscription - force subscribe to all tracks
-  const forceSubscribeToAllTracks = useCallback(async () => {
-    if (!isConnected) return;
-
-    console.log('[Force Subscribe] Starting aggressive track subscription...');
-
-    room.remoteParticipants.forEach(async (participant) => {
-      const displayName = getParticipantDisplayName(participant);
-
-      participant.trackPublications.forEach(async (publication) => {
-        // Skip if already subscribed or not a valid track
-        if (publication.isSubscribed || publication.kind === Track.Kind.Unknown) {
-          return;
-        }
-
-        console.log(`[Force Subscribe] Subscribing ${displayName} to ${publication.kind} track`);
-
-        try {
-          await publication.setSubscribed(true);
-          console.log(`[Force Subscribe] ✓ Successfully subscribed to ${publication.kind} track`);
-
-          // Wait a bit for track to be ready
-          setTimeout(() => {
-              if (publication.track) {
-                const track = publication.track as RemoteTrack;
-                const element = track.attach();
-                element.id = `${participant.sid}-${track.kind}`;
-
-                if (track.kind === Track.Kind.Video) {
-                  console.log(`[Force Subscribe] Attaching video for ${displayName}`);
-                  participantVideoTracks.current.set(participant.sid, track);
-                  if (element instanceof HTMLVideoElement) {
-                    prepareVideoElement(element, false);
-                  }
-                  element.classList.add('meeting-video-element');
-                  attachTrackToTile(participant, element);
-
-                  if (stageParticipantId === participant.sid) {
-                    renderStageVideo(participant.sid);
-                  }
-                } else if (track.kind === Track.Kind.Audio) {
-                  console.log(`[Force Subscribe] Attaching audio for ${displayName}`);
-                  if (element instanceof HTMLAudioElement) {
-                    element.volume = volumeRef.current / 100;
-                    prepareAudioElement(element);
-                  }
-                  element.style.display = 'none';
-                  attachTrackToTile(participant, element);
-                }
-              }
-          }, 500);
-        } catch (err) {
-          console.error(`[Force Subscribe] ✗ Failed to subscribe to ${publication.kind} track:`, err);
-        }
-      });
-    });
-  }, [isConnected, room, stageParticipantId, renderStageVideo]);
-
-  // Force subscription timers removed - causes flickering
-  // Subscription now happens only via event handlers
 
   // Touch handlers for swipe gesture on participant sidebar
   const minSwipeDistance = 50;
