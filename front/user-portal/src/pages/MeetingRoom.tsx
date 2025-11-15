@@ -790,7 +790,7 @@ export default function MeetingRoom() {
       renderLocalPreview();
     };
 
-    const handleParticipantConnected = (participant: RemoteParticipant) => {
+    const handleParticipantConnected = async (participant: RemoteParticipant) => {
       const displayName = getParticipantDisplayName(participant);
       console.log(`[Participant Connected] ${displayName} (${participant.sid})`);
       console.log(`[Participant Tracks] Audio publications:`, participant.audioTrackPublications.size);
@@ -810,7 +810,7 @@ export default function MeetingRoom() {
       }
 
       // Check if participant already has published tracks that we need to subscribe to
-      participant.trackPublications.forEach(async (publication, trackSid) => {
+      for (const [trackSid, publication] of participant.trackPublications.entries()) {
         console.log(`[Existing Track] Track ${trackSid}: ${publication.kind}, subscribed: ${publication.isSubscribed}, track: ${publication.track ? 'exists' : 'null'}`);
 
         // If track exists but is not subscribed, explicitly subscribe to it
@@ -824,7 +824,7 @@ export default function MeetingRoom() {
           }
         }
 
-        // If already subscribed and has track, attach it immediately
+        // Check again after subscription attempt
         if (publication.isSubscribed && publication.track) {
           console.log(`[Existing Track] Track already subscribed, manually attaching...`);
           const track = publication.track as RemoteTrack;
@@ -869,7 +869,7 @@ export default function MeetingRoom() {
             attachTrackToTile(participant, element);
           }
         }
-      });
+      }
     };
 
     const handleParticipantDisconnected = (participant: RemoteParticipant) => {
@@ -990,8 +990,8 @@ export default function MeetingRoom() {
 
           ensureParticipantTile(participant);
 
-          // Process existing tracks
-          participant.trackPublications.forEach(async (publication, trackSid) => {
+          // Process existing tracks - use for...of to properly await async operations
+          for (const [trackSid, publication] of participant.trackPublications.entries()) {
             console.log(`  - Track ${trackSid}: ${publication.kind}, subscribed: ${publication.isSubscribed}, enabled: ${publication.isEnabled}`);
 
             // If track is not subscribed yet, subscribe to it
@@ -1005,8 +1005,9 @@ export default function MeetingRoom() {
               }
             }
 
+            // Check again after subscription attempt
             if (publication.isSubscribed && publication.track) {
-              console.log(`  - Track already subscribed, attaching...`);
+              console.log(`  - Track subscribed, attaching...`);
               const track = publication.track as RemoteTrack;
               const element = track.attach();
               element.id = `${participant.sid}-${track.kind}`;
@@ -1050,8 +1051,10 @@ export default function MeetingRoom() {
                 element.style.display = 'none';
                 attachTrackToTile(participant, element);
               }
+            } else if (!publication.track) {
+              console.log(`  - Track ${trackSid} has no track object yet, will be handled by TrackSubscribed event`);
             }
-          });
+          }
         }
 
         // Enable camera and microphone by default after processing existing participants
