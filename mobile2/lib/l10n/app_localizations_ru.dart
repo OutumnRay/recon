@@ -495,7 +495,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get createdBy => 'Создал';
 
   @override
-  String get active => 'Активна';
+  String get active => 'Активен';
 
   @override
   String get scheduled => 'Запланирована';
@@ -681,4 +681,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get confirmLeave => 'Выйти';
+
+  @override
+  String get speaking => 'Говорит';
 }

@@ -681,4 +681,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmLeave => 'Leave';
+
+  @override
+  String get speaking => 'Speaking';
 }

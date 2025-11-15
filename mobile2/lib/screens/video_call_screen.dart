@@ -530,25 +530,33 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     // If no stage participant, prioritize remote participants
     if (stageParticipant == null) {
-      // First try to find a remote participant with video
-      final remoteWithVideo = _participantTracks.firstWhere(
-        (pt) => !pt.isLocal && pt.participant.isCameraEnabled(),
-        orElse: () => _participantTracks.firstWhere(
-          (pt) => !pt.isLocal,
-          orElse: () => _participantTracks.isNotEmpty
-              ? _participantTracks.first
-              : ParticipantTrack(
-                  participant: room.localParticipant!,
-                  track: room.localParticipant!.videoTrackPublications.first.track!,
-                  isLocal: true,
-                ),
-        ),
-      );
-
-      stageParticipant = remoteWithVideo.participant;
-
       // If only local participant exists, show waiting view
       if (room.remoteParticipants.isEmpty) {
+        return _buildWaitingView();
+      }
+
+      // First try to find a remote participant with video
+      ParticipantTrack? remoteTrack;
+      try {
+        remoteTrack = _participantTracks.firstWhere(
+          (pt) => !pt.isLocal && pt.participant.isCameraEnabled(),
+        );
+      } catch (_) {
+        // Try to find any remote participant
+        try {
+          remoteTrack = _participantTracks.firstWhere((pt) => !pt.isLocal);
+        } catch (_) {
+          // If no remote tracks, use first available track
+          if (_participantTracks.isNotEmpty) {
+            remoteTrack = _participantTracks.first;
+          }
+        }
+      }
+
+      if (remoteTrack != null) {
+        stageParticipant = remoteTrack.participant;
+      } else {
+        // No tracks available, show waiting view
         return _buildWaitingView();
       }
     }
@@ -914,7 +922,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Speaking',
+                          AppLocalizations.of(context)!.speaking,
                           style: TextStyle(
                             color: const Color(0xFF26C6DA),
                             fontSize: 12,
@@ -933,9 +941,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   color: const Color(0xFF26C6DA),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Active',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.active,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,

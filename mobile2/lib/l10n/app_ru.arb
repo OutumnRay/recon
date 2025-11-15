@@ -246,5 +246,7 @@
   "confirmLeaveTitle": "Покинуть встречу?",
   "confirmLeaveMessage": "Вы уверены, что хотите покинуть эту встречу?",
   "cancel": "Отмена",
-  "confirmLeave": "Выйти"
+  "confirmLeave": "Выйти",
+  "speaking": "Говорит",
+  "active": "Активен"
 }

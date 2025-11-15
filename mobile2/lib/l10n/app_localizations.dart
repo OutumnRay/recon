@@ -1399,6 +1399,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Leave'**
   String get confirmLeave;
+
+  /// No description provided for @speaking.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaking'**
+  String get speaking;
 }
 
 class _AppLocalizationsDelegate

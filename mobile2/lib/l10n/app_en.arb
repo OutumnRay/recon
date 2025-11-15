@@ -313,5 +313,7 @@
   "confirmLeaveTitle": "Leave Meeting?",
   "confirmLeaveMessage": "Are you sure you want to leave this meeting?",
   "cancel": "Cancel",
-  "confirmLeave": "Leave"
+  "confirmLeave": "Leave",
+  "speaking": "Speaking",
+  "active": "Active"
 }
