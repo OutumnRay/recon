@@ -111,15 +111,15 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   Color _getStatusColor(String status) {
     switch (status) {
       case 'scheduled':
-        return Colors.blue;
+        return const Color(0xFF2563EB); // Blue from frontend (primary-700)
       case 'in_progress':
-        return Colors.green;
+        return const Color(0xFF92400E); // Amber/brown from frontend (warning)
       case 'completed':
-        return Colors.grey;
+        return const Color(0xFF059669); // Green from frontend (success/secondary-700)
       case 'cancelled':
-        return Colors.red;
+        return const Color(0xFF991B1B); // Red from frontend (error)
       default:
-        return Colors.grey;
+        return const Color(0xFF6B7280); // Gray default
     }
   }
 
@@ -298,23 +298,67 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                                   ),
                                 ],
                               ),
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(meeting.status).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: _getStatusColor(meeting.status).withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  _getStatusText(meeting.status, context),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: _getStatusColor(meeting.status),
-                                  ),
+                              trailing: SizedBox(
+                                width: 95,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Show "Permanent" badge for permanent meetings instead of status
+                                    if (meeting.isPermanent || meeting.recurrence == 'permanent')
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF7C3AED), // Purple from frontend
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.all_inclusive,
+                                              size: 10,
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Flexible(
+                                              child: Text(
+                                                l10n.permanent,
+                                                style: const TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else
+                                      // Show status badge for non-permanent meetings
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: _getStatusColor(meeting.status).withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: _getStatusColor(meeting.status).withValues(alpha: 0.3),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _getStatusText(meeting.status, context),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: _getStatusColor(meeting.status),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                               isThreeLine: true,
@@ -370,7 +414,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
         borderRadius: BorderRadius.circular(16),
       ),
       backgroundColor: Colors.white,
-      selectedColor: const Color(0xFF26C6DA).withOpacity(0.15),
+      selectedColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
       side: BorderSide(
         color: isSelected ? const Color(0xFF26C6DA) : Colors.grey.shade300,
         width: 1.5,

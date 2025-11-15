@@ -120,6 +120,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get recurrenceMonthly => 'Ежемесячно';
 
   @override
+  String get recurrencePermanent => 'Постоянная';
+
+  @override
+  String get permanent => 'Постоянная';
+
+  @override
   String get duration15 => '15 минут';
 
   @override
@@ -539,6 +545,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get switchCamera => 'Сменить камеру';
 
   @override
+  String get flipCamera => 'Сменить';
+
+  @override
   String get userRoleUser => 'Пользователь';
 
   @override
@@ -606,4 +615,70 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get allRightsReserved => '© 2025 Recontext. Все права защищены.';
+
+  @override
+  String get tabInfo => 'Информация';
+
+  @override
+  String get tabRecordings => 'Записи';
+
+  @override
+  String get recordings => 'Записи';
+
+  @override
+  String get noRecordingsFound => 'Записи не найдены';
+
+  @override
+  String get recordingsHint => 'Записи появятся здесь после завершения встречи';
+
+  @override
+  String get session => 'Сессия';
+
+  @override
+  String sessionNumber(int number) {
+    return 'Сессия $number';
+  }
+
+  @override
+  String recordingDuration(int minutes) {
+    return 'Длительность: $minutes мин';
+  }
+
+  @override
+  String get playRecording => 'Воспроизвести запись';
+
+  @override
+  String get roomRecording => 'Запись комнаты';
+
+  @override
+  String get recordingStatus => 'Статус';
+
+  @override
+  String get loadingRecordings => 'Загрузка записей...';
+
+  @override
+  String get failedToLoadRecordings => 'Не удалось загрузить записи';
+
+  @override
+  String get retryLoadRecordings => 'Повторить';
+
+  @override
+  String get roomDisconnected => 'Вы были отключены';
+
+  @override
+  String get disconnectedMessage =>
+      'Вы были отключены от встречи. Возможно, вы вошли с другого устройства.';
+
+  @override
+  String get goToHome => 'Вернуться на главную';
+
+  @override
+  String get confirmLeaveTitle => 'Покинуть встречу?';
+
+  @override
+  String get confirmLeaveMessage =>
+      'Вы уверены, что хотите покинуть эту встречу?';
+
+  @override
+  String get confirmLeave => 'Выйти';
 }

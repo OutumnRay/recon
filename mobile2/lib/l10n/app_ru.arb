@@ -43,6 +43,8 @@
   "recurrenceDaily": "Ежедневно",
   "recurrenceWeekly": "Еженедельно",
   "recurrenceMonthly": "Ежемесячно",
+  "recurrencePermanent": "Постоянная",
+  "permanent": "Постоянная",
 
   "duration15": "15 минут",
   "duration30": "30 минут",
@@ -222,5 +224,27 @@
   "termsComingSoon": "Условия использования - скоро",
   "logoutConfirm": "Вы уверены, что хотите выйти?",
   "appDescription": "Платформа для видеоконференций и управления встречами",
-  "allRightsReserved": "© 2025 Recontext. Все права защищены."
+  "allRightsReserved": "© 2025 Recontext. Все права защищены.",
+
+  "tabInfo": "Информация",
+  "tabRecordings": "Записи",
+  "recordings": "Записи",
+  "noRecordingsFound": "Записи не найдены",
+  "recordingsHint": "Записи появятся здесь после завершения встречи",
+  "session": "Сессия",
+  "sessionNumber": "Сессия {number}",
+  "recordingDuration": "Длительность: {minutes} мин",
+  "playRecording": "Воспроизвести запись",
+  "roomRecording": "Запись комнаты",
+  "recordingStatus": "Статус",
+  "loadingRecordings": "Загрузка записей...",
+  "failedToLoadRecordings": "Не удалось загрузить записи",
+  "retryLoadRecordings": "Повторить",
+  "roomDisconnected": "Вы были отключены",
+  "disconnectedMessage": "Вы были отключены от встречи. Возможно, вы вошли с другого устройства.",
+  "goToHome": "Вернуться на главную",
+  "confirmLeaveTitle": "Покинуть встречу?",
+  "confirmLeaveMessage": "Вы уверены, что хотите покинуть эту встречу?",
+  "cancel": "Отмена",
+  "confirmLeave": "Выйти"
 }

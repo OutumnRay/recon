@@ -1,0 +1,38 @@
+.meeting-disconnected-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, rgba(66, 133, 244, 0.08), transparent 45%),
+    var(--color-bg-muted, #f6f7fb);
+  padding: 24px;
+}
+
+.meeting-disconnected-card {
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  padding: 32px;
+  border-radius: 24px;
+}
+
+.meeting-disconnected-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.meeting-disconnected-card h1 {
+  margin-bottom: 12px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.meeting-disconnected-card p {
+  color: var(--color-text-muted, #555);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.meeting-disconnected-card .btn {
+  width: 100%;
+}

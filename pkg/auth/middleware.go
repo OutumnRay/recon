@@ -20,21 +20,28 @@ const (
 func AuthMiddleware(jwtManager *JWTManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Extract token from Authorization header
+			var token string
+
+			// Extract token from Authorization header when provided
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				respondWithError(w, http.StatusUnauthorized, "Missing authorization header")
-				return
+			if authHeader != "" {
+				parts := strings.SplitN(authHeader, " ", 2)
+				if len(parts) != 2 || parts[0] != "Bearer" {
+					respondWithError(w, http.StatusUnauthorized, "Invalid authorization header format")
+					return
+				}
+				token = parts[1]
 			}
 
-			// Check Bearer prefix
-			parts := strings.SplitN(authHeader, " ", 2)
-			if len(parts) != 2 || parts[0] != "Bearer" {
-				respondWithError(w, http.StatusUnauthorized, "Invalid authorization header format")
-				return
+			// Fallback to token query parameter (e.g., for WebSocket connections)
+			if token == "" {
+				token = r.URL.Query().Get("token")
 			}
 
-			token := parts[1]
+			if token == "" {
+				respondWithError(w, http.StatusUnauthorized, "Missing authorization token")
+				return
+			}
 
 			// Verify token
 			claims, err := jwtManager.VerifyToken(token)

@@ -120,6 +120,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recurrenceMonthly => 'Monthly';
 
   @override
+  String get recurrencePermanent => 'Permanent';
+
+  @override
+  String get permanent => 'Permanent';
+
+  @override
   String get duration15 => '15 minutes';
 
   @override
@@ -539,6 +545,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get switchCamera => 'Switch Camera';
 
   @override
+  String get flipCamera => 'Flip';
+
+  @override
   String get userRoleUser => 'User';
 
   @override
@@ -605,4 +614,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allRightsReserved => '© 2025 Recontext. All rights reserved.';
+
+  @override
+  String get tabInfo => 'Info';
+
+  @override
+  String get tabRecordings => 'Recordings';
+
+  @override
+  String get recordings => 'Recordings';
+
+  @override
+  String get noRecordingsFound => 'No recordings found';
+
+  @override
+  String get recordingsHint =>
+      'Recordings will appear here after the meeting ends';
+
+  @override
+  String get session => 'Session';
+
+  @override
+  String sessionNumber(int number) {
+    return 'Session $number';
+  }
+
+  @override
+  String recordingDuration(int minutes) {
+    return 'Duration: $minutes min';
+  }
+
+  @override
+  String get playRecording => 'Play Recording';
+
+  @override
+  String get roomRecording => 'Room Recording';
+
+  @override
+  String get recordingStatus => 'Status';
+
+  @override
+  String get loadingRecordings => 'Loading recordings...';
+
+  @override
+  String get failedToLoadRecordings => 'Failed to load recordings';
+
+  @override
+  String get retryLoadRecordings => 'Retry';
+
+  @override
+  String get roomDisconnected => 'Room Disconnected';
+
+  @override
+  String get disconnectedMessage =>
+      'You have been disconnected from the meeting. You may have joined from another device.';
+
+  @override
+  String get goToHome => 'Go to Home';
+
+  @override
+  String get confirmLeaveTitle => 'Leave Meeting?';
+
+  @override
+  String get confirmLeaveMessage =>
+      'Are you sure you want to leave this meeting?';
+
+  @override
+  String get confirmLeave => 'Leave';
 }

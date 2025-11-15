@@ -12,6 +12,7 @@ import {
   TrackPublication,
   VideoPresets,
   Participant,
+  DisconnectReason,
 } from 'livekit-client';
 import { useTranslation } from 'react-i18next';
 import {
@@ -77,6 +78,7 @@ export default function MeetingRoom() {
   const [meetingTitle, setMeetingTitle] = useState('');
   const [stageParticipantId, setStageParticipantId] = useState<string | null>(null);
   const [isParticipantsCollapsed, setIsParticipantsCollapsed] = useState(false);
+  const [localParticipantSid, setLocalParticipantSid] = useState<string | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -102,6 +104,7 @@ export default function MeetingRoom() {
   const localPreviewTrackRef = useRef<Track | null>(null);
   const localPreviewElementRef = useRef<HTMLMediaElement | null>(null);
   const volumeRef = useRef<number>(100);
+  const manualDisconnectRef = useRef(false);
 
   // WebSocket connection for real-time communication
   const { sendMessage: sendWSMessage } = useWebSocket({
@@ -166,9 +169,11 @@ export default function MeetingRoom() {
   }, []);
 
   const ensureLocalParticipantTile = useCallback(() => {
-    if (!room.localParticipant) return null;
+    const sid = room.localParticipant?.sid || localParticipantSid;
+    if (!sid) return null;
 
-    const sid = room.localParticipant.sid;
+    const displayName = tokenData?.participantName || 'You';
+    const initials = getInitials(displayName);
     let container = document.getElementById(`participant-${sid}`) as HTMLElement | null;
 
     if (!container) {
@@ -185,8 +190,6 @@ export default function MeetingRoom() {
 
       const avatar = document.createElement('div');
       avatar.className = 'participant-avatar';
-      const displayName = tokenData?.participantName || 'You';
-      avatar.textContent = getInitials(displayName);
       header.appendChild(avatar);
 
       const nameContainer = document.createElement('div');
@@ -194,7 +197,6 @@ export default function MeetingRoom() {
 
       const name = document.createElement('div');
       name.className = 'remote-participant-name';
-      name.textContent = `${displayName} (You)`;
       nameContainer.appendChild(name);
 
       const micIndicator = document.createElement('div');
@@ -209,20 +211,36 @@ export default function MeetingRoom() {
       const videoSlot = document.createElement('div');
       videoSlot.className = 'remote-participant-video';
       videoSlot.dataset.slot = sid;
-
-      // Add large avatar for when video is hidden
-      const largeAvatar = document.createElement('div');
-      largeAvatar.className = 'participant-avatar-large';
-      largeAvatar.textContent = getInitials(displayName);
-      videoSlot.appendChild(largeAvatar);
-
       container.appendChild(videoSlot);
 
       // Insert at the beginning of the list
       videoContainerRef.current?.insertBefore(container, videoContainerRef.current.firstChild);
     }
+
+    // Update avatar/name information to reflect the latest token data
+    const avatarEl = container.querySelector<HTMLElement>('.participant-avatar');
+    if (avatarEl) {
+      avatarEl.textContent = initials;
+    }
+
+    const nameEl = container.querySelector<HTMLElement>('.remote-participant-name');
+    if (nameEl) {
+      nameEl.textContent = `${displayName} (You)`;
+    }
+
+    const videoSlotEl = container.querySelector<HTMLDivElement>('.remote-participant-video');
+    if (videoSlotEl) {
+      let largeAvatar = videoSlotEl.querySelector<HTMLElement>('.participant-avatar-large');
+      if (!largeAvatar) {
+        largeAvatar = document.createElement('div');
+        largeAvatar.className = 'participant-avatar-large';
+        videoSlotEl.insertBefore(largeAvatar, videoSlotEl.firstChild);
+      }
+      largeAvatar.textContent = initials;
+    }
+
     return container;
-  }, [room, tokenData]);
+  }, [room, tokenData, localParticipantSid]);
 
   const renderLocalPreview = useCallback(() => {
     const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
@@ -777,8 +795,11 @@ export default function MeetingRoom() {
       }
     };
 
-    const handleDisconnect = () => {
-      console.log('[Disconnect] Room disconnected');
+    const handleDisconnect = (reason?: DisconnectReason) => {
+      const manualDisconnect = manualDisconnectRef.current;
+      manualDisconnectRef.current = false;
+
+      console.log('[Disconnect] Room disconnected', reason);
       setIsConnected(false);
       setParticipants(new Map());
       setIsCameraEnabled(false);
@@ -786,6 +807,15 @@ export default function MeetingRoom() {
       participantVideoTracks.current.clear();
       renderStageVideo();
       detachLocalPreview();
+      setLocalParticipantSid(null);
+
+      const shouldRedirectToDisabledPage = !manualDisconnect && reason !== DisconnectReason.CLIENT_INITIATED;
+      if (shouldRedirectToDisabledPage) {
+        navigate('/meeting/disconnected', {
+          replace: true,
+          state: { isAnonymous: isAnonymousUser },
+        });
+      }
     };
 
     const handleReconnecting = () => {
@@ -797,6 +827,7 @@ export default function MeetingRoom() {
     const handleReconnected = async () => {
       console.log('[Reconnected] Successfully reconnected to room');
       setIsReconnecting(false);
+      setLocalParticipantSid(room.localParticipant?.sid || null);
 
       // Restore local media state
       if (isCameraEnabled) {
@@ -993,7 +1024,14 @@ export default function MeetingRoom() {
     stageParticipantId,
     updateSidebarHighlight,
     updateMicIndicator,
+    navigate,
+    isAnonymousUser,
   ]);
+
+  useEffect(() => {
+    if (!isConnected) return;
+    ensureLocalParticipantTile();
+  }, [ensureLocalParticipantTile, isConnected, localParticipantSid]);
 
   useEffect(() => {
     if (!meetingId) {
@@ -1039,6 +1077,7 @@ export default function MeetingRoom() {
 
         // Set connected state FIRST so event handlers are registered
         setIsConnected(true);
+        setLocalParticipantSid(room.localParticipant?.sid || null);
         setError(null);
         setStageParticipantId(current => current ?? room.localParticipant?.sid ?? null);
 
@@ -1142,6 +1181,7 @@ export default function MeetingRoom() {
     joinRoom();
 
     return () => {
+      manualDisconnectRef.current = true;
       room.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1201,6 +1241,7 @@ export default function MeetingRoom() {
   const confirmLeave = useCallback(() => {
     console.log('[Leave] Disconnecting from room...');
     setShowLeaveConfirm(false);
+    manualDisconnectRef.current = true;
 
     // Disconnect from room
     try {

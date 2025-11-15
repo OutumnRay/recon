@@ -3,11 +3,14 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+
+	"Recontext.online/pkg/auth"
 )
 
 var upgrader = websocket.Upgrader{
@@ -242,21 +245,24 @@ func (c *WSClient) handleMessage(msg WSMessage) {
 // @Security BearerAuth
 // @Router /api/v1/meetings/{meeting_id}/ws [get]
 func (up *UserPortal) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	// Extract user ID from context (set by auth middleware)
-	userID := r.Context().Value("user_id")
-	if userID == nil {
-		up.logger.Error("User ID not found in context")
+	// Extract user claims from context (set by auth middleware)
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.logger.Error("User claims not found in context")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	userID := claims.UserID.String()
 
-	// Get meeting ID from URL path
-	meetingID := r.PathValue("meeting_id")
-	if meetingID == "" {
+	// Extract meeting ID from path: /api/v1/meetings/{meetingId}/ws
+	pathSuffix := strings.TrimPrefix(r.URL.Path, "/api/v1/meetings/")
+	segments := strings.Split(pathSuffix, "/")
+	if len(segments) < 2 || segments[0] == "" {
 		up.logger.Error("Meeting ID not provided")
 		http.Error(w, "Meeting ID required", http.StatusBadRequest)
 		return
 	}
+	meetingID := segments[0]
 
 	// Verify meeting exists
 	meetingUUID, err := uuid.Parse(meetingID)
@@ -283,7 +289,7 @@ func (up *UserPortal) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Create new client
 	client := &WSClient{
 		ID:        r.Header.Get("Sec-WebSocket-Key"),
-		UserID:    userID.(string),
+		UserID:    userID,
 		Conn:      conn,
 		Send:      make(chan WSMessage, 256),
 		MeetingID: meetingID,
@@ -297,8 +303,8 @@ func (up *UserPortal) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// Send welcome message
 	client.Send <- WSMessage{
-		Type: "connected",
-		Data: json.RawMessage(`{"message":"Connected to meeting"}`),
+		Type:      "connected",
+		Data:      json.RawMessage(`{"message":"Connected to meeting"}`),
 		Timestamp: time.Now(),
 	}
 

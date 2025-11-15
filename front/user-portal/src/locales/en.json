@@ -466,6 +466,11 @@
     "leaveConfirmDescription": "You will disconnect from this meeting. Continue?",
     "confirmLeave": "Leave",
     "cancelLeave": "Stay",
+    "disconnectNotice": {
+      "title": "Session disabled",
+      "description": "You have been disconnected from the meeting. Your session may have been disabled or you may have joined from another device.",
+      "button": "Go to main page"
+    },
     "errors": {
       "missingMeetingId": "Meeting ID is required",
       "connect": "Failed to connect to room",

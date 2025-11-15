@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
-import 'package:livekit_client/livekit_client.dart';
+import 'package:livekit_client/livekit_client.dart' as livekit;
 import '../utils/logger.dart';
 import '../models/meeting.dart';
 
@@ -23,12 +23,21 @@ class VideoCallScreen extends StatefulWidget {
 }
 
 class _VideoCallScreenState extends State<VideoCallScreen> {
-  Room? _room;
+  livekit.Room? _room;
   List<ParticipantTrack> _participantTracks = [];
   bool _isMicEnabled = true;
   bool _isCameraEnabled = true;
   bool _isConnecting = true;
   String? _error;
+  bool _wasDisconnected = false;
+  livekit.CameraPosition _cameraPosition = livekit.CameraPosition.front;
+
+  // Stage participant (main view)
+  String? _stageParticipantId;
+  bool _showParticipantsList = false;
+
+  // Active speakers tracking
+  List<livekit.Participant> _activeSpeakers = [];
 
   // Маппинг userId -> displayName
   Map<String, String> get _participantNames {
@@ -63,25 +72,35 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       });
 
       // Create room with options
-      final roomOptions = RoomOptions(
+      final roomOptions = livekit.RoomOptions(
         adaptiveStream: true,
         dynacast: true,
-        defaultCameraCaptureOptions: const CameraCaptureOptions(
+        defaultCameraCaptureOptions: const livekit.CameraCaptureOptions(
           maxFrameRate: 30,
-          params: VideoParametersPresets.h720_169,
+          params: livekit.VideoParametersPresets.h720_169,
         ),
-        defaultAudioPublishOptions: const AudioPublishOptions(
+        defaultAudioPublishOptions: const livekit.AudioPublishOptions(
           name: 'microphone',
         ),
-        defaultVideoPublishOptions: const VideoPublishOptions(
+        defaultVideoPublishOptions: const livekit.VideoPublishOptions(
           name: 'camera',
         ),
       );
 
-      final room = Room(roomOptions: roomOptions);
+      final room = livekit.Room(roomOptions: roomOptions);
 
       // Set up event listeners
       room.addListener(_onRoomUpdate);
+
+      // Listen for disconnection events
+      room.createListener().on<livekit.RoomDisconnectedEvent>((event) {
+        _onRoomDisconnected();
+      });
+
+      // Listen for active speakers
+      room.createListener().on<livekit.ActiveSpeakersChangedEvent>((event) {
+        _onActiveSpeakersChanged(event.speakers);
+      });
 
       // Prepare connection for faster connection
       await room.prepareConnection(widget.url, widget.token);
@@ -91,6 +110,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       Logger.logSuccess('Connected to LiveKit room');
 
+      // Wait for connection state to be fully connected
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Check if connection state is connected before publishing
+      if (room.connectionState != livekit.ConnectionState.connected) {
+        Logger.logWarning('Room not in connected state, waiting...');
+        // Wait up to 5 seconds for connection
+        for (int i = 0; i < 10; i++) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (room.connectionState == livekit.ConnectionState.connected) {
+            break;
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
           _room = room;
@@ -99,34 +133,43 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         });
       }
 
-      // Enable camera and microphone with error handling
-      try {
-        // Video will fail when running in iOS simulator
-        await room.localParticipant?.setCameraEnabled(true);
-        setState(() {
-          _isCameraEnabled = true;
-        });
-      } catch (error) {
-        Logger.logWarning('Could not publish video: $error');
-        if (mounted) {
-          setState(() {
-            _isCameraEnabled = false;
-          });
+      // Only enable camera and microphone if we're connected
+      if (room.connectionState == livekit.ConnectionState.connected) {
+        // Enable camera and microphone with error handling
+        try {
+          // Video will fail when running in iOS simulator
+          await room.localParticipant?.setCameraEnabled(true);
+          if (mounted) {
+            setState(() {
+              _isCameraEnabled = true;
+            });
+          }
+        } catch (error) {
+          Logger.logWarning('Could not publish video: $error');
+          if (mounted) {
+            setState(() {
+              _isCameraEnabled = false;
+            });
+          }
         }
-      }
 
-      try {
-        await room.localParticipant?.setMicrophoneEnabled(true);
-        setState(() {
-          _isMicEnabled = true;
-        });
-      } catch (error) {
-        Logger.logWarning('Could not enable microphone: $error');
-        if (mounted) {
-          setState(() {
-            _isMicEnabled = false;
-          });
+        try {
+          await room.localParticipant?.setMicrophoneEnabled(true);
+          if (mounted) {
+            setState(() {
+              _isMicEnabled = true;
+            });
+          }
+        } catch (error) {
+          Logger.logWarning('Could not enable microphone: $error');
+          if (mounted) {
+            setState(() {
+              _isMicEnabled = false;
+            });
+          }
         }
+      } else {
+        Logger.logError('Failed to establish connection, not enabling tracks');
       }
     } catch (e, stackTrace) {
       Logger.logError('Failed to connect to room', error: e, stackTrace: stackTrace);
@@ -144,6 +187,40 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       setState(() {
         _updateParticipantTracks();
       });
+    }
+  }
+
+  void _onRoomDisconnected() {
+    Logger.logWarning('Room disconnected by server');
+    if (mounted && !_wasDisconnected) {
+      setState(() {
+        _wasDisconnected = true;
+      });
+      _showDisconnectedDialog();
+    }
+  }
+
+  void _onActiveSpeakersChanged(List<livekit.Participant> speakers) {
+    if (!mounted) return;
+
+    setState(() {
+      _activeSpeakers = speakers;
+    });
+
+    // Auto-switch to active speaker if not manually selected
+    if (speakers.isNotEmpty && _stageParticipantId == null) {
+      // Find first remote speaker (exclude local participant)
+      final remoteSpeakers = speakers.where(
+        (s) => s.sid != _room?.localParticipant?.sid,
+      ).toList();
+
+      if (remoteSpeakers.isNotEmpty) {
+        setState(() {
+          _stageParticipantId = remoteSpeakers.first.sid;
+        });
+      }
+      // If only local participant is speaking, don't auto-select
+      // Let _buildMainSpeakerView handle showing remote participants
     }
   }
 
@@ -210,25 +287,93 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   Future<void> _switchCamera() async {
     if (_room?.localParticipant == null) return;
 
-    final localParticipant = _room!.localParticipant!;
+    try {
+      final localParticipant = _room!.localParticipant!;
 
-    // Find the local video track
-    for (final publication in localParticipant.videoTrackPublications) {
-      if (publication.track is LocalVideoTrack) {
-        final track = publication.track as LocalVideoTrack;
-        // Toggle camera
-        await track.setCameraPosition(CameraPosition.back);
-        break;
+      // Toggle camera position
+      final newPosition = _cameraPosition == livekit.CameraPosition.front
+          ? livekit.CameraPosition.back
+          : livekit.CameraPosition.front;
+
+      // Find the local video track
+      for (final publication in localParticipant.videoTrackPublications) {
+        if (publication.track is livekit.LocalVideoTrack) {
+          final track = publication.track as livekit.LocalVideoTrack;
+
+          // Switch camera
+          await track.setCameraPosition(newPosition);
+
+          if (mounted) {
+            setState(() {
+              _cameraPosition = newPosition;
+            });
+          }
+
+          Logger.logInfo('Switched camera to $newPosition');
+          break;
+        }
       }
+    } catch (e) {
+      Logger.logError('Failed to switch camera', error: e);
+      // Silently ignore camera switch errors as they're not critical
     }
   }
 
   Future<void> _disconnect() async {
-    Logger.logInfo('Disconnecting from room');
-    await _room?.disconnect();
-    if (mounted) {
-      Navigator.of(context).pop();
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.confirmLeaveTitle),
+        content: Text(l10n.confirmLeaveMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: Text(l10n.confirmLeave),
+          ),
+        ],
+      ),
+    );
+
+    // Only disconnect if user confirmed
+    if (confirmed == true) {
+      Logger.logInfo('Disconnecting from room');
+      await _room?.disconnect();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     }
+  }
+
+  void _showDisconnectedDialog() {
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.roomDisconnected),
+        content: Text(l10n.disconnectedMessage),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
+            },
+            child: Text(l10n.goToHome),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -250,6 +395,20 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         foregroundColor: Colors.white,
         title: Text(widget.meetingTitle),
         actions: [
+          // Participants count button
+          if (_room != null)
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _showParticipantsList = !_showParticipantsList;
+                });
+              },
+              icon: const Icon(Icons.people, color: Colors.white),
+              label: Text(
+                '${(_room!.remoteParticipants.length + 1)}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.flip_camera_ios),
             onPressed: _switchCamera,
@@ -307,7 +466,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     ),
                   ),
                 )
-              : _buildVideoGrid(),
+              : Stack(
+                  children: [
+                    // Full-screen main speaker view
+                    _buildMainSpeakerView(),
+                    // Participants list overlay
+                    if (_showParticipantsList) _buildParticipantsOverlay(),
+                  ],
+                ),
       bottomNavigationBar: _room != null
           ? Container(
               color: Colors.black.withValues(alpha: 0.8),
@@ -346,61 +512,284 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     );
   }
 
-  Widget _buildVideoGrid() {
-    final l10n = AppLocalizations.of(context)!;
+  Widget _buildMainSpeakerView() {
+    final room = _room;
+    if (room == null) return const SizedBox();
 
-    if (_participantTracks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.people_outline,
-              color: Colors.white54,
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.waitingForParticipants,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.participantsInRoom(_room?.remoteParticipants.length ?? 0),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 14,
-              ),
-            ),
-          ],
+    // Determine which participant to show
+    livekit.Participant? stageParticipant;
+
+    if (_stageParticipantId != null) {
+      // Show manually selected participant
+      if (_stageParticipantId == room.localParticipant?.sid) {
+        stageParticipant = room.localParticipant;
+      } else {
+        stageParticipant = room.remoteParticipants[_stageParticipantId];
+      }
+    }
+
+    // If no stage participant, prioritize remote participants
+    if (stageParticipant == null) {
+      // First try to find a remote participant with video
+      final remoteWithVideo = _participantTracks.firstWhere(
+        (pt) => !pt.isLocal && pt.participant.isCameraEnabled(),
+        orElse: () => _participantTracks.firstWhere(
+          (pt) => !pt.isLocal,
+          orElse: () => _participantTracks.isNotEmpty
+              ? _participantTracks.first
+              : ParticipantTrack(
+                  participant: room.localParticipant!,
+                  track: room.localParticipant!.videoTrackPublications.first.track!,
+                  isLocal: true,
+                ),
         ),
       );
+
+      stageParticipant = remoteWithVideo.participant;
+
+      // If only local participant exists, show waiting view
+      if (room.remoteParticipants.isEmpty) {
+        return _buildWaitingView();
+      }
     }
 
-    if (_participantTracks.length == 1) {
-      return _buildParticipantView(_participantTracks[0]);
-    }
+    // Check if participant has camera enabled
+    final videoTrack = stageParticipant.videoTrackPublications
+        .where((pub) => pub.track != null && pub.subscribed)
+        .map((pub) => pub.track as livekit.VideoTrack)
+        .firstOrNull;
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: _participantTracks.length,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: _buildParticipantView(_participantTracks[index]),
-        );
-      },
+    final displayName = stageParticipant.sid == room.localParticipant?.sid
+        ? AppLocalizations.of(context)!.you
+        : _getDisplayName(stageParticipant.identity);
+
+    final isSpeaking = _activeSpeakers.any((s) => s.sid == stageParticipant!.sid);
+
+    return Container(
+      color: Colors.black,
+      child: Stack(
+        children: [
+          // Video or avatar
+          if (videoTrack != null)
+            Center(
+              child: livekit.VideoTrackRenderer(
+                videoTrack,
+                fit: livekit.VideoViewFit.contain,
+              ),
+            )
+          else
+            _buildLargeAvatar(displayName),
+
+          // Speaking indicator
+          if (isSpeaking)
+            Positioned(
+              top: 16,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF26C6DA).withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.mic, size: 16, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Participant name at bottom
+          if (!isSpeaking)
+            Positioned(
+              bottom: 16,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  displayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
-  Widget _buildParticipantView(ParticipantTrack participantTrack) {
+  Widget _buildWaitingView() {
     final l10n = AppLocalizations.of(context)!;
-    final displayName = participantTrack.isLocal
-        ? l10n.you
-        : _getDisplayName(participantTrack.participant.identity);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.people_outline,
+            color: Colors.white54,
+            size: 64,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.waitingForParticipants,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.participantsInRoom(_room?.remoteParticipants.length ?? 0),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLargeAvatar(String displayName) {
+    String getInitials(String name) {
+      final parts = name.trim().split(' ');
+      if (parts.isEmpty) return '?';
+      if (parts.length == 1) return parts[0][0].toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    return Center(
+      child: Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            getInitials(displayName),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 48,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParticipantsOverlay() {
+    final room = _room;
+    if (room == null) return const SizedBox();
+
+    final allParticipants = <livekit.Participant>[
+      if (room.localParticipant != null) room.localParticipant!,
+      ...room.remoteParticipants.values,
+    ];
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showParticipantsList = false;
+        });
+      },
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.7),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.black.withValues(alpha: 0.9),
+                child: Row(
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.participants,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () {
+                        setState(() {
+                          _showParticipantsList = false;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              // Participants list
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: allParticipants.length,
+                  itemBuilder: (context, index) {
+                    final participant = allParticipants[index];
+                    return _buildParticipantTile(participant);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParticipantTile(livekit.Participant participant) {
+    final room = _room;
+    if (room == null) return const SizedBox();
+
+    final isLocal = participant.sid == room.localParticipant?.sid;
+    final displayName = isLocal
+        ? AppLocalizations.of(context)!.you
+        : _getDisplayName(participant.identity);
+
+    final isStage = participant.sid == _stageParticipantId;
+    final isSpeaking = _activeSpeakers.any((s) => s.sid == participant.sid);
+
+    // Get video track
+    final videoTrack = participant.videoTrackPublications
+        .where((pub) => pub.track != null && pub.subscribed)
+        .map((pub) => pub.track as livekit.VideoTrack)
+        .firstOrNull;
 
     // Get initials for avatar
     String getInitials(String name) {
@@ -410,106 +799,151 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
 
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.grey[900]?.withOpacity(0.05),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _stageParticipantId = participant.sid;
+          _showParticipantsList = false;
+        });
+      },
+      child: Container(
+        height: 80,
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isStage
+              ? const Color(0xFF26C6DA).withValues(alpha: 0.2)
+              : Colors.grey[900]?.withValues(alpha: 0.3),
+          border: Border.all(
+            color: isStage
+                ? const Color(0xFF26C6DA)
+                : isSpeaking
+                    ? const Color(0xFF26C6DA).withValues(alpha: 0.5)
+                    : Colors.white.withValues(alpha: 0.1),
+            width: isStage ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        children: [
-          // Video/Avatar section (left)
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: participantTrack.participant.isCameraEnabled()
-                ? VideoTrackRenderer(
-                    participantTrack.track as VideoTrack,
-                    fit: VideoViewFit.cover,
-                  )
-                : Center(
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            // Video thumbnail or avatar
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: videoTrack != null
+                  ? livekit.VideoTrackRenderer(
+                      videoTrack,
+                      fit: livekit.VideoViewFit.cover,
+                    )
+                  : Center(
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
                           ),
-                        ],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            getInitials(displayName),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Center(
+                    ),
+            ),
+            const SizedBox(width: 12),
+            // Name and status
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
                         child: Text(
-                          getInitials(displayName),
+                          displayName,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Mic indicator
+                      if (!participant.isMicrophoneEnabled())
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.8),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.mic_off,
+                            size: 14,
+                            color: Colors.white,
                           ),
                         ),
-                      ),
-                    ),
+                    ],
                   ),
-          ),
-          const SizedBox(width: 12),
-          // Participant info (right)
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        displayName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Muted indicator
-                    if (!participantTrack.participant.isMicrophoneEnabled())
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.8),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.mic_off,
+                  if (isSpeaking)
+                    const SizedBox(height: 4),
+                  if (isSpeaking)
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.graphic_eq,
                           size: 14,
-                          color: Colors.white,
+                          color: const Color(0xFF26C6DA),
                         ),
-                      ),
-                  ],
-                ),
-              ],
+                        const SizedBox(width: 4),
+                        Text(
+                          'Speaking',
+                          style: TextStyle(
+                            color: const Color(0xFF26C6DA),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+            // Active indicator
+            if (isStage)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF26C6DA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Active',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -531,12 +965,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             height: 64,
             decoration: BoxDecoration(
               color: color == Colors.red
-                  ? Colors.red.withOpacity(0.9)
-                  : const Color(0xFF4CAF50).withOpacity(0.15),
+                  ? Colors.red.withValues(alpha: 0.9)
+                  : const Color(0xFF4CAF50).withValues(alpha: 0.15),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -565,8 +999,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 }
 
 class ParticipantTrack {
-  final Participant participant;
-  final Track track;
+  final livekit.Participant participant;
+  final livekit.Track track;
   final bool isLocal;
 
   ParticipantTrack({

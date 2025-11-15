@@ -27,14 +27,19 @@ export function useWebSocket({
 }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const enabledRef = useRef(enabled);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WSMessage | null>(null);
 
-  const connect = useCallback(() => {
-    if (!enabled || !meetingId) return;
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
-    // Get auth token from localStorage
-    const token = localStorage.getItem('token');
+  const connect = useCallback(() => {
+    if (!enabledRef.current || !meetingId) return;
+
+    // Get auth token from storage (local/session)
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
       // Silently skip connection if no token - this is expected before login
       return;
@@ -42,12 +47,16 @@ export function useWebSocket({
 
     // Determine WebSocket protocol based on window location
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/meetings/${meetingId}/ws`;
+    const wsUrl = new URL(
+      `${wsProtocol}//${window.location.host}/api/v1/meetings/${meetingId}/ws`,
+      window.location.href,
+    );
+    wsUrl.searchParams.set('token', token);
 
-    console.log('[WebSocket] Connecting to:', wsUrl);
+    console.log('[WebSocket] Connecting to:', wsUrl.toString());
 
     try {
-      const ws = new WebSocket(wsUrl);
+      const ws = new WebSocket(wsUrl.toString());
 
       ws.onopen = () => {
         console.log('[WebSocket] Connected');
@@ -83,7 +92,7 @@ export function useWebSocket({
         if (onDisconnect) onDisconnect();
 
         // Attempt to reconnect after 3 seconds
-        if (enabled) {
+        if (enabledRef.current) {
           console.log('[WebSocket] Scheduling reconnect in 3 seconds...');
           reconnectTimeoutRef.current = window.setTimeout(() => {
             console.log('[WebSocket] Attempting to reconnect...');

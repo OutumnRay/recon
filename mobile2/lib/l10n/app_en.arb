@@ -46,6 +46,8 @@
   "recurrenceDaily": "Daily",
   "recurrenceWeekly": "Weekly",
   "recurrenceMonthly": "Monthly",
+  "recurrencePermanent": "Permanent",
+  "permanent": "Permanent",
 
   "duration15": "15 minutes",
   "duration30": "30 minutes",
@@ -273,5 +275,43 @@
   "termsComingSoon": "Terms & Conditions - Coming soon",
   "logoutConfirm": "Are you sure you want to logout?",
   "appDescription": "Video conferences & meeting management platform",
-  "allRightsReserved": "© 2025 Recontext. All rights reserved."
+  "allRightsReserved": "© 2025 Recontext. All rights reserved.",
+
+  "tabInfo": "Info",
+  "tabRecordings": "Recordings",
+  "recordings": "Recordings",
+  "noRecordingsFound": "No recordings found",
+  "recordingsHint": "Recordings will appear here after the meeting ends",
+  "session": "Session",
+  "sessionNumber": "Session {number}",
+  "@sessionNumber": {
+    "description": "Session number label",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "recordingDuration": "Duration: {minutes} min",
+  "@recordingDuration": {
+    "description": "Recording duration in minutes",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "playRecording": "Play Recording",
+  "roomRecording": "Room Recording",
+  "recordingStatus": "Status",
+  "loadingRecordings": "Loading recordings...",
+  "failedToLoadRecordings": "Failed to load recordings",
+  "retryLoadRecordings": "Retry",
+  "roomDisconnected": "Room Disconnected",
+  "disconnectedMessage": "You have been disconnected from the meeting. You may have joined from another device.",
+  "goToHome": "Go to Home",
+  "confirmLeaveTitle": "Leave Meeting?",
+  "confirmLeaveMessage": "Are you sure you want to leave this meeting?",
+  "cancel": "Cancel",
+  "confirmLeave": "Leave"
 }

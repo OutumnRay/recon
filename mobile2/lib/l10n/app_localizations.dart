@@ -320,6 +320,18 @@ abstract class AppLocalizations {
   /// **'Monthly'**
   String get recurrenceMonthly;
 
+  /// No description provided for @recurrencePermanent.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent'**
+  String get recurrencePermanent;
+
+  /// No description provided for @permanent.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent'**
+  String get permanent;
+
   /// No description provided for @duration15.
   ///
   /// In en, this message translates to:
@@ -1130,6 +1142,12 @@ abstract class AppLocalizations {
   /// **'Switch Camera'**
   String get switchCamera;
 
+  /// No description provided for @flipCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Flip'**
+  String get flipCamera;
+
   /// No description provided for @userRoleUser.
   ///
   /// In en, this message translates to:
@@ -1261,6 +1279,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'© 2025 Recontext. All rights reserved.'**
   String get allRightsReserved;
+
+  /// No description provided for @tabInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get tabInfo;
+
+  /// No description provided for @tabRecordings.
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings'**
+  String get tabRecordings;
+
+  /// No description provided for @recordings.
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings'**
+  String get recordings;
+
+  /// No description provided for @noRecordingsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No recordings found'**
+  String get noRecordingsFound;
+
+  /// No description provided for @recordingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings will appear here after the meeting ends'**
+  String get recordingsHint;
+
+  /// No description provided for @session.
+  ///
+  /// In en, this message translates to:
+  /// **'Session'**
+  String get session;
+
+  /// Session number label
+  ///
+  /// In en, this message translates to:
+  /// **'Session {number}'**
+  String sessionNumber(int number);
+
+  /// Recording duration in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: {minutes} min'**
+  String recordingDuration(int minutes);
+
+  /// No description provided for @playRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Recording'**
+  String get playRecording;
+
+  /// No description provided for @roomRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Room Recording'**
+  String get roomRecording;
+
+  /// No description provided for @recordingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get recordingStatus;
+
+  /// No description provided for @loadingRecordings.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading recordings...'**
+  String get loadingRecordings;
+
+  /// No description provided for @failedToLoadRecordings.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load recordings'**
+  String get failedToLoadRecordings;
+
+  /// No description provided for @retryLoadRecordings.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retryLoadRecordings;
+
+  /// No description provided for @roomDisconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Room Disconnected'**
+  String get roomDisconnected;
+
+  /// No description provided for @disconnectedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You have been disconnected from the meeting. You may have joined from another device.'**
+  String get disconnectedMessage;
+
+  /// No description provided for @goToHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Home'**
+  String get goToHome;
+
+  /// No description provided for @confirmLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave Meeting?'**
+  String get confirmLeaveTitle;
+
+  /// No description provided for @confirmLeaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to leave this meeting?'**
+  String get confirmLeaveMessage;
+
+  /// No description provided for @confirmLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get confirmLeave;
 }
 
 class _AppLocalizationsDelegate

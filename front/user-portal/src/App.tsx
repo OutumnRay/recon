@@ -14,6 +14,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AnonymousJoin from './pages/AnonymousJoin';
 import Forbidden from './pages/Forbidden';
+import MeetingDisconnected from './pages/MeetingDisconnected';
 
 // Component to redirect to meetings if logged in, otherwise to login
 function RootRedirect() {
@@ -42,6 +43,7 @@ function App() {
         </Route>
         <Route path="/meeting/:meetingId" element={<MeetingRoom />} />
         <Route path="/meeting-room/:meetingId" element={<MeetingRoom />} />
+        <Route path="/meeting/disconnected" element={<MeetingDisconnected />} />
         <Route path="/meeting/:meetingId/recordings" element={<MeetingRecordings />} />
       </Routes>
     </BrowserRouter>

@@ -9,9 +9,13 @@ class Meeting {
   final String status;
   final bool needsVideoRecord;
   final bool needsAudioRecord;
+  final bool needsTranscription;
   final bool isRecording;
   final bool isTranscribing;
   final String? additionalNotes;
+  final bool forceEndAtDuration;
+  final bool isPermanent;
+  final bool allowAnonymous;
   final String? liveKitRoomId;
   final String createdBy;
   final DateTime createdAt;
@@ -28,9 +32,13 @@ class Meeting {
     required this.status,
     required this.needsVideoRecord,
     required this.needsAudioRecord,
+    required this.needsTranscription,
     required this.isRecording,
     required this.isTranscribing,
     this.additionalNotes,
+    required this.forceEndAtDuration,
+    required this.isPermanent,
+    required this.allowAnonymous,
     this.liveKitRoomId,
     required this.createdBy,
     required this.createdAt,
@@ -49,9 +57,13 @@ class Meeting {
       status: json['status'] as String,
       needsVideoRecord: json['needs_video_record'] as bool? ?? false,
       needsAudioRecord: json['needs_audio_record'] as bool? ?? false,
+      needsTranscription: json['needs_transcription'] as bool? ?? false,
       isRecording: json['is_recording'] as bool? ?? false,
       isTranscribing: json['is_transcribing'] as bool? ?? false,
       additionalNotes: json['additional_notes'] as String?,
+      forceEndAtDuration: json['force_end_at_duration'] as bool? ?? false,
+      isPermanent: json['is_permanent'] as bool? ?? false,
+      allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
       createdBy: json['created_by'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -71,9 +83,13 @@ class Meeting {
       'status': status,
       'needs_video_record': needsVideoRecord,
       'needs_audio_record': needsAudioRecord,
+      'needs_transcription': needsTranscription,
       'is_recording': isRecording,
       'is_transcribing': isTranscribing,
       'additional_notes': additionalNotes,
+      'force_end_at_duration': forceEndAtDuration,
+      'is_permanent': isPermanent,
+      'allow_anonymous': allowAnonymous,
       'livekit_room_id': liveKitRoomId,
       'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
@@ -98,9 +114,13 @@ class MeetingWithDetails extends Meeting {
     required super.status,
     required super.needsVideoRecord,
     required super.needsAudioRecord,
+    required super.needsTranscription,
     required super.isRecording,
     required super.isTranscribing,
     super.additionalNotes,
+    required super.forceEndAtDuration,
+    required super.isPermanent,
+    required super.allowAnonymous,
     super.liveKitRoomId,
     required super.createdBy,
     required super.createdAt,
@@ -122,9 +142,13 @@ class MeetingWithDetails extends Meeting {
       status: json['status'] as String,
       needsVideoRecord: json['needs_video_record'] as bool? ?? false,
       needsAudioRecord: json['needs_audio_record'] as bool? ?? false,
+      needsTranscription: json['needs_transcription'] as bool? ?? false,
       isRecording: json['is_recording'] as bool? ?? false,
       isTranscribing: json['is_transcribing'] as bool? ?? false,
       additionalNotes: json['additional_notes'] as String?,
+      forceEndAtDuration: json['force_end_at_duration'] as bool? ?? false,
+      isPermanent: json['is_permanent'] as bool? ?? false,
+      allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
       createdBy: json['created_by'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),

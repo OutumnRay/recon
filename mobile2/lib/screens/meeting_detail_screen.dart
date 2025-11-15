@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import '../models/meeting.dart';
+import '../models/recording.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/config_service.dart';
 import '../widgets/error_display.dart';
 import 'video_call_screen.dart';
+import 'recording_player_screen.dart';
 
 class MeetingDetailScreen extends StatefulWidget {
   final String meetingId;
@@ -20,9 +22,11 @@ class MeetingDetailScreen extends StatefulWidget {
   State<MeetingDetailScreen> createState() => _MeetingDetailScreenState();
 }
 
-class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
+class _MeetingDetailScreenState extends State<MeetingDetailScreen>
+    with SingleTickerProviderStateMixin {
   final _configService = ConfigService();
   late MeetingsService _meetingsService;
+  late TabController _tabController;
 
   MeetingWithDetails? _meeting;
   bool _isLoading = true;
@@ -32,7 +36,14 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _initService();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _initService() async {
@@ -155,7 +166,17 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF26C6DA),
         elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: const Color(0xFF26C6DA),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: const Color(0xFF26C6DA),
+          tabs: [
+            Tab(text: l10n.tabInfo),
+            Tab(text: l10n.tabRecordings),
+          ],
+        ),
       ),
       body: _isLoading
           ? const Center(
@@ -171,9 +192,20 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
                 )
               : _meeting == null
                   ? Center(child: Text(l10n.noMeetingsFound))
-                  : _buildMeetingContent(),
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildMeetingContent(),
+                        _buildRecordingsTab(),
+                      ],
+                    ),
       floatingActionButton: _meeting != null &&
-              (_meeting!.status == 'active' || _meeting!.status == 'scheduled')
+              (_meeting!.isPermanent ||
+               _meeting!.recurrence == 'permanent' ||
+               _meeting!.status == 'active' ||
+               _meeting!.status == 'scheduled' ||
+               _meeting!.status == 'in_progress') &&
+              _meeting!.status != 'cancelled'
           ? FloatingActionButton.extended(
               onPressed: _joinMeeting,
               backgroundColor: const Color(0xFF26C6DA),
@@ -187,6 +219,245 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
             )
           : null,
     );
+  }
+
+  Widget _buildRecordingsTab() {
+    final l10n = AppLocalizations.of(context)!;
+
+    return FutureBuilder<List<RoomRecording>>(
+      future: _meetingsService.getMeetingRecordings(widget.meetingId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF26C6DA),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.failedToLoadRecordings,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    snapshot.error.toString(),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {}); // Trigger rebuild to refetch
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF26C6DA),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(l10n.retryLoadRecordings),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final recordings = snapshot.data ?? [];
+
+        if (recordings.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.videocam_off,
+                  size: 64,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.noRecordingsFound,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.recordingsHint,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: recordings.length,
+          itemBuilder: (context, index) {
+            final recording = recordings[index];
+            return _buildRecordingCard(recording, index + 1);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildRecordingCard(RoomRecording recording, int sessionNumber) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final dateFormat = DateFormat.yMMMd(locale);
+    final timeFormat = DateFormat.Hm(locale);
+
+    final startedAt = recording.startedAt;
+    final endedAt = recording.endedAt;
+
+    int? durationMinutes;
+    if (endedAt != null) {
+      durationMinutes = endedAt.difference(startedAt).inMinutes;
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF26C6DA).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    l10n.sessionNumber(sessionNumber),
+                    style: const TextStyle(
+                      color: Color(0xFF00ACC1),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getRecordingStatusColor(recording.status).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _getRecordingStatusColor(recording.status).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    recording.status,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _getRecordingStatusColor(recording.status),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  dateFormat.format(startedAt),
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  '${timeFormat.format(startedAt)} ${endedAt != null ? '- ${timeFormat.format(endedAt)}' : ''}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                if (durationMinutes != null) ...[
+                  const SizedBox(width: 16),
+                  Text(
+                    l10n.recordingDuration(durationMinutes),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+            if (recording.playlistUrl != null) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RecordingPlayerScreen(
+                          recording: recording,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.play_circle,
+                    size: 20,
+                  ),
+                  label: Text(l10n.playRecording),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF26C6DA),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getRecordingStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'recording':
+        return const Color(0xFF991B1B); // Red for recording
+      case 'completed':
+        return const Color(0xFF059669); // Green
+      case 'processing':
+        return const Color(0xFF92400E); // Amber/brown
+      case 'failed':
+        return const Color(0xFF991B1B); // Red
+      default:
+        return const Color(0xFF6B7280); // Gray
+    }
   }
 
   Widget _buildMeetingContent() {
@@ -219,7 +490,33 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildStatusChip(meeting.status),
+                // For permanent meetings, only show "Permanent" badge instead of status
+                if (meeting.isPermanent || meeting.recurrence == 'permanent')
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C3AED), // Purple from frontend
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.all_inclusive, size: 14, color: Colors.white),
+                        const SizedBox(width: 6),
+                        Text(
+                          l10n.permanent,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  // For non-permanent meetings, show status badge
+                  _buildStatusChip(meeting.status),
                 const SizedBox(height: 12),
                 Text(
                   meeting.title,
@@ -389,9 +686,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
                       children: meeting.departments.map((dept) {
                         return Chip(
                           label: Text(dept),
-                          backgroundColor: const Color(0xFF26C6DA).withOpacity(0.15),
+                          backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
                           side: BorderSide(
-                            color: const Color(0xFF26C6DA).withOpacity(0.3),
+                            color: const Color(0xFF26C6DA).withValues(alpha: 0.3),
                             width: 1,
                           ),
                           shape: RoundedRectangleBorder(
@@ -460,28 +757,29 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
 
     switch (status.toLowerCase()) {
       case 'active':
-        backgroundColor = Colors.green;
-        textColor = Colors.white;
-        label = l10n.active;
+      case 'in_progress':
+        backgroundColor = const Color(0xFFFEF3C7); // Warning light background
+        textColor = const Color(0xFF92400E); // Warning text color from frontend
+        label = status.toLowerCase() == 'active' ? l10n.active : l10n.statusInProgress;
         break;
       case 'scheduled':
-        backgroundColor = Colors.blue;
-        textColor = Colors.white;
+        backgroundColor = const Color(0xFFDBEAFE); // Primary-50 background
+        textColor = const Color(0xFF2563EB); // Primary-700 text color from frontend
         label = l10n.scheduled;
         break;
       case 'completed':
-        backgroundColor = Colors.grey;
-        textColor = Colors.white;
+        backgroundColor = const Color(0xFFD1FAE5); // Success light background
+        textColor = const Color(0xFF059669); // Success text color from frontend
         label = l10n.completed;
         break;
       case 'cancelled':
-        backgroundColor = Colors.red;
-        textColor = Colors.white;
+        backgroundColor = const Color(0xFFFEE2E2); // Error light background
+        textColor = const Color(0xFF991B1B); // Error text color from frontend
         label = l10n.cancelled;
         break;
       default:
-        backgroundColor = Colors.grey;
-        textColor = Colors.white;
+        backgroundColor = const Color(0xFFF3F4F6); // Gray light
+        textColor = const Color(0xFF6B7280); // Gray text
         label = status;
     }
 
@@ -490,6 +788,10 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: textColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Text(
         label,
@@ -591,6 +893,8 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen> {
         return l10n.recurrenceWeekly;
       case 'monthly':
         return l10n.recurrenceMonthly;
+      case 'permanent':
+        return l10n.recurrencePermanent;
       case 'none':
         return l10n.recurrenceNone;
       default:
