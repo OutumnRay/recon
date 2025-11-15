@@ -280,7 +280,7 @@ export default function MeetingRoom() {
       }
     } else if (targetId) {
       // For remote participant, check for screen share first
-      const participant = room.remoteParticipants.get(targetId);
+      const participant = participants.get(targetId);
       if (participant) {
         const screenPub = Array.from(participant.videoTrackPublications.values())
           .find(pub => pub.source === Track.Source.ScreenShare);
@@ -322,7 +322,7 @@ export default function MeetingRoom() {
       placeholder.textContent = t('meetingRoom.waitingForParticipants');
       container.appendChild(placeholder);
     }
-  }, [detachStageVideo, room, stageParticipantId, t]);
+  }, [detachStageVideo, room, stageParticipantId, t, participants]);
 
   const updateSidebarHighlight = useCallback((selectedId: string | null) => {
     if (!videoContainerRef.current) return;
@@ -442,7 +442,7 @@ export default function MeetingRoom() {
       return;
     }
 
-    const participant = room.remoteParticipants.get(participantId);
+    const participant = participants.get(participantId);
     if (!participant) {
       return;
     }
@@ -457,7 +457,7 @@ export default function MeetingRoom() {
         }
       }
     }
-  }, [room]);
+  }, [participants, room]);
 
   const attachTrackToTile = (participant: RemoteParticipant, element: HTMLElement) => {
     const container = ensureParticipantTile(participant);
@@ -739,40 +739,6 @@ export default function MeetingRoom() {
 
     const handleActiveSpeakerChange = (speakers: Participant[]) => {
       setActiveSpeakers(speakers);
-
-      // Automatically switch stage to active speaker (excluding local participant)
-      if (speakers.length > 0) {
-        // Find the first remote participant who is speaking
-        const activeSpeaker = speakers.find(speaker => speaker instanceof RemoteParticipant);
-
-        if (activeSpeaker) {
-          const displayName = getParticipantDisplayName(activeSpeaker);
-
-          // Check if the participant has video track before switching
-          const hasVideoTrack = participantVideoTracks.current.has(activeSpeaker.sid);
-          const participant = room.remoteParticipants.get(activeSpeaker.sid);
-          const hasVideoPublication = participant && Array.from(participant.videoTrackPublications.values()).some(
-            pub => pub.track && pub.isEnabled
-          );
-
-          console.log(`[Active Speaker] ${displayName} (${activeSpeaker.sid})`);
-          console.log(`[Active Speaker] Has video track: ${hasVideoTrack}, Has video publication: ${hasVideoPublication}`);
-
-          // Only switch if participant has video available
-          if (hasVideoTrack || hasVideoPublication) {
-            console.log(`[Active Speaker] Switching stage to ${displayName}`);
-            setStageParticipantId(activeSpeaker.sid);
-            renderStageVideo(activeSpeaker.sid);
-            updateSidebarHighlight(activeSpeaker.sid);
-          } else {
-            console.log(`[Active Speaker] ${displayName} has no video track, keeping current stage`);
-          }
-        } else {
-          // No remote participant is speaking (only local participant or no one)
-          // Don't change the stage, keep showing current remote participant
-          console.log(`[Active Speaker] Only local participant speaking, keeping current stage`);
-        }
-      }
     };
 
     const handleTrackMuted = (publication: TrackPublication, participant: Participant) => {
