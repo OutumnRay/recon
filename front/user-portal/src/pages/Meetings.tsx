@@ -765,18 +765,8 @@ export const Meetings: React.FC = () => {
                       )}
                     </div>
                     <div className="meeting-card-actions">
-                      {isPast ? (
-                        <button
-                          className="btn-recordings"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/meeting/${meeting.id}/recordings`);
-                          }}
-                          title={t('meetings.card.viewRecordings')}
-                        >
-                          <LuFilm />
-                        </button>
-                      ) : meeting.status !== 'cancelled' && (
+                      {/* Always show join button for permanent meetings */}
+                      {(meeting.is_permanent || meeting.recurrence === 'permanent') && meeting.status !== 'cancelled' && (
                         <button
                           className="btn btn-join btn-sm"
                           onClick={(e) => {
@@ -786,6 +776,49 @@ export const Meetings: React.FC = () => {
                           title={t('meetings.details.joinMeeting')}
                         >
                           <LuPlay /> {t('meetings.details.joinMeeting')}
+                        </button>
+                      )}
+
+                      {/* For non-permanent meetings: show recordings if past, join button if not past and not cancelled */}
+                      {!meeting.is_permanent && meeting.recurrence !== 'permanent' && (
+                        <>
+                          {isPast ? (
+                            <button
+                              className="btn-recordings"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/meeting/${meeting.id}/recordings`);
+                              }}
+                              title={t('meetings.card.viewRecordings')}
+                            >
+                              <LuFilm />
+                            </button>
+                          ) : meeting.status !== 'cancelled' && (
+                            <button
+                              className="btn btn-join btn-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.location.href = `/meeting/${meeting.id}`;
+                              }}
+                              title={t('meetings.details.joinMeeting')}
+                            >
+                              <LuPlay /> {t('meetings.details.joinMeeting')}
+                            </button>
+                          )}
+                        </>
+                      )}
+
+                      {/* Show recordings button for permanent meetings if there are recordings */}
+                      {(meeting.is_permanent || meeting.recurrence === 'permanent') && isPast && (
+                        <button
+                          className="btn-recordings"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/meeting/${meeting.id}/recordings`);
+                          }}
+                          title={t('meetings.card.viewRecordings')}
+                        >
+                          <LuFilm />
                         </button>
                       )}
                       <button
