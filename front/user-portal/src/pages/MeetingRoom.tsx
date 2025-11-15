@@ -889,22 +889,31 @@ export default function MeetingRoom() {
         console.log('[Room Connect] Local participant:', room.localParticipant?.identity);
         console.log('[Room Connect] Remote participants count:', room.remoteParticipants.size);
 
+        // Set connected state FIRST so event handlers are registered
         setIsConnected(true);
         setError(null);
         setStageParticipantId(current => current ?? room.localParticipant?.sid ?? null);
 
-        // Enable camera and microphone by default after connection
-        setTimeout(() => {
-          enableMediaByDefault();
-        }, 500);
+        // Wait a bit for event handlers to be registered before processing existing participants
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-        room.remoteParticipants.forEach(async (participant) => {
+        console.log('[Room Connect] Processing existing participants...');
+
+        // Process existing participants
+        // Build participants map in one go to avoid multiple state updates
+        const existingParticipants = new Map<string, RemoteParticipant>();
+        room.remoteParticipants.forEach((participant) => {
+          existingParticipants.set(participant.sid, participant);
+        });
+        setParticipants(existingParticipants);
+
+        // Process each existing participant and their tracks
+        for (const participant of room.remoteParticipants.values()) {
           const displayName = getParticipantDisplayName(participant);
           console.log(`[Existing Participant] ${displayName} (${participant.sid})`);
           console.log(`  - Audio tracks: ${participant.audioTrackPublications.size}`);
           console.log(`  - Video tracks: ${participant.videoTrackPublications.size}`);
 
-          setParticipants(prev => new Map(prev).set(participant.sid, participant));
           ensureParticipantTile(participant);
 
           // Process existing tracks
@@ -969,7 +978,14 @@ export default function MeetingRoom() {
               }
             }
           });
-        });
+        }
+
+        // Enable camera and microphone by default after processing existing participants
+        // Give a bit more time for event handlers to be registered
+        setTimeout(() => {
+          enableMediaByDefault();
+        }, 1000);
+
       } catch (err) {
         console.error('Failed to connect:', err);
         setError(err instanceof Error ? err.message : t('meetingRoom.errors.connect'));
