@@ -61,6 +61,7 @@ type UserPortal struct {
 	departmentRepo    *database.DepartmentRepository // Department repository
 	meetingRepo       *database.MeetingRepository    // Meeting repository
 	liveKitRepo       *database.LiveKitRepository    // LiveKit repository
+	fcmDeviceRepo     *database.FCMDeviceRepository  // FCM device repository
 	recordings        map[string]*models.Recording   // In-memory recordings store
 	prometheusMetrics *metrics.ServiceMetrics        // Prometheus metrics
 	embeddingsClient  *embeddings.EmbeddingsClient   // Embeddings client for RAG
@@ -107,6 +108,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 	departmentRepo := database.NewDepartmentRepository(db)
 	meetingRepo := database.NewMeetingRepository(db)
 	liveKitRepo := database.NewLiveKitRepository(db)
+	fcmDeviceRepo := database.NewFCMDeviceRepository(db.DB)
 
 	// Initialize embeddings client for RAG
 	embeddingsClient := embeddings.NewEmbeddingsClient()
@@ -127,6 +129,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		departmentRepo:    departmentRepo,
 		meetingRepo:       meetingRepo,
 		liveKitRepo:       liveKitRepo,
+		fcmDeviceRepo:     fcmDeviceRepo,
 		recordings:        make(map[string]*models.Recording),
 		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
 		embeddingsClient:  embeddingsClient,
@@ -708,6 +711,100 @@ func (up *UserPortal) ragStatusHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(status)
 }
 
+// RegisterFCMDevice godoc
+// @Summary Register device for push notifications
+// @Description Register or update a device's FCM token for receiving push notifications
+// @Tags FCM
+// @Accept json
+// @Produce json
+// @Param request body models.RegisterFCMDeviceRequest true "Device registration details"
+// @Success 200 {object} models.RegisterFCMDeviceResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/fcm/register [post]
+func (up *UserPortal) registerFCMDeviceHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	var req models.RegisterFCMDeviceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Register or update the device
+	device, isNew, err := up.fcmDeviceRepo.RegisterDevice(claims.UserID, &req)
+	if err != nil {
+		up.logger.Errorf("Failed to register FCM device: %v", err)
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to register device", err.Error())
+		return
+	}
+
+	message := "Device registered successfully"
+	if !isNew {
+		message = "Device updated successfully"
+	}
+
+	response := models.RegisterFCMDeviceResponse{
+		ID:      device.ID,
+		Message: message,
+		IsNew:   isNew,
+	}
+
+	up.logger.Infof("FCM device %s for user %s (platform: %s)",
+		map[bool]string{true: "registered", false: "updated"}[isNew],
+		claims.Username, req.Platform)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// UnregisterFCMDevice godoc
+// @Summary Unregister device from push notifications
+// @Description Unregister a device's FCM token to stop receiving push notifications
+// @Tags FCM
+// @Accept json
+// @Produce json
+// @Param request body models.UnregisterFCMDeviceRequest true "Device unregistration details"
+// @Success 200 {object} models.UnregisterFCMDeviceResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/fcm/unregister [post]
+func (up *UserPortal) unregisterFCMDeviceHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	var req models.UnregisterFCMDeviceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Unregister the device
+	if err := up.fcmDeviceRepo.UnregisterDevice(claims.UserID, req.FCMToken); err != nil {
+		up.logger.Errorf("Failed to unregister FCM device: %v", err)
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to unregister device", err.Error())
+		return
+	}
+
+	response := models.UnregisterFCMDeviceResponse{
+		Message: "Device unregistered successfully",
+	}
+
+	up.logger.Infof("FCM device unregistered for user %s", claims.Username)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func (up *UserPortal) respondWithError(w http.ResponseWriter, code int, message string, detail string) {
 	response := models.ErrorResponse{
 		Error:     message,
@@ -928,6 +1025,17 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/rag/status", chainMiddleware(
 		http.HandlerFunc(up.ragStatusHandler),
+		authMiddleware,
+	))
+
+	// FCM (Firebase Cloud Messaging) endpoints
+	mux.Handle("/api/v1/fcm/register", chainMiddleware(
+		http.HandlerFunc(up.registerFCMDeviceHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/fcm/unregister", chainMiddleware(
+		http.HandlerFunc(up.unregisterFCMDeviceHandler),
 		authMiddleware,
 	))
 

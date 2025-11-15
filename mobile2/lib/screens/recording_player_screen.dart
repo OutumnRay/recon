@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
+import 'package:fijkplayer/fijkplayer.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../models/recording.dart';
 import '../utils/logger.dart';
 import '../services/storage_service.dart';
+import '../services/config_service.dart';
+import '../l10n/app_localizations.dart';
 
 class RecordingPlayerScreen extends StatefulWidget {
   final RoomRecording recording;
@@ -31,10 +35,11 @@ class RecordingPlayerScreen extends StatefulWidget {
 }
 
 class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
-  VideoPlayerController? _videoPlayerController;
-  ChewieController? _chewieController;
+  final FijkPlayer _player = FijkPlayer();
   bool _isLoading = true;
   String? _error;
+  bool _isDownloading = false;
+  double _downloadProgress = 0.0;
 
   @override
   void initState() {
@@ -63,10 +68,11 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
 
       Logger.logInfo('Initializing video player', data: {'url': playlistUrl});
 
-      // Get base URL - use environment variable or default
-      const baseUrl = String.fromEnvironment('API_URL', defaultValue: 'https://recontext.online');
+      // Get base URL from config service
+      final configService = ConfigService();
+      final baseUrl = await configService.getApiUrl();
 
-      // Build full URL with authentication header
+      // Build full URL
       final fullUrl = playlistUrl.startsWith('http')
           ? playlistUrl
           : '$baseUrl$playlistUrl';
@@ -77,58 +83,17 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
       final storageService = StorageService();
       final token = await storageService.getToken();
 
-      // Initialize video player with HLS stream
-      _videoPlayerController = VideoPlayerController.networkUrl(
-        Uri.parse(fullUrl),
-        httpHeaders: {
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      );
+      if (!mounted) return;
 
-      await _videoPlayerController!.initialize();
+      // Set headers with authentication
+      // FijkPlayer expects headers as a string in format "key:value\r\nkey:value"
+      if (token != null) {
+        final headersString = 'Authorization:Bearer $token';
+        await _player.setOption(FijkOption.formatCategory, "headers", headersString);
+      }
 
-      // Initialize Chewie controller for better UI
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController!,
-        autoPlay: true,
-        looping: false,
-        allowFullScreen: true,
-        allowMuting: true,
-        showControls: true,
-        materialProgressColors: ChewieProgressColors(
-          playedColor: Theme.of(context).primaryColor,
-          handleColor: Theme.of(context).primaryColor,
-          backgroundColor: Colors.grey,
-          bufferedColor: Theme.of(context).primaryColor.withOpacity(0.3),
-        ),
-        placeholder: Container(
-          color: Colors.black,
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
-        errorBuilder: (context, errorMessage) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error, color: Colors.red, size: 48),
-                const SizedBox(height: 16),
-                Text(
-                  'Error playing video',
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  errorMessage,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        },
-      );
+      // Initialize FijkPlayer
+      await _player.setDataSource(fullUrl, autoPlay: true);
 
       setState(() {
         _isLoading = false;
@@ -137,18 +102,119 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
       Logger.logSuccess('Video player initialized');
     } catch (e) {
       Logger.logError('Failed to initialize video player', error: e);
-      setState(() {
-        _isLoading = false;
-        _error = e.toString();
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString();
+        });
+      }
     }
   }
 
   @override
   void dispose() {
-    _chewieController?.dispose();
-    _videoPlayerController?.dispose();
+    _player.release();
     super.dispose();
+  }
+
+  Future<void> _downloadRecording() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      setState(() {
+        _isDownloading = true;
+        _downloadProgress = 0.0;
+      });
+
+      // Get the playlist URL
+      String playlistUrl;
+      if (widget.isTrack && widget.track != null) {
+        playlistUrl = widget.track!.playlistUrl;
+      } else {
+        playlistUrl = widget.recording.playlistUrl ?? '';
+      }
+
+      if (playlistUrl.isEmpty) {
+        throw Exception('No playlist URL available');
+      }
+
+      // Get base URL and build full URL
+      final configService = ConfigService();
+      final baseUrl = await configService.getApiUrl();
+      final fullUrl = playlistUrl.startsWith('http')
+          ? playlistUrl
+          : '$baseUrl$playlistUrl';
+
+      // Get authentication token
+      final storageService = StorageService();
+      final token = await storageService.getToken();
+
+      // Get download directory
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      // Generate filename
+      final timestamp = widget.recording.startedAt.toIso8601String().split('T')[0];
+      final title = _getTitle().replaceAll(RegExp(r'[^\w\s-]'), '');
+      final filename = 'recording_${title}_$timestamp.m3u8';
+      final savePath = '${directory?.path}/$filename';
+
+      // Download with Dio
+      final dio = Dio();
+      await dio.download(
+        fullUrl,
+        savePath,
+        options: Options(
+          headers: {
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
+        ),
+        onReceiveProgress: (received, total) {
+          if (total != -1 && mounted) {
+            setState(() {
+              _downloadProgress = received / total;
+            });
+          }
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.recordingSaved),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      Logger.logSuccess('Recording downloaded successfully to: $savePath');
+    } catch (e) {
+      Logger.logError('Failed to download recording', error: e);
+
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.downloadFailed),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _getTitle() {
@@ -187,25 +253,63 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(_getTitle()),
         backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: l10n.close,
+        ),
+        actions: [
+          if (_isDownloading)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    value: _downloadProgress > 0 ? _downloadProgress : null,
+                    strokeWidth: 2,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.download),
+              tooltip: l10n.downloadRecording,
+              onPressed: _downloadRecording,
+            ),
+        ],
       ),
       body: Column(
         children: [
           // Video player
           Expanded(
-            child: Center(
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : _error != null
-                      ? _buildErrorWidget()
-                      : _chewieController != null
-                          ? Chewie(controller: _chewieController!)
-                          : const SizedBox.shrink(),
-            ),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : _error != null
+                    ? _buildErrorWidget()
+                    : FijkView(
+                        player: _player,
+                        color: Colors.black,
+                        fit: FijkFit.contain,
+                        panelBuilder: fijkPanel2Builder(
+                          onBack: () => Navigator.of(context).pop(),
+                        ),
+                      ),
           ),
           // Info section
           Container(

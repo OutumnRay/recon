@@ -196,6 +196,7 @@ func (db *DB) RunMigrations() error {
 		&MeetingDepartment{},
 		&TemporaryUser{},
 		&PasswordResetToken{},
+		&models.FCMDevice{},
 	}
 
 	if err := db.AutoMigrate(dbModels...); err != nil {
@@ -301,6 +302,13 @@ func (db *DB) createAdditionalIndexes() error {
 		"CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_email ON password_reset_tokens(email)",
 		"CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at ON password_reset_tokens(expires_at)",
 		"CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)",
+
+		// FCM devices indexes
+		"CREATE INDEX IF NOT EXISTS idx_fcm_devices_user_id ON fcm_devices(user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_fcm_devices_fcm_token ON fcm_devices(fcm_token)",
+		"CREATE INDEX IF NOT EXISTS idx_fcm_devices_platform ON fcm_devices(platform)",
+		"CREATE INDEX IF NOT EXISTS idx_fcm_devices_is_active ON fcm_devices(is_active)",
+		"CREATE INDEX IF NOT EXISTS idx_fcm_devices_last_active_at ON fcm_devices(last_active_at DESC)",
 	}
 
 	for _, indexSQL := range indexes {

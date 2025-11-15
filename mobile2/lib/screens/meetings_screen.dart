@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
+import '../services/config_service.dart';
 import '../models/meeting.dart';
 import '../widgets/error_display.dart';
 import 'meeting_detail_screen.dart';
@@ -25,6 +27,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   bool _isLoading = true;
   String? _error;
   String _filter = 'scheduled'; // scheduled, in_progress, completed, all
+  String? _copiedMeetingId;
 
   @override
   bool get wantKeepAlive => true;
@@ -151,7 +154,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF26C6DA),
         elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -215,155 +218,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                         padding: const EdgeInsets.all(8),
                         itemBuilder: (context, index) {
                           final meeting = _meetings![index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 2,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => MeetingDetailScreen(
-                                      meetingId: meeting.id,
-                                    ),
-                                  ),
-                                );
-                              },
-                              leading: CircleAvatar(
-                                radius: 28,
-                                backgroundColor: const Color(0xFF26C6DA).withOpacity(0.15),
-                                child: Icon(
-                                  _getMeetingIcon(meeting.type),
-                                  color: const Color(0xFF00ACC1),
-                                  size: 26,
-                                ),
-                              ),
-                              title: Text(
-                                meeting.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.access_time,
-                                          size: 14, color: Colors.grey[600]),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          _formatDateTime(meeting.scheduledAt, context),
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey[600]),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.timer,
-                                          size: 14, color: Colors.grey[600]),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${meeting.duration} ${l10n.minutes}',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[600]),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Icon(Icons.people,
-                                          size: 14, color: Colors.grey[600]),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${meeting.participants.length}',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              trailing: SizedBox(
-                                width: 95,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Show "Permanent" badge for permanent meetings instead of status
-                                    if (meeting.isPermanent || meeting.recurrence == 'permanent')
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF7C3AED), // Purple from frontend
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.all_inclusive,
-                                              size: 10,
-                                              color: Colors.white,
-                                            ),
-                                            const SizedBox(width: 2),
-                                            Flexible(
-                                              child: Text(
-                                                l10n.permanent,
-                                                style: const TextStyle(
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    else
-                                      // Show status badge for non-permanent meetings
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: _getStatusColor(meeting.status).withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: _getStatusColor(meeting.status).withValues(alpha: 0.3),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          _getStatusText(meeting.status, context),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: _getStatusColor(meeting.status),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              isThreeLine: true,
-                            ),
-                          );
+                          return _buildMeetingCard(meeting, context);
                         },
                       ),
                     ),
@@ -422,6 +277,269 @@ class _MeetingsScreenState extends State<MeetingsScreen>
       labelStyle: TextStyle(
         color: isSelected ? const Color(0xFF00ACC1) : Colors.grey.shade700,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      ),
+    );
+  }
+
+  Future<void> _copyAnonymousLink(String meetingId) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      final configService = ConfigService();
+      final apiUrl = await configService.getApiUrl();
+      // Remove /api/v1 from the API URL to get base URL
+      final baseUrl = apiUrl.replaceAll('/api/v1', '');
+      final anonymousLink = '$baseUrl/meeting/$meetingId/join';
+
+      await Clipboard.setData(ClipboardData(text: anonymousLink));
+
+      if (mounted) {
+        setState(() {
+          _copiedMeetingId = meetingId;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.anonymousLinkCopied),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Reset copied state after 2 seconds
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _copiedMeetingId = null;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy link: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildMeetingCard(MeetingWithDetails meeting, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final totalParticipants = meeting.participants.length;
+    final onlineParticipants = meeting.activeParticipantsCount;
+    final anonymousGuests = meeting.anonymousGuestsCount;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 2,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MeetingDetailScreen(meetingId: meeting.id),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row with icon, title, and status badge
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
+                    child: Icon(
+                      _getMeetingIcon(meeting.type),
+                      color: const Color(0xFF00ACC1),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          meeting.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatDateTime(meeting.scheduledAt, context),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Status or Permanent badge
+                  if (meeting.isPermanent || meeting.recurrence == 'permanent')
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF7C3AED),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.all_inclusive, size: 12, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(
+                            l10n.permanent,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(meeting.status).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _getStatusColor(meeting.status).withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        _getStatusText(meeting.status, context),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _getStatusColor(meeting.status),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Participant info row
+              Row(
+                children: [
+                  Icon(Icons.timer, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${meeting.duration} ${l10n.minutes}',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(width: 16),
+                  Icon(Icons.people, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    l10n.participantsSummary(totalParticipants, onlineParticipants),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+              // Online indicators
+              if (onlineParticipants > 0 || (meeting.allowAnonymous && anonymousGuests > 0)) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 6,
+                  children: [
+                    if (onlineParticipants > 0)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF059669),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            l10n.onlineCount(onlineParticipants),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF059669),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (meeting.allowAnonymous && anonymousGuests > 0)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2563EB),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            l10n.anonymousGuestsCount(anonymousGuests),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF2563EB),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ],
+              // Anonymous link copy button
+              if (meeting.allowAnonymous) ...[
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () => _copyAnonymousLink(meeting.id),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _copiedMeetingId == meeting.id
+                        ? const Color(0xFF059669)
+                        : const Color(0xFF26C6DA),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  icon: Icon(
+                    _copiedMeetingId == meeting.id ? Icons.check : Icons.link,
+                    size: 18,
+                  ),
+                  label: Text(
+                    _copiedMeetingId == meeting.id ? l10n.linkCopied : l10n.copyLink,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

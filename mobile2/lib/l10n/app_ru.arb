@@ -248,5 +248,19 @@
   "cancel": "Отмена",
   "confirmLeave": "Выйти",
   "speaking": "Говорит",
-  "active": "Активен"
+  "active": "Активен",
+  "downloadRecording": "Скачать запись",
+  "downloading": "Загрузка...",
+  "downloadComplete": "Загрузка завершена",
+  "downloadFailed": "Ошибка загрузки",
+  "recordingSaved": "Запись сохранена в Downloads",
+
+  "onlineCount": "{count} онлайн",
+  "anonymousGuestsCount": "{count} гостей",
+  "participantsSummary": "{total} участников ({online} онлайн)",
+  "anonymousLinkLabel": "Ссылка для анонимного входа",
+  "copyLink": "Копировать",
+  "linkCopied": "Скопировано!",
+  "anonymousLinkCopied": "Анонимная ссылка скопирована в буфер обмена",
+  "allowsAnonymousJoin": "Разрешен анонимный вход"
 }

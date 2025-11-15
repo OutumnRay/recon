@@ -39,6 +39,9 @@ class AuthService {
           role: user.role,
         );
 
+        // Save user's language preference
+        await _storageService.saveLocale(user.language);
+
         return user;
       } else {
         throw _apiClient.handleError(response);

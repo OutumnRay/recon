@@ -102,6 +102,8 @@ class MeetingWithDetails extends Meeting {
   final String? subjectName;
   final List<MeetingParticipant> participants;
   final List<String> departments;
+  final int activeParticipantsCount;
+  final int anonymousGuestsCount;
 
   MeetingWithDetails({
     required super.id,
@@ -128,6 +130,8 @@ class MeetingWithDetails extends Meeting {
     this.subjectName,
     required this.participants,
     required this.departments,
+    this.activeParticipantsCount = 0,
+    this.anonymousGuestsCount = 0,
   });
 
   factory MeetingWithDetails.fromJson(Map<String, dynamic> json) {
@@ -162,6 +166,8 @@ class MeetingWithDetails extends Meeting {
               ?.map((d) => d as String)
               .toList() ??
           [],
+      activeParticipantsCount: json['active_participants_count'] as int? ?? 0,
+      anonymousGuestsCount: json['anonymous_guests_count'] as int? ?? 0,
     );
   }
 }

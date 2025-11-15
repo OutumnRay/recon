@@ -385,7 +385,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String downloading(String name) {
-    return 'Downloading $name...';
+    return 'Downloading...';
   }
 
   @override
@@ -684,4 +684,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get speaking => 'Speaking';
+
+  @override
+  String get downloadRecording => 'Download Recording';
+
+  @override
+  String get downloadComplete => 'Download Complete';
+
+  @override
+  String get downloadFailed => 'Download Failed';
+
+  @override
+  String get recordingSaved => 'Recording saved to Downloads';
+
+  @override
+  String onlineCount(int count) {
+    return '$count online';
+  }
+
+  @override
+  String anonymousGuestsCount(int count) {
+    return '$count guests';
+  }
+
+  @override
+  String participantsSummary(int total, int online) {
+    return '$total participants ($online online)';
+  }
+
+  @override
+  String get anonymousLinkLabel => 'Anonymous Join Link';
+
+  @override
+  String get copyLink => 'Copy Link';
+
+  @override
+  String get linkCopied => 'Copied!';
+
+  @override
+  String get anonymousLinkCopied => 'Anonymous link copied to clipboard';
+
+  @override
+  String get allowsAnonymousJoin => 'Allows anonymous join';
 }

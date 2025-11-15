@@ -385,7 +385,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String downloading(String name) {
-    return 'Скачивание $name...';
+    return 'Загрузка...';
   }
 
   @override
@@ -684,4 +684,47 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get speaking => 'Говорит';
+
+  @override
+  String get downloadRecording => 'Скачать запись';
+
+  @override
+  String get downloadComplete => 'Загрузка завершена';
+
+  @override
+  String get downloadFailed => 'Ошибка загрузки';
+
+  @override
+  String get recordingSaved => 'Запись сохранена в Downloads';
+
+  @override
+  String onlineCount(int count) {
+    return '$count онлайн';
+  }
+
+  @override
+  String anonymousGuestsCount(int count) {
+    return '$count гостей';
+  }
+
+  @override
+  String participantsSummary(int total, int online) {
+    return '$total участников ($online онлайн)';
+  }
+
+  @override
+  String get anonymousLinkLabel => 'Ссылка для анонимного входа';
+
+  @override
+  String get copyLink => 'Копировать';
+
+  @override
+  String get linkCopied => 'Скопировано!';
+
+  @override
+  String get anonymousLinkCopied =>
+      'Анонимная ссылка скопирована в буфер обмена';
+
+  @override
+  String get allowsAnonymousJoin => 'Разрешен анонимный вход';
 }

@@ -315,5 +315,43 @@
   "cancel": "Cancel",
   "confirmLeave": "Leave",
   "speaking": "Speaking",
-  "active": "Active"
+  "active": "Active",
+  "downloadRecording": "Download Recording",
+  "downloading": "Downloading...",
+  "downloadComplete": "Download Complete",
+  "downloadFailed": "Download Failed",
+  "recordingSaved": "Recording saved to Downloads",
+
+  "onlineCount": "{count} online",
+  "@onlineCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "anonymousGuestsCount": "{count} guests",
+  "@anonymousGuestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "participantsSummary": "{total} participants ({online} online)",
+  "@participantsSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "online": {
+        "type": "int"
+      }
+    }
+  },
+  "anonymousLinkLabel": "Anonymous Join Link",
+  "copyLink": "Copy Link",
+  "linkCopied": "Copied!",
+  "anonymousLinkCopied": "Anonymous link copied to clipboard",
+  "allowsAnonymousJoin": "Allows anonymous join"
 }

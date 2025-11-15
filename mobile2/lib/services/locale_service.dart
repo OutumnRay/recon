@@ -26,6 +26,15 @@ class LocaleService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Load locale from user profile after login
+  Future<void> loadUserLocale() async {
+    final languageCode = await _storageService.getLocale();
+    if (languageCode != null && languageCode != _locale.languageCode) {
+      _locale = Locale(languageCode);
+      notifyListeners();
+    }
+  }
+
   bool get isEnglish => _locale.languageCode == 'en';
   bool get isRussian => _locale.languageCode == 'ru';
 }

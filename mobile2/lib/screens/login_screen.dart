@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/config_service.dart';
+import '../services/locale_service.dart';
+import '../services/fcm_service.dart';
+import '../utils/logger.dart';
 import '../widgets/error_display.dart';
 import 'main_screen.dart';
 
@@ -97,6 +101,13 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
+        // Update locale from user profile
+        final localeService = Provider.of<LocaleService>(context, listen: false);
+        await localeService.loadUserLocale();
+
+        // Initialize and register FCM device for push notifications
+        await _initializeFCM(apiClient);
+
         _navigateToHome(_currentApiUrl);
       }
     } on ApiException catch (e) {
@@ -123,6 +134,27 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _initializeFCM(ApiClient apiClient) async {
+    try {
+      Logger.logInfo('Initializing FCM for push notifications');
+
+      // Create FCM service instance
+      final fcmService = FCMService(apiClient);
+
+      // Initialize FCM and request permissions
+      await fcmService.initialize();
+
+      // Register device with backend
+      if (fcmService.isInitialized) {
+        await fcmService.registerDevice();
+        Logger.logSuccess('FCM device registered successfully');
+      }
+    } catch (e) {
+      // Don't block login if FCM fails
+      Logger.logWarning('FCM initialization failed (non-critical): $e');
     }
   }
 

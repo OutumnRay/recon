@@ -833,7 +833,7 @@ abstract class AppLocalizations {
   /// Downloading document
   ///
   /// In en, this message translates to:
-  /// **'Downloading {name}...'**
+  /// **'Downloading...'**
   String downloading(String name);
 
   /// No description provided for @filterVideo.
@@ -1405,6 +1405,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Speaking'**
   String get speaking;
+
+  /// No description provided for @downloadRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Recording'**
+  String get downloadRecording;
+
+  /// No description provided for @downloadComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Complete'**
+  String get downloadComplete;
+
+  /// No description provided for @downloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Failed'**
+  String get downloadFailed;
+
+  /// No description provided for @recordingSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording saved to Downloads'**
+  String get recordingSaved;
+
+  /// No description provided for @onlineCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} online'**
+  String onlineCount(int count);
+
+  /// No description provided for @anonymousGuestsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} guests'**
+  String anonymousGuestsCount(int count);
+
+  /// No description provided for @participantsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{total} participants ({online} online)'**
+  String participantsSummary(int total, int online);
+
+  /// No description provided for @anonymousLinkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Anonymous Join Link'**
+  String get anonymousLinkLabel;
+
+  /// No description provided for @copyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Link'**
+  String get copyLink;
+
+  /// No description provided for @linkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied!'**
+  String get linkCopied;
+
+  /// No description provided for @anonymousLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Anonymous link copied to clipboard'**
+  String get anonymousLinkCopied;
+
+  /// No description provided for @allowsAnonymousJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Allows anonymous join'**
+  String get allowsAnonymousJoin;
 }
 
 class _AppLocalizationsDelegate

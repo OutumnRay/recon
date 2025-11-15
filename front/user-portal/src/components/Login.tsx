@@ -31,18 +31,17 @@ export const Login: React.FC = () => {
   // Get the page user was trying to access before being redirected to login
   const from = (location.state as any)?.from || '/dashboard/meetings';
 
+  const clearStoredAuth = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+  };
+
   // Set page title
   React.useEffect(() => {
     document.title = `Recontext - ${t('login.title')}`;
   }, [t]);
-
-  // Check if user is already logged in, redirect to dashboard
-  React.useEffect(() => {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    if (token) {
-      navigate(from);
-    }
-  }, [navigate, from]);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -50,6 +49,49 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(localStorage.getItem('token') || sessionStorage.getItem('token'));
+  });
+
+  // Attempt automatic login when a valid token is already stored
+  React.useEffect(() => {
+    let isCancelled = false;
+    const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    if (!storedToken) {
+      setIsAutoLoggingIn(false);
+      return;
+    }
+
+    const attemptAutoLogin = async () => {
+      try {
+        const response = await fetch('/api/v1/meetings?limit=1', {
+          headers: {
+            Authorization: `Bearer ${storedToken}`,
+          },
+        });
+
+        if (!isCancelled && response.ok) {
+          navigate(from, { replace: true });
+          return;
+        }
+      } catch (autoErr) {
+        console.warn('[Login] Auto-login failed:', autoErr);
+      }
+
+      if (!isCancelled) {
+        clearStoredAuth();
+        setIsAutoLoggingIn(false);
+      }
+    };
+
+    attemptAutoLogin();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [from, navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -104,6 +146,8 @@ export const Login: React.FC = () => {
     }
   };
 
+  const formDisabled = loading || isAutoLoggingIn;
+
   return (
     <div className="login-container">
       <div className="language-switcher-wrapper">
@@ -119,6 +163,12 @@ export const Login: React.FC = () => {
             {t('login.subtitle')}
           </p>
         </div>
+
+        {isAutoLoggingIn && (
+          <div className="alert alert-info">
+            <span>{t('login.loggingIn')}</span>
+          </div>
+        )}
 
         {error && (
           <div className="alert alert-error">
@@ -144,7 +194,7 @@ export const Login: React.FC = () => {
               placeholder={t('login.usernamePlaceholder')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
+              disabled={formDisabled}
               required
               autoComplete="username"
               autoFocus
@@ -162,7 +212,7 @@ export const Login: React.FC = () => {
               placeholder={t('login.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
+              disabled={formDisabled}
               required
               autoComplete="current-password"
             />
@@ -174,7 +224,7 @@ export const Login: React.FC = () => {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                disabled={loading}
+                disabled={formDisabled}
               />
               <span>{t('login.rememberMe')}</span>
             </label>
@@ -182,7 +232,7 @@ export const Login: React.FC = () => {
               type="button"
               onClick={() => navigate('/forgot-password')}
               className="form-link"
-              disabled={loading}
+              disabled={formDisabled}
             >
               {t('login.forgotPassword')}
             </button>
@@ -190,8 +240,8 @@ export const Login: React.FC = () => {
 
           <button
             type="submit"
-            className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
-            disabled={loading || !username || !password}
+            className={`btn btn-primary ${(loading || isAutoLoggingIn) ? 'btn-loading' : ''}`}
+            disabled={formDisabled || !username || !password}
           >
             {loading ? t('login.loggingIn') : t('login.loginButton')}
           </button>
