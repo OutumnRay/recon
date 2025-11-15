@@ -403,27 +403,35 @@ export default function MeetingRecordings() {
                   {(() => {
                     // Collect all transcription phrases from all recordings
                     const allPhrases: Array<{
-                      timestamp: number;
+                      absoluteTimestamp: number;
+                      start: number;
+                      end: number;
                       text: string;
                       speaker: string;
                       trackId: string;
-                      startedAt: string;
+                      trackStartedAt: string;
                     }> = [];
 
                     roomRecordings.forEach((room) => {
                       if (room.tracks && room.tracks.length > 0) {
                         room.tracks.forEach((track) => {
                           if (track.transcription_phrases && track.transcription_phrases.length > 0) {
+                            // Get track start time in milliseconds
                             const trackStartTime = new Date(track.started_at).getTime();
                             const participantName = getParticipantName(track);
 
-                            track.transcription_phrases.forEach((phrase: any) => {
+                            track.transcription_phrases.forEach((phrase) => {
+                              // Calculate absolute timestamp by adding track start time to phrase start time
+                              const absoluteTimestamp = trackStartTime + (phrase.start * 1000);
+
                               allPhrases.push({
-                                timestamp: trackStartTime + (phrase.timestamp || 0) * 1000,
+                                absoluteTimestamp,
+                                start: phrase.start,
+                                end: phrase.end,
                                 text: phrase.text,
                                 speaker: participantName,
                                 trackId: track.id,
-                                startedAt: track.started_at,
+                                trackStartedAt: track.started_at,
                               });
                             });
                           }
@@ -431,8 +439,8 @@ export default function MeetingRecordings() {
                       }
                     });
 
-                    // Sort by timestamp
-                    allPhrases.sort((a, b) => a.timestamp - b.timestamp);
+                    // Sort by absolute timestamp
+                    allPhrases.sort((a, b) => a.absoluteTimestamp - b.absoluteTimestamp);
 
                     const hasTranscriptions = allPhrases.length > 0;
 
@@ -443,9 +451,6 @@ export default function MeetingRecordings() {
                           onClick={() => toggleSection('transcript')}
                         >
                           <span>{t('meetingRecordings.sections.transcript')}</span>
-                          {!hasTranscriptions && (
-                            <span className="accordion-badge">{t('meetingRecordings.comingSoon')}</span>
-                          )}
                           <span className="accordion-icon">{openSection === 'transcript' ? '▼' : '▶'}</span>
                         </button>
                         {openSection === 'transcript' && (
@@ -455,7 +460,11 @@ export default function MeetingRecordings() {
                                 {allPhrases.map((phrase, idx) => (
                                   <div key={`${phrase.trackId}-${idx}`} className="transcript-entry">
                                     <div className="transcript-timestamp">
-                                      {new Date(phrase.timestamp).toLocaleTimeString(locale)}
+                                      {new Date(phrase.absoluteTimestamp).toLocaleTimeString(locale, {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit'
+                                      })}
                                     </div>
                                     <div className="transcript-content">
                                       <div className="transcript-speaker">{phrase.speaker}</div>
@@ -465,7 +474,7 @@ export default function MeetingRecordings() {
                                 ))}
                               </div>
                             ) : (
-                              <p className="coming-soon-message">{t('meetingRecordings.transcriptComingSoon')}</p>
+                              <p className="no-transcription-message">{t('meetingRecordings.noTranscription')}</p>
                             )}
                           </div>
                         )}
