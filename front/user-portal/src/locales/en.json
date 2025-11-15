@@ -448,8 +448,11 @@
       "screenShareStart": "Share screen",
       "screenShareStop": "Stop sharing",
       "mediaSettings": "Video & audio settings",
+      "startRecording": "Start recording",
       "stopRecording": "Stop recording",
+      "startTranscription": "Start transcription",
       "stopTranscription": "Stop transcription",
+      "anonymousDisabled": "Available only for authenticated users",
       "showParticipants": "Show participants",
       "hideParticipants": "Hide participants"
     },

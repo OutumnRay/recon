@@ -41,6 +41,24 @@ func NewMinIOClient() (*MinIOClient, error) {
 		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
 	}
 
+	// Check if bucket exists, create if not
+	ctx := context.Background()
+	exists, err := client.BucketExists(ctx, bucket)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if bucket exists: %w", err)
+	}
+
+	if !exists {
+		// Create bucket
+		err = client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create bucket %s: %w", bucket, err)
+		}
+		fmt.Printf("✅ Created MinIO bucket: %s\n", bucket)
+	} else {
+		fmt.Printf("✅ MinIO bucket exists: %s\n", bucket)
+	}
+
 	return &MinIOClient{
 		client: client,
 		bucket: bucket,
@@ -171,10 +189,19 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 	object, err := minioClient.client.GetObject(context.Background(), minioClient.bucket, playlistPath, minio.GetObjectOptions{})
 	if err != nil {
 		up.logger.Errorf("📹 [PLAYLIST] Failed to get from MinIO (path: %s): %v", playlistPath, err)
-		up.respondWithError(w, http.StatusNotFound, "Playlist not found", err.Error())
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to read playlist", err.Error())
 		return
 	}
 	defer object.Close()
+
+	// Try to read object info to check if it actually exists
+	_, err = object.Stat()
+	if err != nil {
+		up.logger.Errorf("📹 [PLAYLIST] Playlist file not found in MinIO (path: %s): %v", playlistPath, err)
+		up.respondWithError(w, http.StatusNotFound, "Recording not available", "The recording may still be processing or does not exist")
+		return
+	}
+
 	up.logger.Infof("📹 [PLAYLIST] Successfully fetched from MinIO")
 
 	// Read and rewrite playlist URLs

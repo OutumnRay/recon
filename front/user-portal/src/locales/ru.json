@@ -450,8 +450,11 @@
       "screenShareStart": "Демонстрация экрана",
       "screenShareStop": "Остановить демонстрацию",
       "mediaSettings": "Настройки видео и аудио",
+      "startRecording": "Начать запись",
       "stopRecording": "Остановить запись",
+      "startTranscription": "Начать транскрибацию",
       "stopTranscription": "Остановить транскрибацию",
+      "anonymousDisabled": "Доступно только для авторизованных пользователей",
       "showParticipants": "Показать участников",
       "hideParticipants": "Скрыть участников"
     },

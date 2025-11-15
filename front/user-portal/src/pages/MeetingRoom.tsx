@@ -51,6 +51,9 @@ export default function MeetingRoom() {
   // Check if we have token data from AnonymousJoin page
   const anonymousTokenData = location.state as any;
 
+  // Check if user is anonymous
+  const isAnonymousUser = anonymousTokenData?.isAnonymous || !(localStorage.getItem('token') || sessionStorage.getItem('token'));
+
   const [room] = useState(() => new Room({
     adaptiveStream: true,
     dynacast: true,
@@ -1589,7 +1592,7 @@ export default function MeetingRoom() {
           </div>
       </div>
 
-      {!showControls && (isRecording || isTranscribing) && (
+      {(isRecording || isTranscribing) && (
         <div className="recording-status-floating">
           {isRecording && (
             <div className="status-pill recording">
@@ -1692,8 +1695,8 @@ export default function MeetingRoom() {
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
                 className={`icon-circle-button ${isRecording ? 'recording' : ''}`}
                 aria-label={isRecording ? t('meetingRoom.controls.stopRecording') : t('meetingRoom.controls.startRecording')}
-                title={isRecording ? t('meetingRoom.controls.stopRecording') : t('meetingRoom.controls.startRecording')}
-                disabled={!isConnected}
+                title={isAnonymousUser ? t('meetingRoom.controls.anonymousDisabled') : (isRecording ? t('meetingRoom.controls.stopRecording') : t('meetingRoom.controls.startRecording'))}
+                disabled={!isConnected || isAnonymousUser}
                 style={isRecording ? { color: '#ef4444' } : {}}
               >
                 <LuCircle />
@@ -1704,8 +1707,8 @@ export default function MeetingRoom() {
                 onClick={isTranscribing ? handleStopTranscription : handleStartTranscription}
                 className={`icon-circle-button ${isTranscribing ? 'transcribing' : ''}`}
                 aria-label={isTranscribing ? t('meetingRoom.controls.stopTranscription') : t('meetingRoom.controls.startTranscription')}
-                title={isTranscribing ? t('meetingRoom.controls.stopTranscription') : t('meetingRoom.controls.startTranscription')}
-                disabled={!isConnected}
+                title={isAnonymousUser ? t('meetingRoom.controls.anonymousDisabled') : (isTranscribing ? t('meetingRoom.controls.stopTranscription') : t('meetingRoom.controls.startTranscription'))}
+                disabled={!isConnected || isAnonymousUser}
                 style={isTranscribing ? { color: '#3b82f6' } : {}}
               >
                 <LuFileText />
