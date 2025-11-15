@@ -678,6 +678,20 @@ export default function MeetingRoom() {
 
     const handleActiveSpeakerChange = (speakers: Participant[]) => {
       setActiveSpeakers(speakers);
+
+      // Automatically switch stage to active speaker (excluding local participant)
+      if (speakers.length > 0) {
+        // Find the first remote participant who is speaking
+        const activeSpeaker = speakers.find(speaker => speaker instanceof RemoteParticipant);
+
+        if (activeSpeaker) {
+          const displayName = getParticipantDisplayName(activeSpeaker);
+          console.log(`[Active Speaker] Switching stage to ${displayName} (${activeSpeaker.sid})`);
+          setStageParticipantId(activeSpeaker.sid);
+          renderStageVideo(activeSpeaker.sid);
+          updateSidebarHighlight(activeSpeaker.sid);
+        }
+      }
     };
 
     const handleTrackMuted = (publication: TrackPublication, participant: Participant) => {
