@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX, LuUser, LuChevronDown, LuBuilding2 } from 'react-icons/lu';
+import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX, LuUser, LuChevronDown } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { APP_VERSION } from '../config/version';
 import './Dashboard.css';
