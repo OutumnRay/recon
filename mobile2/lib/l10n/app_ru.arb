@@ -132,6 +132,7 @@
   "enterNotes": "Введите дополнительную информацию",
 
   "documentsTitle": "Документы",
+  "documentsSubtitle": "Просматривайте, фильтруйте и скачивайте файлы встреч",
   "noDocumentsFound": "Документы не найдены",
   "uploadFirstDocument": "Загрузите первый документ",
   "upload": "Загрузить",
@@ -153,18 +154,31 @@
   "filterAudio": "Аудио",
   "filterTranscripts": "Транскрипты",
   "filterOther": "Другое",
+  "filtersTitle": "Фильтры",
   "uploadDocumentComingSoon": "Загрузка документов - скоро",
+  "failedToLoadDocuments": "Не удалось загрузить документы",
 
   "searchTitle": "Поиск",
   "searchHint": "Поиск встреч, транскриптов, документов...",
   "semanticSearch": "Семантический поиск",
   "searchDescription": "Ищите по встречам, транскриптам и документам используя естественный язык",
+  "searchResultsLabel": "Результаты",
   "trySearching": "Попробуйте найти:",
   "budgetDiscussion": "обсуждение бюджета",
   "projectDeadlines": "сроки проекта",
   "whoTalkedAbout": "кто говорил о...",
   "noResultsFound": "Результаты не найдены",
   "tryDifferentKeywords": "Попробуйте другие ключевые слова",
+  "yesterday": "Вчера",
+  "daysAgo": "{count} дн. назад",
+  "@daysAgo": {
+    "description": "Сообщение о количестве дней назад",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "searchButton": "Искать",
   "match": "совпадение",
   "meeting": "Встреча",

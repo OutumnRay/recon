@@ -118,6 +118,11 @@ export default function MeetingRecordings() {
         const recordingsData = await getMeetingRecordings(meetingId);
         setRoomRecordings(recordingsData);
 
+        // Auto-open tracks section if there are multiple rooms
+        if (recordingsData.length > 1) {
+          setOpenSection('tracks');
+        }
+
         // Auto-select first room composite recording
         if (recordingsData.length > 0) {
           const firstRoom = recordingsData[0];

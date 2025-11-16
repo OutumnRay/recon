@@ -1,48 +1,70 @@
-.filters-section {
+.status-slider-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.status-slider {
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  padding: var(--space-xs) 0;
+  scroll-behavior: smooth;
+}
+
+.status-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.status-arrow {
+  border: 1px solid var(--border-light);
   background: var(--surface-card);
-  border-radius: var(--radius-2xl);
-  border: 1px solid var(--border-light);
-  box-shadow: var(--shadow-panel);
-  padding: var(--space-2xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
+  border-radius: var(--radius-full);
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background var(--transition-base), border var(--transition-base);
 }
 
-.filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-lg);
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.filter-group label {
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-}
-
-.filter-input,
-.filter-select {
-  padding: var(--space-sm) var(--space-lg);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-xl);
+.status-arrow:hover {
   background: var(--surface-panel);
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
+  border-color: var(--color-primary-100);
 }
 
-.filter-input:focus,
-.filter-select:focus {
-  outline: none;
-  border-color: var(--color-primary-400);
-  box-shadow: 0 0 0 3px rgba(60, 130, 255, 0.15);
+.status-pill {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  background: var(--surface-card);
+  padding: var(--space-sm) var(--space-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.status-pill:focus-visible {
+  outline: 2px solid var(--color-primary-300);
+  outline-offset: 2px;
+}
+
+.status-pill.active {
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+  border-color: var(--color-primary-200);
+  box-shadow: 0 8px 24px rgba(60, 130, 255, 0.12);
+}
+
+.meeting-card-footer .view-details-btn {
+  display: none;
 }
 
 .meetings-list {

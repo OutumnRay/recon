@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 import '../l10n/app_localizations.dart';
 import '../services/api_client.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_card.dart';
 import '../widgets/error_display.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -102,13 +106,13 @@ class _SearchScreenState extends State<SearchScreen>
   Color _getResultColor(String type) {
     switch (type) {
       case 'meeting':
-        return const Color(0xFF26C6DA); // Cyan
+        return AppColors.primary600;
       case 'transcript':
-        return const Color(0xFF66BB6A); // Green
+        return AppColors.success;
       case 'document':
-        return const Color(0xFFFF9800); // Orange
+        return AppColors.warning;
       default:
-        return Colors.grey;
+        return AppColors.textTertiary;
     }
   }
 
@@ -128,297 +132,422 @@ class _SearchScreenState extends State<SearchScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(l10n.searchTitle),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF26C6DA),
-        elevation: 1,
-        shadowColor: Colors.black.withValues(alpha: 0.1),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
       ),
-      body: Column(
-        children: [
-          // Search bar
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeroSection(context, l10n),
+                  const SizedBox(height: 20),
+                  _buildSearchPanel(context, l10n),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: l10n.searchHint,
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFF26C6DA)),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _results = null;
-                                  _error = null;
-                                });
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                    ),
-                    onSubmitted: (_) => _performSearch(),
-                    onChanged: (value) => setState(() {}),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _isSearching ? null : _performSearch,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF26C6DA),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: _isSearching
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : Text(l10n.searchButton),
-                ),
-              ],
-            ),
-          ),
+            const SizedBox(height: 20),
+            Expanded(child: _buildResultsArea(context, l10n)),
+          ],
+        ),
+      ),
+    );
+  }
 
-          // Results area
-          Expanded(
-            child: _error != null
-                ? FullScreenError(
-                    error: _error!,
-                    onRetry: _performSearch,
-                    title: l10n.searchFailed,
-                  )
-                : _results == null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search,
-                                size: 80, color: Colors.grey.shade400),
-                            const SizedBox(height: 16),
-                            Text(
-                              l10n.semanticSearch,
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 32),
-                              child: Text(
-                                l10n.searchDescription,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 32),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.trySearching,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge
-                                        ?.copyWith(
-                                          color: Colors.grey[600],
-                                        ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildExampleChip(l10n.budgetDiscussion),
-                                  const SizedBox(height: 4),
-                                  _buildExampleChip(l10n.projectDeadlines),
-                                  const SizedBox(height: 4),
-                                  _buildExampleChip(l10n.whoTalkedAbout),
-                                ],
-                              ),
-                            ),
-                          ],
+  Widget _buildHeroSection(BuildContext context, AppLocalizations l10n) {
+    final total = _results?.length ?? 0;
+    final meetingsCount =
+        _results?.where((r) => r.type == 'meeting').length ?? 0;
+    final transcriptsCount =
+        _results?.where((r) => r.type == 'transcript').length ?? 0;
+    final documentsCount =
+        _results?.where((r) => r.type == 'document').length ?? 0;
+
+    final stats = [
+      _buildHeroStat(
+        context,
+        icon: Icons.search_rounded,
+        label: l10n.searchResultsLabel,
+        value: total.toString(),
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.event_note_rounded,
+        label: l10n.meetings,
+        value: meetingsCount.toString(),
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.translate_rounded,
+        label: l10n.transcript,
+        value: transcriptsCount.toString(),
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.folder_copy_rounded,
+        label: l10n.documentsTitle,
+        value: documentsCount.toString(),
+      ),
+    ];
+
+    return GradientHeroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.semanticSearch,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.searchDescription,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: stats,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchPanel(BuildContext context, AppLocalizations l10n) {
+    final suggestions = [
+      l10n.budgetDiscussion,
+      l10n.projectDeadlines,
+      l10n.whoTalkedAbout,
+    ];
+
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: l10n.searchHint,
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.primary600,
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _results = null;
+                                _error = null;
+                              });
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppColors.surfaceMuted,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary500,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  onSubmitted: (_) => _performSearch(),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: _isSearching ? null : _performSearch,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary600,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                child: _isSearching
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
                         ),
                       )
-                    : _results!.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.search_off,
-                                    size: 64, color: Colors.grey.shade400),
-                                const SizedBox(height: 16),
-                                Text(
-                                  l10n.noResultsFound,
-                                  style:
-                                      Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  l10n.tryDifferentKeywords,
-                                  style:
-                                      Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _results!.length,
-                            padding: const EdgeInsets.all(8),
-                            itemBuilder: (context, index) {
-                              final result = _results![index];
-                              return Card(
-                                margin: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                  horizontal: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                elevation: 2,
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  leading: CircleAvatar(
-                                    radius: 28,
-                                    backgroundColor: _getResultColor(result.type)
-                                        .withValues(alpha: 0.15),
-                                    child: Icon(
-                                      _getResultIcon(result.type),
-                                      color: _getResultColor(result.type),
-                                      size: 26,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    result.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        result.snippet,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          Chip(
-                                            label: Text(
-                                              _getResultTypeLabel(result.type),
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            backgroundColor:
-                                                _getResultColor(result.type)
-                                                    .withValues(alpha: 0.15),
-                                            side: BorderSide(
-                                              color: _getResultColor(result.type)
-                                                  .withValues(alpha: 0.3),
-                                              width: 1,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Icon(Icons.access_time,
-                                              size: 12, color: Colors.grey[600]),
-                                          const SizedBox(width: 2),
-                                          Text(
-                                            _formatDate(result.date),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  trailing: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        '${(result.relevance * 100).toInt()}%',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      Text(
-                                        l10n.match,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.grey[500],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  isThreeLine: true,
-                                  onTap: () {
-                                    // TODO: Navigate to result details
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            'Open ${result.type}: ${result.title}'),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
+                    : Text(l10n.searchButton),
+              ),
+            ],
           ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.trySearching,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: suggestions.map(_buildExampleChip).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultsArea(BuildContext context, AppLocalizations l10n) {
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: FullScreenError(
+          error: _error!,
+          onRetry: _performSearch,
+          title: l10n.searchFailed,
+        ),
+      );
+    }
+
+    if (_results == null) {
+      return ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+        children: [
+          _buildPlaceholderCard(
+            context,
+            icon: Icons.search_rounded,
+            title: l10n.semanticSearch,
+            description: l10n.searchDescription,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Text(
+                  l10n.trySearching,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _buildExampleChip(l10n.budgetDiscussion),
+                    _buildExampleChip(l10n.projectDeadlines),
+                    _buildExampleChip(l10n.whoTalkedAbout),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_results!.isEmpty) {
+      return ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+        children: [
+          _buildPlaceholderCard(
+            context,
+            icon: Icons.search_off_rounded,
+            title: l10n.noResultsFound,
+            description: l10n.tryDifferentKeywords,
+          ),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+      itemCount: _results!.length,
+      itemBuilder: (context, index) =>
+          _buildResultCard(context, _results![index]),
+    );
+  }
+
+  Widget _buildResultCard(BuildContext context, SearchResult result) {
+    final l10n = AppLocalizations.of(context)!;
+    final color = _getResultColor(result.type);
+    final matchLabel =
+        '${(result.relevance * 100).toInt()}% ${l10n.match.toLowerCase()}';
+
+    return SurfaceCard(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(28),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: AppColors.primary600,
+                content: Text('Open ${result.type}: ${result.title}'),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Icon(
+                        _getResultIcon(result.type),
+                        color: color,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            result.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            result.snippet,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          matchLabel,
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _buildMetaChip(
+                      icon: Icons.category_outlined,
+                      label: _getResultTypeLabel(result.type),
+                    ),
+                    _buildMetaChip(
+                      icon: Icons.schedule_rounded,
+                      label: _formatResultDate(context, result.date),
+                    ),
+                    _buildMetaChip(
+                      icon: Icons.percent_rounded,
+                      label: matchLabel,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+    Widget? child,
+  }) {
+    return SurfaceCard(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, size: 56, color: AppColors.textTertiary),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+          ),
+          if (child != null) child,
         ],
       ),
     );
@@ -426,19 +555,19 @@ class _SearchScreenState extends State<SearchScreen>
 
   Widget _buildExampleChip(String text) {
     return InkWell(
-      onTap: () {
-        _searchController.text = text;
-        _performSearch();
-      },
+      onTap: _isSearching
+          ? null
+          : () {
+              _searchController.text = text;
+              _performSearch();
+            },
+      borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF26C6DA).withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFF26C6DA).withValues(alpha: 0.3),
-            width: 1,
-          ),
+          color: AppColors.primary50,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.primary200),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -446,15 +575,15 @@ class _SearchScreenState extends State<SearchScreen>
             const Icon(
               Icons.lightbulb_outline,
               size: 16,
-              color: Color(0xFF00ACC1),
+              color: AppColors.primary600,
             ),
             const SizedBox(width: 6),
             Text(
               text,
               style: const TextStyle(
                 fontSize: 13,
-                color: Color(0xFF00ACC1),
-                fontWeight: FontWeight.w500,
+                color: AppColors.primary700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -463,20 +592,90 @@ class _SearchScreenState extends State<SearchScreen>
     );
   }
 
-  String _formatDate(DateTime date) {
+  Widget _buildHeroStat(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 120),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: AppColors.primary600),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetaChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatResultDate(BuildContext context, DateTime date) {
     final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
-    final difference = now.difference(date);
+    final difference = now.difference(date).inDays;
 
-    if (difference.inDays == 0) {
-      return l10n.today;
-    } else if (difference.inDays == 1) {
-      return 'Yesterday'; // TODO: Add to localization
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago'; // TODO: Add to localization
-    } else {
-      return '${date.day}.${date.month}.${date.year}';
-    }
+    if (difference == 0) return l10n.today;
+    if (difference == 1) return l10n.yesterday;
+    if (difference > 1 && difference < 7) return l10n.daysAgo(difference);
+
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMd(locale).format(date);
   }
 }
 

@@ -151,6 +151,7 @@
   "enterNotes": "Enter any additional information",
 
   "documentsTitle": "Documents",
+  "documentsSubtitle": "Browse, filter, and download your meeting files",
   "noDocumentsFound": "No documents found",
   "uploadFirstDocument": "Upload your first document",
   "upload": "Upload",
@@ -196,18 +197,31 @@
   "filterAudio": "Audio",
   "filterTranscripts": "Transcripts",
   "filterOther": "Other",
+  "filtersTitle": "Filters",
   "uploadDocumentComingSoon": "Upload document - Coming soon",
+  "failedToLoadDocuments": "Failed to load documents",
 
   "searchTitle": "Search",
   "searchHint": "Search meetings, transcripts, documents...",
   "semanticSearch": "Semantic Search",
   "searchDescription": "Search across meetings, transcripts, and documents using natural language",
+  "searchResultsLabel": "Results",
   "trySearching": "Try searching for:",
   "budgetDiscussion": "budget discussion",
   "projectDeadlines": "project deadlines",
   "whoTalkedAbout": "who talked about...",
   "noResultsFound": "No results found",
   "tryDifferentKeywords": "Try different keywords",
+  "yesterday": "Yesterday",
+  "daysAgo": "{count} days ago",
+  "@daysAgo": {
+    "description": "Relative day label",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "searchButton": "Search",
   "match": "match",
   "meeting": "Meeting",

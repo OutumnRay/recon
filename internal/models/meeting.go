@@ -146,6 +146,8 @@ type MeetingWithDetails struct {
 	ActiveParticipantsCount int `json:"active_participants_count"`
 	// Количество анонимных гостей в данный момент (для allow_anonymous встреч)
 	AnonymousGuestsCount int `json:"anonymous_guests_count"`
+	// Количество записей встречи (room recordings)
+	RecordingsCount int `json:"recordings_count"`
 }
 
 // MeetingParticipantInfo представляет информацию об участнике с деталями пользователя

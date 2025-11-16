@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 import '../l10n/app_localizations.dart';
 import '../services/api_client.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_card.dart';
 import '../widgets/error_display.dart';
 
 class DocumentsScreen extends StatefulWidget {
@@ -103,6 +107,11 @@ class _DocumentsScreenState extends State<DocumentsScreen>
     return _documents!.where((doc) => doc.type == _filter).toList();
   }
 
+  int _countDocumentsByType(String type) {
+    if (_documents == null) return 0;
+    return _documents!.where((doc) => doc.type == type).length;
+  }
+
   IconData _getDocumentIcon(String type) {
     switch (type) {
       case 'video':
@@ -119,13 +128,26 @@ class _DocumentsScreenState extends State<DocumentsScreen>
   Color _getDocumentColor(String type) {
     switch (type) {
       case 'video':
-        return const Color(0xFF9C27B0); // Purple
+        return AppColors.secondary500;
       case 'audio':
-        return const Color(0xFFFF9800); // Orange
+        return AppColors.warning;
       case 'transcript':
-        return const Color(0xFF26C6DA); // Cyan
+        return AppColors.primary500;
       default:
-        return Colors.grey;
+        return AppColors.textTertiary;
+    }
+  }
+
+  String _getTypeLabel(AppLocalizations l10n, String type) {
+    switch (type) {
+      case 'video':
+        return l10n.filterVideo;
+      case 'audio':
+        return l10n.filterAudio;
+      case 'transcript':
+        return l10n.filterTranscripts;
+      default:
+        return l10n.filterOther;
     }
   }
 
@@ -138,25 +160,17 @@ class _DocumentsScreenState extends State<DocumentsScreen>
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Today, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}.${date.month}.${date.year}';
-    }
+  String _formatDateTime(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toString();
+    final formatter = DateFormat.yMMMd(locale).add_Hm();
+    return formatter.format(date);
   }
 
   void _showDocumentOptions(Document document) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppColors.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -174,13 +188,15 @@ class _DocumentsScreenState extends State<DocumentsScreen>
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.download, color: Color(0xFF26C6DA)),
+              leading: const Icon(Icons.download_rounded,
+                  color: AppColors.primary600),
               title: Text(l10n.download),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(l10n.downloading(document.name)),
+                    backgroundColor: AppColors.primary600,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -188,13 +204,15 @@ class _DocumentsScreenState extends State<DocumentsScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.share, color: Color(0xFF26C6DA)),
+              leading: const Icon(Icons.share_rounded,
+                  color: AppColors.primary600),
               title: Text(l10n.share),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Share ${document.name}'),
+                    backgroundColor: AppColors.primary600,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -202,7 +220,8 @@ class _DocumentsScreenState extends State<DocumentsScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.info_outline, color: Color(0xFF26C6DA)),
+              leading: const Icon(Icons.info_outline_rounded,
+                  color: AppColors.primary600),
               title: Text(l10n.details),
               onTap: () {
                 Navigator.pop(context);
@@ -210,9 +229,12 @@ class _DocumentsScreenState extends State<DocumentsScreen>
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete, color: Colors.red.shade700),
-              title:
-                  Text(l10n.delete, style: TextStyle(color: Colors.red.shade700)),
+              leading: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.danger),
+              title: Text(
+                l10n.delete,
+                style: const TextStyle(color: AppColors.danger),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _confirmDelete(document);
@@ -232,6 +254,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),
+        backgroundColor: AppColors.surfaceCard,
         title: Text(l10n.documentDetails),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -243,7 +266,10 @@ class _DocumentsScreenState extends State<DocumentsScreen>
             const SizedBox(height: 8),
             _buildDetailRow(l10n.size, _formatFileSize(document.size)),
             const SizedBox(height: 8),
-            _buildDetailRow(l10n.uploaded, _formatDate(document.uploadedAt)),
+            _buildDetailRow(
+              l10n.uploaded,
+              _formatDateTime(context, document.uploadedAt),
+            ),
             const SizedBox(height: 8),
             _buildDetailRow(l10n.uploadedBy, document.uploadedBy),
           ],
@@ -252,7 +278,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF26C6DA),
+              foregroundColor: AppColors.primary600,
             ),
             child: Text(l10n.close),
           ),
@@ -289,11 +315,12 @@ class _DocumentsScreenState extends State<DocumentsScreen>
         ),
         title: Text(l10n.deleteDocument),
         content: Text(l10n.deleteDocumentConfirm(document.name)),
+        backgroundColor: AppColors.surfaceCard,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.grey.shade700,
+              foregroundColor: AppColors.textSecondary,
             ),
             child: Text(l10n.cancel),
           ),
@@ -303,6 +330,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(l10n.deleted(document.name)),
+                  backgroundColor: AppColors.danger,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   action: SnackBarAction(
@@ -314,7 +342,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
               );
             },
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.danger,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -328,196 +356,326 @@ class _DocumentsScreenState extends State<DocumentsScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
     final l10n = AppLocalizations.of(context)!;
-
     final filteredDocuments = _getFilteredDocuments();
 
+    Widget bodyContent;
+    if (_isLoading) {
+      bodyContent = const Center(
+        child: CircularProgressIndicator(color: AppColors.primary500),
+      );
+    } else if (_error != null) {
+      bodyContent = FullScreenError(
+        error: _error!,
+        onRetry: _loadDocuments,
+        title: l10n.failedToLoadDocuments,
+      );
+    } else {
+      bodyContent = RefreshIndicator(
+        color: AppColors.primary500,
+        onRefresh: _loadDocuments,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate(
+                  [
+                    _buildHeroSection(context, l10n),
+                    const SizedBox(height: 20),
+                    _buildFiltersCard(context, l10n),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+            if (filteredDocuments.isEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                sliver: SliverToBoxAdapter(
+                  child: _buildEmptyState(context, l10n),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) =>
+                        _buildDocumentCard(context, filteredDocuments[index]),
+                    childCount: filteredDocuments.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(l10n.documentsTitle),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF26C6DA),
-        elevation: 1,
-        shadowColor: Colors.black.withValues(alpha: 0.1),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadDocuments,
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _isLoading ? null : _loadDocuments,
             tooltip: l10n.refresh,
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
+      ),
+      body: SafeArea(child: bodyContent),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'documents_fab',
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.uploadDocumentComingSoon),
+              backgroundColor: AppColors.primary600,
+            ),
+          );
+        },
+        backgroundColor: AppColors.primary600,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.upload_file_rounded),
+        label: Text(l10n.upload),
+      ),
+    );
+  }
+
+  Widget _buildHeroSection(BuildContext context, AppLocalizations l10n) {
+    final docs = _documents ?? [];
+    final totalSize = docs.fold<int>(0, (sum, doc) => sum + doc.size);
+
+    final stats = [
+      _buildHeroStat(
+        context,
+        icon: Icons.folder_open_rounded,
+        label: l10n.documentsTitle,
+        value: docs.length.toString(),
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.play_circle_outline,
+        label: l10n.filterVideo,
+        value: _countDocumentsByType('video').toString(),
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.library_music_outlined,
+        label: l10n.filterAudio,
+        value: _countDocumentsByType('audio').toString(),
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.language_rounded,
+        label: l10n.filterTranscripts,
+        value: _countDocumentsByType('transcript').toString(),
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.storage_rounded,
+        label: l10n.size,
+        value: _formatFileSize(totalSize),
+      ),
+    ];
+
+    return GradientHeroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.documentsTitle,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.documentsSubtitle,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: stats,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFiltersCard(BuildContext context, AppLocalizations l10n) {
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            icon: Icons.tune_rounded,
+            title: l10n.filtersTitle,
+            subtitle: l10n.tryChangingFilter,
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildFilterChip(l10n.filterAll, 'all'),
+              _buildFilterChip(l10n.filterVideo, 'video'),
+              _buildFilterChip(l10n.filterAudio, 'audio'),
+              _buildFilterChip(l10n.filterTranscripts, 'transcript'),
+              _buildFilterChip(l10n.filterOther, 'other'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentCard(BuildContext context, Document document) {
+    final l10n = AppLocalizations.of(context)!;
+    final typeColor = _getDocumentColor(document.type);
+    final typeLabel = _getTypeLabel(l10n, document.type);
+    final dateLabel = _formatDateTime(context, document.uploadedAt);
+    final sizeLabel = _formatFileSize(document.size);
+
+    return SurfaceCard(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(28),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Open: ${document.name}'),
+                backgroundColor: AppColors.primary600,
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildFilterChip(l10n.filterAll, 'all'),
-                const SizedBox(width: 8),
-                _buildFilterChip(l10n.filterVideo, 'video'),
-                const SizedBox(width: 8),
-                _buildFilterChip(l10n.filterAudio, 'audio'),
-                const SizedBox(width: 8),
-                _buildFilterChip(l10n.filterTranscripts, 'transcript'),
-                const SizedBox(width: 8),
-                _buildFilterChip(l10n.filterOther, 'other'),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: typeColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Icon(
+                        _getDocumentIcon(document.type),
+                        color: typeColor,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            document.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${l10n.uploadedBy}: ${document.uploadedBy}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => _showDocumentOptions(document),
+                      icon: const Icon(Icons.more_horiz_rounded),
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _buildMetaChip(
+                      icon: Icons.category_outlined,
+                      label: typeLabel,
+                    ),
+                    _buildMetaChip(
+                      icon: Icons.storage_rounded,
+                      label: sizeLabel,
+                    ),
+                    _buildMetaChip(
+                      icon: Icons.schedule_rounded,
+                      label: dateLabel,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF26C6DA),
-              ),
-            )
-          : _error != null
-              ? FullScreenError(
-                  error: _error!,
-                  onRetry: _loadDocuments,
-                  title: 'Failed to load documents',
-                )
-              : filteredDocuments.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.folder_open,
-                              size: 64, color: Colors.grey.shade400),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.noDocumentsFound,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _filter == 'all'
-                                ? l10n.uploadFirstDocument
-                                : l10n.tryChangingFilter,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadDocuments,
-                      child: ListView.builder(
-                        itemCount: filteredDocuments.length,
-                        padding: const EdgeInsets.all(8),
-                        itemBuilder: (context, index) {
-                          final document = filteredDocuments[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 2,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              leading: CircleAvatar(
-                                radius: 28,
-                                backgroundColor:
-                                    _getDocumentColor(document.type)
-                                        .withValues(alpha: 0.15),
-                                child: Icon(
-                                  _getDocumentIcon(document.type),
-                                  color: _getDocumentColor(document.type),
-                                  size: 26,
-                                ),
-                              ),
-                              title: Text(
-                                document.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.person,
-                                          size: 14, color: Colors.grey[600]),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        document.uploadedBy,
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.access_time,
-                                          size: 14, color: Colors.grey[600]),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _formatDate(document.uploadedAt),
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[600]),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Icon(Icons.storage,
-                                          size: 14, color: Colors.grey[600]),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _formatFileSize(document.size),
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.more_vert),
-                                onPressed: () =>
-                                    _showDocumentOptions(document),
-                              ),
-                              isThreeLine: true,
-                              onTap: () {
-                                // TODO: Open document viewer
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Open: ${document.name}'),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'documents_fab',
-        onPressed: () {
-          // TODO: Navigate to upload document screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.uploadDocumentComingSoon)),
-          );
-        },
-        backgroundColor: const Color(0xFF26C6DA),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        icon: const Icon(Icons.upload_file),
-        label: Text(l10n.upload),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, AppLocalizations l10n) {
+    final subtitle =
+        _filter == 'all' ? l10n.uploadFirstDocument : l10n.tryChangingFilter;
+    return SurfaceCard(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.folder_open_rounded,
+              size: 56, color: AppColors.textTertiary),
+          const SizedBox(height: 16),
+          Text(
+            l10n.noDocumentsFound,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -539,14 +697,135 @@ class _DocumentsScreenState extends State<DocumentsScreen>
         borderRadius: BorderRadius.circular(16),
       ),
       backgroundColor: Colors.white,
-      selectedColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
+      selectedColor: AppColors.primary50,
       side: BorderSide(
-        color: isSelected ? const Color(0xFF26C6DA) : Colors.grey.shade300,
+        color: isSelected ? AppColors.primary300 : AppColors.border,
         width: 1.5,
       ),
       labelStyle: TextStyle(
-        color: isSelected ? const Color(0xFF00ACC1) : Colors.grey.shade700,
+        color: isSelected ? AppColors.primary700 : AppColors.textSecondary,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      ),
+    );
+  }
+
+  Widget _buildHeroStat(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 140),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 20, color: AppColors.primary600),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.primary50,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: AppColors.primary600, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetaChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.textSecondary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

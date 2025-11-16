@@ -113,6 +113,7 @@ export interface MeetingWithDetails {
   creator?: User;
   active_participants_count: number;
   anonymous_guests_count: number;
+  recordings_count: number;
 }
 
 // Request types

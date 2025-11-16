@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../l10n/app_localizations.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/config_service.dart';
-import '../services/storage_service.dart';
 import '../services/locale_service.dart';
+import '../services/storage_service.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_card.dart';
 import 'login_screen.dart';
-import '../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ApiClient apiClient;

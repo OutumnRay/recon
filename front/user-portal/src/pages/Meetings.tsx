@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -19,6 +19,7 @@ import {
   LuFilm,
   LuCopy,
   LuCheck,
+  LuList,
 } from 'react-icons/lu';
 import {
   listMyMeetings,
@@ -28,17 +29,13 @@ import {
   isMeetingUpcoming,
   isMeetingNow,
   isMeetingPast,
-  listMeetingSubjects,
   deleteMeeting,
 } from '../services/meetings';
 import type {
   MeetingWithDetails,
   MeetingStatus,
-  MeetingType,
-  MeetingSubject,
 } from '../types/meeting';
 import MeetingForm from '../components/MeetingForm';
-import { DateTimePicker } from '../components/DateTimePicker';
 import './Meetings.css';
 
 export const Meetings: React.FC = () => {
@@ -72,14 +69,6 @@ export const Meetings: React.FC = () => {
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<MeetingStatus | ''>('');
-  const [typeFilter, setTypeFilter] = useState<MeetingType | ''>('');
-  const [subjectFilter, setSubjectFilter] = useState<string>('');
-  const [dateFromFilter, setDateFromFilter] = useState<string>('');
-  const [dateToFilter, setDateToFilter] = useState<string>('');
-
-  // Subjects for dropdown
-  const [subjects, setSubjects] = useState<MeetingSubject[]>([]);
-
   // Selected meeting for details view
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithDetails | null>(null);
 
@@ -88,42 +77,33 @@ export const Meetings: React.FC = () => {
 
   // View mode: list, details, create, or edit
   const [viewMode, setViewMode] = useState<'list' | 'details' | 'create' | 'edit'>('list');
+  const statusSliderRef = useRef<HTMLDivElement>(null);
 
-  // Fetch subjects on mount
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
+  const statusOptions: Array<{
+    value: MeetingStatus | '';
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    { value: '', label: t('meetings.filters.allStatuses'), icon: <LuList /> },
+    { value: 'scheduled', label: t('meetings.status.scheduled'), icon: <LuCalendar /> },
+    { value: 'in_progress', label: t('meetings.status.in_progress'), icon: <LuPlay /> },
+    { value: 'completed', label: t('meetings.status.completed'), icon: <LuCheck /> },
+    { value: 'cancelled', label: t('meetings.status.cancelled'), icon: <LuTrash2 /> },
+  ];
 
   // Fetch meetings when filters or page changes
   useEffect(() => {
     fetchMeetings();
-  }, [page, statusFilter, typeFilter, subjectFilter, dateFromFilter, dateToFilter]);
-
-  const fetchSubjects = async () => {
-    try {
-      const response = await listMeetingSubjects(1, 100);
-      setSubjects(response.items);
-    } catch (err) {
-      console.error('Failed to fetch subjects:', err);
-    }
-  };
+  }, [page, statusFilter]);
 
   const fetchMeetings = async () => {
     try {
       setLoading(true);
 
-      // Convert local datetime-local values to UTC ISO format for API
-      const dateFromUTC = dateFromFilter ? new Date(dateFromFilter).toISOString() : undefined;
-      const dateToUTC = dateToFilter ? new Date(dateToFilter).toISOString() : undefined;
-
       const response = await listMyMeetings({
         page,
         page_size: pageSize,
         status: statusFilter || undefined,
-        type: typeFilter || undefined,
-        subject_id: subjectFilter || undefined,
-        date_from: dateFromUTC,
-        date_to: dateToUTC,
       });
 
       setMeetings(response.items || []);
@@ -137,13 +117,16 @@ export const Meetings: React.FC = () => {
     }
   };
 
-  const handleResetFilters = () => {
-    setStatusFilter('');
-    setTypeFilter('');
-    setSubjectFilter('');
-    setDateFromFilter('');
-    setDateToFilter('');
+  const handleStatusSelect = (value: MeetingStatus | '') => {
+    const nextValue = statusFilter === value ? '' : value;
+    setStatusFilter(nextValue);
     setPage(1);
+  };
+
+  const handleSlideStatuses = (direction: 'left' | 'right') => {
+    if (!statusSliderRef.current) return;
+    const offset = direction === 'left' ? -200 : 200;
+    statusSliderRef.current.scrollBy({ left: offset, behavior: 'smooth' });
   };
 
   const handleViewDetails = (meeting: MeetingWithDetails) => {
@@ -241,7 +224,7 @@ export const Meetings: React.FC = () => {
   };
 
   const totalPages = Math.ceil(total / pageSize);
-  const hasActiveFilters = statusFilter || typeFilter || subjectFilter || dateFromFilter || dateToFilter;
+  const hasActiveFilters = Boolean(statusFilter);
 
   // Render create form
   if (viewMode === 'create') {
@@ -438,97 +421,37 @@ export const Meetings: React.FC = () => {
   // Render list view
   return (
     <div className="page-container">
-      {/* Filters Section */}
-      <div className="filters-section">
-        <div className="filters-grid">
-          <div className="filter-group">
-            <label htmlFor="status-filter">{t('meetings.filters.status')}</label>
-            <select
-              id="status-filter"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as MeetingStatus | '');
-                setPage(1);
-              }}
-              className="filter-select"
+      <div className="status-slider-container">
+        <button
+          type="button"
+          className="status-arrow"
+          onClick={() => handleSlideStatuses('left')}
+          aria-label={t('meetings.pagination.previous')}
+        >
+          <LuArrowLeft />
+        </button>
+        <div className="status-slider" ref={statusSliderRef}>
+          {statusOptions.map((option) => (
+            <button
+              type="button"
+              key={option.value || 'all'}
+              className={`status-pill ${statusFilter === option.value ? 'active' : ''}`}
+              onClick={() => handleStatusSelect(option.value)}
+              aria-pressed={statusFilter === option.value}
             >
-              <option value="">{t('meetings.filters.allStatuses')}</option>
-              <option value="scheduled">{t('meetings.status.scheduled')}</option>
-              <option value="in_progress">{t('meetings.status.in_progress')}</option>
-              <option value="completed">{t('meetings.status.completed')}</option>
-              <option value="cancelled">{t('meetings.status.cancelled')}</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label htmlFor="type-filter">{t('meetings.filters.type')}</label>
-            <select
-              id="type-filter"
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value as MeetingType | '');
-                setPage(1);
-              }}
-              className="filter-select"
-            >
-              <option value="">{t('meetings.filters.allTypes')}</option>
-              <option value="presentation">{t('meetings.type.presentation')}</option>
-              <option value="conference">{t('meetings.type.conference')}</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label htmlFor="subject-filter">{t('meetings.filters.subject')}</label>
-            <select
-              id="subject-filter"
-              value={subjectFilter}
-              onChange={(e) => {
-                setSubjectFilter(e.target.value);
-                setPage(1);
-              }}
-              className="filter-select"
-            >
-              <option value="">{t('meetings.filters.allSubjects')}</option>
-              {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label htmlFor="date-from-filter">{t('meetings.filters.dateFrom')}</label>
-            <DateTimePicker
-              id="date-from-filter"
-              type="datetime-local"
-              value={dateFromFilter}
-              onChange={(value) => {
-                setDateFromFilter(value);
-                setPage(1);
-              }}
-            />
-          </div>
-
-          <div className="filter-group">
-            <label htmlFor="date-to-filter">{t('meetings.filters.dateTo')}</label>
-            <DateTimePicker
-              id="date-to-filter"
-              type="datetime-local"
-              value={dateToFilter}
-              onChange={(value) => {
-                setDateToFilter(value);
-                setPage(1);
-              }}
-            />
-          </div>
+              {option.icon}
+              <span>{option.label}</span>
+            </button>
+          ))}
         </div>
-
-        {hasActiveFilters && (
-          <button onClick={handleResetFilters} className="btn btn-ghost">
-            <LuRotateCcw /> {t('meetings.filters.resetFilters')}
-          </button>
-        )}
+        <button
+          type="button"
+          className="status-arrow"
+          onClick={() => handleSlideStatuses('right')}
+          aria-label={t('meetings.pagination.next')}
+        >
+          <LuArrowRight />
+        </button>
       </div>
 
       {/* Error Message */}
@@ -571,6 +494,8 @@ export const Meetings: React.FC = () => {
               const isNow = isMeetingNow(meeting);
               const isPast = isMeetingPast(meeting);
               const hasRecording = meeting.needs_video_record || meeting.needs_audio_record;
+              // Show recordings button if there are any recording rooms for this meeting
+              const hasRecordings = (meeting.recordings_count || 0) > 0;
               const canJoinFromRow = meeting.is_permanent || meeting.status === 'scheduled' || meeting.status === 'in_progress';
 
               return (
@@ -632,7 +557,7 @@ export const Meetings: React.FC = () => {
                         {copiedMeetingId === meeting.id ? <LuCheck /> : <LuCopy />}
                       </button>
                     )}
-                    {isPast && hasRecording && (
+                    {hasRecordings && (
                       <button
                         className="meeting-row-action-btn"
                         onClick={(e) => handleViewRecordingsFromRow(meeting.id, e)}

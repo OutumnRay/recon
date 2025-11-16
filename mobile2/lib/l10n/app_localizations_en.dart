@@ -335,6 +335,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get documentsTitle => 'Documents';
 
   @override
+  String get documentsSubtitle => 'Browse, filter, and download your meeting files';
+
+  @override
   String get noDocumentsFound => 'No documents found';
 
   @override
@@ -404,7 +407,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterOther => 'Other';
 
   @override
+  String get filtersTitle => 'Filters';
+
+  @override
   String get uploadDocumentComingSoon => 'Upload document - Coming soon';
+
+  @override
+  String get failedToLoadDocuments => 'Failed to load documents';
 
   @override
   String get searchTitle => 'Search';
@@ -418,6 +427,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get searchDescription =>
       'Search across meetings, transcripts, and documents using natural language';
+
+  @override
+  String get searchResultsLabel => 'Results';
 
   @override
   String get trySearching => 'Try searching for:';
@@ -436,6 +448,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tryDifferentKeywords => 'Try different keywords';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String daysAgo(int count) {
+    return '$count days ago';
+  }
 
   @override
   String get searchButton => 'Search';

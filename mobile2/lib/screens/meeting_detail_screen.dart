@@ -353,45 +353,56 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     return SurfaceCard(
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    l10n.sessionNumber(sessionNumber),
-                    style: const TextStyle(
-                      color: AppColors.primary600,
-                      fontWeight: FontWeight.w600,
-                    ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  l10n.sessionNumber(sessionNumber),
+                  style: const TextStyle(
+                    color: AppColors.primary600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Spacer(),
-                _RecordingStatusChip(
-                  status: recording.status,
-                  color: _getRecordingStatusColor(recording.status),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _getRecordingStatusColor(recording.status).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
+                child: Text(
+                  recording.status.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _getRecordingStatusColor(recording.status),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
                 Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
                   dateFormat.format(startedAt),
                   style: const TextStyle(fontSize: 14),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
                 Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
@@ -405,41 +416,40 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
-              ],
-            ),
-            if (recording.playlistUrl != null) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RecordingPlayerScreen(
-                          recording: recording,
-                        ),
+            ],
+          ),
+          if (recording.playlistUrl != null) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecordingPlayerScreen(
+                        recording: recording,
                       ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.play_circle,
-                    size: 20,
-                  ),
-                  label: Text(l10n.playRecording),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF26C6DA),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
                     ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.play_circle,
+                  size: 20,
+                ),
+                label: Text(l10n.playRecording),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF26C6DA),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

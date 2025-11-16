@@ -336,6 +336,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get documentsTitle => 'Документы';
 
   @override
+  String get documentsSubtitle => 'Просматривайте, фильтруйте и скачивайте файлы встреч';
+
+  @override
   String get noDocumentsFound => 'Документы не найдены';
 
   @override
@@ -405,7 +408,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get filterOther => 'Другое';
 
   @override
+  String get filtersTitle => 'Фильтры';
+
+  @override
   String get uploadDocumentComingSoon => 'Загрузка документов - скоро';
+
+  @override
+  String get failedToLoadDocuments => 'Не удалось загрузить документы';
 
   @override
   String get searchTitle => 'Поиск';
@@ -419,6 +428,9 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get searchDescription =>
       'Ищите по встречам, транскриптам и документам используя естественный язык';
+
+  @override
+  String get searchResultsLabel => 'Результаты';
 
   @override
   String get trySearching => 'Попробуйте найти:';
@@ -437,6 +449,14 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get tryDifferentKeywords => 'Попробуйте другие ключевые слова';
+
+  @override
+  String get yesterday => 'Вчера';
+
+  @override
+  String daysAgo(int count) {
+    return '$count дн. назад';
+  }
 
   @override
   String get searchButton => 'Искать';

@@ -740,6 +740,12 @@ abstract class AppLocalizations {
   /// **'Documents'**
   String get documentsTitle;
 
+  /// No description provided for @documentsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse, filter, and download your meeting files'**
+  String get documentsSubtitle;
+
   /// No description provided for @noDocumentsFound.
   ///
   /// In en, this message translates to:
@@ -866,11 +872,23 @@ abstract class AppLocalizations {
   /// **'Other'**
   String get filterOther;
 
+  /// No description provided for @filtersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get filtersTitle;
+
   /// No description provided for @uploadDocumentComingSoon.
   ///
   /// In en, this message translates to:
   /// **'Upload document - Coming soon'**
   String get uploadDocumentComingSoon;
+
+  /// No description provided for @failedToLoadDocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load documents'**
+  String get failedToLoadDocuments;
 
   /// No description provided for @searchTitle.
   ///
@@ -895,6 +913,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search across meetings, transcripts, and documents using natural language'**
   String get searchDescription;
+
+  /// No description provided for @searchResultsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get searchResultsLabel;
 
   /// No description provided for @trySearching.
   ///
@@ -931,6 +955,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try different keywords'**
   String get tryDifferentKeywords;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @daysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days ago'**
+  String daysAgo(int count);
 
   /// No description provided for @searchButton.
   ///

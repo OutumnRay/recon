@@ -462,6 +462,9 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 
 		// Load participant counts
 		r.loadParticipantCounts(meetingsMap, meetingIDs)
+
+		// Load recordings counts
+		r.loadRecordingsCounts(meetingsMap, meetingIDs)
 	}
 
 	// Convert map to slice
@@ -733,6 +736,19 @@ func (r *MeetingRepository) loadParticipantCounts(meetingsMap map[uuid.UUID]*mod
 					}
 				}
 			}
+		}
+	}
+}
+
+// loadRecordingsCounts loads the number of recording rooms for each meeting
+func (r *MeetingRepository) loadRecordingsCounts(meetingsMap map[uuid.UUID]*models.MeetingWithDetails, meetingIDs []uuid.UUID) {
+	livekitRepo := NewLiveKitRepository(r.db)
+
+	for meetingID, meeting := range meetingsMap {
+		// Count rooms by meeting ID (room name = meeting ID)
+		rooms, err := livekitRepo.GetRoomsByName(meetingID.String())
+		if err == nil {
+			meeting.RecordingsCount = len(rooms)
 		}
 	}
 }

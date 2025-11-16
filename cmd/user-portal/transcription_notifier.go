@@ -127,12 +127,19 @@ func (tn *TranscriptionNotifier) Stop() {
 
 // processMessage processes a transcription completed message
 func (tn *TranscriptionNotifier) processMessage(msg amqp.Delivery) {
+	// Check if message body is empty
+	if len(msg.Body) == 0 {
+		tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Received empty message, discarding")
+		msg.Ack(false) // Acknowledge to remove from queue
+		return
+	}
+
 	// Parse message
 	var completedMsg TranscriptionCompletedMessage
 	err := json.Unmarshal(msg.Body, &completedMsg)
 	if err != nil {
-		tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to parse message: %v", err)
-		msg.Nack(false, false)
+		tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to parse message: %v. Raw message body (first 200 chars): %s", err, string(msg.Body[:min(len(msg.Body), 200)]))
+		msg.Ack(false) // Acknowledge to remove malformed message from queue instead of requeuing
 		return
 	}
 

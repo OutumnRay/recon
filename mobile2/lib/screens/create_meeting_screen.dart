@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import '../l10n/app_localizations.dart';
+import '../models/meeting.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/users_service.dart';
-import '../models/meeting.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_card.dart';
 import '../widgets/error_display.dart';
-import '../l10n/app_localizations.dart';
 
 class CreateMeetingScreen extends StatefulWidget {
   final ApiClient apiClient;
@@ -273,31 +276,27 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
 
     if (_isLoadingData) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: AppColors.surface,
         appBar: AppBar(
           title: Text(l10n.createMeeting),
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF26C6DA),
-          elevation: 1,
-          shadowColor: Colors.black.withValues(alpha: 0.1),
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.textPrimary,
+          elevation: 0,
         ),
         body: const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF26C6DA),
-          ),
+          child: CircularProgressIndicator(color: AppColors.primary500),
         ),
       );
     }
 
     if (_error != null && _subjects == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: AppColors.surface,
         appBar: AppBar(
           title: Text(l10n.createMeeting),
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF26C6DA),
-          elevation: 1,
-          shadowColor: Colors.black.withValues(alpha: 0.1),
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.textPrimary,
+          elevation: 0,
         ),
         body: FullScreenError(
           error: _error!,
@@ -308,436 +307,617 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(l10n.createMeeting),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF26C6DA),
-        elevation: 1,
-        shadowColor: Colors.black.withValues(alpha: 0.1),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
         actions: [
           if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Color(0xFF26C6DA),
-                  ),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary500,
                 ),
               ),
             ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Title
-            TextFormField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                labelText: '${l10n.meetingTitle} ${l10n.required}',
-                hintText: l10n.enterTitle,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.title, color: Color(0xFF26C6DA)),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return l10n.pleaseEnterTitle;
-                }
-                return null;
-              },
-              enabled: !_isLoading,
-            ),
-            const SizedBox(height: 16),
-
-            // Subject
-            DropdownButtonFormField<String>(
-              initialValue: _subjectId,
-              decoration: InputDecoration(
-                labelText: '${l10n.meetingSubject} ${l10n.required}',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.category, color: Color(0xFF26C6DA)),
-              ),
-              items: _subjects?.map((subject) {
-                return DropdownMenuItem(
-                  value: subject.id,
-                  child: Text(subject.name),
-                );
-              }).toList(),
-              onChanged: _isLoading
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _subjectId = value;
-                      });
-                    },
-              validator: (value) {
-                if (value == null) {
-                  return l10n.pleaseSelectSubject;
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Type
-            DropdownButtonFormField<String>(
-              initialValue: _type,
-              decoration: InputDecoration(
-                labelText: l10n.meetingType,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.event, color: Color(0xFF26C6DA)),
-              ),
-              items: [
-                DropdownMenuItem(value: 'conference', child: Text(l10n.typeConference)),
-                DropdownMenuItem(value: 'presentation', child: Text(l10n.typePresentation)),
-                DropdownMenuItem(value: 'training', child: Text(l10n.typeTraining)),
-                DropdownMenuItem(value: 'discussion', child: Text(l10n.typeDiscussion)),
-              ],
-              onChanged: _isLoading
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _type = value!;
-                      });
-                    },
-            ),
-            const SizedBox(height: 16),
-
-            // Date and Time
-            Builder(
-              builder: (context) {
-                final locale = Localizations.localeOf(context).toString();
-                final dateFormat = DateFormat.yMMMd(locale);
-                return Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _selectDate,
-                        icon: const Icon(Icons.calendar_today),
-                        label: Text(dateFormat.format(_scheduledDate)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF26C6DA),
-                          side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _selectTime,
-                        icon: const Icon(Icons.access_time),
-                        label: Text(_scheduledTime.format(context)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF26C6DA),
-                          side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _formatDateTime(context, _scheduledDate, _scheduledTime),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 140),
+            children: [
+              _buildHeroCard(context, l10n),
+              const SizedBox(height: 20),
+              _buildGeneralInfoCard(context, l10n),
+              const SizedBox(height: 20),
+              _buildScheduleCard(context, l10n),
+              const SizedBox(height: 20),
+              _buildAudienceCard(context, l10n),
+              const SizedBox(height: 20),
+              _buildRecordingCard(context, l10n),
+              const SizedBox(height: 20),
+              _buildNotesCard(context, l10n),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _isLoading ? null : _createMeeting,
+                icon: const Icon(Icons.check_circle_rounded),
+                label: Text(l10n.createMeeting),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            // Duration
-            DropdownButtonFormField<int>(
-              initialValue: _duration,
-              decoration: InputDecoration(
-                labelText: l10n.meetingDuration,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.timer, color: Color(0xFF26C6DA)),
-              ),
-              items: [
-                DropdownMenuItem(value: 15, child: Text(l10n.duration15)),
-                DropdownMenuItem(value: 30, child: Text(l10n.duration30)),
-                DropdownMenuItem(value: 45, child: Text(l10n.duration45)),
-                DropdownMenuItem(value: 60, child: Text(l10n.duration60)),
-                DropdownMenuItem(value: 90, child: Text(l10n.duration90)),
-                DropdownMenuItem(value: 120, child: Text(l10n.duration120)),
-                DropdownMenuItem(value: 180, child: Text(l10n.duration180)),
-              ],
-              onChanged: _isLoading
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _duration = value!;
-                      });
-                    },
-            ),
-            const SizedBox(height: 16),
+  Widget _buildHeroCard(BuildContext context, AppLocalizations l10n) {
+    final stats = [
+      _buildHeroStat(
+        context,
+        icon: Icons.calendar_month_rounded,
+        label: l10n.dateAndTime,
+        value: _formatDateTime(context, _scheduledDate, _scheduledTime),
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.timer_outlined,
+        label: l10n.meetingDuration,
+        value: '${_duration} ${l10n.minutes}',
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.people_alt_rounded,
+        label: l10n.meetingParticipants,
+        value: _selectedParticipantIds.isEmpty
+            ? l10n.noParticipants
+            : l10n.participantsSelected(_selectedParticipantIds.length),
+      ),
+    ];
 
-            // Recurrence
-            DropdownButtonFormField<String?>(
-              initialValue: _recurrence,
-              decoration: InputDecoration(
-                labelText: l10n.meetingRecurrence,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+    return GradientHeroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.createMeeting,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.repeat, color: Color(0xFF26C6DA)),
-              ),
-              items: [
-                DropdownMenuItem(value: null, child: Text(l10n.recurrenceNone)),
-                DropdownMenuItem(value: 'daily', child: Text(l10n.recurrenceDaily)),
-                DropdownMenuItem(value: 'weekly', child: Text(l10n.recurrenceWeekly)),
-                DropdownMenuItem(value: 'monthly', child: Text(l10n.recurrenceMonthly)),
-              ],
-              onChanged: _isLoading
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _recurrence = value;
-                      });
-                    },
-            ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.meetingDetails,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: stats,
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Speaker
-            Card(
-              elevation: 0,
-              color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: const Color(0xFF26C6DA).withValues(alpha: 0.2), width: 1),
-              ),
-              child: ListTile(
-                title: Text(
-                  '${l10n.meetingSpeaker} ${l10n.optional}',
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                subtitle: _selectedSpeakerId != null
-                    ? Text(
-                        _users?.firstWhere((u) => u.id == _selectedSpeakerId).displayName ??
-                            'Unknown')
-                    : Text(l10n.noSpeaker),
-                leading: const Icon(Icons.person, color: Color(0xFF26C6DA)),
-                trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
-                onTap: _isLoading ? null : _selectSpeaker,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
+  Widget _buildGeneralInfoCard(BuildContext context, AppLocalizations l10n) {
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            icon: Icons.badge_rounded,
+            title: l10n.meetingDetailsTitle,
+            subtitle: l10n.meetingDetails,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _titleController,
+            decoration: _inputDecoration(
+              '${l10n.meetingTitle} ${l10n.required}',
+              hint: l10n.enterTitle,
+              icon: Icons.title_rounded,
             ),
-            const SizedBox(height: 8),
-
-            // Participants
-            Card(
-              elevation: 0,
-              color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: const Color(0xFF26C6DA).withValues(alpha: 0.2), width: 1),
-              ),
-              child: ListTile(
-                title: Text(
-                  l10n.meetingParticipants,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                subtitle: Text(l10n.participantsSelected(_selectedParticipantIds.length)),
-                leading: const Icon(Icons.people, color: Color(0xFF26C6DA)),
-                trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
-                onTap: _isLoading ? null : _selectParticipants,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return l10n.pleaseEnterTitle;
+              }
+              return null;
+            },
+            enabled: !_isLoading,
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            value: _subjectId,
+            decoration: _inputDecoration(
+              '${l10n.meetingSubject} ${l10n.required}',
+              icon: Icons.category_rounded,
             ),
-            const SizedBox(height: 8),
-
-            // Departments
-            Card(
-              elevation: 0,
-              color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: const Color(0xFF26C6DA).withValues(alpha: 0.2), width: 1),
-              ),
-              child: ListTile(
-                title: Text(
-                  l10n.meetingDepartments,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                subtitle: Text(l10n.departmentsSelected(_selectedDepartmentIds.length)),
-                leading: const Icon(Icons.business, color: Color(0xFF26C6DA)),
-                trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
-                onTap: _isLoading ? null : _selectDepartments,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
+            items: (_subjects ?? [])
+                .map(
+                  (subject) => DropdownMenuItem(
+                    value: subject.id,
+                    child: Text(subject.name),
+                  ),
+                )
+                .toList(),
+            onChanged: _isLoading
+                ? null
+                : (value) => setState(() => _subjectId = value),
+            validator: (value) {
+              if (value == null) {
+                return l10n.pleaseSelectSubject;
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            value: _type,
+            decoration: _inputDecoration(
+              l10n.meetingType,
+              icon: Icons.event_note_rounded,
             ),
-            const SizedBox(height: 16),
+            items: [
+              DropdownMenuItem(value: 'conference', child: Text(l10n.typeConference)),
+              DropdownMenuItem(value: 'presentation', child: Text(l10n.typePresentation)),
+              DropdownMenuItem(value: 'training', child: Text(l10n.typeTraining)),
+              DropdownMenuItem(value: 'discussion', child: Text(l10n.typeDiscussion)),
+            ],
+            onChanged: _isLoading
+                ? null
+                : (value) {
+                    if (value != null) {
+                      setState(() => _type = value);
+                    }
+                  },
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Recording options
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+  Widget _buildScheduleCard(BuildContext context, AppLocalizations l10n) {
+    final locale = Localizations.localeOf(context).toString();
+    final dateFormat = DateFormat.yMMMd(locale);
+
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            icon: Icons.schedule_rounded,
+            title: l10n.dateAndTime,
+            subtitle: _formatDateTime(context, _scheduledDate, _scheduledTime),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _selectDate,
+                  icon: const Icon(Icons.calendar_today_rounded),
+                  label: Text(dateFormat.format(_scheduledDate)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary600,
+                    side: BorderSide(color: AppColors.border),
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
               ),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _selectTime,
+                  icon: const Icon(Icons.access_time_rounded),
+                  label: Text(_scheduledTime.format(context)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary600,
+                    side: BorderSide(color: AppColors.border),
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          DropdownButtonFormField<int>(
+            value: _duration,
+            decoration: _inputDecoration(
+              l10n.meetingDuration,
+              icon: Icons.timer_outlined,
+            ),
+            items: [
+              DropdownMenuItem(value: 15, child: Text(l10n.duration15)),
+              DropdownMenuItem(value: 30, child: Text(l10n.duration30)),
+              DropdownMenuItem(value: 45, child: Text(l10n.duration45)),
+              DropdownMenuItem(value: 60, child: Text(l10n.duration60)),
+              DropdownMenuItem(value: 90, child: Text(l10n.duration90)),
+              DropdownMenuItem(value: 120, child: Text(l10n.duration120)),
+              DropdownMenuItem(value: 180, child: Text(l10n.duration180)),
+            ],
+            onChanged: _isLoading
+                ? null
+                : (value) {
+                    if (value != null) {
+                      setState(() => _duration = value);
+                    }
+                  },
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String?>(
+            value: _recurrence,
+            decoration: _inputDecoration(
+              l10n.meetingRecurrence,
+              icon: Icons.repeat_rounded,
+            ),
+            items: [
+              DropdownMenuItem(value: null, child: Text(l10n.recurrenceNone)),
+              DropdownMenuItem(value: 'daily', child: Text(l10n.recurrenceDaily)),
+              DropdownMenuItem(value: 'weekly', child: Text(l10n.recurrenceWeekly)),
+              DropdownMenuItem(value: 'monthly', child: Text(l10n.recurrenceMonthly)),
+            ],
+            onChanged: _isLoading
+                ? null
+                : (value) => setState(() => _recurrence = value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAudienceCard(BuildContext context, AppLocalizations l10n) {
+    final participantNames = _selectedParticipantIds.map(_getUserName).toList();
+    final departmentNames = _selectedDepartmentIds.map(_getDepartmentName).toList();
+    final speakerName =
+        _selectedSpeakerId != null ? _getUserName(_selectedSpeakerId!) : l10n.noSpeaker;
+
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            icon: Icons.group_work_rounded,
+            title: l10n.meetingParticipants,
+            subtitle: l10n.participantsSelected(_selectedParticipantIds.length),
+          ),
+          const SizedBox(height: 16),
+          _buildSelectionTile(
+            context,
+            icon: Icons.person_outline_rounded,
+            title: '${l10n.meetingSpeaker} ${l10n.optional}',
+            subtitle: speakerName,
+            onTap: _isLoading ? null : _selectSpeaker,
+          ),
+          const SizedBox(height: 12),
+          _buildSelectionTile(
+            context,
+            icon: Icons.people_alt_rounded,
+            title: l10n.meetingParticipants,
+            subtitle: l10n.participantsSelected(_selectedParticipantIds.length),
+            onTap: _isLoading ? null : _selectParticipants,
+          ),
+          if (participantNames.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _buildChipList(participantNames),
+            ),
+          ],
+          const SizedBox(height: 12),
+          _buildSelectionTile(
+            context,
+            icon: Icons.business_outlined,
+            title: l10n.meetingDepartments,
+            subtitle: l10n.departmentsSelected(_selectedDepartmentIds.length),
+            onTap: _isLoading ? null : _selectDepartments,
+          ),
+          if (departmentNames.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _buildChipList(departmentNames),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecordingCard(BuildContext context, AppLocalizations l10n) {
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            icon: Icons.settings_input_component_rounded,
+            title: l10n.recordingOptions,
+            subtitle: l10n.settingsTitle,
+          ),
+          _buildToggleTile(
+            context,
+            title: l10n.meetingVideoRecord,
+            subtitle: _needsVideoRecord ? l10n.enabled : l10n.disabled,
+            value: _needsVideoRecord,
+            onChanged: (value) => setState(() => _needsVideoRecord = value),
+          ),
+          _buildToggleTile(
+            context,
+            title: l10n.meetingAudioRecord,
+            subtitle: _needsAudioRecord ? l10n.enabled : l10n.disabled,
+            value: _needsAudioRecord,
+            onChanged: (value) => setState(() => _needsAudioRecord = value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotesCard(BuildContext context, AppLocalizations l10n) {
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            icon: Icons.notes_rounded,
+            title: l10n.meetingNotes,
+            subtitle: l10n.enterNotes,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _notesController,
+            maxLines: 4,
+            decoration: _inputDecoration(
+              l10n.meetingNotes,
+              hint: l10n.enterNotes,
+              icon: Icons.description_outlined,
+            ).copyWith(alignLabelWithHint: true),
+            enabled: !_isLoading,
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildSelectionTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceMuted,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: AppColors.primary600),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.videocam, color: Color(0xFF26C6DA)),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.recordingOptions,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                      ],
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      title: Text(l10n.meetingVideoRecord),
-                      value: _needsVideoRecord,
-                      activeThumbColor: const Color(0xFF26C6DA),
-                      onChanged: _isLoading
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _needsVideoRecord = value;
-                              });
-                            },
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    SwitchListTile(
-                      title: Text(l10n.meetingAudioRecord),
-                      value: _needsAudioRecord,
-                      activeThumbColor: const Color(0xFF26C6DA),
-                      onChanged: _isLoading
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _needsAudioRecord = value;
-                              });
-                            },
-                      contentPadding: EdgeInsets.zero,
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // Additional notes
-            TextFormField(
-              controller: _notesController,
-              decoration: InputDecoration(
-                labelText: l10n.meetingNotes,
-                hintText: l10n.enterNotes,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.notes, color: Color(0xFF26C6DA)),
-                alignLabelWithHint: true,
+              Icon(
+                Icons.chevron_right_rounded,
+                color: onTap != null ? AppColors.textSecondary : AppColors.textTertiary,
               ),
-              maxLines: 3,
-              enabled: !_isLoading,
-            ),
-            const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            // Create button
-            FilledButton.icon(
-              onPressed: _isLoading ? null : _createMeeting,
-              icon: const Icon(Icons.add),
-              label: Text(l10n.createMeeting),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.all(18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+  Widget _buildToggleTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: SwitchListTile.adaptive(
+        value: value,
+        onChanged: _isLoading ? null : onChanged,
+        title: Text(title),
+        subtitle: Text(
+          subtitle,
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: AppColors.textSecondary),
+        ),
+        activeColor: AppColors.primary600,
+        contentPadding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  List<Widget> _buildChipList(List<String> labels) {
+    if (labels.isEmpty) return [];
+    const maxVisible = 4;
+    final chips = <Widget>[];
+    for (var i = 0; i < labels.length && i < maxVisible; i++) {
+      chips.add(_buildChip(labels[i]));
+    }
+    final remaining = labels.length - maxVisible;
+    if (remaining > 0) {
+      chips.add(_buildChip('+${remaining}'));
+    }
+    return chips;
+  }
+
+  Widget _buildChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primary50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary200),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.primary700,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.primary50,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: AppColors.primary600, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
                 ),
-                backgroundColor: const Color(0xFF26C6DA),
-                elevation: 4,
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroStat(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 140),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 18, color: AppColors.primary600),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -745,7 +925,54 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       ),
     );
   }
-}
+
+  InputDecoration _inputDecoration(
+    String label, {
+    String? hint,
+    IconData? icon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: icon != null ? Icon(icon, color: AppColors.primary500) : null,
+      filled: true,
+      fillColor: AppColors.surfaceMuted,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: AppColors.primary500, width: 2),
+      ),
+    );
+  }
+
+  String _getUserName(String id) {
+    if (_users != null) {
+      for (final user in _users!) {
+        if (user.id == id) {
+          return user.displayName;
+        }
+      }
+    }
+    return id;
+  }
+
+  String _getDepartmentName(String id) {
+    if (_departments != null) {
+      for (final dept in _departments!) {
+        if (dept.id == id) {
+          return dept.name;
+        }
+      }
+    }
+    return id;
+  }
 
 // Participant Selection Dialog
 class _ParticipantSelectionDialog extends StatefulWidget {
@@ -786,10 +1013,14 @@ class _ParticipantSelectionDialogState
     }).toList();
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: AppColors.surfaceCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         l10n.selectParticipants,
-        style: const TextStyle(color: Color(0xFF26C6DA), fontWeight: FontWeight.bold),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
       ),
       content: SizedBox(
         width: double.maxFinite,
@@ -799,20 +1030,22 @@ class _ParticipantSelectionDialogState
             TextField(
               decoration: InputDecoration(
                 hintText: l10n.searchUsers,
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF26C6DA)),
+                prefixIcon:
+                    const Icon(Icons.search_rounded, color: AppColors.primary600),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
+                  borderSide: const BorderSide(color: AppColors.primary500, width: 2),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.surfaceMuted,
               ),
               onChanged: (value) {
                 setState(() {
@@ -832,7 +1065,7 @@ class _ParticipantSelectionDialogState
                     title: Text(user.displayName),
                     subtitle: Text(user.email),
                     value: isSelected,
-                    activeColor: const Color(0xFF26C6DA),
+                    activeColor: AppColors.primary600,
                     onChanged: (value) {
                       setState(() {
                         if (value == true) {
@@ -852,13 +1085,14 @@ class _ParticipantSelectionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
           child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _selected),
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF26C6DA),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: AppColors.primary600,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: Text('${l10n.select} (${_selected.length})'),
         ),
@@ -897,10 +1131,14 @@ class _DepartmentSelectionDialogState
     final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: AppColors.surfaceCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         l10n.selectDepartments,
-        style: const TextStyle(color: Color(0xFF26C6DA), fontWeight: FontWeight.bold),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
       ),
       content: SizedBox(
         width: double.maxFinite,
@@ -914,7 +1152,7 @@ class _DepartmentSelectionDialogState
               title: Text(dept.name),
               subtitle: dept.description != null ? Text(dept.description!) : null,
               value: isSelected,
-              activeColor: const Color(0xFF26C6DA),
+              activeColor: AppColors.primary600,
               onChanged: (value) {
                 setState(() {
                   if (value == true) {
@@ -931,13 +1169,14 @@ class _DepartmentSelectionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
           child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _selected),
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF26C6DA),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: AppColors.primary600,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: Text('${l10n.select} (${_selected.length})'),
         ),
@@ -982,10 +1221,14 @@ class _SpeakerSelectionDialogState extends State<_SpeakerSelectionDialog> {
     }).toList();
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: AppColors.surfaceCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         l10n.selectSpeaker,
-        style: const TextStyle(color: Color(0xFF26C6DA), fontWeight: FontWeight.bold),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
       ),
       content: SizedBox(
         width: double.maxFinite,
@@ -995,20 +1238,22 @@ class _SpeakerSelectionDialogState extends State<_SpeakerSelectionDialog> {
             TextField(
               decoration: InputDecoration(
                 hintText: l10n.searchUsers,
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF26C6DA)),
+                prefixIcon:
+                    const Icon(Icons.search_rounded, color: AppColors.primary600),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
+                  borderSide: const BorderSide(color: AppColors.primary500, width: 2),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.surfaceMuted,
               ),
               onChanged: (value) {
                 setState(() {
@@ -1022,7 +1267,7 @@ class _SpeakerSelectionDialogState extends State<_SpeakerSelectionDialog> {
               leading: Radio<String?>(
                 value: null,
                 groupValue: _selectedId,
-                activeColor: const Color(0xFF26C6DA),
+                activeColor: AppColors.primary600,
                 onChanged: (value) {
                   setState(() {
                     _selectedId = value;
@@ -1047,7 +1292,7 @@ class _SpeakerSelectionDialogState extends State<_SpeakerSelectionDialog> {
                     subtitle: Text(user.email),
                     value: user.id,
                     groupValue: _selectedId,
-                    activeColor: const Color(0xFF26C6DA),
+                    activeColor: AppColors.primary600,
                     onChanged: (value) {
                       setState(() {
                         _selectedId = value;
@@ -1063,13 +1308,14 @@ class _SpeakerSelectionDialogState extends State<_SpeakerSelectionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
           child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _selectedId),
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF26C6DA),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: AppColors.primary600,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: Text(l10n.select),
         ),
