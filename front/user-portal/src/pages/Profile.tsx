@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuUser, LuMail, LuCamera, LuSave, LuX, LuGlobe } from 'react-icons/lu';
+import { LuUser, LuMail, LuCamera, LuSave, LuX, LuGlobe, LuBell } from 'react-icons/lu';
 import './Profile.css';
 
 interface User {
@@ -14,6 +14,7 @@ interface User {
   avatar?: string;
   role: string;
   language: string;
+  notification_preferences?: string;
 }
 
 export const Profile: React.FC = () => {
@@ -35,6 +36,7 @@ export const Profile: React.FC = () => {
     phone: '',
     bio: '',
     language: 'en',
+    notificationPreferences: 'both',
   });
 
   useEffect(() => {
@@ -52,6 +54,7 @@ export const Profile: React.FC = () => {
         phone: userData.phone || '',
         bio: userData.bio || '',
         language: userData.language || 'en',
+        notificationPreferences: userData.notification_preferences || 'both',
       });
       if (userData.avatar) {
         setAvatarPreview(userData.avatar);
@@ -203,6 +206,7 @@ export const Profile: React.FC = () => {
           phone: formData.phone,
           bio: formData.bio,
           language: formData.language,
+          notification_preferences: formData.notificationPreferences,
           avatar: avatarUrl,
         }),
       });
@@ -264,6 +268,7 @@ export const Profile: React.FC = () => {
         phone: user.phone || '',
         bio: user.bio || '',
         language: user.language || 'en',
+        notificationPreferences: user.notification_preferences || 'both',
       });
       setAvatarPreview(user.avatar || null);
       setSelectedFile(null);
@@ -414,6 +419,26 @@ export const Profile: React.FC = () => {
                   <option value="ru">{t('languages.russian')}</option>
                 </select>
                 <p className="form-hint">{t('profile.languageDescription')}</p>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="notificationPreferences" className="form-label">
+                  <LuBell className="info-icon" />
+                  {t('profile.notificationPreferences')}
+                </label>
+                <select
+                  id="notificationPreferences"
+                  name="notificationPreferences"
+                  value={formData.notificationPreferences}
+                  onChange={handleInputChange}
+                  disabled={!editMode}
+                  className="form-input"
+                >
+                  <option value="tracks">{t('profile.notificationTracks')}</option>
+                  <option value="rooms">{t('profile.notificationRooms')}</option>
+                  <option value="both">{t('profile.notificationBoth')}</option>
+                </select>
+                <p className="form-hint">{t('profile.notificationDescription')}</p>
               </div>
             </div>
 

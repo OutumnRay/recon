@@ -1,0 +1,134 @@
+.transcript-entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.transcript-entry + .transcript-entry {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-sm);
+}
+
+.transcript-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xxs);
+  min-height: 60px;
+}
+
+.marker-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.05);
+}
+
+.marker-line {
+  width: 2px;
+  flex: 1;
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.marker-dot.accent-blue {
+  background: #3b82f6;
+}
+
+.marker-dot.accent-purple {
+  background: #a855f7;
+}
+
+.marker-dot.accent-orange {
+  background: #f97316;
+}
+
+.marker-dot.accent-green {
+  background: #22c55e;
+}
+
+.marker-dot.accent-pink {
+  background: #ec4899;
+}
+
+.transcript-bubble {
+  border-radius: var(--radius-2xl, 32px);
+  padding: var(--space-lg);
+  background: var(--surface-panel, #fdfdff);
+  border: 1px solid var(--border-light, #e2e8f0);
+}
+
+.transcript-bubble.accent-blue {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.transcript-bubble.accent-purple {
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+.transcript-bubble.accent-orange {
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.transcript-bubble.accent-green {
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.transcript-bubble.accent-pink {
+  border-color: rgba(236, 72, 153, 0.5);
+}
+
+.bubble-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  align-items: baseline;
+}
+
+.bubble-speaker {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary, #0f172a);
+}
+
+.bubble-relative {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.bubble-text {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-secondary, #475569);
+  line-height: 1.5;
+}
+
+.transcript-absolute {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary, #94a3b8);
+  padding-top: var(--space-xs);
+  min-width: 80px;
+  text-align: right;
+}
+
+.no-transcription-message {
+  text-align: center;
+  color: var(--text-secondary, #475569);
+  padding: var(--space-2xl);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 768px) {
+  .transcript-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .transcript-absolute {
+    text-align: left;
+  }
+
+  .transcript-marker {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+}

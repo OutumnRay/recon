@@ -15,6 +15,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get login => 'Вход';
 
   @override
+  String get loginSubtitle => 'Используйте учетные данные рабочего пространства';
+
+  @override
   String get email => 'Email';
 
   @override
@@ -34,6 +37,24 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get loginError => 'Ошибка входа. Проверьте учетные данные.';
+
+  @override
+  String get welcomeBackTitle => 'С возвращением';
+
+  @override
+  String get welcomeBackSubtitle => 'Войдите, чтобы управлять встречами';
+
+  @override
+  String get validationUsernameRequired => 'Введите имя пользователя';
+
+  @override
+  String get validationPasswordRequired => 'Введите пароль';
+
+  @override
+  String get apiNotConfigured => 'URL сервера не настроен';
+
+  @override
+  String get currentServer => 'Подключено к';
 
   @override
   String get meetings => 'Встречи';

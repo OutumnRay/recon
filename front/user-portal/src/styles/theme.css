@@ -1,14 +1,9 @@
-/* Recontext.online Color Theme - Calm Flat Surfaces */
+/* Aurora surface helpers */
 
 :root {
-  --surface-card: #ffffff;
-  --surface-panel: #f8fbfb;
-  --surface-muted: #eef4f5;
-  --surface-accent: #e0eaec;
-
-  --shadow-card: 0 12px 32px rgba(17, 49, 51, 0.09);
-  --shadow-card-hover: 0 18px 44px rgba(17, 49, 51, 0.12);
-  --shadow-panel: 0 6px 20px rgba(17, 49, 51, 0.06);
+  --shadow-card: 0 20px 60px rgba(22, 33, 75, 0.08);
+  --shadow-card-hover: 0 26px 70px rgba(20, 31, 66, 0.12);
+  --shadow-panel: 0 12px 30px rgba(18, 25, 55, 0.08);
 }
 
 body {
@@ -18,7 +13,7 @@ body {
 
 .surface-card {
   background: var(--surface-card);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-panel);
 }
@@ -29,13 +24,13 @@ body {
 
 .surface-panel {
   background: var(--surface-panel);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   border: 1px solid var(--border-light);
 }
 
 .surface-accent {
   background: var(--surface-accent);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
 }
 
 .text-muted {
@@ -83,8 +78,10 @@ body {
 }
 
 .glass-effect {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: var(--shadow-card);
 }

@@ -130,10 +130,15 @@ class TranscriptionConsumer:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
-            error_message = f"Transcription failed: {str(e)}\n{traceback.format_exc()}"
-            print(f"\n{'='*60}")
-            print(f"ERROR: {error_message}")
-            print(f"{'='*60}\n")
+            error_str = str(e)
+            # Compact single-line error for missing files
+            if "NoSuchKey" in error_str or "Object does not exist" in error_str:
+                print(f"ERROR: Transcription failed - Audio file not found in storage: {error_str.split('object_name:')[-1].strip() if 'object_name:' in error_str else 'unknown'}")
+            else:
+                error_message = f"Transcription failed: {error_str}\n{traceback.format_exc()}"
+                print(f"\n{'='*60}")
+                print(f"ERROR: {error_message}")
+                print(f"{'='*60}\n")
 
             # Update status to failed
             try:

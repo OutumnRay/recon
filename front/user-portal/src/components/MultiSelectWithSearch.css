@@ -30,7 +30,7 @@
 .multi-select-search:focus {
   outline: none;
   border-color: var(--color-primary-400);
-  box-shadow: 0 0 0 3px rgba(70, 175, 186, 0.2);
+  box-shadow: 0 0 0 3px rgba(60, 130, 255, 0.2);
   background: var(--bg-primary);
 }
 
@@ -59,7 +59,7 @@
 }
 
 .clear-all-btn:hover {
-  background-color: #a74d47;
+  background-color: #c53030;
 }
 
 .dropdown-overlay {

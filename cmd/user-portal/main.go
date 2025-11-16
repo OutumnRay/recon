@@ -22,6 +22,7 @@ import (
 	"Recontext.online/pkg/email"
 	"Recontext.online/pkg/embeddings"
 	"Recontext.online/pkg/fcm"
+	"Recontext.online/pkg/llm"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
 	"Recontext.online/pkg/rabbitmq"
@@ -1172,6 +1173,20 @@ func (up *UserPortal) Start() error {
 		up.logger.Info("🎙️ [TRANSCRIPTION SCHEDULER] Skipped - RabbitMQ not available")
 	}
 
+	// Initialize LLM client for memo generation
+	llmClient := llm.NewClient(
+		getEnv("LLM_API_ENDPOINT", "https://api.openai.com/v1"),
+		getEnv("LLM_MODEL", "gpt-3.5-turbo"),
+		getEnv("LLM_API_KEY", ""),
+	)
+	if llmClient.IsConfigured() {
+		up.logger.Infof("📝 [LLM] Configured with endpoint: %s, model: %s",
+			getEnv("LLM_API_ENDPOINT", "https://api.openai.com/v1"),
+			getEnv("LLM_MODEL", "gpt-3.5-turbo"))
+	} else {
+		up.logger.Info("📝 [LLM] Not configured - memo generation will be skipped")
+	}
+
 	// Start transcription notifier if RabbitMQ and FCM are available
 	if up.rabbitMQPublisher != nil {
 		rabbitmqURL := fmt.Sprintf("amqp://%s:%s@%s:%d/",
@@ -1180,7 +1195,7 @@ func (up *UserPortal) Start() error {
 			getEnv("RABBITMQ_HOST", "localhost"),
 			getEnvInt("RABBITMQ_PORT", 5672))
 
-		up.transcriptionNotifier = NewTranscriptionNotifier(up, up.fcmService)
+		up.transcriptionNotifier = NewTranscriptionNotifier(up, up.fcmService, llmClient)
 		if err := up.transcriptionNotifier.Start(rabbitmqURL); err != nil {
 			up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to start: %v", err)
 		}

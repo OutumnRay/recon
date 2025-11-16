@@ -298,7 +298,7 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 
 	// Collect track IDs for transcription loading
 	var trackIDs []uuid.UUID
-	trackMap := make(map[uuid.UUID]models.Track)
+	trackMap := make(map[uuid.UUID]*models.Track)
 	for i := range tracks {
 		if tracks[i].EgressID != "" && tracks[i].Source == "MICROPHONE" && tracks[i].TranscriptionStatus == "completed" {
 			trackIDs = append(trackIDs, tracks[i].ID)

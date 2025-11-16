@@ -47,7 +47,7 @@
 .searchable-select-trigger.open {
   outline: none;
   border-color: var(--color-primary-400);
-  box-shadow: 0 0 0 3px rgba(70, 175, 186, 0.15);
+  box-shadow: 0 0 0 3px rgba(60, 130, 255, 0.2);
   background: var(--bg-primary);
 }
 

@@ -4,6 +4,7 @@
   "appTitle": "Реконтекст",
 
   "login": "Вход",
+  "loginSubtitle": "Используйте учетные данные рабочего пространства",
   "email": "Email",
   "password": "Пароль",
   "username": "Имя пользователя",
@@ -267,5 +268,11 @@
   "audioOnlyRecording": "Только аудио",
   "failedToLoadRecording": "Не удалось загрузить запись",
   "unknownError": "Неизвестная ошибка",
-  "retry": "Повторить"
+  "retry": "Повторить",
+  "welcomeBackTitle": "С возвращением",
+  "welcomeBackSubtitle": "Войдите, чтобы управлять встречами",
+  "validationUsernameRequired": "Введите имя пользователя",
+  "validationPasswordRequired": "Введите пароль",
+  "apiNotConfigured": "URL сервера не настроен",
+  "currentServer": "Подключено к"
 }

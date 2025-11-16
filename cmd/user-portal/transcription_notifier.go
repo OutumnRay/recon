@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 
 	"Recontext.online/internal/models"
+	"Recontext.online/pkg/database"
 	"Recontext.online/pkg/fcm"
+	"Recontext.online/pkg/llm"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -15,6 +19,7 @@ import (
 type TranscriptionNotifier struct {
 	up          *UserPortal
 	fcmService  *fcm.FCMService
+	llmClient   *llm.Client
 	conn        *amqp.Connection
 	channel     *amqp.Channel
 	stopChan    chan bool
@@ -27,10 +32,11 @@ type TranscriptionCompletedMessage struct {
 }
 
 // NewTranscriptionNotifier creates a new transcription notifier
-func NewTranscriptionNotifier(up *UserPortal, fcmService *fcm.FCMService) *TranscriptionNotifier {
+func NewTranscriptionNotifier(up *UserPortal, fcmService *fcm.FCMService, llmClient *llm.Client) *TranscriptionNotifier {
 	return &TranscriptionNotifier{
 		up:         up,
 		fcmService: fcmService,
+		llmClient:  llmClient,
 		stopChan:   make(chan bool),
 	}
 }
@@ -294,6 +300,18 @@ func (tn *TranscriptionNotifier) sendPushNotifications(trackID uuid.UUID) error 
 		tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] FCM service not available, skipping push notification")
 	}
 
+	// Generate memo if all tracks are completed and LLM is configured
+	if allRoomTracksCompleted && tn.llmClient != nil && tn.llmClient.IsConfigured() {
+		tn.up.logger.Infof("📝 [MEMO GENERATION] Starting memo generation for room %s", track.RoomSID)
+
+		// Generate memo in background to avoid blocking
+		go func() {
+			if err := tn.generateAndSaveMemo(track.RoomSID, meeting.ID, meeting.Title, allTracks, userIDs); err != nil {
+				tn.up.logger.Errorf("📝 [MEMO GENERATION] Failed: %v", err)
+			}
+		}()
+	}
+
 	return nil
 }
 
@@ -306,4 +324,151 @@ func countCompleted(tracks []models.Track) int {
 		}
 	}
 	return count
+}
+
+// generateAndSaveMemo generates a memo using LLM and saves it to the room
+func (tn *TranscriptionNotifier) generateAndSaveMemo(roomSID string, meetingID uuid.UUID, meetingTitle string, tracks []models.Track, userIDs map[uuid.UUID]bool) error {
+	// Load all transcription phrases for the room
+	var trackIDs []uuid.UUID
+	trackParticipants := make(map[uuid.UUID]string)
+
+	for _, track := range tracks {
+		trackIDs = append(trackIDs, track.ID)
+
+		// Get participant name
+		participantName := "Unknown"
+		if track.ParticipantSID != "" {
+			var participant database.LiveKitParticipant
+			if err := tn.up.db.DB.Where("sid = ?", track.ParticipantSID).First(&participant).Error; err == nil {
+				if participant.UserID != nil {
+					if user, err := tn.up.userRepo.GetByID(*participant.UserID); err == nil {
+						if user.FirstName != "" {
+							participantName = user.FirstName
+							if user.LastName != "" {
+								participantName += " " + user.LastName
+							}
+						} else {
+							participantName = user.Username
+						}
+					}
+				}
+			}
+		}
+		trackParticipants[track.ID] = participantName
+	}
+
+	tn.up.logger.Infof("📝 [MEMO GENERATION] Loading transcripts for %d tracks", len(trackIDs))
+
+	var allPhrases []models.TranscriptionPhrase
+	err := tn.up.db.DB.Where("track_id IN ?", trackIDs).
+		Order("track_id, phrase_index ASC").
+		Find(&allPhrases).Error
+	if err != nil {
+		return fmt.Errorf("failed to load transcription phrases: %w", err)
+	}
+
+	tn.up.logger.Infof("📝 [MEMO GENERATION] Loaded %d phrases", len(allPhrases))
+
+	// Build sequential dialogue with timestamps
+	type TimedPhrase struct {
+		Timestamp  float64
+		Speaker    string
+		Text       string
+		TrackStart float64
+	}
+
+	var timedPhrases []TimedPhrase
+	trackStartTimes := make(map[uuid.UUID]float64)
+
+	for _, track := range tracks {
+		trackStartTimes[track.ID] = float64(track.PublishedAt.Unix())
+	}
+
+	for _, phrase := range allPhrases {
+		trackStart := trackStartTimes[phrase.TrackID]
+		absoluteTimestamp := trackStart + phrase.StartTime
+
+		timedPhrases = append(timedPhrases, TimedPhrase{
+			Timestamp:  absoluteTimestamp,
+			Speaker:    trackParticipants[phrase.TrackID],
+			Text:       phrase.Text,
+			TrackStart: trackStart,
+		})
+	}
+
+	// Sort by absolute timestamp
+	sort.Slice(timedPhrases, func(i, j int) bool {
+		return timedPhrases[i].Timestamp < timedPhrases[j].Timestamp
+	})
+
+	// Build dialogue text
+	var dialogueBuilder strings.Builder
+	dialogueBuilder.WriteString(fmt.Sprintf("Meeting: %s\n\n", meetingTitle))
+
+	for _, phrase := range timedPhrases {
+		dialogueBuilder.WriteString(fmt.Sprintf("%s: %s\n", phrase.Speaker, phrase.Text))
+	}
+
+	dialogue := dialogueBuilder.String()
+	tn.up.logger.Infof("📝 [MEMO GENERATION] Built dialogue with %d phrases, length: %d chars", len(timedPhrases), len(dialogue))
+
+	// Generate memo using LLM
+	messages := []llm.Message{
+		{
+			Role:    "system",
+			Content: "You are a professional meeting assistant. Create a concise meeting memo based on the transcript provided. Include: 1) Main topics discussed, 2) Key decisions made, 3) Action items (if any), 4) Important conclusions. Format the memo in a clear, structured way.",
+		},
+		{
+			Role:    "user",
+			Content: dialogue,
+		},
+	}
+
+	tn.up.logger.Info("📝 [MEMO GENERATION] Calling LLM API...")
+	memo, err := tn.llmClient.GenerateChatCompletion(messages)
+	if err != nil {
+		return fmt.Errorf("failed to generate memo: %w", err)
+	}
+
+	tn.up.logger.Infof("📝 [MEMO GENERATION] Generated memo, length: %d chars", len(memo))
+
+	// Save memo to room
+	err = tn.up.db.DB.Model(&database.LiveKitRoom{}).
+		Where("sid = ?", roomSID).
+		Update("memo", memo).Error
+	if err != nil {
+		return fmt.Errorf("failed to save memo: %w", err)
+	}
+
+	tn.up.logger.Infof("📝 [MEMO GENERATION] Saved memo to room %s", roomSID)
+
+	// Send push notification about memo completion
+	if tn.fcmService != nil {
+		var tokens []string
+		for userID := range userIDs {
+			userTokens, err := tn.up.fcmDeviceRepo.GetUserFCMTokens(userID)
+			if err == nil {
+				tokens = append(tokens, userTokens...)
+			}
+		}
+
+		if len(tokens) > 0 {
+			ctx := context.Background()
+			response, err := tn.fcmService.SendTranscriptionCompletedNotification(
+				ctx,
+				tokens,
+				fmt.Sprintf("Meeting memo generated: %s", meetingTitle),
+				meetingID.String(),
+			)
+
+			if err != nil {
+				tn.up.logger.Errorf("📝 [MEMO GENERATION] Failed to send notification: %v", err)
+			} else {
+				tn.up.logger.Infof("📝 [MEMO GENERATION] Notification sent: %d success, %d failure",
+					response.SuccessCount, response.FailureCount)
+			}
+		}
+	}
+
+	return nil
 }

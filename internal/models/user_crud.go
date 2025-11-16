@@ -46,6 +46,8 @@ type UpdateProfileRequest struct {
 	Avatar    string `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
 	// Предпочитаемый язык
 	Language  string `json:"language,omitempty" example:"en"`
+	// Настройки уведомлений пользователя (tracks, rooms, both)
+	NotificationPreferences string `json:"notification_preferences,omitempty" example:"rooms"`
 }
 
 // UploadAvatarResponse представляет ответ после загрузки аватара

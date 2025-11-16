@@ -8,7 +8,7 @@
   height: 100vh;
   padding: 0;
   margin: 0;
-  background: #000;
+  background: var(--surface-muted);
   overflow: hidden;
 }
 
@@ -37,18 +37,18 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
-  backdrop-filter: blur(8px);
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
+  background: rgba(248, 250, 252, 0.92);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
   padding: var(--space-lg) var(--space-xl);
   display: flex;
   justify-content: space-between;
   gap: var(--space-lg);
   flex-wrap: wrap;
   align-items: center;
-  color: white;
+  color: var(--text-primary);
   opacity: 1;
   transform: translateY(0);
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -60,12 +60,13 @@
   pointer-events: none;
 }
 
+
 .meeting-room-header h1 {
-  color: white;
+  color: var(--text-primary);
 }
 
 .meeting-room-header-meta {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-secondary);
 }
 
 .meeting-room-header-info {
@@ -96,27 +97,34 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-md);
+  padding: var(--space-xxs) var(--space-md);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   box-shadow: var(--shadow-md);
-  color: #fff;
-  background: rgba(0, 0, 0, 0.6);
+  color: var(--text-primary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
 }
 
 .recording-status-floating .status-pill.recording {
-  background: rgba(239, 68, 68, 0.9);
+  color: var(--color-error);
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.12);
 }
 
 .recording-status-floating .status-pill.transcription {
-  background: rgba(59, 130, 246, 0.9);
+  color: var(--color-primary-600);
+  border-color: rgba(60, 130, 255, 0.35);
+  background: rgba(60, 130, 255, 0.12);
 }
 
 .recording-status-floating .status-pill.reconnecting {
-  background: rgba(251, 146, 60, 0.9);
+  color: #b45309;
+  border-color: rgba(251, 146, 60, 0.35);
+  background: rgba(251, 146, 60, 0.15);
   animation: pulse-reconnect 1.5s ease-in-out infinite;
 }
 
@@ -697,7 +705,7 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary-500);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -792,7 +800,7 @@
   .meeting-room-page {
     padding: 0;
     min-height: 100vh;
-    background: #000;
+    background: var(--bg-secondary);
     overflow: hidden;
   }
 
@@ -805,13 +813,13 @@
     border-radius: 0;
     border: none;
     padding: var(--space-sm) var(--space-md);
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
-    backdrop-filter: blur(8px);
+    background: rgba(248, 250, 252, 0.95);
+    backdrop-filter: blur(12px);
   }
 
   .meeting-room-header h1 {
     font-size: var(--font-size-base);
-    color: var(--text-inverse);
+    color: var(--text-primary);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -1128,7 +1136,7 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-primary-500);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1276,13 +1284,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.3) 0%,
-      transparent 20%,
-      transparent 80%,
-      rgba(0, 0, 0, 0.3) 100%
-    );
+    background: rgba(0, 0, 0, 0.25);
     pointer-events: none;
     z-index: 1;
   }

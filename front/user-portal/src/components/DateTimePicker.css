@@ -42,7 +42,7 @@
   outline: none;
   border-color: var(--color-primary-400);
   background: var(--bg-primary);
-  box-shadow: 0 0 0 3px rgba(70, 175, 186, 0.15);
+  box-shadow: 0 0 0 3px rgba(60, 130, 255, 0.2);
 }
 
 .datetime-picker-input:focus ~ .datetime-picker-icon,
@@ -57,13 +57,13 @@
 }
 
 /* Calendar/Clock Picker Icon Styling */
+
 .datetime-picker-input::-webkit-calendar-picker-indicator {
   cursor: pointer;
   padding: var(--space-xs);
   border-radius: var(--radius-sm);
   transition: background var(--transition-fast);
-  /* Teal filter to match primary color */
-  filter: invert(52%) sepia(35%) saturate(782%) hue-rotate(140deg) brightness(96%) contrast(88%);
+  filter: invert(46%) sepia(24%) saturate(2847%) hue-rotate(197deg) brightness(96%) contrast(95%);
   opacity: 0.85;
 }
 
@@ -75,13 +75,13 @@
 /* Firefox datetime picker styling */
 .datetime-picker-input::-moz-calendar-picker-indicator {
   cursor: pointer;
-  filter: invert(52%) sepia(35%) saturate(782%) hue-rotate(140deg) brightness(96%) contrast(88%);
+  filter: invert(46%) sepia(24%) saturate(2847%) hue-rotate(197deg) brightness(96%) contrast(95%);
 }
 
 /* Clear button for datetime inputs */
 .datetime-picker-input::-webkit-clear-button {
   cursor: pointer;
-  filter: invert(52%) sepia(35%) saturate(782%) hue-rotate(140deg) brightness(96%) contrast(88%);
+  filter: invert(46%) sepia(24%) saturate(2847%) hue-rotate(197deg) brightness(96%) contrast(95%);
   opacity: 0.7;
   transition: opacity var(--transition-fast);
 }
@@ -150,22 +150,18 @@
 
 /* Loading state */
 .datetime-picker-wrapper.loading .datetime-picker-input {
-  background: linear-gradient(
-    90deg,
-    var(--surface-panel) 25%,
-    var(--bg-hover) 50%,
-    var(--surface-panel) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: pulseFill 1.4s ease-in-out infinite;
 }
 
-@keyframes shimmer {
+@keyframes pulseFill {
   0% {
-    background-position: 200% 0;
+    background-color: var(--surface-panel);
+  }
+  50% {
+    background-color: var(--bg-hover);
   }
   100% {
-    background-position: -200% 0;
+    background-color: var(--surface-panel);
   }
 }
 

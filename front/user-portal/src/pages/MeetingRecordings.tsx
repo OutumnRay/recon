@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMeeting, getMeetingRecordings, getRoomTranscripts } from '../services/meetings';
@@ -23,8 +23,19 @@ export default function MeetingRecordings() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('ru') ? 'ru-RU' : 'en-US';
-  const formatDateTime = (value: string) => new Date(value).toLocaleString(locale);
-  const formatTime = (value: string) => new Date(value).toLocaleTimeString(locale);
+  const formatDateTime = (value: string) => new Date(value).toLocaleString(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const formatTime = (value: string) => new Date(value).toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
   const formatMinutes = (minutes: number) => {
     if (minutes <= 0) return '—';
     if (minutes < 60) return `${minutes}m`;
@@ -33,22 +44,23 @@ export default function MeetingRecordings() {
     if (rest === 0) return `${hours}h`;
     return `${hours}h ${rest}m`;
   };
-  const formatRelativeTime = (seconds: number) => {
-    const safeSeconds = Math.max(0, seconds);
-    const hours = Math.floor(safeSeconds / 3600);
-    const minutes = Math.floor((safeSeconds % 3600) / 60);
-    const secs = safeSeconds % 60;
-    if (hours > 0) {
-      return `+${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+  const formatParticipantDisplayName = (participant?: any) => {
+    if (!participant) return t('meetingRecordings.unknownParticipant');
+    const first = participant.first_name?.trim();
+    const last = participant.last_name?.trim();
+    if (first && last) {
+      return `${first} ${last}`;
     }
-    return `+${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    return (
+      participant.username ||
+      first ||
+      participant.email ||
+      t('meetingRecordings.unknownParticipant')
+    );
   };
 
-  const getParticipantName = (track: any) =>
-    track.participant?.first_name ||
-    track.participant?.username ||
-    track.participant?.email ||
-    t('meetingRecordings.unknownParticipant');
+  const getParticipantName = (track: any) => formatParticipantDisplayName(track.participant);
 
   const getInitials = (value: string) => {
     const cleaned = value.trim();
@@ -75,6 +87,7 @@ export default function MeetingRecordings() {
   const [selectedRecording, setSelectedRecording] = useState<SelectedRecording | null>(null);
   const [roomTranscripts, setRoomTranscripts] = useState<RoomTranscripts | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingTranscripts, setLoadingTranscripts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openSection, setOpenSection] = useState<AccordionSection>('video');
   const [transcribingTracks, setTranscribingTracks] = useState<Set<string>>(new Set());
@@ -153,6 +166,7 @@ export default function MeetingRecordings() {
 
     const fetchTranscripts = async () => {
       try {
+        setLoadingTranscripts(true);
         console.log('📝 [TRANSCRIPTS] Fetching for room:', selectedRecording.room_sid);
         const transcripts = await getRoomTranscripts(selectedRecording.room_sid);
         setRoomTranscripts(transcripts);
@@ -160,6 +174,8 @@ export default function MeetingRecordings() {
       } catch (err) {
         console.error('📝 [TRANSCRIPTS] Failed to load:', err);
         setRoomTranscripts(null); // Clear transcripts on error
+      } finally {
+        setLoadingTranscripts(false);
       }
     };
 
@@ -207,7 +223,6 @@ export default function MeetingRecordings() {
     ? t('meetingRecordings.roomRecordingTitle', { date: formatDateTime(selectedRecording.started_at) })
     : '';
   const totalTracks = roomRecordings.reduce((sum, room) => sum + (room.tracks?.length || 0), 0);
-  const completedSessions = roomRecordings.filter(room => room.status === 'completed').length;
   const totalDurationMinutes = roomRecordings.reduce((sum, room) => {
     if (room.ended_at) {
       const diff = (new Date(room.ended_at).getTime() - new Date(room.started_at).getTime()) / 60000;
@@ -215,14 +230,6 @@ export default function MeetingRecordings() {
     }
     return sum;
   }, 0);
-  const meetingStartTimestamp = useMemo(() => {
-    if (!roomRecordings.length) return null;
-    const earliest = roomRecordings.reduce((min, room) => {
-      const start = new Date(room.started_at).getTime();
-      return Math.min(min, start);
-    }, Infinity);
-    return earliest === Infinity ? null : earliest;
-  }, [roomRecordings]);
 
   if (loading) {
     return (
@@ -273,7 +280,7 @@ export default function MeetingRecordings() {
               </div>
               <div>
                 <p>{t('meetingRecordings.stats.sessionsLabel')}</p>
-                <strong>{completedSessions}/{roomRecordings.length}</strong>
+                <strong>{roomRecordings.length}</strong>
                 <span>{t('meetingRecordings.stats.completed')}</span>
               </div>
             </div>
@@ -466,10 +473,7 @@ export default function MeetingRecordings() {
                         if (trackTranscript.transcription_phrases && trackTranscript.transcription_phrases.length > 0) {
                           // Get track start time in milliseconds
                           const trackStartTime = new Date(trackTranscript.started_at).getTime();
-                          const participantName = trackTranscript.participant?.first_name ||
-                                                   trackTranscript.participant?.username ||
-                                                   trackTranscript.participant?.email ||
-                                                   t('meetingRecordings.unknownParticipant');
+                          const participantName = formatParticipantDisplayName(trackTranscript.participant);
 
                           trackTranscript.transcription_phrases.forEach((phrase) => {
                             // Calculate absolute timestamp by adding track start time to phrase start time
@@ -505,18 +509,16 @@ export default function MeetingRecordings() {
                         </button>
                         {openSection === 'transcript' && (
                           <div className="accordion-content">
-                            {hasTranscriptions ? (
+                            {loadingTranscripts ? (
+                              <div className="loading-state">
+                                <div className="loading-spinner"></div>
+                                <p>{t('common.loading')}</p>
+                              </div>
+                            ) : hasTranscriptions ? (
                               <div className="transcript-timeline">
                                 {allPhrases.map((phrase, idx) => {
                                   const accent = getSpeakerAccent(phrase.speaker);
                                   const isLast = idx === allPhrases.length - 1;
-                                  const relativeSeconds = meetingStartTimestamp !== null
-                                    ? Math.round((phrase.absoluteTimestamp - meetingStartTimestamp) / 1000)
-                                    : null;
-                                  const relativeLabel = relativeSeconds !== null
-                                    ? formatRelativeTime(relativeSeconds)
-                                    : null;
-
                                   return (
                                     <div key={`${phrase.trackId}-${idx}`} className="transcript-entry">
                                       <div className="transcript-marker">
@@ -526,9 +528,6 @@ export default function MeetingRecordings() {
                                       <div className={`transcript-bubble ${accent}`}>
                                         <div className="bubble-header">
                                           <span className="bubble-speaker">{phrase.speaker}</span>
-                                          {relativeLabel && (
-                                            <span className="bubble-relative">{relativeLabel}</span>
-                                          )}
                                         </div>
                                         <p className="bubble-text">{phrase.text}</p>
                                       </div>

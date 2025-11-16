@@ -1,0 +1,182 @@
+.meeting-recordings-page {
+  padding: var(--space-2xl) var(--space-3xl) var(--space-4xl);
+  max-width: 1640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-height: 100vh;
+  /* background: var(--surface-app, #f8fafc); */
+}
+
+.recordings-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  background: var(--surface-card, #ffffff);
+  border-radius: var(--radius-2xl, 32px);
+  border: 1px solid var(--border-light, #e2e8f0);
+  padding: var(--space-xl) var(--space-2xl);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.07);
+}
+
+.back-button {
+  appearance: none;
+  border: none;
+  background: var(--surface-muted, #eef2ff);
+  color: var(--color-primary-600, #2563eb);
+  border-radius: var(--radius-full);
+  padding: var(--space-xxs) var(--space-md);
+  width: fit-content;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.15);
+}
+
+.back-button:hover {
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.3);
+}
+
+.recordings-header h1 {
+  margin: 0;
+  font-size: var(--font-size-3xl, 2rem);
+  color: var(--text-primary, #0f172a);
+}
+
+.meeting-date {
+  color: var(--text-secondary, #475569);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.meeting-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-lg);
+}
+
+.highlight-card {
+  background: var(--surface-card, #ffffff);
+  border-radius: var(--radius-2xl, 32px);
+  border: 1px solid var(--border-light, #e2e8f0);
+  padding: var(--space-xl);
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+}
+
+.highlight-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xl);
+  display: grid;
+  place-items: center;
+  color: #111827;
+  font-size: 1.5rem;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+.highlight-icon.accent-blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.highlight-icon.accent-purple {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.highlight-icon.accent-orange {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.highlight-card p {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #475569);
+}
+
+.highlight-card strong {
+  font-size: var(--font-size-2xl);
+  display: block;
+  margin: var(--space-xxs) 0;
+  color: var(--text-primary, #0f172a);
+}
+
+.highlight-card span {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary, #64748b);
+}
+
+.loading,
+.error,
+.no-recordings {
+  text-align: center;
+  padding: var(--space-3xl);
+  font-size: var(--font-size-base);
+  color: var(--text-secondary, #475569);
+  background: var(--surface-card, #ffffff);
+  border-radius: var(--radius-2xl, 32px);
+  border: 1px solid var(--border-light, #e2e8f0);
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.06);
+}
+
+.error h2 {
+  margin-top: 0;
+  color: var(--color-error, #b91c1c);
+}
+
+.error button {
+  margin-top: var(--space-lg);
+  padding: var(--space-sm) var(--space-xl);
+  background: var(--color-primary-500, #3b82f6);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);
+}
+
+.recordings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.25fr) minmax(320px, 1fr);
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.no-selection {
+  padding: var(--space-3xl);
+  text-align: center;
+  color: var(--text-secondary, #475569);
+}
+
+@media (max-width: 1024px) {
+  .recordings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sessions-panel {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .meeting-recordings-page {
+    padding: var(--space-xl);
+  }
+
+  .recordings-header {
+    padding: var(--space-lg);
+  }
+
+  .meeting-highlights {
+    grid-template-columns: 1fr;
+  }
+}

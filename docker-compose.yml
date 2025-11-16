@@ -109,6 +109,10 @@ services:
       - PORTAL_URL=https://portal.recontext.online
       # Firebase Cloud Messaging for push notifications
       - FCM_CREDENTIALS_PATH=/app/credentials/recontext-firebase.json
+      # LLM Configuration for memo generation (OpenAI-compatible API)
+      - LLM_API_ENDPOINT=${LLM_API_ENDPOINT:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - LLM_API_KEY=${LLM_API_KEY:-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}
     volumes:
       - ./recontext-firebase.json:/app/credentials/recontext-firebase.json:ro
 #    depends_on:

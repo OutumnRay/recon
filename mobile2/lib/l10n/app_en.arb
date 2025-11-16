@@ -7,6 +7,7 @@
   },
 
   "login": "Login",
+  "loginSubtitle": "Use your workspace credentials to continue",
   "email": "Email",
   "password": "Password",
   "username": "Username",
@@ -358,5 +359,11 @@
   "audioOnlyRecording": "Audio Only",
   "failedToLoadRecording": "Failed to load recording",
   "unknownError": "Unknown error",
-  "retry": "Retry"
+  "retry": "Retry",
+  "welcomeBackTitle": "Welcome back",
+  "welcomeBackSubtitle": "Sign in to manage your meetings",
+  "validationUsernameRequired": "Please enter your username",
+  "validationPasswordRequired": "Please enter your password",
+  "apiNotConfigured": "Server URL not configured",
+  "currentServer": "Connected to"
 }

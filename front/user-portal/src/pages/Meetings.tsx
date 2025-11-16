@@ -8,18 +8,15 @@ import {
   LuVideo,
   LuMic,
   LuBookOpen,
-  LuLayers,
   LuRotateCcw,
   LuInfo,
   LuPlus,
   LuArrowLeft,
+  LuArrowRight,
   LuPencil,
   LuTrash2,
   LuPlay,
-  LuCircle,
   LuFilm,
-  LuFileText,
-  LuLink,
   LuCopy,
   LuCheck,
 } from 'react-icons/lu';
@@ -45,8 +42,18 @@ import { DateTimePicker } from '../components/DateTimePicker';
 import './Meetings.css';
 
 export const Meetings: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const locale = i18n.language?.startsWith('ru') ? 'ru-RU' : 'en-US';
+  const formatListDateTime = (value: string) =>
+    new Date(value).toLocaleString(locale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
 
   // Set page title
   useEffect(() => {
@@ -76,11 +83,11 @@ export const Meetings: React.FC = () => {
   // Selected meeting for details view
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithDetails | null>(null);
 
-  // View mode: list, details, create, or edit
-  const [viewMode, setViewMode] = useState<'list' | 'details' | 'create' | 'edit'>('list');
-
   // Copy link state
   const [copiedMeetingId, setCopiedMeetingId] = useState<string | null>(null);
+
+  // View mode: list, details, create, or edit
+  const [viewMode, setViewMode] = useState<'list' | 'details' | 'create' | 'edit'>('list');
 
   // Fetch subjects on mount
   useEffect(() => {
@@ -185,39 +192,34 @@ export const Meetings: React.FC = () => {
   };
 
   const handleCopyAnonymousLink = async (meetingId: string, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent card click
+    event.stopPropagation(); // Prevent row click
 
-    // Get portal URL from environment or use current origin
     const portalUrl = window.location.origin;
     const anonymousLink = `${portalUrl}/meeting/${meetingId}/join`;
 
     try {
       await navigator.clipboard.writeText(anonymousLink);
       setCopiedMeetingId(meetingId);
-
-      // Reset copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedMeetingId(null);
-      }, 2000);
+      setTimeout(() => setCopiedMeetingId(null), 2000);
     } catch (err) {
       console.error('Failed to copy link:', err);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = anonymousLink;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        setCopiedMeetingId(meetingId);
-        setTimeout(() => {
-          setCopiedMeetingId(null);
-        }, 2000);
-      } catch (fallbackErr) {
-        console.error('Fallback copy failed:', fallbackErr);
-      }
-      document.body.removeChild(textArea);
+    }
+  };
+
+  const handleViewRecordingsFromRow = (meetingId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent row click
+    navigate(`/meeting/${meetingId}/recordings`);
+  };
+
+  const handleJoinFromRow = (meetingId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    window.location.href = `/meeting/${meetingId}`;
+  };
+
+  const handleRowKeyDown = (event: React.KeyboardEvent, meeting: MeetingWithDetails) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleViewDetails(meeting);
     }
   };
 
@@ -291,14 +293,15 @@ export const Meetings: React.FC = () => {
               </div>
             </div>
             <div className="hero-status">
-              {selectedMeeting.is_permanent && (
+              {selectedMeeting.is_permanent ? (
                 <span className="permanent-badge">
                   <LuClock /> {t('meetings.recurrence.permanent')}
                 </span>
+              ) : (
+                <span className={`status-badge ${getMeetingStatusInfo(selectedMeeting.status).className}`}>
+                  {t(`meetings.status.${selectedMeeting.status}`)}
+                </span>
               )}
-              <span className={`status-badge ${selectedMeeting.is_permanent ? 'permanent' : getMeetingStatusInfo(selectedMeeting.status).className}`}>
-                {selectedMeeting.is_permanent ? t('meetings.recurrence.permanent') : t(`meetings.status.${selectedMeeting.status}`)}
-              </span>
             </div>
           </div>
 
@@ -567,276 +570,90 @@ export const Meetings: React.FC = () => {
               const statusInfo = getMeetingStatusInfo(meeting.status);
               const isNow = isMeetingNow(meeting);
               const isPast = isMeetingPast(meeting);
-              const totalParticipants = meeting.participants.length;
-              const onlineParticipants = meeting.active_participants_count || 0;
-              const anonymousGuests = meeting.anonymous_guests_count || 0;
-              const departmentsCount = meeting.departments ? meeting.departments.length : 0;
-              const recurrenceKey = meeting.is_permanent ? 'permanent' : (meeting.recurrence || 'none');
-              const recurrenceLabel = t(`meetings.recurrence.${recurrenceKey}`);
+              const hasRecording = meeting.needs_video_record || meeting.needs_audio_record;
+              const canJoinFromRow = meeting.is_permanent || meeting.status === 'scheduled' || meeting.status === 'in_progress';
 
               return (
                 <div
                   key={meeting.id}
-                  className={`meeting-card ${isNow ? 'meeting-now' : ''} ${isPast ? 'meeting-past' : ''} ${meeting.is_permanent ? 'meeting-card-permanent' : ''}`}
+                  className={`meeting-row ${isNow ? 'meeting-row-now' : ''} ${isPast ? 'meeting-row-past' : ''}`}
+                  onClick={() => handleViewDetails(meeting)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={event => handleRowKeyDown(event, meeting)}
                 >
-                  <div className="meeting-card-header">
-                    <div className="meeting-card-title">
-                      <h3 className="meeting-title">{meeting.title}</h3>
-                      <div className="meeting-card-chips">
-                        <span className="chip chip-type">
-                          {t(`meetings.type.${meeting.type}`)}
-                        </span>
+                  <div className="meeting-row-info">
+                    <div className="meeting-row-primary">
+                      <div className="meeting-row-title">
+                        <span className="meeting-row-name">{meeting.title}</span>
                         {meeting.subject && (
-                          <span className="chip chip-subject">
+                          <span className="meeting-row-chip">
                             <LuBookOpen /> {meeting.subject.name}
+                          </span>
+                        )}
+                        {meeting.is_permanent && (
+                          <span className="meeting-row-chip subtle">
+                            <LuClock /> {t('meetings.recurrence.permanent')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="meeting-row-subtitle">
+                        <span>{t(`meetings.type.${meeting.type}`)}</span>
+                        {hasRecording && (
+                          <span className="meeting-row-icons">
+                            {meeting.needs_video_record && <LuVideo />}
+                            {meeting.needs_audio_record && <LuMic />}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="meeting-card-status">
-                      {meeting.is_permanent ? (
-                        <span className="permanent-badge" title={t('meetings.permanentMeetingTooltip')}>
-                          <LuClock /> {t('meetings.recurrence.permanent')}
-                        </span>
-                      ) : (
-                        <>
-                          <span className={`status-badge ${statusInfo.className}`}>
-                            {t(`meetings.status.${meeting.status}`)}
-                          </span>
-                          <span className="recurrence-pill">
-                            <LuRotateCcw /> {recurrenceLabel}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="meeting-card-details-grid">
-                    <div className="detail-block">
-                      <LuCalendar className="detail-icon" />
-                      <div>
-                        <span className="detail-label">{t('meetings.card.scheduleLabel')}</span>
-                        <div className="detail-value">{formatMeetingDate(meeting.scheduled_at)}</div>
-                      </div>
-                    </div>
-                    <div className="detail-block">
-                      <LuClock className="detail-icon" />
-                      <div>
-                        <span className="detail-label">{t('meetings.card.durationLabel')}</span>
-                        <div className="detail-value">{formatDuration(meeting.duration)}</div>
-                      </div>
-                    </div>
-                    <div className="detail-block">
-                      <LuRotateCcw className="detail-icon" />
-                      <div>
-                        <span className="detail-label">{t('meetings.card.recurrenceLabel')}</span>
-                        <div className="detail-value">{recurrenceLabel}</div>
-                      </div>
-                    </div>
-                    <div className="detail-block">
-                      <LuBookOpen className="detail-icon" />
-                      <div>
-                        <span className="detail-label">{t('meetings.card.subjectLabel')}</span>
-                        <div className="detail-value">{meeting.subject?.name || t('common.loading')}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="meeting-card-stats">
-                    <div className="stat-block">
-                      <LuUsers className="stat-icon" />
-                      <div>
-                        <span className="detail-label">{t('meetings.card.participantsLabel')}</span>
-                        <div className="detail-value">
-                          {t('meetings.card.participantsSummary', {
-                            total: totalParticipants,
-                            online: onlineParticipants,
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                    {departmentsCount > 0 && (
-                      <div className="stat-block">
-                        <LuLayers className="stat-icon" />
-                        <div>
-                          <span className="detail-label">{t('meetings.details.departments')}</span>
-                          <div className="detail-value">
-                            {t('meetings.card.departmentsSummary', { count: departmentsCount })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {meeting.needs_video_record && (
-                      <div className="stat-block">
-                        <LuVideo className="stat-icon" />
-                        <div>
-                          <span className="detail-label">{t('meetings.card.videoRecording')}</span>
-                          <div className="detail-value">{t('common.yes')}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="meeting-card-flags">
-                    {meeting.is_recording && (
-                      <span className="flag flag-recording">
-                        <LuCircle /> {t('meetings.card.recording')}
+                    <div className="meeting-row-meta">
+                      <span className="meeting-row-date">
+                        <LuCalendar /> {formatListDateTime(meeting.scheduled_at)}
                       </span>
-                    )}
-                    {meeting.is_transcribing && (
-                      <span className="flag flag-transcription">
-                        <LuFileText /> {t('meetings.card.transcription')}
+                      <span className="meeting-row-duration">
+                        <LuClock /> {`${meeting.duration} min`}
                       </span>
-                    )}
-                    {isNow && (
-                      <span className="flag flag-live">
-                        <LuCircle className="pulse-icon" /> {t('meetings.meetingInProgress')}
+                      <span className="meeting-row-participants">
+                        <LuUsers /> {meeting.participants.length}
                       </span>
-                    )}
+                      <span className={`status-badge ${statusInfo.className}`}>
+                        {t(`meetings.status.${meeting.status}`)}
+                      </span>
+                    </div>
                   </div>
-
-                  {meeting.allow_anonymous && (
-                    <div className="meeting-card-anonymous-link">
-                      <div className="anonymous-link-header">
-                        <LuLink className="link-icon" />
-                        <span className="link-label">{t('meetings.card.anonymousLinkLabel')}</span>
-                      </div>
-                      <div className="anonymous-link-body">
-                        <code className="anonymous-link-url">
-                          {`${window.location.origin}/meeting/${meeting.id}/join`}
-                        </code>
-                        <button
-                          className={`copy-link-btn ${copiedMeetingId === meeting.id ? 'copied' : ''}`}
-                          onClick={(e) => handleCopyAnonymousLink(meeting.id, e)}
-                          title={t('meetings.card.copyLink')}
-                        >
-                          {copiedMeetingId === meeting.id ? (
-                            <>
-                              <LuCheck /> {t('meetings.card.linkCopied')}
-                            </>
-                          ) : (
-                            <>
-                              <LuCopy /> {t('meetings.card.copyLink')}
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <p className="anonymous-link-description">
-                        {t('meetings.card.anonymousLinkDescription')}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="meeting-card-footer">
-                    <div className="participants-preview">
-                      {meeting.participants.slice(0, 3).map((participant) => {
-                        const displayName = participant.user ?
-                          (participant.user.first_name && participant.user.last_name ?
-                            `${participant.user.first_name} ${participant.user.last_name}` :
-                            participant.user.username) :
-                          'U';
-                        const avatarUrl = participant.user?.avatar;
-                        return (
-                          <div key={participant.user_id} className="participant-avatar" title={displayName}>
-                            {avatarUrl ? (
-                              <img src={avatarUrl} alt={displayName} />
-                            ) : (
-                              displayName.charAt(0).toUpperCase()
-                            )}
-                          </div>
-                        );
-                      })}
-                      {meeting.participants.length > 3 && (
-                        <div className="participant-avatar more">
-                          +{meeting.participants.length - 3}
-                        </div>
-                      )}
-                      {onlineParticipants > 0 && (
-                        <div className="online-indicator">
-                          <LuCircle className="pulse-icon-small" />
-                          <span>{t('meetings.card.onlineCount', { count: onlineParticipants })}</span>
-                        </div>
-                      )}
-                      {meeting.allow_anonymous && anonymousGuests > 0 && (
-                        <div className="online-indicator">
-                          <LuCircle className="pulse-icon-small" />
-                          <span>{t('meetings.card.anonymousGuestsCount', { count: anonymousGuests })}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="meeting-card-actions">
-                      {/* Always show join button for permanent meetings */}
-                      {(meeting.is_permanent || meeting.recurrence === 'permanent') && meeting.status !== 'cancelled' && (
-                        <button
-                          className="btn btn-join btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/meeting/${meeting.id}`;
-                          }}
-                          title={t('meetings.details.joinMeeting')}
-                        >
-                          <LuPlay /> {t('meetings.details.joinMeeting')}
-                        </button>
-                      )}
-
-                      {/* For non-permanent meetings: show recordings if past, join button if not past and not cancelled */}
-                      {!meeting.is_permanent && meeting.recurrence !== 'permanent' && (
-                        <>
-                          {isPast ? (
-                            <button
-                              className="btn-recordings"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/meeting/${meeting.id}/recordings`);
-                              }}
-                              title={t('meetings.card.viewRecordings')}
-                            >
-                              <LuFilm />
-                            </button>
-                          ) : meeting.status !== 'cancelled' && (
-                            <button
-                              className="btn btn-join btn-sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.location.href = `/meeting/${meeting.id}`;
-                              }}
-                              title={t('meetings.details.joinMeeting')}
-                            >
-                              <LuPlay /> {t('meetings.details.joinMeeting')}
-                            </button>
-                          )}
-                        </>
-                      )}
-
-                      {/* Show recordings button for permanent meetings if there are recordings */}
-                      {(meeting.is_permanent || meeting.recurrence === 'permanent') && isPast && (
-                        <button
-                          className="btn-recordings"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/meeting/${meeting.id}/recordings`);
-                          }}
-                          title={t('meetings.card.viewRecordings')}
-                        >
-                          <LuFilm />
-                        </button>
-                      )}
+                  <div className="meeting-row-actions">
+                    {meeting.allow_anonymous && (
                       <button
-                        className="view-details-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewDetails(meeting);
-                        }}
+                        className="meeting-row-action-btn"
+                        onClick={(e) => handleCopyAnonymousLink(meeting.id, e)}
+                        title={t('meetings.card.copyLink')}
                       >
-                        {t('meetings.viewDetails')} →
+                        {copiedMeetingId === meeting.id ? <LuCheck /> : <LuCopy />}
                       </button>
-                    </div>
+                    )}
+                    {isPast && hasRecording && (
+                      <button
+                        className="meeting-row-action-btn"
+                        onClick={(e) => handleViewRecordingsFromRow(meeting.id, e)}
+                        title={t('meetings.card.viewRecordings')}
+                      >
+                        <LuFilm />
+                      </button>
+                    )}
                   </div>
+                  {canJoinFromRow && (
+                    <button
+                      className="meeting-row-cta"
+                      onClick={(e) => handleJoinFromRow(meeting.id, e)}
+                    >
+                      <LuArrowRight />
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
-
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="pagination">

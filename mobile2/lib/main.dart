@@ -9,6 +9,7 @@ import 'screens/splash_screen.dart';
 import 'services/locale_service.dart';
 import 'services/fcm_service.dart';
 import 'l10n/app_localizations.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,12 +66,7 @@ class _RecontextAppState extends State<RecontextApp> {
       builder: (context, localeService, child) {
         return MaterialApp(
           title: 'Recontext',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF46afba), // Seafoam color from design
-            ),
-            useMaterial3: true,
-          ),
+          theme: AppTheme.lightTheme,
           locale: localeService.locale,
           localizationsDelegates: [
             ...AppLocalizations.localizationsDelegates,

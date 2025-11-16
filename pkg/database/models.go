@@ -242,6 +242,8 @@ type LiveKitRoom struct {
 	StartedAt time.Time `gorm:"not null" json:"started_at"`
 	// FinishedAt - время завершения конференции в комнате
 	FinishedAt *time.Time `json:"finished_at"`
+	// Memo - сгенерированная заметка/резюме по всем транскрипциям комнаты
+	Memo *string `gorm:"type:text" json:"memo,omitempty"`
 	// CreatedAt - время создания записи о комнате
 	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
 	// UpdatedAt - время последнего обновления записи о комнате

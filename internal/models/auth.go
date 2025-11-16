@@ -36,6 +36,8 @@ type User struct {
 	Permissions  UserPermissions `json:"permissions" db:"permissions"`
 	// Предпочитаемый язык пользователя (ru, en и т.д.)
 	Language     string          `json:"language" db:"language"`
+	// Настройки уведомлений пользователя (tracks, rooms, both)
+	NotificationPreferences string `json:"notification_preferences" db:"notification_preferences"`
 	// Активен ли аккаунт пользователя
 	IsActive     bool            `json:"is_active" db:"is_active"`
 	// Время последнего входа пользователя
@@ -110,6 +112,8 @@ type UserInfo struct {
 	Permissions  UserPermissions `json:"permissions"`
 	// Предпочитаемый язык пользователя
 	Language     string          `json:"language" example:"en"`
+	// Настройки уведомлений пользователя (tracks, rooms, both)
+	NotificationPreferences string `json:"notification_preferences" example:"rooms"`
 }
 
 // RegisterRequest представляет запрос на регистрацию

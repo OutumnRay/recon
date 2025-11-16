@@ -1,76 +1,92 @@
-/* Design System - Calm Teal/Blue Palette */
+/* Aurora Design System – bright, flat palette for the portal */
 :root {
-  /* Primary - Seafoam */
-  --color-primary-50: #eef7f8;
-  --color-primary-100: #d7edef;
-  --color-primary-200: #b6dfe2;
-  --color-primary-300: #90cfd4;
-  --color-primary-400: #6ac0c6;
-  --color-primary-500: #46afba;
-  --color-primary-600: #2f8d97;
-  --color-primary-700: #257077;
-  --color-primary-800: #1b5053;
-  --color-primary-900: #113133;
+  /* Primary - Azure */
+  --color-primary-50: #eff5ff;
+  --color-primary-100: #dbe9ff;
+  --color-primary-200: #c0d7ff;
+  --color-primary-300: #9ac0ff;
+  --color-primary-400: #6ba3ff;
+  --color-primary-500: #3c82ff;
+  --color-primary-600: #2a63e5;
+  --color-primary-700: #224ec4;
+  --color-primary-800: #1d3f9b;
+  --color-primary-900: #192f70;
 
-  /* Secondary - Misty Blue */
-  --color-secondary-50: #f1f6fb;
-  --color-secondary-100: #dfe9f4;
-  --color-secondary-200: #c3d7ea;
-  --color-secondary-300: #a5c4df;
-  --color-secondary-400: #86afd3;
-  --color-secondary-500: #6a95bd;
-  --color-secondary-600: #52779a;
-  --color-secondary-700: #3c5a74;
-  --color-secondary-800: #283b4d;
-  --color-secondary-900: #162132;
+  /* Secondary - Orchid */
+  --color-secondary-50: #f7f1ff;
+  --color-secondary-100: #efe2ff;
+  --color-secondary-200: #e0caff;
+  --color-secondary-300: #cda7ff;
+  --color-secondary-400: #b37cff;
+  --color-secondary-500: #a05bff;
+  --color-secondary-600: #8137dd;
+  --color-secondary-700: #6729ad;
+  --color-secondary-800: #4d1f7f;
+  --color-secondary-900: #351557;
+
+  /* Accent - Apricot */
+  --color-accent-50: #fff6ed;
+  --color-accent-100: #ffe7d0;
+  --color-accent-200: #ffcaa1;
+  --color-accent-300: #ffad73;
+  --color-accent-400: #ff9150;
+  --color-accent-500: #ff7a35;
+  --color-accent-600: #f26028;
+  --color-accent-700: #cc4b1d;
+  --color-accent-800: #9b3617;
+  --color-accent-900: #65220f;
 
   /* Neutral Tones */
   --color-white: #ffffff;
-  --color-gray-50: #f8fafb;
-  --color-gray-100: #edf1f2;
-  --color-gray-200: #dde5e7;
-  --color-gray-300: #c7d2d6;
-  --color-gray-400: #a7b5ba;
-  --color-gray-500: #87959b;
-  --color-gray-600: #6d7a81;
-  --color-gray-700: #505a61;
-  --color-gray-800: #333b40;
-  --color-gray-900: #1b2124;
+  --color-gray-50: #f9fafc;
+  --color-gray-100: #edf1f7;
+  --color-gray-200: #e0e6f0;
+  --color-gray-300: #cfd7e6;
+  --color-gray-400: #b1bdd2;
+  --color-gray-500: #8b96ac;
+  --color-gray-600: #6d7690;
+  --color-gray-700: #4c546d;
+  --color-gray-800: #353b50;
+  --color-gray-900: #24273a;
 
   /* Semantic Colors */
-  --color-success: #2f9d7e;
-  --color-success-light: #d4f1e5;
-  --color-warning: #c98c36;
-  --color-warning-light: #f7ead3;
-  --color-error: #c2655f;
-  --color-error-light: #f6dddb;
-  --color-info: #5097c7;
-  --color-info-light: #dcebf5;
+  --color-success: #1e9d7a;
+  --color-success-light: #d4fbef;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fff4da;
+  --color-error: #ef4444;
+  --color-error-light: #ffe4e6;
+  --color-info: #38bdf8;
+  --color-info-light: #ddf4ff;
 
-  /* Backgrounds */
+  /* Backgrounds & Surfaces */
   --bg-primary: #ffffff;
-  --bg-secondary: #edf3f4;
-  --bg-tertiary: #e0ebec;
-  --bg-surface: #f7fbfb;
-  --bg-overlay: rgba(17, 49, 51, 0.3);
-  --bg-hover: #e7eff0;
+  --bg-secondary: #f4f7fb;
+  --bg-tertiary: #e8edf8;
+  --bg-surface: #fdfdff;
+  --bg-overlay: rgba(15, 23, 42, 0.12);
+  --bg-hover: #edf2ff;
+  --surface-card: #ffffff;
+  --surface-panel: #f8fbff;
+  --surface-muted: #eff2fb;
+  --surface-accent: #e4ecfb;
 
   /* Text Colors */
-  --text-primary: #1f2a32;
-  --text-secondary: #4d5c63;
-  --text-tertiary: #738188;
+  --text-primary: #1c2540;
+  --text-secondary: #49566d;
+  --text-tertiary: #7a869f;
   --text-inverse: #ffffff;
 
   /* Borders */
-  --border-light: #dbe4e6;
-  --border-medium: #c3d1d4;
-  --border-dark: #95abb0;
+  --border-light: #e3e8f4;
+  --border-medium: #c6d0e3;
+  --border-dark: #9eabc7;
 
   /* Shadows */
-  --shadow-sm: 0 2px 6px rgba(15, 39, 44, 0.05);
-  --shadow-md: 0 8px 24px rgba(17, 49, 51, 0.08);
-  --shadow-lg: 0 16px 40px rgba(17, 49, 51, 0.12);
-  --shadow-xl: 0 24px 60px rgba(17, 49, 51, 0.14);
+  --shadow-sm: 0 2px 8px rgba(24, 39, 75, 0.06);
+  --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.12);
+  --shadow-xl: 0 24px 70px rgba(15, 23, 42, 0.16);
 
   /* Spacing Scale */
   --space-xs: 0.25rem;    /* 4px */
@@ -84,13 +100,14 @@
   /* Border Radius */
   --radius-sm: 0.25rem;   /* 4px */
   --radius-md: 0.5rem;    /* 8px */
-  --radius-lg: 0.75rem;   /* 12px */
-  --radius-xl: 1.25rem;   /* 20px */
+  --radius-lg: 0.85rem;   /* 14px */
+  --radius-xl: 1.5rem;    /* 24px */
+  --radius-2xl: 2.25rem;  /* 36px */
   --radius-full: 9999px;
 
   /* Typography */
-  --font-family: 'Inter', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  --font-family: 'Inter', 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Space Mono', 'Roboto Mono', Consolas, monospace;
 
   --font-size-xs: 0.75rem;    /* 12px */
   --font-size-sm: 0.875rem;   /* 14px */
@@ -111,9 +128,9 @@
   --line-height-relaxed: 1.75;
 
   /* Transitions */
-  --transition-fast: 150ms ease;
+  --transition-fast: 140ms ease;
   --transition-base: 220ms ease;
-  --transition-slow: 320ms ease;
+  --transition-slow: 360ms ease;
 
   /* Z-index Scale */
   --z-dropdown: 1000;

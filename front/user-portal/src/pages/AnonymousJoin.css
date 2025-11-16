@@ -23,14 +23,14 @@
 .anonymous-join-page::before {
   top: -140px;
   right: -140px;
-  background: rgba(70, 175, 186, 0.12);
+  background: rgba(60, 130, 255, 0.12);
   box-shadow: var(--shadow-md);
 }
 
 .anonymous-join-page::after {
   bottom: -160px;
   left: -120px;
-  background: rgba(134, 175, 211, 0.15);
+  background: rgba(160, 91, 255, 0.12);
   box-shadow: var(--shadow-sm);
 }
 
