@@ -8,7 +8,6 @@ import MeetingRoom from './pages/MeetingRoom';
 import MeetingRecordings from './pages/MeetingRecordings';
 import Search from './pages/Search';
 import Documents from './pages/Documents';
-import Organizations from './pages/Organizations';
 import Management from './pages/Management';
 import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
@@ -39,7 +38,6 @@ function App() {
           <Route path="meetings" element={<Meetings />} />
           <Route path="search" element={<Search />} />
           <Route path="documents" element={<Documents />} />
-          <Route path="organizations" element={<Organizations />} />
           <Route path="management" element={<Management />} />
           <Route path="profile" element={<Profile />} />
         </Route>
