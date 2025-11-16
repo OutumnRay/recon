@@ -192,27 +192,24 @@ func (up *UserPortal) updateProfileHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Update fields
-	if req.FirstName != "" {
-		user.FirstName = req.FirstName
-	}
-	if req.LastName != "" {
-		user.LastName = req.LastName
-	}
-	if req.Phone != "" {
-		user.Phone = req.Phone
-	}
-	if req.Bio != "" {
-		user.Bio = req.Bio
-	}
+	// Update fields (allow empty values to clear fields)
+	user.FirstName = req.FirstName
+	user.LastName = req.LastName
+	user.Phone = req.Phone
+	user.Bio = req.Bio
+
+	// Only update avatar if provided (don't clear it)
 	if req.Avatar != "" {
 		user.Avatar = req.Avatar
 	}
+
+	// Only update language if provided (don't clear it)
 	if req.Language != "" {
 		user.Language = req.Language
 	}
+
+	// Validate and update notification preferences
 	if req.NotificationPreferences != "" {
-		// Validate notification preferences value
 		if req.NotificationPreferences == "tracks" || req.NotificationPreferences == "rooms" || req.NotificationPreferences == "both" {
 			user.NotificationPreferences = req.NotificationPreferences
 		}

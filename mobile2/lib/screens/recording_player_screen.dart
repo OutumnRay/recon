@@ -49,6 +49,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   late TabController _tabController;
   RoomTranscripts? _transcripts;
   bool _isLoadingTranscripts = false;
+  bool _isFullScreen = false;
 
   @override
   void initState() {
@@ -143,8 +144,8 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
         await _player.setOption(FijkOption.formatCategory, "headers", headersString);
       }
 
-      // Initialize FijkPlayer
-      await _player.setDataSource(fullUrl, autoPlay: true);
+      // Initialize FijkPlayer (don't autoplay)
+      await _player.setDataSource(fullUrl, autoPlay: false);
 
       setState(() {
         _isLoading = false;
@@ -271,9 +272,9 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
                             player: _player,
                             color: Colors.black,
                             fit: FijkFit.contain,
-                            panelBuilder: fijkPanel2Builder(
-                              onBack: () => Navigator.of(context).pop(),
-                            ),
+                            panelBuilder: (FijkPlayer player, FijkData data, BuildContext context, Size viewSize, Rect texturePos) {
+                              return _buildCustomPanel(player, data, context, viewSize, texturePos);
+                            },
                           ),
           ),
           // Info section
@@ -283,44 +284,6 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _getTitle(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    if (_isAudioOnly)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF7C3AED),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.audiotrack, size: 12, color: Colors.white),
-                            const SizedBox(width: 4),
-                            Text(
-                              l10n.audioOnlyRecording,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 Row(
                   children: [
                     const Icon(Icons.access_time, color: Colors.grey, size: 16),
@@ -498,6 +461,89 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
             child: Text(l10n.retry),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCustomPanel(FijkPlayer player, FijkData data, BuildContext context, Size viewSize, Rect texturePos) {
+    return Positioned.fill(
+      child: GestureDetector(
+        onTap: () {
+          // Toggle play/pause on tap
+          if (player.state == FijkState.started) {
+            player.pause();
+          } else {
+            player.start();
+          }
+        },
+        child: Container(
+          color: Colors.transparent,
+          child: Stack(
+            children: [
+              // Play/Pause and Fullscreen buttons in lower right corner
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Play/Pause button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          player.state == FijkState.started
+                              ? Icons.pause
+                              : Icons.play_arrow,
+                          color: Colors.white,
+                        ),
+                        iconSize: 32,
+                        onPressed: () {
+                          if (player.state == FijkState.started) {
+                            player.pause();
+                          } else {
+                            player.start();
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Fullscreen/Exit Fullscreen button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                          color: Colors.white,
+                        ),
+                        iconSize: 32,
+                        onPressed: () {
+                          if (_isFullScreen) {
+                            player.exitFullScreen();
+                            setState(() {
+                              _isFullScreen = false;
+                            });
+                          } else {
+                            player.enterFullScreen();
+                            setState(() {
+                              _isFullScreen = true;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
