@@ -153,7 +153,7 @@ func (tn *TranscriptionNotifier) processMessage(msg amqp.Delivery) {
 	tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Successfully processed track: %s", completedMsg.TrackID)
 }
 
-// sendPushNotifications sends push notifications to all meeting participants
+// sendPushNotifications sends push notifications to all meeting participants based on their preferences
 func (tn *TranscriptionNotifier) sendPushNotifications(trackID uuid.UUID) error {
 	// Get track from database
 	var track models.Track
@@ -196,54 +196,114 @@ func (tn *TranscriptionNotifier) sendPushNotifications(trackID uuid.UUID) error 
 
 	tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Found %d users for meeting %s", len(userIDs), meeting.ID)
 
-	// Collect FCM tokens for all users
-	allTokens := []string{}
+	// Check if all tracks in the room are transcribed
+	var allTracks []models.Track
+	err = tn.up.db.DB.Where("room_sid = ? AND source = ? AND egress_id != ? AND egress_id IS NOT NULL",
+		track.RoomSID, "MICROPHONE", "").Find(&allTracks).Error
+	if err != nil {
+		tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to get room tracks: %v", err)
+	}
+
+	allRoomTracksCompleted := true
+	for _, t := range allTracks {
+		if t.TranscriptionStatus != "completed" {
+			allRoomTracksCompleted = false
+			break
+		}
+	}
+
+	tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Room %s transcription status: %d/%d tracks completed, all=%v",
+		track.RoomSID, countCompleted(allTracks), len(allTracks), allRoomTracksCompleted)
+
+	// Collect FCM tokens based on user preferences
+	trackTokens := []string{}   // Users who want track notifications
+	roomTokens := []string{}    // Users who want room notifications (when all complete)
+
 	for userID := range userIDs {
+		// Get user to check notification preferences
+		user, err := tn.up.userRepo.GetByID(userID)
+		if err != nil {
+			tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to get user %s: %v", userID, err)
+			continue
+		}
+
+		// Get FCM tokens for this user
 		tokens, err := tn.up.fcmDeviceRepo.GetUserFCMTokens(userID)
 		if err != nil {
 			tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to get FCM tokens for user %s: %v", userID, err)
 			continue
 		}
 
-		allTokens = append(allTokens, tokens...)
+		// Sort tokens based on user preference
+		pref := user.NotificationPreferences
+		if pref == "" {
+			pref = "both" // Default to both
+		}
+
+		switch pref {
+		case "tracks":
+			trackTokens = append(trackTokens, tokens...)
+		case "rooms":
+			roomTokens = append(roomTokens, tokens...)
+		case "both":
+			trackTokens = append(trackTokens, tokens...)
+			roomTokens = append(roomTokens, tokens...)
+		}
 	}
 
-	if len(allTokens) == 0 {
-		tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] No FCM tokens found for meeting %s participants", meeting.ID)
-		return nil
-	}
+	tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Token distribution: %d for tracks, %d for rooms",
+		len(trackTokens), len(roomTokens))
 
-	tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Sending push notification to %d devices", len(allTokens))
-
-	// Send push notification
-	if tn.fcmService != nil {
+	// Send track completion notification
+	if len(trackTokens) > 0 && tn.fcmService != nil {
 		ctx := context.Background()
 		response, err := tn.fcmService.SendTranscriptionCompletedNotification(
 			ctx,
-			allTokens,
-			meeting.Title,
+			trackTokens,
+			fmt.Sprintf("Track transcription completed: %s", meeting.Title),
 			meeting.ID.String(),
 		)
 
 		if err != nil {
-			return fmt.Errorf("failed to send FCM notification: %w", err)
+			tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to send track notification: %v", err)
+		} else {
+			tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Track notification sent: %d success, %d failure",
+				response.SuccessCount, response.FailureCount)
 		}
+	}
 
-		tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] FCM notification sent: %d success, %d failure",
-			response.SuccessCount, response.FailureCount)
+	// Send room completion notification if all tracks are done
+	if allRoomTracksCompleted && len(roomTokens) > 0 && tn.fcmService != nil {
+		ctx := context.Background()
+		response, err := tn.fcmService.SendTranscriptionCompletedNotification(
+			ctx,
+			roomTokens,
+			fmt.Sprintf("Room transcription completed: %s", meeting.Title),
+			meeting.ID.String(),
+		)
 
-		// Log failed tokens
-		if response.FailureCount > 0 {
-			for i, sendResponse := range response.Responses {
-				if !sendResponse.Success {
-					tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to send to token %d: %v",
-						i, sendResponse.Error)
-				}
-			}
+		if err != nil {
+			tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to send room notification: %v", err)
+		} else {
+			tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Room notification sent: %d success, %d failure",
+				response.SuccessCount, response.FailureCount)
 		}
-	} else {
+	}
+
+	if tn.fcmService == nil {
 		tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] FCM service not available, skipping push notification")
 	}
 
 	return nil
+}
+
+// countCompleted counts how many tracks have completed transcription
+func countCompleted(tracks []models.Track) int {
+	count := 0
+	for _, t := range tracks {
+		if t.TranscriptionStatus == "completed" {
+			count++
+		}
+	}
+	return count
 }

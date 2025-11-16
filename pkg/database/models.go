@@ -72,6 +72,8 @@ type User struct {
 	Bio *string `gorm:"column:bio;type:text" json:"bio"`
 	// AvatarURL - URL аватара пользователя
 	AvatarURL *string `gorm:"column:avatar_url;type:text" json:"avatar_url"`
+	// NotificationPreferences - настройки уведомлений пользователя (tracks, rooms, both)
+	NotificationPreferences string `gorm:"type:varchar(20);not null;default:'both'" json:"notification_preferences"`
 	// CreatedAt - время создания учетной записи пользователя
 	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
 	// UpdatedAt - время последнего обновления данных пользователя

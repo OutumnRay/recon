@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getMeeting, getMeetingRecordings } from '../services/meetings';
-import type { Meeting, RoomRecording } from '../types/meeting';
+import { getMeeting, getMeetingRecordings, getRoomTranscripts } from '../services/meetings';
+import type { Meeting, RoomRecording, RoomTranscripts } from '../types/meeting';
 import HLSPlayer from '../components/HLSPlayer';
 import { LuFilm, LuMic, LuClock3 } from 'react-icons/lu';
 import './MeetingRecordings.css';
@@ -73,6 +73,7 @@ export default function MeetingRecordings() {
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [roomRecordings, setRoomRecordings] = useState<RoomRecording[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<SelectedRecording | null>(null);
+  const [roomTranscripts, setRoomTranscripts] = useState<RoomTranscripts | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openSection, setOpenSection] = useState<AccordionSection>('video');
@@ -145,6 +146,25 @@ export default function MeetingRecordings() {
       room_sid: room.room_sid,
     });
   };
+
+  // Fetch transcripts when selected room changes
+  useEffect(() => {
+    if (!selectedRecording?.room_sid) return;
+
+    const fetchTranscripts = async () => {
+      try {
+        console.log('📝 [TRANSCRIPTS] Fetching for room:', selectedRecording.room_sid);
+        const transcripts = await getRoomTranscripts(selectedRecording.room_sid);
+        setRoomTranscripts(transcripts);
+        console.log('📝 [TRANSCRIPTS] Loaded:', transcripts);
+      } catch (err) {
+        console.error('📝 [TRANSCRIPTS] Failed to load:', err);
+        setRoomTranscripts(null); // Clear transcripts on error
+      }
+    };
+
+    fetchTranscripts();
+  }, [selectedRecording?.room_sid]);
 
   const forceTranscription = async (trackId: string) => {
     if (transcribingTracks.has(trackId)) return;
@@ -429,7 +449,7 @@ export default function MeetingRecordings() {
 
                   {/* Transcript Section */}
                   {(() => {
-                    // Collect all transcription phrases from all recordings
+                    // Collect all transcription phrases from the selected room's transcripts
                     const allPhrases: Array<{
                       absoluteTimestamp: number;
                       start: number;
@@ -440,32 +460,34 @@ export default function MeetingRecordings() {
                       trackStartedAt: string;
                     }> = [];
 
-                    roomRecordings.forEach((room) => {
-                      if (room.tracks && room.tracks.length > 0) {
-                        room.tracks.forEach((track) => {
-                          if (track.transcription_phrases && track.transcription_phrases.length > 0) {
-                            // Get track start time in milliseconds
-                            const trackStartTime = new Date(track.started_at).getTime();
-                            const participantName = getParticipantName(track);
+                    // Use the fetched room transcripts
+                    if (roomTranscripts && roomTranscripts.tracks && roomTranscripts.tracks.length > 0) {
+                      roomTranscripts.tracks.forEach((trackTranscript) => {
+                        if (trackTranscript.transcription_phrases && trackTranscript.transcription_phrases.length > 0) {
+                          // Get track start time in milliseconds
+                          const trackStartTime = new Date(trackTranscript.started_at).getTime();
+                          const participantName = trackTranscript.participant?.first_name ||
+                                                   trackTranscript.participant?.username ||
+                                                   trackTranscript.participant?.email ||
+                                                   t('meetingRecordings.unknownParticipant');
 
-                            track.transcription_phrases.forEach((phrase) => {
-                              // Calculate absolute timestamp by adding track start time to phrase start time
-                              const absoluteTimestamp = trackStartTime + (phrase.start * 1000);
+                          trackTranscript.transcription_phrases.forEach((phrase) => {
+                            // Calculate absolute timestamp by adding track start time to phrase start time
+                            const absoluteTimestamp = trackStartTime + (phrase.start * 1000);
 
-                              allPhrases.push({
-                                absoluteTimestamp,
-                                start: phrase.start,
-                                end: phrase.end,
-                                text: phrase.text,
-                                speaker: participantName,
-                                trackId: track.id,
-                                trackStartedAt: track.started_at,
-                              });
+                            allPhrases.push({
+                              absoluteTimestamp,
+                              start: phrase.start,
+                              end: phrase.end,
+                              text: phrase.text,
+                              speaker: participantName,
+                              trackId: trackTranscript.track_id,
+                              trackStartedAt: trackTranscript.started_at,
                             });
-                          }
-                        });
-                      }
-                    });
+                          });
+                        }
+                      });
+                    }
 
                     // Sort by absolute timestamp
                     allPhrases.sort((a, b) => a.absoluteTimestamp - b.absoluteTimestamp);

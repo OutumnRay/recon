@@ -683,11 +683,6 @@
   color: var(--text-primary);
 }
 
-.bubble-relative {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-}
-
 .bubble-text {
   margin: var(--space-xs) 0 0;
   color: var(--text-primary);

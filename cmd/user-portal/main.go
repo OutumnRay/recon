@@ -1072,6 +1072,18 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
+	// Room transcripts endpoint
+	mux.Handle("/api/v1/rooms/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, "/transcripts") && r.Method == http.MethodGet {
+				up.getRoomTranscriptsHandler(w, r)
+				return
+			}
+			http.Error(w, "Not found", http.StatusNotFound)
+		}),
+		authMiddleware,
+	))
+
 	// FCM (Firebase Cloud Messaging) endpoints
 	mux.Handle("/api/v1/fcm/register", chainMiddleware(
 		http.HandlerFunc(up.registerFCMDeviceHandler),

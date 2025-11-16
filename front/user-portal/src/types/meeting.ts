@@ -250,3 +250,16 @@ export interface RoomRecording {
   audio_only?: boolean; // Whether this is an audio-only recording
   tracks: TrackRecording[];
 }
+
+export interface TrackTranscript {
+  track_id: string;
+  participant_id: string;
+  participant?: User;
+  started_at: string;
+  transcription_phrases?: TranscriptionPhrase[];
+}
+
+export interface RoomTranscripts {
+  room_sid: string;
+  tracks: TrackTranscript[];
+}

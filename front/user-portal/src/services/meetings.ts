@@ -390,3 +390,19 @@ export const getMeetingRecordings = async (meetingId: string): Promise<import('.
   console.log('📹 [RECORDINGS API] Received data:', data);
   return data;
 };
+
+/**
+ * Get transcripts for a specific room
+ */
+export const getRoomTranscripts = async (roomSid: string): Promise<import('../types/meeting').RoomTranscripts> => {
+  console.log('📝 [TRANSCRIPTS API] Fetching transcripts for room:', roomSid);
+  const response = await fetch(`${API_BASE_URL}/rooms/${roomSid}/transcripts`, {
+    method: 'GET',
+    headers: getHeaders(),
+  });
+
+  console.log('📝 [TRANSCRIPTS API] Response status:', response.status);
+  const data = await handleResponse<import('../types/meeting').RoomTranscripts>(response);
+  console.log('📝 [TRANSCRIPTS API] Received data:', data);
+  return data;
+};
