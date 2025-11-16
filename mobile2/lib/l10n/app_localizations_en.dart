@@ -480,6 +480,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioRecording => 'Audio Recording';
 
   @override
+  String get transcription => 'Transcription';
+
+  @override
   String get roomId => 'Room ID';
 
   @override

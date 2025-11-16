@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import '../models/meeting.dart';
@@ -29,6 +30,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
   final _configService = ConfigService();
   late MeetingsService _meetingsService;
   late TabController _tabController;
+  String? _publicBaseUrl;
 
   MeetingWithDetails? _meeting;
   bool _isLoading = true;
@@ -50,6 +52,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
   Future<void> _initService() async {
     final apiUrl = await _configService.getApiUrl();
+    _publicBaseUrl = apiUrl.replaceAll('/api/v1', '');
     final apiClient = ApiClient(baseUrl: apiUrl);
     _meetingsService = MeetingsService(apiClient);
     _loadMeeting();
@@ -152,6 +155,43 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           content: Text('${l10n.error}: $e'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  Future<void> _copyAnonymousLink() async {
+    final meeting = _meeting;
+    if (meeting == null) return;
+
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      var baseUrl = _publicBaseUrl;
+      if (baseUrl == null || baseUrl.isEmpty) {
+        final apiUrl = await _configService.getApiUrl();
+        baseUrl = apiUrl.replaceAll('/api/v1', '');
+        _publicBaseUrl = baseUrl;
+      }
+
+      final anonymousLink = '$baseUrl/meeting/${meeting.id}/join';
+      await Clipboard.setData(ClipboardData(text: anonymousLink));
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.anonymousLinkCopied),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.error}: $e'),
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -422,237 +462,417 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
   Widget _buildMeetingContent() {
     final l10n = AppLocalizations.of(context)!;
     final meeting = _meeting!;
-    // Локализованные форматы даты и времени
     final locale = Localizations.localeOf(context).toString();
-    final dateFormat = DateFormat.yMMMd(locale);
+    final dateFormat = DateFormat.yMMMMEEEEd(locale);
     final timeFormat = DateFormat.Hm(locale);
+    final timestampFormat = DateFormat.yMMMd(locale).add_Hm();
+    final recurrenceLabel = meeting.isPermanent ||
+            (meeting.recurrence?.toLowerCase() == 'permanent')
+        ? l10n.recurrencePermanent
+        : (meeting.recurrence != null &&
+                meeting.recurrence!.toLowerCase() != 'none'
+            ? _getRecurrenceText(meeting.recurrence!)
+            : l10n.recurrenceNone);
+    final participantsSummary = l10n.participantsSummary(
+      meeting.participants.length,
+      meeting.activeParticipantsCount,
+    );
+    final heroStats = <Widget>[
+      _buildHeroStat(
+        context,
+        icon: Icons.schedule_rounded,
+        label: l10n.meetingDuration,
+        value: '${meeting.duration} ${l10n.minutes}',
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.people_outline_rounded,
+        label: l10n.participants,
+        value: participantsSummary,
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.loop_rounded,
+        label: l10n.meetingRecurrence,
+        value: recurrenceLabel,
+      ),
+      _buildHeroStat(
+        context,
+        icon: Icons.category_outlined,
+        label: l10n.type,
+        value: _getMeetingTypeText(meeting.type),
+      ),
+    ];
+    if (meeting.allowAnonymous) {
+      heroStats.add(
+        _buildHeroStat(
+          context,
+          icon: Icons.lock_open_rounded,
+          label: l10n.allowsAnonymousJoin,
+          value: l10n.enabled,
+        ),
+      );
+    }
 
-                Text(
-                  meeting.title,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                if (meeting.subjectName != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    meeting.subjectName!,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+    final anonymousLink = _publicBaseUrl != null
+        ? '${_publicBaseUrl!}/meeting/${meeting.id}/join'
+        : null;
 
-          // Meeting info
-          Padding(
-            padding: const EdgeInsets.all(16),
+    return RefreshIndicator(
+      color: AppColors.primary500,
+      onRefresh: _loadMeeting,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
+        children: [
+          GradientHeroCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoSection(
-                  icon: Icons.calendar_today,
-                  title: l10n.dateAndTime,
-                  content: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dateFormat.format(meeting.scheduledAt),
-                        style: const TextStyle(fontSize: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            meeting.title,
+                            style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w700,
+                                    ) ??
+                                const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          if (meeting.subjectName?.isNotEmpty ?? false) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              meeting.subjectName!,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          Text(
+                            '${dateFormat.format(meeting.scheduledAt)} • ${timeFormat.format(meeting.scheduledAt)}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
                       ),
-                      Text(
-                        '${timeFormat.format(meeting.scheduledAt)} (${meeting.duration} ${l10n.minutes})',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 16),
+                    _buildStatusChip(meeting.status),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: heroStats,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader(
+                  context,
+                  icon: Icons.calendar_today_rounded,
+                  title: l10n.dateAndTime,
+                ),
+                const SizedBox(height: 16),
+                _buildDetailRow(
+                  context,
+                  label: l10n.meetingDate,
+                  value: dateFormat.format(meeting.scheduledAt),
+                ),
+                _buildDetailRow(
+                  context,
+                  label: l10n.meetingTime,
+                  value: timeFormat.format(meeting.scheduledAt),
+                ),
+                _buildDetailRow(
+                  context,
+                  label: l10n.meetingDuration,
+                  value: '${meeting.duration} ${l10n.minutes}',
+                ),
+                _buildDetailRow(
+                  context,
+                  label: l10n.meetingRecurrence,
+                  value: recurrenceLabel,
+                ),
+                _buildDetailRow(
+                  context,
+                  label: l10n.type,
+                  value: _getMeetingTypeText(meeting.type),
+                ),
+              ],
+            ),
+          ),
+          if (meeting.allowAnonymous) ...[
+            const SizedBox(height: 20),
+            SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.link_rounded,
+                    title: l10n.anonymousLinkLabel,
+                    subtitle: l10n.allowsAnonymousJoin,
+                  ),
+                  const SizedBox(height: 12),
+                  if (anonymousLink != null)
+                    SelectableText(
+                      anonymousLink,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    )
+                  else
+                    Text(
+                      l10n.loading,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.textSecondary),
+                    ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: anonymousLink == null ? null : _copyAnonymousLink,
+                      icon: const Icon(Icons.copy_rounded),
+                      label: Text(l10n.copyLink),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader(
+                  context,
+                  icon: Icons.settings_rounded,
+                  title: l10n.settingsTitle,
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _buildFeatureChip(
+                      icon: Icons.videocam_outlined,
+                      label: l10n.videoRecording,
+                      isActive: meeting.needsVideoRecord,
+                    ),
+                    _buildFeatureChip(
+                      icon: Icons.mic_none_rounded,
+                      label: l10n.audioRecording,
+                      isActive: meeting.needsAudioRecord,
+                    ),
+                    _buildFeatureChip(
+                      icon: Icons.description_outlined,
+                      label: l10n.transcription,
+                      isActive: meeting.needsTranscription,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildDetailRow(
+                  context,
+                  label: l10n.allowsAnonymousJoin,
+                  value: meeting.allowAnonymous ? l10n.enabled : l10n.disabled,
+                ),
+                _buildDetailRow(
+                  context,
+                  label: l10n.roomId,
+                  value: meeting.liveKitRoomId ?? '—',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InkWell(
+                  onTap: meeting.participants.isEmpty
+                      ? null
+                      : () {
+                          setState(() {
+                            _isParticipantsExpanded = !_isParticipantsExpanded;
+                          });
+                        },
+                  borderRadius: BorderRadius.circular(24),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildSectionHeader(
+                          context,
+                          icon: Icons.people_alt_rounded,
+                          title:
+                              '${l10n.participants} (${meeting.participants.length})',
+                          subtitle: participantsSummary,
                         ),
                       ),
-                      // Показываем recurrence только если он не null и не "none"
-                      if (meeting.recurrence != null && meeting.recurrence!.toLowerCase() != 'none') ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '${l10n.meetingRecurrence}: ${_getRecurrenceText(meeting.recurrence!)}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
+                      if (meeting.participants.isNotEmpty)
+                        Icon(
+                          _isParticipantsExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.textSecondary,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildSummaryChip(
+                      icon: Icons.wifi_tethering,
+                      label: l10n.onlineCount(meeting.activeParticipantsCount),
+                    ),
+                    if (meeting.anonymousGuestsCount > 0)
+                      _buildSummaryChip(
+                        icon: Icons.person_outline,
+                        label: l10n.anonymousGuestsCount(
+                          meeting.anonymousGuestsCount,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (meeting.participants.isEmpty)
+                  Text(
+                    l10n.noParticipants,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.textSecondary),
+                  )
+                else if (_isParticipantsExpanded)
+                  Column(
+                    children: [
+                      for (var i = 0; i < meeting.participants.length; i++) ...[
+                        if (i > 0)
+                          const Divider(
+                            height: 1,
+                            color: AppColors.border,
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: _buildParticipantTile(
+                            context,
+                            meeting.participants[i],
                           ),
                         ),
                       ],
                     ],
                   ),
-                ),
-                const Divider(height: 32),
-
-                // Участники - сворачиваемые
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          _isParticipantsExpanded = !_isParticipantsExpanded;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.people,
-                              size: 20,
-                              color: const Color(0xFF26C6DA),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${l10n.participants} (${meeting.participants.length})',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            Icon(
-                              _isParticipantsExpanded
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
-                              color: Colors.grey[600],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_isParticipantsExpanded) ...[
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 28),
-                        child: meeting.participants.isEmpty
-                            ? Text(
-                                l10n.noParticipants,
-                                style: TextStyle(color: Colors.grey[600]),
-                              )
-                            : Column(
-                                children: meeting.participants.map((participant) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 4),
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 20,
-                                          backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
-                                          child: Text(
-                                            participant.displayName.substring(0, 1).toUpperCase(),
-                                            style: const TextStyle(
-                                              color: Color(0xFF00ACC1),
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                participant.displayName,
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                              Text(
-                                                '${participant.role} • ${participant.status}',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                      ),
-                    ],
-                  ],
-                ),
-
-                if (meeting.departments.isNotEmpty) ...[
-                  const Divider(height: 32),
-                  _buildInfoSection(
-                    icon: Icons.business,
-                    title: l10n.departments,
-                    content: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: meeting.departments.map((dept) {
-                        return Chip(
-                          label: Text(dept),
-                          backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
-                          side: BorderSide(
-                            color: const Color(0xFF26C6DA).withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          labelStyle: const TextStyle(
-                            color: Color(0xFF00ACC1),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-
-                const Divider(height: 32),
-
-                _buildInfoSection(
-                  icon: Icons.settings,
-                  title: l10n.settingsTitle,
-                  content: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSettingRow(
-                        l10n.type,
-                        _getMeetingTypeText(meeting.type),
-                      ),
-                      _buildSettingRow(
-                        l10n.videoRecording,
-                        meeting.needsVideoRecord ? l10n.enabled : l10n.disabled,
-                      ),
-                      _buildSettingRow(
-                        l10n.audioRecording,
-                        meeting.needsAudioRecord ? l10n.enabled : l10n.disabled,
-                      ),
-                    ],
-                  ),
-                ),
-
-                if (meeting.additionalNotes != null && meeting.additionalNotes!.isNotEmpty) ...[
-                  const Divider(height: 32),
-                  _buildInfoSection(
-                    icon: Icons.notes,
-                    title: l10n.notes,
-                    content: Text(
-                      meeting.additionalNotes!,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 80), // Space for FAB
               ],
             ),
           ),
+          if (meeting.departments.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.business_outlined,
+                    title: l10n.departments,
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: meeting.departments
+                        .map(_buildDepartmentChip)
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (meeting.additionalNotes != null &&
+              meeting.additionalNotes!.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.notes_rounded,
+                    title: l10n.notes,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    meeting.additionalNotes!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader(
+                  context,
+                  icon: Icons.info_outline_rounded,
+                  title: l10n.metadata,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  context,
+                  label: l10n.createdBy,
+                  value: meeting.createdBy,
+                ),
+                _buildDetailRow(
+                  context,
+                  label: l10n.created,
+                  value: timestampFormat.format(meeting.createdAt),
+                ),
+                _buildDetailRow(
+                  context,
+                  label: l10n.updated,
+                  value: timestampFormat.format(meeting.updatedAt),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -713,43 +933,114 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     );
   }
 
-  Widget _buildInfoSection({
+  Widget _buildHeroStat(
+    BuildContext context, {
     required IconData icon,
-    required String title,
-    required Widget content,
+    required String label,
+    required String value,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    final textTheme = Theme.of(context).textTheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 140),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: const Color(0xFF26C6DA),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+            Icon(icon, size: 20, color: AppColors.primary600),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.only(left: 28),
-          child: content,
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.primary50,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Icon(
+            icon,
+            color: AppColors.primary600,
+            size: 22,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildSettingRow(String label, String value) {
+  Widget _buildDetailRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -757,22 +1048,160 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
             width: 120,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureChip({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isActive ? AppColors.primary50 : AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isActive ? AppColors.primary300 : AppColors.border,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: isActive ? AppColors.primary600 : AppColors.textSecondary,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: isActive ? AppColors.primary700 : AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryChip({
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.textSecondary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParticipantTile(
+    BuildContext context,
+    MeetingParticipant participant,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+    final displayName =
+        participant.displayName.isNotEmpty ? participant.displayName : participant.userId;
+    final initials = displayName.isNotEmpty
+        ? displayName.substring(0, 1).toUpperCase()
+        : '?';
+    final subtitleParts = <String>[];
+    if (participant.role.isNotEmpty) {
+      subtitleParts.add(participant.role);
+    }
+    if (participant.status.isNotEmpty) {
+      subtitleParts.add(participant.status);
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: AppColors.primary50,
+          child: Text(
+            initials,
+            style: const TextStyle(
+              color: AppColors.primary600,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayName,
+                style: textTheme.bodyLarge?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (subtitleParts.isNotEmpty)
+                Text(
+                  subtitleParts.join(' • '),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDepartmentChip(String department) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(
+        department,
+        style: const TextStyle(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

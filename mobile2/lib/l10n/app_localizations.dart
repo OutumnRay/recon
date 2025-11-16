@@ -1016,6 +1016,12 @@ abstract class AppLocalizations {
   /// **'Audio Recording'**
   String get audioRecording;
 
+  /// No description provided for @transcription.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription'**
+  String get transcription;
+
   /// No description provided for @roomId.
   ///
   /// In en, this message translates to:

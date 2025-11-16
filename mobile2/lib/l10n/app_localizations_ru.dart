@@ -481,6 +481,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get audioRecording => 'Аудиозапись';
 
   @override
+  String get transcription => 'Транскрипция';
+
+  @override
   String get roomId => 'ID комнаты';
 
   @override
