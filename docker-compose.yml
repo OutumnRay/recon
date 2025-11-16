@@ -194,33 +194,33 @@ services:
   # 9. Transcription Service - Audio transcription using Faster Whisper
   # Supports both CPU and GPU modes
   # To enable GPU: uncomment deploy section and set WHISPER_DEVICE=cuda
-  transcription-service:
-    build:
-      context: ./transcription-service
-      dockerfile: Dockerfile
-    image: sivanov2018/recontext-transcription-service:latest
-    container_name: recontext-transcription-service
-    environment:
-      - RABBITMQ_HOST=192.168.5.153
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=guest
-      - RABBITMQ_PASSWORD=guest
-      - RABBITMQ_QUEUE=transcription_queue
-      - DB_HOST=192.168.5.153
-      - DB_PORT=5432
-      - DB_NAME=recontext
-      - DB_USER=recontext
-      - DB_PASSWORD=recontext
-      - WHISPER_MODEL=medium
-      # GPU mode: set WHISPER_DEVICE=cuda and uncomment deploy section below
-      # CPU mode: set WHISPER_DEVICE=cpu (default)
-      - WHISPER_DEVICE=cpu
-      - WHISPER_COMPUTE_TYPE=int8
-      - STORAGE_BASE_URL=https://api.storage.recontext.online
-      - MINIO_ENDPOINT=192.168.5.153:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=32a4953d5bff4a1c6aea4d4ccfb757e5
-      - MINIO_SECURE=false
+  # transcription-service:
+  #   build:
+  #     context: ./transcription-service
+  #     dockerfile: Dockerfile
+  #   image: sivanov2018/recontext-transcription-service:latest
+  #   container_name: recontext-transcription-service
+  #   environment:
+  #     - RABBITMQ_HOST=192.168.5.153
+  #     - RABBITMQ_PORT=5672
+  #     - RABBITMQ_USER=guest
+  #     - RABBITMQ_PASSWORD=guest
+  #     - RABBITMQ_QUEUE=transcription_queue
+  #     - DB_HOST=192.168.5.153
+  #     - DB_PORT=5432
+  #     - DB_NAME=recontext
+  #     - DB_USER=recontext
+  #     - DB_PASSWORD=recontext
+  #     - WHISPER_MODEL=medium
+  #     # GPU mode: set WHISPER_DEVICE=cuda and uncomment deploy section below
+  #     # CPU mode: set WHISPER_DEVICE=cpu (default)
+  #     - WHISPER_DEVICE=cpu
+  #     - WHISPER_COMPUTE_TYPE=int8
+  #     - STORAGE_BASE_URL=https://api.storage.recontext.online
+  #     - MINIO_ENDPOINT=192.168.5.153:9000
+  #     - MINIO_ACCESS_KEY=minioadmin
+  #     - MINIO_SECRET_KEY=32a4953d5bff4a1c6aea4d4ccfb757e5
+  #     - MINIO_SECURE=false
 #    depends_on:
 #      - postgres
 #      - rabbitmq
@@ -233,11 +233,11 @@ services:
 #            - driver: nvidia
 #              count: 1
 #              capabilities: [gpu]
-    networks:
-      - recontext-network
-    restart: unless-stopped
-    volumes:
-      - whisper-models:/app/models
+    # networks:
+    #   - recontext-network
+    # restart: unless-stopped
+    # volumes:
+    #   - whisper-models:/app/models
 
 
 networks:

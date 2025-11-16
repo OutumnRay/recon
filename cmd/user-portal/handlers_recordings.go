@@ -125,6 +125,51 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 
 	roomRecordings := []RoomRecordingInfo{}
 
+	// Pre-collect all participant SIDs for batch loading
+	allParticipantSIDsSet := make(map[string]bool)
+	for _, room := range rooms {
+		tracks, err := up.liveKitRepo.GetTracksByRoomSID(room.SID)
+		if err == nil {
+			for _, track := range tracks {
+				if track.EgressID != "" && track.Source == "MICROPHONE" {
+					allParticipantSIDsSet[track.ParticipantSID] = true
+				}
+			}
+		}
+	}
+
+	// Batch load all participants once
+	participantsMap := make(map[string]*models.UserInfo)
+	for participantSID := range allParticipantSIDsSet {
+		participant, err := up.liveKitRepo.GetParticipantBySID(participantSID)
+		if err == nil && participant != nil {
+			userID, err := uuid.Parse(participant.Identity)
+			if err == nil {
+				user, err := up.userRepo.GetByID(userID)
+				if err == nil && user != nil {
+					userInfo := &models.UserInfo{
+						ID:           user.ID,
+						Username:     user.Username,
+						Email:        user.Email,
+						Role:         user.Role,
+						FirstName:    user.FirstName,
+						LastName:     user.LastName,
+						Phone:        user.Phone,
+						Bio:          user.Bio,
+						Avatar:       user.Avatar,
+						DepartmentID: user.DepartmentID,
+						Permissions:  user.Permissions,
+						Language:     user.Language,
+					}
+					participantsMap[participantSID] = userInfo
+				}
+			}
+		}
+	}
+	if len(participantsMap) > 0 {
+		up.logger.Infof("📹 [RECORDINGS] Batch loaded %d unique participants", len(participantsMap))
+	}
+
 	// Collect room recordings with their tracks
 	for i, room := range rooms {
 		up.logger.Infof("📹 [RECORDINGS] Room %d: SID=%s, Name=%s, EgressID=%s, Status=%s",
@@ -153,6 +198,36 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 		tracks, err := up.liveKitRepo.GetTracksByRoomSID(room.SID)
 		if err == nil {
 			up.logger.Infof("📹 [RECORDINGS] Found %d tracks for room %s", len(tracks), room.SID)
+
+			// Collect track IDs from this specific room for batch transcription loading
+			var roomTrackIDs []uuid.UUID
+			for _, track := range tracks {
+				if track.EgressID != "" && track.Source == "MICROPHONE" {
+					roomTrackIDs = append(roomTrackIDs, track.ID)
+				}
+			}
+
+			// Batch load transcriptions for all tracks in this room
+			transcriptionsMap := make(map[uuid.UUID][]models.TranscriptionPhrase)
+			if len(roomTrackIDs) > 0 {
+				var roomPhrases []models.TranscriptionPhrase
+				err := up.db.DB.Where("track_id IN ?", roomTrackIDs).
+					Order("track_id, phrase_index ASC").
+					Find(&roomPhrases).Error
+
+				if err == nil && len(roomPhrases) > 0 {
+					// Group by track_id
+					for _, phrase := range roomPhrases {
+						transcriptionsMap[phrase.TrackID] = append(transcriptionsMap[phrase.TrackID], phrase)
+					}
+					up.logger.Infof("📹 [RECORDINGS] Batch loaded %d transcription phrases for %d tracks in room %s",
+						len(roomPhrases), len(roomTrackIDs), room.SID)
+				} else if err != nil {
+					up.logger.Errorf("📹 [RECORDINGS] Failed to batch load transcriptions for room %s: %v", room.SID, err)
+				}
+			}
+
+			// Process tracks
 			for j, track := range tracks {
 				up.logger.Infof("📹 [RECORDINGS]   Track %d: SID=%s, Source=%s, EgressID=%s, Type=%s",
 					j, track.SID, track.Source, track.EgressID, track.Type)
@@ -171,68 +246,33 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 						trackRec.EndedAt = &endedAt
 					}
 
-				// Add transcription status if available
-				if track.TranscriptionStatus != "" {
-					trackRec.TranscriptionStatus = &track.TranscriptionStatus
-				}
-
-				// Load transcription phrases if transcription is completed
-				if track.TranscriptionStatus == "completed" {
-					var dbPhrases []models.TranscriptionPhrase
-
-					err := up.db.DB.Where("track_id = ?", track.ID).
-						Order("phrase_index ASC").
-						Find(&dbPhrases).Error
-
-					if err == nil && len(dbPhrases) > 0 {
-						// Convert database phrases to API format
-						trackRec.TranscriptionPhrases = make([]TranscriptionPhrase, len(dbPhrases))
-						for i, p := range dbPhrases {
-							trackRec.TranscriptionPhrases[i] = TranscriptionPhrase{
-								Start:   p.StartTime,
-								End:     p.EndTime,
-								Text:    p.Text,
-								Speaker: nil, // Speaker diarization not yet implemented
-							}
-						}
-						up.logger.Infof("📹 [RECORDINGS] Loaded %d transcription phrases for track %s", len(dbPhrases), track.SID)
-					} else if err != nil {
-						up.logger.Errorf("📹 [RECORDINGS] Failed to load transcription phrases for track %s: %v", track.SID, err)
+					// Add transcription status if available
+					if track.TranscriptionStatus != "" {
+						trackRec.TranscriptionStatus = &track.TranscriptionStatus
 					}
-				}
 
-					// Get participant info to retrieve user details
-					participant, err := up.liveKitRepo.GetParticipantBySID(track.ParticipantSID)
-					if err == nil && participant != nil {
-						// Parse user ID from participant identity
-						userID, err := uuid.Parse(participant.Identity)
-						if err == nil {
-							// Get user info
-							user, err := up.userRepo.GetByID(userID)
-							if err == nil && user != nil {
-								// Create UserInfo from User
-								userInfo := &models.UserInfo{
-									ID:           user.ID,
-									Username:     user.Username,
-									Email:        user.Email,
-									Role:         user.Role,
-									FirstName:    user.FirstName,
-									LastName:     user.LastName,
-									Phone:        user.Phone,
-									Bio:          user.Bio,
-									Avatar:       user.Avatar,
-									DepartmentID: user.DepartmentID,
-									Permissions:  user.Permissions,
-									Language:     user.Language,
+					// Load transcription phrases for this room's tracks only
+					if track.TranscriptionStatus == "completed" {
+						if dbPhrases, exists := transcriptionsMap[track.ID]; exists && len(dbPhrases) > 0 {
+							// Convert database phrases to API format
+							trackRec.TranscriptionPhrases = make([]TranscriptionPhrase, len(dbPhrases))
+							for i, p := range dbPhrases {
+								trackRec.TranscriptionPhrases[i] = TranscriptionPhrase{
+									Start:   p.StartTime,
+									End:     p.EndTime,
+									Text:    p.Text,
+									Speaker: nil, // Speaker diarization not yet implemented
 								}
-								trackRec.Participant = userInfo
-								up.logger.Infof("📹 [RECORDINGS] Added participant info: %s %s", user.FirstName, user.LastName)
 							}
 						}
+					}
+
+					// Get participant info from pre-loaded map
+					if userInfo, exists := participantsMap[track.ParticipantSID]; exists {
+						trackRec.Participant = userInfo
 					}
 
 					roomRec.Tracks = append(roomRec.Tracks, trackRec)
-					up.logger.Infof("📹 [RECORDINGS] Added track recording: %s", track.EgressID)
 				}
 			}
 		} else {

@@ -4,3 +4,8 @@
 *.md
 .gitignore
 deployments
+mobile2
+docs
+jitsy
+.cache
+tmp

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMeeting, getMeetingRecordings } from '../services/meetings';
@@ -33,6 +33,16 @@ export default function MeetingRecordings() {
     if (rest === 0) return `${hours}h`;
     return `${hours}h ${rest}m`;
   };
+  const formatRelativeTime = (seconds: number) => {
+    const safeSeconds = Math.max(0, seconds);
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const secs = safeSeconds % 60;
+    if (hours > 0) {
+      return `+${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return `+${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   const getParticipantName = (track: any) =>
     track.participant?.first_name ||
@@ -48,6 +58,16 @@ export default function MeetingRecordings() {
       return parts[0].slice(0, 2).toUpperCase();
     }
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  };
+
+  const speakerAccentMap = useRef<Map<string, string>>(new Map());
+  const speakerColorPalette = ['accent-blue', 'accent-purple', 'accent-orange', 'accent-green', 'accent-pink'];
+  const getSpeakerAccent = (speaker: string) => {
+    if (!speakerAccentMap.current.has(speaker)) {
+      const nextColor = speakerColorPalette[speakerAccentMap.current.size % speakerColorPalette.length];
+      speakerAccentMap.current.set(speaker, nextColor);
+    }
+    return speakerAccentMap.current.get(speaker) as string;
   };
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
@@ -175,6 +195,14 @@ export default function MeetingRecordings() {
     }
     return sum;
   }, 0);
+  const meetingStartTimestamp = useMemo(() => {
+    if (!roomRecordings.length) return null;
+    const earliest = roomRecordings.reduce((min, room) => {
+      const start = new Date(room.started_at).getTime();
+      return Math.min(min, start);
+    }, Infinity);
+    return earliest === Infinity ? null : earliest;
+  }, [roomRecordings]);
 
   if (loading) {
     return (
@@ -457,21 +485,41 @@ export default function MeetingRecordings() {
                           <div className="accordion-content">
                             {hasTranscriptions ? (
                               <div className="transcript-timeline">
-                                {allPhrases.map((phrase, idx) => (
-                                  <div key={`${phrase.trackId}-${idx}`} className="transcript-entry">
-                                    <div className="transcript-timestamp">
-                                      {new Date(phrase.absoluteTimestamp).toLocaleTimeString(locale, {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit'
-                                      })}
+                                {allPhrases.map((phrase, idx) => {
+                                  const accent = getSpeakerAccent(phrase.speaker);
+                                  const isLast = idx === allPhrases.length - 1;
+                                  const relativeSeconds = meetingStartTimestamp !== null
+                                    ? Math.round((phrase.absoluteTimestamp - meetingStartTimestamp) / 1000)
+                                    : null;
+                                  const relativeLabel = relativeSeconds !== null
+                                    ? formatRelativeTime(relativeSeconds)
+                                    : null;
+
+                                  return (
+                                    <div key={`${phrase.trackId}-${idx}`} className="transcript-entry">
+                                      <div className="transcript-marker">
+                                        <span className={`marker-dot ${accent}`} />
+                                        {!isLast && <span className="marker-line" />}
+                                      </div>
+                                      <div className={`transcript-bubble ${accent}`}>
+                                        <div className="bubble-header">
+                                          <span className="bubble-speaker">{phrase.speaker}</span>
+                                          {relativeLabel && (
+                                            <span className="bubble-relative">{relativeLabel}</span>
+                                          )}
+                                        </div>
+                                        <p className="bubble-text">{phrase.text}</p>
+                                      </div>
+                                      <div className="transcript-absolute">
+                                        {new Date(phrase.absoluteTimestamp).toLocaleTimeString(locale, {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          second: '2-digit'
+                                        })}
+                                      </div>
                                     </div>
-                                    <div className="transcript-content">
-                                      <div className="transcript-speaker">{phrase.speaker}</div>
-                                      <div className="transcript-text">{phrase.text}</div>
-                                    </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             ) : (
                               <p className="no-transcription-message">{t('meetingRecordings.noTranscription')}</p>
