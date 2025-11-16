@@ -228,7 +228,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 }
 
 // List retrieves all users with optional filters
-func (r *UserRepository) List(role string, isActive *bool) ([]*models.User, error) {
+func (r *UserRepository) List(role string, isActive *bool, organizationID *uuid.UUID) ([]*models.User, error) {
 	var dbUsers []User
 	query := r.db.DB.Model(&User{})
 
@@ -238,6 +238,10 @@ func (r *UserRepository) List(role string, isActive *bool) ([]*models.User, erro
 
 	if isActive != nil {
 		query = query.Where("is_active = ?", *isActive)
+	}
+
+	if organizationID != nil {
+		query = query.Where("organization_id = ?", *organizationID)
 	}
 
 	if err := query.Order("created_at DESC").Find(&dbUsers).Error; err != nil {

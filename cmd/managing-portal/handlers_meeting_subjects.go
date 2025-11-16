@@ -93,7 +93,9 @@ func (mp *ManagingPortal) listMeetingSubjectsHandler(w http.ResponseWriter, r *h
 
 	includeInactive := r.URL.Query().Get("include_inactive") == "true"
 
-	response, err := mp.meetingRepo.ListSubjects(page, pageSize, deptIDPtr, includeInactive)
+	// For managing portal, we can pass nil for organization_id to get all subjects
+	// or we could filter by organization if needed
+	response, err := mp.meetingRepo.ListSubjects(page, pageSize, deptIDPtr, includeInactive, nil)
 	if err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to list subjects", err.Error())
 		return

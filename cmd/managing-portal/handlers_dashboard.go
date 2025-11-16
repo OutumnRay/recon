@@ -49,11 +49,11 @@ func (mp *ManagingPortal) dashboardStatsHandler(w http.ResponseWriter, r *http.R
 	stats := DashboardStats{}
 
 	// Count users
-	allUsers, err := mp.userRepo.List("", nil)
+	allUsers, err := mp.userRepo.List("", nil, nil) // nil organization = all organizations
 	if err == nil {
 		stats.Users.Total = len(allUsers)
 		activeStatus := true
-		activeUsers, err := mp.userRepo.List("", &activeStatus)
+		activeUsers, err := mp.userRepo.List("", &activeStatus, nil) // nil organization = all organizations
 		if err == nil {
 			stats.Users.Active = len(activeUsers)
 		}

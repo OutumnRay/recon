@@ -140,7 +140,7 @@ export const Departments = () => {
       name: dept.name,
       description: dept.description,
       parent_id: dept.parent_id || '',
-      organization_id: (dept as any).organization_id || '',
+      organization_id: dept.organization_id || '',
     });
     setShowCreateForm(true);
   };

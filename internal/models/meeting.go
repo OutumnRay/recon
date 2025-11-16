@@ -70,7 +70,7 @@ type Meeting struct {
 	// Тип встречи
 	Type                 MeetingType       `json:"type" db:"type"`
 	// Идентификатор темы встречи
-	SubjectID            uuid.UUID         `json:"subject_id" db:"subject_id"`
+	SubjectID            *uuid.UUID        `json:"subject_id,omitempty" db:"subject_id"`
 	// Текущий статус встречи
 	Status               MeetingStatus     `json:"status" db:"status"`
 	// Требуется ли видеозапись
@@ -198,7 +198,7 @@ type CreateMeetingRequest struct {
 	// Тип встречи
 	Type               MeetingType       `json:"type" binding:"required" example:"conference"`
 	// Идентификатор темы
-	SubjectID          uuid.UUID         `json:"subject_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	SubjectID          *uuid.UUID        `json:"subject_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Требуется ли видеозапись
 	NeedsVideoRecord   bool              `json:"needs_video_record" example:"true"`
 	// Требуется ли аудиозапись

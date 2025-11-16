@@ -54,13 +54,14 @@ func (mp *ManagingPortal) createDepartmentHandler(w http.ResponseWriter, r *http
 
 	// Create new department
 	dept := &models.Department{
-		ID:          uuid.New(),
-		Name:        req.Name,
-		Description: req.Description,
-		ParentID:    req.ParentID,
-		IsActive:    true,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:             uuid.New(),
+		Name:           req.Name,
+		Description:    req.Description,
+		ParentID:       req.ParentID,
+		OrganizationID: req.OrganizationID,
+		IsActive:       true,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	if err := mp.departmentRepo.Create(dept); err != nil {
@@ -112,7 +113,7 @@ func (mp *ManagingPortal) listDepartmentsHandler(w http.ResponseWriter, r *http.
 	}
 
 	// Return flat list
-	departments, err := mp.departmentRepo.List(parentID, includeAll)
+	departments, err := mp.departmentRepo.List(parentID, includeAll, nil) // nil organization = all organizations
 	if err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to list departments", err.Error())
 		return
@@ -230,6 +231,9 @@ func (mp *ManagingPortal) updateDepartmentHandler(w http.ResponseWriter, r *http
 	}
 	if req.ParentID != nil {
 		dept.ParentID = req.ParentID
+	}
+	if req.OrganizationID != nil {
+		dept.OrganizationID = req.OrganizationID
 	}
 	if req.IsActive != nil {
 		dept.IsActive = *req.IsActive

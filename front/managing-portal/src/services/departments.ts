@@ -6,6 +6,7 @@ export interface Department {
   name: string;
   description: string;
   parent_id?: string;
+  organization_id?: string;
   level: number;
   path: string;
   is_active: boolean;
@@ -18,6 +19,7 @@ export interface DepartmentTreeNode {
   name: string;
   description: string;
   parent_id?: string;
+  organization_id?: string;
   level: number;
   path: string;
   is_active: boolean;

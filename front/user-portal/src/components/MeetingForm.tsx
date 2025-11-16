@@ -244,11 +244,6 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
       return;
     }
 
-    if (!subjectId) {
-      setError(t('meetings.errors.subjectRequired'));
-      return;
-    }
-
     if (type === 'presentation' && !speakerId) {
       setError(t('meetings.errors.speakerRequired'));
       return;
@@ -388,7 +383,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             <div className="form-group">
               <SearchableSelect
                 id="subject"
-                label={`${t('meetings.form.subject')} *`}
+                label={t('meetings.form.subject')}
                 value={subjectId}
                 onChange={(value) => setSubjectId(value)}
                 options={subjects.map(subject => ({

@@ -457,7 +457,7 @@ type Meeting struct {
 	// Type - тип встречи (online, offline, hybrid)
 	Type string `gorm:"type:varchar(50);not null" json:"type"`
 	// SubjectID - ID темы встречи
-	SubjectID uuid.UUID `gorm:"type:uuid;not null" json:"subject_id"`
+	SubjectID *uuid.UUID `gorm:"type:uuid" json:"subject_id"`
 	// Status - статус встречи (scheduled, in_progress, completed, cancelled)
 	Status string `gorm:"type:varchar(50);not null;default:'scheduled'" json:"status"`
 	// NeedsVideoRecord - требуется ли видеозапись встречи

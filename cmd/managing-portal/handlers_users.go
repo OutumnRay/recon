@@ -33,7 +33,7 @@ func (mp *ManagingPortal) listUsersHandler(w http.ResponseWriter, r *http.Reques
 		isActive = &val
 	}
 
-	users, err := mp.userRepo.List(role, isActive)
+	users, err := mp.userRepo.List(role, isActive, nil) // nil organization = all organizations
 	if err != nil {
 		mp.respondWithError(w, http.StatusInternalServerError, "Failed to list users", err.Error())
 		return

@@ -94,7 +94,7 @@ func (r *MeetingRepository) GetSubjectByID(id uuid.UUID) (*models.MeetingSubject
 }
 
 // ListSubjects retrieves meeting subjects with pagination
-func (r *MeetingRepository) ListSubjects(page, pageSize int, departmentID *string, includeInactive bool) (*models.MeetingSubjectsResponse, error) {
+func (r *MeetingRepository) ListSubjects(page, pageSize int, departmentID *string, includeInactive bool, organizationID *uuid.UUID) (*models.MeetingSubjectsResponse, error) {
 	offset := (page - 1) * pageSize
 
 	// Build query
@@ -106,6 +106,11 @@ func (r *MeetingRepository) ListSubjects(page, pageSize int, departmentID *strin
 
 	if departmentID != nil && *departmentID != "" {
 		query = query.Where("? = ANY(department_ids)", *departmentID)
+	}
+
+	// Filter by organization ID if provided
+	if organizationID != nil {
+		query = query.Where("organization_id = ?", *organizationID)
 	}
 
 	// Count total
@@ -273,10 +278,12 @@ func (r *MeetingRepository) GetMeetingWithDetails(id uuid.UUID) (*models.Meeting
 		Meeting: *meeting,
 	}
 
-	// Get subject
-	subject, err := r.GetSubjectByID(meeting.SubjectID)
-	if err == nil {
-		details.Subject = subject
+	// Get subject if provided
+	if meeting.SubjectID != nil {
+		subject, err := r.GetSubjectByID(*meeting.SubjectID)
+		if err == nil {
+			details.Subject = subject
+		}
 	}
 
 	// Get participants
@@ -524,8 +531,10 @@ func (r *MeetingRepository) loadMeetingSubjects(meetingsMap map[uuid.UUID]*model
 	}
 
 	for _, meeting := range meetingsMap {
-		if subject, ok := subjectsMap[meeting.SubjectID]; ok {
-			meeting.Subject = subject
+		if meeting.SubjectID != nil {
+			if subject, ok := subjectsMap[*meeting.SubjectID]; ok {
+				meeting.Subject = subject
+			}
 		}
 	}
 }

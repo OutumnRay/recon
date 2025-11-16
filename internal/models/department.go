@@ -17,6 +17,8 @@ type Department struct {
 	Description string     `json:"description" db:"description"`
 	// Идентификатор родительского отдела (NULL для корневых отделов)
 	ParentID    *uuid.UUID `json:"parent_id,omitempty" db:"parent_id"`
+	// ID организации, к которой относится отдел
+	OrganizationID *uuid.UUID `json:"organization_id,omitempty" db:"organization_id"`
 	// Глубина в иерархии (0 для корневого)
 	Level       int        `json:"level" db:"level"`
 	// Полный путь вида "root/child/grandchild"
@@ -44,6 +46,8 @@ type CreateDepartmentRequest struct {
 	Description string     `json:"description" example:"Information Technology Department"`
 	// Идентификатор родительского отдела (опционально)
 	ParentID    *uuid.UUID `json:"parent_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// ID организации, к которой относится отдел
+	OrganizationID *uuid.UUID `json:"organization_id,omitempty"`
 }
 
 // UpdateDepartmentRequest представляет запрос на обновление отдела
@@ -54,6 +58,8 @@ type UpdateDepartmentRequest struct {
 	Description string     `json:"description" example:"Updated description"`
 	// Идентификатор родительского отдела
 	ParentID    *uuid.UUID `json:"parent_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// ID организации, к которой относится отдел
+	OrganizationID *uuid.UUID `json:"organization_id,omitempty"`
 	// Активен ли отдел
 	IsActive    *bool      `json:"is_active" example:"true"`
 }

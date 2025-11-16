@@ -32,16 +32,16 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Get user from database to check permissions and organization
+	user, err := up.userRepo.GetByID(claims.UserID)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to get user", err.Error())
+		return
+	}
+
 	// Check if user has permission to schedule meetings
 	// Admin and operators can always create meetings
 	if claims.Role != models.RoleAdmin && claims.Role != models.RoleOperator {
-		// Get user from database to check permissions
-		user, err := up.userRepo.GetByID(claims.UserID)
-		if err != nil {
-			up.respondWithError(w, http.StatusInternalServerError, "Failed to verify permissions", err.Error())
-			return
-		}
-
 		if !user.Permissions.CanScheduleMeetings {
 			up.respondWithError(w, http.StatusForbidden, "You don't have permission to schedule meetings", "Contact administrator to grant can_schedule_meetings permission")
 			return
@@ -68,12 +68,55 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Verify subject exists if provided
-	if req.SubjectID != uuid.Nil {
-		_, err := up.meetingRepo.GetSubjectByID(req.SubjectID)
+	// Verify subject exists and belongs to the same organization if provided
+	if req.SubjectID != nil {
+		subject, err := up.meetingRepo.GetSubjectByID(*req.SubjectID)
 		if err != nil {
 			up.respondWithError(w, http.StatusBadRequest, "Invalid subject ID", err.Error())
 			return
+		}
+		// Validate subject belongs to user's organization
+		if user.OrganizationID != nil && subject.OrganizationID != nil {
+			if *user.OrganizationID != *subject.OrganizationID {
+				up.respondWithError(w, http.StatusForbidden, "Subject must belong to your organization", "")
+				return
+			}
+		}
+	}
+
+	// Validate that all participants belong to the same organization
+	allParticipantIDs := req.ParticipantIDs
+	if req.SpeakerID != nil && *req.SpeakerID != uuid.Nil {
+		allParticipantIDs = append(allParticipantIDs, *req.SpeakerID)
+	}
+	for _, participantID := range allParticipantIDs {
+		participant, err := up.userRepo.GetByID(participantID)
+		if err != nil {
+			up.respondWithError(w, http.StatusBadRequest, "Invalid participant ID: "+participantID.String(), err.Error())
+			return
+		}
+		// Validate participant belongs to user's organization
+		if user.OrganizationID != nil && participant.OrganizationID != nil {
+			if *user.OrganizationID != *participant.OrganizationID {
+				up.respondWithError(w, http.StatusForbidden, "All participants must belong to your organization", "")
+				return
+			}
+		}
+	}
+
+	// Validate that all departments belong to the same organization
+	for _, deptID := range req.DepartmentIDs {
+		dept, err := up.departmentRepo.GetByID(deptID)
+		if err != nil {
+			up.respondWithError(w, http.StatusBadRequest, "Invalid department ID: "+deptID.String(), err.Error())
+			return
+		}
+		// Validate department belongs to user's organization
+		if user.OrganizationID != nil && dept.OrganizationID != nil {
+			if *user.OrganizationID != *dept.OrganizationID {
+				up.respondWithError(w, http.StatusForbidden, "All departments must belong to your organization", "")
+				return
+			}
 		}
 	}
 
@@ -374,6 +417,13 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Get user to check organization
+	user, err := up.userRepo.GetByID(claims.UserID)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to get user", err.Error())
+		return
+	}
+
 	// Update fields if provided
 	if req.Title != nil {
 		meeting.Title = *req.Title
@@ -395,13 +445,20 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 		meeting.Type = *req.Type
 	}
 	if req.SubjectID != nil {
-		// Verify subject exists
-		_, err := up.meetingRepo.GetSubjectByID(*req.SubjectID)
+		// Verify subject exists and belongs to the same organization
+		subject, err := up.meetingRepo.GetSubjectByID(*req.SubjectID)
 		if err != nil {
 			up.respondWithError(w, http.StatusBadRequest, "Invalid subject ID", err.Error())
 			return
 		}
-		meeting.SubjectID = *req.SubjectID
+		// Validate subject belongs to user's organization
+		if user.OrganizationID != nil && subject.OrganizationID != nil {
+			if *user.OrganizationID != *subject.OrganizationID {
+				up.respondWithError(w, http.StatusForbidden, "Subject must belong to your organization", "")
+				return
+			}
+		}
+		meeting.SubjectID = req.SubjectID
 	}
 	if req.Status != nil {
 		meeting.Status = *req.Status
@@ -436,6 +493,29 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 
 	// Handle participant updates if provided
 	if req.ParticipantIDs != nil || req.SpeakerID != nil {
+		// Validate that all participants belong to the same organization
+		allParticipantIDs := []uuid.UUID{}
+		if req.ParticipantIDs != nil {
+			allParticipantIDs = append(allParticipantIDs, req.ParticipantIDs...)
+		}
+		if req.SpeakerID != nil && *req.SpeakerID != uuid.Nil {
+			allParticipantIDs = append(allParticipantIDs, *req.SpeakerID)
+		}
+		for _, participantID := range allParticipantIDs {
+			participant, err := up.userRepo.GetByID(participantID)
+			if err != nil {
+				up.respondWithError(w, http.StatusBadRequest, "Invalid participant ID: "+participantID.String(), err.Error())
+				return
+			}
+			// Validate participant belongs to user's organization
+			if user.OrganizationID != nil && participant.OrganizationID != nil {
+				if *user.OrganizationID != *participant.OrganizationID {
+					up.respondWithError(w, http.StatusForbidden, "All participants must belong to your organization", "")
+					return
+				}
+			}
+		}
+
 		// Get current participants to remove old ones (except the creator/organizer)
 		currentParticipants, _ := up.meetingRepo.GetMeetingParticipants(uuid.Must(uuid.Parse(meetingID)))
 		for _, participant := range currentParticipants {
@@ -482,6 +562,22 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 
 	// Handle department updates if provided
 	if req.DepartmentIDs != nil {
+		// Validate that all departments belong to the same organization
+		for _, deptID := range req.DepartmentIDs {
+			dept, err := up.departmentRepo.GetByID(deptID)
+			if err != nil {
+				up.respondWithError(w, http.StatusBadRequest, "Invalid department ID: "+deptID.String(), err.Error())
+				return
+			}
+			// Validate department belongs to user's organization
+			if user.OrganizationID != nil && dept.OrganizationID != nil {
+				if *user.OrganizationID != *dept.OrganizationID {
+					up.respondWithError(w, http.StatusForbidden, "All departments must belong to your organization", "")
+					return
+				}
+			}
+		}
+
 		// Get current departments to remove old ones
 		currentDepts, _ := up.meetingRepo.GetMeetingDepartments(uuid.Must(uuid.Parse(meetingID)))
 		for _, dept := range currentDepts {
@@ -582,9 +678,16 @@ func (up *UserPortal) deleteMeetingHandler(w http.ResponseWriter, r *http.Reques
 // @Security BearerAuth
 // @Router /api/v1/meeting-subjects [get]
 func (up *UserPortal) listMeetingSubjectsHandler(w http.ResponseWriter, r *http.Request) {
-	_, ok := auth.GetUserFromContext(r.Context())
+	claims, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	// Get user to determine organization
+	user, err := up.userRepo.GetByID(claims.UserID)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to get user", err.Error())
 		return
 	}
 
@@ -609,8 +712,8 @@ func (up *UserPortal) listMeetingSubjectsHandler(w http.ResponseWriter, r *http.
 		includeInactive = true
 	}
 
-	// Get subjects from repository
-	response, err := up.meetingRepo.ListSubjects(page, pageSize, nil, includeInactive)
+	// Get subjects from repository filtered by user's organization
+	response, err := up.meetingRepo.ListSubjects(page, pageSize, nil, includeInactive, user.OrganizationID)
 	if err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to list meeting subjects", err.Error())
 		return

@@ -25,7 +25,7 @@ export interface Meeting {
   duration: number; // in minutes
   recurrence: MeetingRecurrence;
   type: MeetingType;
-  subject_id: string;
+  subject_id?: string;
   status: MeetingStatus;
   needs_video_record: boolean;
   needs_audio_record: boolean;
@@ -92,7 +92,7 @@ export interface MeetingWithDetails {
   duration: number;
   recurrence: MeetingRecurrence;
   type: MeetingType;
-  subject_id: string;
+  subject_id?: string;
   status: MeetingStatus;
   needs_video_record: boolean;
   needs_audio_record: boolean;
@@ -123,7 +123,7 @@ export interface CreateMeetingRequest {
   duration: number;
   recurrence: MeetingRecurrence;
   type: MeetingType;
-  subject_id: string;
+  subject_id?: string;
   needs_video_record: boolean;
   needs_audio_record: boolean;
   needs_transcription: boolean;

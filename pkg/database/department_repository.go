@@ -36,14 +36,15 @@ func (r *DepartmentRepository) Create(dept *models.Department) error {
 	}
 
 	dbDept := &Department{
-		ID:          dept.ID,
-		Name:        dept.Name,
-		Description: dept.Description,
-		Level:       dept.Level,
-		Path:        dept.Path,
-		IsActive:    dept.IsActive,
-		CreatedAt:   dept.CreatedAt,
-		UpdatedAt:   dept.UpdatedAt,
+		ID:             dept.ID,
+		Name:           dept.Name,
+		Description:    dept.Description,
+		Level:          dept.Level,
+		Path:           dept.Path,
+		IsActive:       dept.IsActive,
+		OrganizationID: dept.OrganizationID,
+		CreatedAt:      dept.CreatedAt,
+		UpdatedAt:      dept.UpdatedAt,
 	}
 
 	if dept.ParentID != nil {
@@ -70,14 +71,15 @@ func (r *DepartmentRepository) GetByID(id uuid.UUID) (*models.Department, error)
 	}
 
 	dept := &models.Department{
-		ID:          dbDept.ID,
-		Name:        dbDept.Name,
-		Description: dbDept.Description,
-		Level:       dbDept.Level,
-		Path:        dbDept.Path,
-		IsActive:    dbDept.IsActive,
-		CreatedAt:   dbDept.CreatedAt,
-		UpdatedAt:   dbDept.UpdatedAt,
+		ID:             dbDept.ID,
+		Name:           dbDept.Name,
+		Description:    dbDept.Description,
+		Level:          dbDept.Level,
+		Path:           dbDept.Path,
+		IsActive:       dbDept.IsActive,
+		OrganizationID: dbDept.OrganizationID,
+		CreatedAt:      dbDept.CreatedAt,
+		UpdatedAt:      dbDept.UpdatedAt,
 	}
 
 	if dbDept.ParentID != nil {
@@ -88,7 +90,7 @@ func (r *DepartmentRepository) GetByID(id uuid.UUID) (*models.Department, error)
 }
 
 // List retrieves departments with optional filters
-func (r *DepartmentRepository) List(parentID *string, includeAll bool) ([]*models.Department, error) {
+func (r *DepartmentRepository) List(parentID *string, includeAll bool, organizationID *uuid.UUID) ([]*models.Department, error) {
 	var dbDepts []Department
 	query := r.db.DB.Model(&Department{})
 
@@ -100,6 +102,10 @@ func (r *DepartmentRepository) List(parentID *string, includeAll bool) ([]*model
 		query = query.Where("is_active = ?", true)
 	}
 
+	if organizationID != nil {
+		query = query.Where("organization_id = ?", *organizationID)
+	}
+
 	if err := query.Order("path ASC").Find(&dbDepts).Error; err != nil {
 		return nil, fmt.Errorf("failed to list departments: %w", err)
 	}
@@ -107,14 +113,15 @@ func (r *DepartmentRepository) List(parentID *string, includeAll bool) ([]*model
 	departments := make([]*models.Department, 0, len(dbDepts))
 	for _, dbDept := range dbDepts {
 		dept := &models.Department{
-			ID:          dbDept.ID,
-			Name:        dbDept.Name,
-			Description: dbDept.Description,
-			Level:       dbDept.Level,
-			Path:        dbDept.Path,
-			IsActive:    dbDept.IsActive,
-			CreatedAt:   dbDept.CreatedAt,
-			UpdatedAt:   dbDept.UpdatedAt,
+			ID:             dbDept.ID,
+			Name:           dbDept.Name,
+			Description:    dbDept.Description,
+			Level:          dbDept.Level,
+			Path:           dbDept.Path,
+			IsActive:       dbDept.IsActive,
+			OrganizationID: dbDept.OrganizationID,
+			CreatedAt:      dbDept.CreatedAt,
+			UpdatedAt:      dbDept.UpdatedAt,
 		}
 		if dbDept.ParentID != nil {
 			dept.ParentID = dbDept.ParentID
@@ -128,7 +135,7 @@ func (r *DepartmentRepository) List(parentID *string, includeAll bool) ([]*model
 // GetTree builds a hierarchical tree of departments
 func (r *DepartmentRepository) GetTree(rootID *string) (*models.DepartmentTreeNode, error) {
 	// Get all departments
-	allDepts, err := r.List(nil, false)
+	allDepts, err := r.List(nil, false, nil) // nil organization = all organizations
 	if err != nil {
 		return nil, err
 	}
@@ -184,12 +191,13 @@ func (r *DepartmentRepository) Update(dept *models.Department) error {
 	dept.UpdatedAt = time.Now()
 
 	updates := map[string]interface{}{
-		"name":        dept.Name,
-		"description": dept.Description,
-		"level":       dept.Level,
-		"path":        dept.Path,
-		"is_active":   dept.IsActive,
-		"updated_at":  dept.UpdatedAt,
+		"name":            dept.Name,
+		"description":     dept.Description,
+		"level":           dept.Level,
+		"path":            dept.Path,
+		"is_active":       dept.IsActive,
+		"organization_id": dept.OrganizationID,
+		"updated_at":      dept.UpdatedAt,
 	}
 
 	if dept.ParentID != nil {
@@ -286,7 +294,7 @@ func (r *DepartmentRepository) GetWithStats(id uuid.UUID) (*models.DepartmentWit
 
 	err := r.db.DB.Table("departments d").
 		Select(`
-			d.id, d.name, d.description, d.parent_id, d.level, d.path,
+			d.id, d.name, d.description, d.parent_id, d.organization_id, d.level, d.path,
 			d.is_active, d.created_at, d.updated_at,
 			COUNT(DISTINCT u.id) as user_count,
 			COUNT(DISTINCT c.id) as child_count
@@ -294,7 +302,7 @@ func (r *DepartmentRepository) GetWithStats(id uuid.UUID) (*models.DepartmentWit
 		Joins("LEFT JOIN users u ON u.department_id = d.id AND u.is_active = true").
 		Joins("LEFT JOIN departments c ON c.parent_id = d.id AND c.is_active = true").
 		Where("d.id = ?", id).
-		Group("d.id, d.name, d.description, d.parent_id, d.level, d.path, d.is_active, d.created_at, d.updated_at").
+		Group("d.id, d.name, d.description, d.parent_id, d.organization_id, d.level, d.path, d.is_active, d.created_at, d.updated_at").
 		Scan(stats).Error
 
 	if err != nil {
@@ -329,14 +337,15 @@ func (r *DepartmentRepository) GetChildren(parentID uuid.UUID) ([]*models.Depart
 	children := make([]*models.Department, 0, len(dbDepts))
 	for _, dbDept := range dbDepts {
 		dept := &models.Department{
-			ID:          dbDept.ID,
-			Name:        dbDept.Name,
-			Description: dbDept.Description,
-			Level:       dbDept.Level,
-			Path:        dbDept.Path,
-			IsActive:    dbDept.IsActive,
-			CreatedAt:   dbDept.CreatedAt,
-			UpdatedAt:   dbDept.UpdatedAt,
+			ID:             dbDept.ID,
+			Name:           dbDept.Name,
+			Description:    dbDept.Description,
+			Level:          dbDept.Level,
+			Path:           dbDept.Path,
+			IsActive:       dbDept.IsActive,
+			OrganizationID: dbDept.OrganizationID,
+			CreatedAt:      dbDept.CreatedAt,
+			UpdatedAt:      dbDept.UpdatedAt,
 		}
 		if dbDept.ParentID != nil {
 			dept.ParentID = dbDept.ParentID
