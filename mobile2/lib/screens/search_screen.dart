@@ -146,15 +146,20 @@ class _SearchScreenState extends State<SearchScreen>
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeroSection(context, l10n),
-                  const SizedBox(height: 20),
-                  _buildSearchPanel(context, l10n),
-                ],
+            Flexible(
+              flex: 0,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeroSection(context, l10n),
+                      const SizedBox(height: 20),
+                      _buildSearchPanel(context, l10n),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20),

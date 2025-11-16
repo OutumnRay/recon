@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_client.dart';
 import '../services/fcm_service.dart';
+import '../theme/app_colors.dart';
 import 'meetings_screen.dart';
 import 'search_screen.dart';
 import 'documents_screen.dart';
@@ -91,28 +92,28 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onItemTapped,
           backgroundColor: Colors.white,
-          indicatorColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
+          indicatorColor: AppColors.primary100,
           height: 70,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [
             NavigationDestination(
               icon: const Icon(Icons.event_outlined),
-              selectedIcon: const Icon(Icons.event, color: Color(0xFF26C6DA)),
+              selectedIcon: const Icon(Icons.event, color: AppColors.primary500),
               label: l10n.meetings,
             ),
             NavigationDestination(
               icon: const Icon(Icons.search_outlined),
-              selectedIcon: const Icon(Icons.search, color: Color(0xFF26C6DA)),
+              selectedIcon: const Icon(Icons.search, color: AppColors.primary500),
               label: l10n.search,
             ),
             NavigationDestination(
               icon: const Icon(Icons.folder_outlined),
-              selectedIcon: const Icon(Icons.folder, color: Color(0xFF26C6DA)),
+              selectedIcon: const Icon(Icons.folder, color: AppColors.primary500),
               label: l10n.documents,
             ),
             NavigationDestination(
               icon: const Icon(Icons.settings_outlined),
-              selectedIcon: const Icon(Icons.settings, color: Color(0xFF26C6DA)),
+              selectedIcon: const Icon(Icons.settings, color: AppColors.primary500),
               label: l10n.settings,
             ),
           ],

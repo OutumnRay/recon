@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'api_client.dart';
 import '../models/meeting.dart';
 import '../models/recording.dart';
+import '../models/transcript.dart';
 import '../utils/logger.dart';
 
 class MeetingsService {
@@ -272,6 +273,30 @@ class MeetingsService {
       }
     } catch (e) {
       Logger.logError('Failed to fetch recordings', error: e);
+      rethrow;
+    }
+  }
+
+  /// Get transcripts and memo for a room
+  Future<RoomTranscripts> getRoomTranscripts(String roomSid) async {
+    try {
+      Logger.logInfo('Fetching transcripts for room', data: {'roomSid': roomSid});
+
+      final response = await _apiClient.get(
+        '/api/v1/rooms/$roomSid/transcripts',
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final transcripts = RoomTranscripts.fromJson(data as Map<String, dynamic>);
+
+        Logger.logSuccess('Found ${transcripts.totalPhrases} phrase(s) across ${transcripts.tracks.length} track(s)');
+        return transcripts;
+      } else {
+        throw _apiClient.handleError(response);
+      }
+    } catch (e) {
+      Logger.logError('Failed to fetch transcripts', error: e);
       rethrow;
     }
   }

@@ -143,6 +143,7 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 	for participantSID := range allParticipantSIDsSet {
 		participant, err := up.liveKitRepo.GetParticipantBySID(participantSID)
 		if err == nil && participant != nil {
+			// Try to get user from users table first
 			userID, err := uuid.Parse(participant.Identity)
 			if err == nil {
 				user, err := up.userRepo.GetByID(userID)
@@ -162,6 +163,20 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 						Language:     user.Language,
 					}
 					participantsMap[participantSID] = userInfo
+				} else {
+					// User not found in users table, this might be an anonymous user
+					// Use the participant's name from LiveKit (set from display name)
+					if participant.Name != "" {
+						// Create a minimal UserInfo with the display name
+						displayName := participant.Name
+						userInfo := &models.UserInfo{
+							ID:        userID,
+							Username:  displayName,
+							FirstName: displayName,
+							Role:      "guest", // Mark as guest/anonymous
+						}
+						participantsMap[participantSID] = userInfo
+					}
 				}
 			}
 		}
@@ -339,6 +354,7 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 	for participantSID := range participantSIDsSet {
 		participant, err := up.liveKitRepo.GetParticipantBySID(participantSID)
 		if err == nil && participant != nil {
+			// Try to get user from users table first
 			userID, err := uuid.Parse(participant.Identity)
 			if err == nil {
 				user, err := up.userRepo.GetByID(userID)
@@ -358,6 +374,20 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 						Language:     user.Language,
 					}
 					participantsMap[participantSID] = userInfo
+				} else {
+					// User not found in users table, this might be an anonymous user
+					// Use the participant's name from LiveKit (set from display name)
+					if participant.Name != "" {
+						// Create a minimal UserInfo with the display name
+						displayName := participant.Name
+						userInfo := &models.UserInfo{
+							ID:        userID,
+							Username:  displayName,
+							FirstName: displayName,
+							Role:      "guest", // Mark as guest/anonymous
+						}
+						participantsMap[participantSID] = userInfo
+					}
 				}
 			}
 		}

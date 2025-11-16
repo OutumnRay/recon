@@ -383,5 +383,18 @@
   "validationUsernameRequired": "Please enter your username",
   "validationPasswordRequired": "Please enter your password",
   "apiNotConfigured": "Server URL not configured",
-  "currentServer": "Connected to"
+  "currentServer": "Connected to",
+
+  "tabPlayer": "Player",
+  "tabTranscript": "Transcript",
+  "tabMemo": "Memo",
+  "noTranscriptAvailable": "No transcript available",
+  "transcriptionNotGenerated": "Transcription has not been generated for this recording yet.",
+  "noMemoAvailable": "No memo available",
+  "memoNotGenerated": "AI-generated summary has not been created for this recording yet.",
+  "aiSummary": "AI Summary",
+  "copyMemo": "Copy memo",
+  "memoCopied": "Memo copied to clipboard",
+  "failedToLoadTranscript": "Failed to load transcript",
+  "failedToLoadMemo": "Failed to load memo"
 }

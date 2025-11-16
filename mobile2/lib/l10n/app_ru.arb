@@ -292,5 +292,18 @@
   "validationUsernameRequired": "Введите имя пользователя",
   "validationPasswordRequired": "Введите пароль",
   "apiNotConfigured": "URL сервера не настроен",
-  "currentServer": "Подключено к"
+  "currentServer": "Подключено к",
+
+  "tabPlayer": "Плеер",
+  "tabTranscript": "Транскрипция",
+  "tabMemo": "Саммари",
+  "noTranscriptAvailable": "Транскрипция недоступна",
+  "transcriptionNotGenerated": "Транскрипция для этой записи еще не создана.",
+  "noMemoAvailable": "Саммари недоступно",
+  "memoNotGenerated": "AI-саммари для этой записи еще не создано.",
+  "aiSummary": "AI Саммари",
+  "copyMemo": "Копировать саммари",
+  "memoCopied": "Саммари скопировано в буфер обмена",
+  "failedToLoadTranscript": "Не удалось загрузить транскрипцию",
+  "failedToLoadMemo": "Не удалось загрузить саммари"
 }

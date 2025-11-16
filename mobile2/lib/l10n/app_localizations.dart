@@ -1597,6 +1597,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connected to'**
   String get currentServer;
+
+  /// No description provided for @tabPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Player'**
+  String get tabPlayer;
+
+  /// No description provided for @tabTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript'**
+  String get tabTranscript;
+
+  /// No description provided for @tabMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Memo'**
+  String get tabMemo;
+
+  /// No description provided for @noTranscriptAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No transcript available'**
+  String get noTranscriptAvailable;
+
+  /// No description provided for @transcriptionNotGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription has not been generated for this recording yet.'**
+  String get transcriptionNotGenerated;
+
+  /// No description provided for @noMemoAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No memo available'**
+  String get noMemoAvailable;
+
+  /// No description provided for @memoNotGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'AI-generated summary has not been created for this recording yet.'**
+  String get memoNotGenerated;
+
+  /// No description provided for @aiSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Summary'**
+  String get aiSummary;
+
+  /// No description provided for @copyMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy memo'**
+  String get copyMemo;
+
+  /// No description provided for @memoCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Memo copied to clipboard'**
+  String get memoCopied;
+
+  /// No description provided for @failedToLoadTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load transcript'**
+  String get failedToLoadTranscript;
+
+  /// No description provided for @failedToLoadMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load memo'**
+  String get failedToLoadMemo;
 }
 
 class _AppLocalizationsDelegate

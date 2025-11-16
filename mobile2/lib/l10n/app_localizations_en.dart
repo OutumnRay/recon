@@ -790,4 +790,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currentServer => 'Connected to';
+
+  @override
+  String get tabPlayer => 'Player';
+
+  @override
+  String get tabTranscript => 'Transcript';
+
+  @override
+  String get tabMemo => 'Memo';
+
+  @override
+  String get noTranscriptAvailable => 'No transcript available';
+
+  @override
+  String get transcriptionNotGenerated =>
+      'Transcription has not been generated for this recording yet.';
+
+  @override
+  String get noMemoAvailable => 'No memo available';
+
+  @override
+  String get memoNotGenerated =>
+      'AI-generated summary has not been created for this recording yet.';
+
+  @override
+  String get aiSummary => 'AI Summary';
+
+  @override
+  String get copyMemo => 'Copy memo';
+
+  @override
+  String get memoCopied => 'Memo copied to clipboard';
+
+  @override
+  String get failedToLoadTranscript => 'Failed to load transcript';
+
+  @override
+  String get failedToLoadMemo => 'Failed to load memo';
 }

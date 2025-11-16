@@ -423,33 +423,84 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           ),
           if (recording.playlistUrl != null) ...[
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RecordingPlayerScreen(
-                        recording: recording,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RecordingPlayerScreen(
+                          recording: recording,
+                          initialTabIndex: 0,
+                        ),
                       ),
+                    );
+                  },
+                  icon: const Icon(Icons.play_circle_outlined),
+                  iconSize: 32,
+                  color: AppColors.primary500,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary100,
+                    padding: const EdgeInsets.all(12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  );
-                },
-                icon: const Icon(
-                  Icons.play_circle,
-                  size: 20,
-                ),
-                label: Text(l10n.playRecording),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF26C6DA),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
                   ),
+                  tooltip: l10n.tabPlayer,
                 ),
-              ),
+                const SizedBox(width: 12),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RecordingPlayerScreen(
+                          recording: recording,
+                          initialTabIndex: 1,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.text_snippet_outlined),
+                  iconSize: 32,
+                  color: AppColors.primary500,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary100,
+                    padding: const EdgeInsets.all(12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  tooltip: l10n.tabTranscript,
+                ),
+                const SizedBox(width: 12),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RecordingPlayerScreen(
+                          recording: recording,
+                          initialTabIndex: 2,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  iconSize: 32,
+                  color: AppColors.primary500,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary100,
+                    padding: const EdgeInsets.all(12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  tooltip: l10n.tabMemo,
+                ),
+              ],
             ),
           ],
         ],

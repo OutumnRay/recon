@@ -792,4 +792,41 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get currentServer => 'Подключено к';
+
+  @override
+  String get tabPlayer => 'Плеер';
+
+  @override
+  String get tabTranscript => 'Транскрипция';
+
+  @override
+  String get tabMemo => 'Саммари';
+
+  @override
+  String get noTranscriptAvailable => 'Транскрипция недоступна';
+
+  @override
+  String get transcriptionNotGenerated =>
+      'Транскрипция для этой записи еще не создана.';
+
+  @override
+  String get noMemoAvailable => 'Саммари недоступно';
+
+  @override
+  String get memoNotGenerated => 'AI-саммари для этой записи еще не создано.';
+
+  @override
+  String get aiSummary => 'AI Саммари';
+
+  @override
+  String get copyMemo => 'Копировать саммари';
+
+  @override
+  String get memoCopied => 'Саммари скопировано в буфер обмена';
+
+  @override
+  String get failedToLoadTranscript => 'Не удалось загрузить транскрипцию';
+
+  @override
+  String get failedToLoadMemo => 'Не удалось загрузить саммари';
 }

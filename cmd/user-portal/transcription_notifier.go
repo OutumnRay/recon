@@ -129,7 +129,7 @@ func (tn *TranscriptionNotifier) Stop() {
 func (tn *TranscriptionNotifier) processMessage(msg amqp.Delivery) {
 	// Check if message body is empty
 	if len(msg.Body) == 0 {
-		tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Received empty message, discarding")
+		tn.up.logger.Debugf("📢 [TRANSCRIPTION NOTIFIER] Received empty message, discarding")
 		msg.Ack(false) // Acknowledge to remove from queue
 		return
 	}
@@ -347,6 +347,7 @@ func (tn *TranscriptionNotifier) generateAndSaveMemo(roomSID string, meetingID u
 		if track.ParticipantSID != "" {
 			var participant database.LiveKitParticipant
 			if err := tn.up.db.DB.Where("sid = ?", track.ParticipantSID).First(&participant).Error; err == nil {
+				// First try to get from registered users
 				if participant.UserID != nil {
 					if user, err := tn.up.userRepo.GetByID(*participant.UserID); err == nil {
 						if user.FirstName != "" {
@@ -358,6 +359,10 @@ func (tn *TranscriptionNotifier) generateAndSaveMemo(roomSID string, meetingID u
 							participantName = user.Username
 						}
 					}
+				} else if participant.Name != "" {
+					// Not a registered user, use the LiveKit participant name
+					// (which contains the display name for anonymous users)
+					participantName = participant.Name
 				}
 			}
 		}

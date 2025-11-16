@@ -1,21 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:fijkplayer/fijkplayer.dart';
+import 'package:provider/provider.dart';
 import '../models/recording.dart';
+import '../models/transcript.dart';
 import '../utils/logger.dart';
 import '../services/storage_service.dart';
 import '../services/config_service.dart';
+import '../services/api_client.dart';
+import '../services/meetings_service.dart';
+import '../services/locale_service.dart';
+import '../widgets/transcript_viewer.dart';
+import '../widgets/memo_viewer.dart';
 import '../l10n/app_localizations.dart';
 
 class RecordingPlayerScreen extends StatefulWidget {
   final RoomRecording recording;
   final bool isTrack;
   final TrackRecording? track;
+  final int initialTabIndex;
 
   const RecordingPlayerScreen({
     super.key,
     required this.recording,
     this.isTrack = false,
     this.track,
+    this.initialTabIndex = 0,
   });
 
   static Widget routeBuilder(BuildContext context, Object? arguments) {
@@ -24,6 +33,7 @@ class RecordingPlayerScreen extends StatefulWidget {
       recording: args['recording'] as RoomRecording,
       isTrack: args['isTrack'] as bool? ?? false,
       track: args['track'] as TrackRecording?,
+      initialTabIndex: args['initialTabIndex'] as int? ?? 0,
     );
   }
 
@@ -31,15 +41,61 @@ class RecordingPlayerScreen extends StatefulWidget {
   State<RecordingPlayerScreen> createState() => _RecordingPlayerScreenState();
 }
 
-class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
+class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
+    with SingleTickerProviderStateMixin {
   final FijkPlayer _player = FijkPlayer();
   bool _isLoading = true;
   String? _error;
+  late TabController _tabController;
+  RoomTranscripts? _transcripts;
+  bool _isLoadingTranscripts = false;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
     _initializePlayer();
+    _loadTranscripts();
+  }
+
+  Future<void> _loadTranscripts() async {
+    if (widget.isTrack) {
+      // Don't load transcripts for individual tracks
+      return;
+    }
+
+    try {
+      setState(() {
+        _isLoadingTranscripts = true;
+      });
+
+      final configService = ConfigService();
+      final baseUrl = await configService.getApiUrl();
+      final apiClient = ApiClient(baseUrl: baseUrl);
+      final meetingsService = MeetingsService(apiClient);
+
+      Logger.logInfo('Loading transcripts for room', data: {'roomSid': widget.recording.roomSid});
+
+      final transcripts = await meetingsService.getRoomTranscripts(widget.recording.roomSid);
+
+      if (mounted) {
+        setState(() {
+          _transcripts = transcripts;
+          _isLoadingTranscripts = false;
+        });
+      }
+    } catch (e) {
+      Logger.logError('Failed to load transcripts', error: e);
+      if (mounted) {
+        setState(() {
+          _isLoadingTranscripts = false;
+        });
+      }
+    }
   }
 
   Future<void> _initializePlayer() async {
@@ -109,6 +165,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
   @override
   void dispose() {
     _player.release();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -158,20 +215,45 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final localeService = Provider.of<LocaleService>(context);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(_getTitle()),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
           tooltip: l10n.close,
         ),
+        bottom: widget.isTrack
+            ? null
+            : TabBar(
+                controller: _tabController,
+                tabs: [
+                  Tab(text: l10n.tabPlayer),
+                  Tab(text: l10n.tabTranscript),
+                  Tab(text: l10n.tabMemo),
+                ],
+              ),
       ),
-      body: Column(
+      body: widget.isTrack
+          ? _buildPlayerView(l10n)
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildPlayerView(l10n),
+                _buildTranscriptView(localeService),
+                _buildMemoView(localeService),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildPlayerView(AppLocalizations l10n) {
+    return Container(
+      color: Colors.black,
+      child: Column(
         children: [
           // Media player or audio-only indicator
           Expanded(
@@ -259,7 +341,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
                 if (widget.isTrack && widget.track?.participant != null) ...[
                   const SizedBox(height: 8),
                   Row(
-                  children: [
+                    children: [
                       const Icon(Icons.person, color: Colors.grey, size: 16),
                       const SizedBox(width: 4),
                       Text(
@@ -274,6 +356,79 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTranscriptView(LocaleService localeService) {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (_isLoadingTranscripts) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_transcripts == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              l10n.failedToLoadTranscript,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadTranscripts,
+              child: Text(l10n.retry),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return TranscriptViewer(
+      transcripts: _transcripts!,
+      onSeekToTime: (double time) async {
+        await _player.seekTo((time * 1000).toInt());
+        await _player.start();
+        // Switch back to player tab
+        _tabController.animateTo(0);
+      },
+    );
+  }
+
+  Widget _buildMemoView(LocaleService localeService) {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (_isLoadingTranscripts) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_transcripts == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              l10n.failedToLoadMemo,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadTranscripts,
+              child: Text(l10n.retry),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return MemoViewer(
+      transcripts: _transcripts!,
+      languageCode: localeService.locale.languageCode,
     );
   }
 

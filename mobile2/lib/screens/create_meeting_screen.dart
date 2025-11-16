@@ -346,13 +346,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
 
     final l10n = AppLocalizations.of(context)!;
 
-    if (_subjectId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pleaseSelectSubject)),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
       _error = null;
