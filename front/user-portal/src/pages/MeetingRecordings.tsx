@@ -421,25 +421,48 @@ export default function MeetingRecordings() {
                                             audioOnly={true}
                                             className="track-player"
                                           />
-                                          {track.transcription_phrases && track.transcription_phrases.length > 0 ? (
-                                            <div className="transcribed-badge">
-                                              ✓ {t('meetingRecordings.transcribed')}
-                                            </div>
-                                          ) : track.transcription_status === 'processing' || transcribingTracks.has(track.id) ? (
-                                            <button
-                                              className="transcribe-button"
-                                              disabled
-                                            >
-                                              {t('meetingRecordings.transcribing')}
-                                            </button>
-                                          ) : (
-                                            <button
-                                              className="transcribe-button"
-                                              onClick={() => forceTranscription(track.id)}
-                                            >
-                                              {t('meetingRecordings.forceTranscribe')}
-                                            </button>
-                                          )}
+                                          {(() => {
+                                            // Check status: completed > processing > failed > pending
+                                            if (track.transcription_status === 'completed' || (track.transcription_phrases && track.transcription_phrases.length > 0)) {
+                                              return (
+                                                <div className="transcribed-badge">
+                                                  ✓ {t('meetingRecordings.transcribed')}
+                                                </div>
+                                              );
+                                            }
+
+                                            if (track.transcription_status === 'processing' || transcribingTracks.has(track.id)) {
+                                              return (
+                                                <button
+                                                  className="transcribe-button"
+                                                  disabled
+                                                >
+                                                  {t('meetingRecordings.transcribing')}
+                                                </button>
+                                              );
+                                            }
+
+                                            if (track.transcription_status === 'failed') {
+                                              return (
+                                                <button
+                                                  className="transcribe-button transcribe-button-retry"
+                                                  onClick={() => forceTranscription(track.id)}
+                                                >
+                                                  {t('meetingRecordings.retryTranscribe')}
+                                                </button>
+                                              );
+                                            }
+
+                                            // Default: pending or null/empty status
+                                            return (
+                                              <button
+                                                className="transcribe-button"
+                                                onClick={() => forceTranscription(track.id)}
+                                              >
+                                                {t('meetingRecordings.forceTranscribe')}
+                                              </button>
+                                            );
+                                          })()}
                                         </div>
                                       </div>
                                     </div>
@@ -551,22 +574,43 @@ export default function MeetingRecordings() {
                     );
                   })()}
 
-                  {/* Memo Section (Coming Soon) */}
-                  <div className="accordion-item">
-                    <button
-                      className={`accordion-header ${openSection === 'memo' ? 'active' : ''}`}
-                      onClick={() => toggleSection('memo')}
-                    >
-                      <span>{t('meetingRecordings.sections.memo')}</span>
-                      <span className="accordion-badge">{t('meetingRecordings.comingSoon')}</span>
-                      <span className="accordion-icon">{openSection === 'memo' ? '▼' : '▶'}</span>
-                    </button>
-                    {openSection === 'memo' && (
-                      <div className="accordion-content">
-                        <p className="coming-soon-message">{t('meetingRecordings.memoComingSoon')}</p>
+                  {/* Memo Section */}
+                  {(() => {
+                    // Select memo based on language preference
+                    const memo = locale === 'ru-RU' ? roomTranscripts?.memoRu : roomTranscripts?.memo;
+                    const fallbackMemo = roomTranscripts?.memo;
+                    const displayMemo = memo || fallbackMemo;
+
+                    return (
+                      <div className="accordion-item">
+                        <button
+                          className={`accordion-header ${openSection === 'memo' ? 'active' : ''}`}
+                          onClick={() => toggleSection('memo')}
+                        >
+                          <span>{t('meetingRecordings.sections.memo')}</span>
+                          <span className="accordion-icon">{openSection === 'memo' ? '▼' : '▶'}</span>
+                        </button>
+                        {openSection === 'memo' && (
+                          <div className="accordion-content">
+                            {loadingTranscripts ? (
+                              <div className="loading-state">
+                                <div className="loading-spinner"></div>
+                                <p>{t('common.loading')}</p>
+                              </div>
+                            ) : displayMemo ? (
+                              <div className="memo-content">
+                                {displayMemo.split('\n').map((line, idx) => (
+                                  <p key={idx}>{line}</p>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="coming-soon-message">{t('meetingRecordings.memoNotAvailable')}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
               </>
             ) : (
@@ -599,34 +643,31 @@ export default function MeetingRecordings() {
                       <span className="session-dot" />
                       {showLine && <span className="session-line" />}
                     </div>
-                    <div className="session-card-content">
+                    <div
+                      className="session-card-content"
+                      onClick={() => room.playlist_url && selectRoomRecording(room)}
+                      style={{ cursor: room.playlist_url ? 'pointer' : 'default' }}
+                    >
                       <div className="session-card-header">
-                        <div>
-                          <p className="session-label">{t('meetingRecordings.sessionLabel', { number: idx + 1 })}</p>
-                          <h3>{formatDateTime(room.started_at)}</h3>
-                        </div>
+                        <h3>
+                          {new Date(room.started_at).toLocaleDateString(locale, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}{' '}
+                          {new Date(room.started_at).toLocaleTimeString(locale, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                          })}
+                        </h3>
                         <div className="session-meta">
                           {roomDurationMinutes && (
-                            <span>{t('meetingRecordings.durationMinutes', { minutes: roomDurationMinutes })}</span>
+                            <span>{formatMinutes(roomDurationMinutes)}</span>
                           )}
-                          <span className={`session-status ${room.status}`}>{room.status}</span>
+                          <span className={`session-status ${room.status}`}>{t(`meetingRecordings.status.${room.status}`) || room.status}</span>
                         </div>
                       </div>
-
-                      {room.playlist_url && (
-                        <button
-                          className={`session-recording ${roomSelected ? 'active' : ''}`}
-                          onClick={() => selectRoomRecording(room)}
-                        >
-                          <div className="session-recording-info">
-                            <span className="session-recording-label">{t('meetingRecordings.roomRecordingLabel')}</span>
-                            <span className="session-recording-time">{formatTime(room.started_at)}</span>
-                          </div>
-                          <span className="session-recording-cta">
-                            {roomSelected ? t('meetingRecordings.nowPlaying') : t('meetingRecordings.playRecording')}
-                          </span>
-                        </button>
-                      )}
                     </div>
                   </div>
                 );

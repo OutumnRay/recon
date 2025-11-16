@@ -279,7 +279,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF26C6DA),
           elevation: 1,
-          shadowColor: Colors.black.withOpacity(0.1),
+          shadowColor: Colors.black.withValues(alpha: 0.1),
         ),
         body: const Center(
           child: CircularProgressIndicator(
@@ -297,7 +297,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF26C6DA),
           elevation: 1,
-          shadowColor: Colors.black.withOpacity(0.1),
+          shadowColor: Colors.black.withValues(alpha: 0.1),
         ),
         body: FullScreenError(
           error: _error!,
@@ -314,7 +314,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF26C6DA),
         elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         actions: [
           if (_isLoading)
             const Center(
@@ -576,10 +576,10 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             // Speaker
             Card(
               elevation: 0,
-              color: const Color(0xFF26C6DA).withOpacity(0.08),
+              color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: const Color(0xFF26C6DA).withOpacity(0.2), width: 1),
+                side: BorderSide(color: const Color(0xFF26C6DA).withValues(alpha: 0.2), width: 1),
               ),
               child: ListTile(
                 title: Text(
@@ -602,10 +602,10 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             // Participants
             Card(
               elevation: 0,
-              color: const Color(0xFF26C6DA).withOpacity(0.08),
+              color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: const Color(0xFF26C6DA).withOpacity(0.2), width: 1),
+                side: BorderSide(color: const Color(0xFF26C6DA).withValues(alpha: 0.2), width: 1),
               ),
               child: ListTile(
                 title: Text(
@@ -624,10 +624,10 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             // Departments
             Card(
               elevation: 0,
-              color: const Color(0xFF26C6DA).withOpacity(0.08),
+              color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: const Color(0xFF26C6DA).withOpacity(0.2), width: 1),
+                side: BorderSide(color: const Color(0xFF26C6DA).withValues(alpha: 0.2), width: 1),
               ),
               child: ListTile(
                 title: Text(
@@ -670,7 +670,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                     SwitchListTile(
                       title: Text(l10n.meetingVideoRecord),
                       value: _needsVideoRecord,
-                      activeColor: const Color(0xFF26C6DA),
+                      activeThumbColor: const Color(0xFF26C6DA),
                       onChanged: _isLoading
                           ? null
                           : (value) {
@@ -683,7 +683,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                     SwitchListTile(
                       title: Text(l10n.meetingAudioRecord),
                       value: _needsAudioRecord,
-                      activeColor: const Color(0xFF26C6DA),
+                      activeThumbColor: const Color(0xFF26C6DA),
                       onChanged: _isLoading
                           ? null
                           : (value) {

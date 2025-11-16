@@ -262,4 +262,6 @@ export interface TrackTranscript {
 export interface RoomTranscripts {
   room_sid: string;
   tracks: TrackTranscript[];
+  memo?: string;
+  memoRu?: string;
 }

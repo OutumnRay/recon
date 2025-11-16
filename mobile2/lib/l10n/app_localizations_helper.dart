@@ -82,7 +82,7 @@ class AppLocalizations {
 
   // Filters
   String get filterAll => isRussian ? 'Все' : 'All';
-  String get filterScheduled => isRussian ? 'Запланированные' : 'Scheduled';
+  String get filterScheduled => isRussian ? 'План' : 'Scheduled';
   String get filterInProgress => isRussian ? 'Идут' : 'In Progress';
   String get filterCompleted => isRussian ? 'Завершенные' : 'Completed';
 

@@ -233,7 +233,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF26C6DA),
         elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -252,7 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundColor: const Color(0xFF26C6DA).withOpacity(0.15),
+                          backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
                           child: const Icon(
                             Icons.person,
                             size: 50,
@@ -296,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.dns, color: Color(0xFF26C6DA)),
@@ -420,7 +420,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.language, color: Color(0xFF26C6DA)),
@@ -442,7 +442,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.notifications, color: Color(0xFF26C6DA)),
@@ -466,7 +466,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.security, color: Color(0xFF26C6DA)),
@@ -502,7 +502,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.info_outline, color: Color(0xFF26C6DA)),
@@ -520,7 +520,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                             applicationIcon: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF26C6DA).withOpacity(0.1),
+                                color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: const Icon(Icons.video_call, size: 48, color: Color(0xFF26C6DA)),
@@ -536,7 +536,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.help_outline, color: Color(0xFF26C6DA)),
@@ -560,7 +560,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withOpacity(0.1),
+                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.description_outlined, color: Color(0xFF26C6DA)),

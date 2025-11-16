@@ -68,7 +68,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       Logger.logInfo('Connecting to LiveKit room', data: {
         'url': widget.url,
-        'token': widget.token.substring(0, 20) + '...',
+        'token': '${widget.token.substring(0, 20)}...',
       });
 
       // Create room with options

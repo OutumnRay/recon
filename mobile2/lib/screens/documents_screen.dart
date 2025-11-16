@@ -340,7 +340,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF26C6DA),
         elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -539,7 +539,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
         borderRadius: BorderRadius.circular(16),
       ),
       backgroundColor: Colors.white,
-      selectedColor: const Color(0xFF26C6DA).withOpacity(0.15),
+      selectedColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
       side: BorderSide(
         color: isSelected ? const Color(0xFF26C6DA) : Colors.grey.shade300,
         width: 1.5,

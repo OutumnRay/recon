@@ -287,7 +287,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: const Color(0xFF7C3AED).withOpacity(0.2),
+              color: const Color(0xFF7C3AED).withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(

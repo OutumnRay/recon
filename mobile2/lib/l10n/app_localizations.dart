@@ -158,42 +158,6 @@ abstract class AppLocalizations {
   /// **'Login failed. Please check your credentials.'**
   String get loginError;
 
-  /// No description provided for @welcomeBackTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Welcome back'**
-  String get welcomeBackTitle;
-
-  /// No description provided for @welcomeBackSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in to manage your meetings'**
-  String get welcomeBackSubtitle;
-
-  /// No description provided for @validationUsernameRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter your username'**
-  String get validationUsernameRequired;
-
-  /// No description provided for @validationPasswordRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter your password'**
-  String get validationPasswordRequired;
-
-  /// No description provided for @apiNotConfigured.
-  ///
-  /// In en, this message translates to:
-  /// **'Server URL not configured'**
-  String get apiNotConfigured;
-
-  /// No description provided for @currentServer.
-  ///
-  /// In en, this message translates to:
-  /// **'Connected to'**
-  String get currentServer;
-
   /// No description provided for @meetings.
   ///
   /// In en, this message translates to:
@@ -1537,6 +1501,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown error'**
   String get unknownError;
+
+  /// No description provided for @welcomeBackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get welcomeBackTitle;
+
+  /// No description provided for @welcomeBackSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to manage your meetings'**
+  String get welcomeBackSubtitle;
+
+  /// No description provided for @validationUsernameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your username'**
+  String get validationUsernameRequired;
+
+  /// No description provided for @validationPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your password'**
+  String get validationPasswordRequired;
+
+  /// No description provided for @apiNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL not configured'**
+  String get apiNotConfigured;
+
+  /// No description provided for @currentServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to'**
+  String get currentServer;
 }
 
 class _AppLocalizationsDelegate

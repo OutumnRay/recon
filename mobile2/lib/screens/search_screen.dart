@@ -138,7 +138,7 @@ class _SearchScreenState extends State<SearchScreen>
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF26C6DA),
         elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
       ),
       body: Column(
         children: [
@@ -359,7 +359,7 @@ class _SearchScreenState extends State<SearchScreen>
                                                     .withValues(alpha: 0.15),
                                             side: BorderSide(
                                               color: _getResultColor(result.type)
-                                                  .withOpacity(0.3),
+                                                  .withValues(alpha: 0.3),
                                               width: 1,
                                             ),
                                             shape: RoundedRectangleBorder(
@@ -433,10 +433,10 @@ class _SearchScreenState extends State<SearchScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF26C6DA).withOpacity(0.15),
+          color: const Color(0xFF26C6DA).withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0xFF26C6DA).withOpacity(0.3),
+            color: const Color(0xFF26C6DA).withValues(alpha: 0.3),
             width: 1,
           ),
         ),

@@ -46,6 +46,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
           if (response.statusCode == 200) {
             await _registerPushNotifications(apiClient);
+            if (!mounted) return;
             // Токен валиден - переходим на главную страницу
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(

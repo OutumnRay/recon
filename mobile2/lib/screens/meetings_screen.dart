@@ -9,6 +9,8 @@ import '../widgets/error_display.dart';
 import 'meeting_detail_screen.dart';
 import 'create_meeting_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_card.dart';
 
 class MeetingsScreen extends StatefulWidget {
   final ApiClient apiClient;
@@ -26,7 +28,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   List<MeetingWithDetails>? _meetings;
   bool _isLoading = true;
   String? _error;
-  String _filter = 'scheduled'; // scheduled, in_progress, completed, all
+  String _filter = 'scheduled';
   String? _copiedMeetingId;
 
   @override
@@ -66,14 +68,15 @@ class _MeetingsScreenState extends State<MeetingsScreen>
     } on Exception catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Connection Error:\n${e.toString()}\n\nPlease check:\n• Network connection\n• API server is running\n• You are logged in';
+          _error = 'Connection Error:\n${e.toString()}';
           _isLoading = false;
         });
       }
     } catch (e, stackTrace) {
       if (mounted) {
         setState(() {
-          _error = 'Unexpected Error:\n${e.toString()}\n\nStack Trace:\n${stackTrace.toString().split('\n').take(5).join('\n')}';
+          _error =
+              'Unexpected Error:\n${e.toString()}\n${stackTrace.toString().split('\n').take(3).join('\n')}';
           _isLoading = false;
         });
       }
@@ -101,28 +104,28 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   IconData _getMeetingIcon(String type) {
     switch (type) {
       case 'conference':
-        return Icons.people;
+        return Icons.people_outline_rounded;
       case 'presentation':
         return Icons.present_to_all;
       case 'training':
-        return Icons.school;
+        return Icons.school_outlined;
       default:
-        return Icons.event;
+        return Icons.event_note_outlined;
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
       case 'scheduled':
-        return const Color(0xFF2563EB); // Blue from frontend (primary-700)
+        return AppColors.primary600;
       case 'in_progress':
-        return const Color(0xFF92400E); // Amber/brown from frontend (warning)
+        return AppColors.warning;
       case 'completed':
-        return const Color(0xFF059669); // Green from frontend (success/secondary-700)
+        return AppColors.success;
       case 'cancelled':
-        return const Color(0xFF991B1B); // Red from frontend (error)
+        return AppColors.danger;
       default:
-        return const Color(0xFF6B7280); // Gray default
+        return AppColors.textTertiary;
     }
   }
 
@@ -142,19 +145,153 @@ class _MeetingsScreenState extends State<MeetingsScreen>
     }
   }
 
+  Future<void> _copyAnonymousLink(String meetingId) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      final configService = ConfigService();
+      final apiUrl = await configService.getApiUrl();
+      final baseUrl = apiUrl.replaceAll('/api/v1', '');
+      final anonymousLink = '$baseUrl/meeting/$meetingId/join';
+
+      await Clipboard.setData(ClipboardData(text: anonymousLink));
+
+      if (mounted) {
+        setState(() => _copiedMeetingId = meetingId);
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) setState(() => _copiedMeetingId = null);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.anonymousLinkCopied),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy link: $e'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openMeetingDetails(MeetingWithDetails meeting) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MeetingDetailScreen(meetingId: meeting.id),
+      ),
+    );
+    _loadMeetings();
+  }
+
+  Future<void> _openCreateMeeting() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateMeetingScreen(apiClient: widget.apiClient),
+      ),
+    );
+    if (result == true) {
+      _loadMeetings();
+    }
+  }
+
+  FloatingActionButton _buildFab(AppLocalizations l10n) {
+    return FloatingActionButton.extended(
+      heroTag: 'meetings_fab',
+      onPressed: _openCreateMeeting,
+      backgroundColor: AppColors.primary500,
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.add_rounded),
+      label: Text(l10n.newMeeting),
+    );
+  }
+
+  Widget _buildHeroSection(AppLocalizations l10n) {
+    final total = _meetings?.length ?? 0;
+    final inProgress =
+        _meetings?.where((m) => m.status == 'in_progress').length ?? 0;
+    final scheduled =
+        _meetings?.where((m) => m.status == 'scheduled').length ?? 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GradientHeroCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.meetings,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.loginSubtitle,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatTile(
+                      label: l10n.filterAll,
+                      value: '$total',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatTile(
+                      label: l10n.filterInProgress,
+                      value: '$inProgress',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatTile(
+                      label: l10n.filterScheduled,
+                      value: '$scheduled',
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildFilterChip(l10n.filterAll, 'all'),
+            _buildFilterChip(l10n.filterScheduled, 'scheduled'),
+            _buildFilterChip(l10n.filterInProgress, 'in_progress'),
+            _buildFilterChip(l10n.filterCompleted, 'completed'),
+          ],
+        )
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(l10n.meetings),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF26C6DA),
-        elevation: 1,
-        shadowColor: Colors.black.withValues(alpha: 0.1),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -162,384 +299,322 @@ class _MeetingsScreenState extends State<MeetingsScreen>
             tooltip: l10n.refresh,
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              children: [
-                _buildFilterChip(l10n.filterAll, 'all'),
-                const SizedBox(width: 8),
-                _buildFilterChip(l10n.filterScheduled, 'scheduled'),
-                const SizedBox(width: 8),
-                _buildFilterChip(l10n.filterInProgress, 'in_progress'),
-                const SizedBox(width: 8),
-                _buildFilterChip(l10n.filterCompleted, 'completed'),
-              ],
-            ),
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _loadMeetings,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
+            children: [
+              _buildHeroSection(l10n),
+              const SizedBox(height: 24),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null)
+                FullScreenError(error: _error!, onRetry: _loadMeetings)
+              else if (_meetings == null || _meetings!.isEmpty)
+                _EmptyState(onCreateMeeting: _openCreateMeeting, l10n: l10n)
+              else
+                ..._meetings!.map((m) => _buildMeetingCard(m, context))
+            ],
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? FullScreenError(
-                  error: _error!,
-                  onRetry: _loadMeetings,
-                  title: l10n.failedToLoadMeetings,
-                )
-              : _meetings == null || _meetings!.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+      floatingActionButton: _buildFab(l10n),
+    );
+  }
+
+  Widget _buildMeetingCard(MeetingWithDetails meeting, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isNow = meeting.status == 'in_progress';
+    final canJoin = meeting.status == 'scheduled' || isNow;
+    final hasRecording = meeting.needsVideoRecord || meeting.needsAudioRecord;
+
+    return GestureDetector(
+      onTap: () => _openMeetingDetails(meeting),
+      child: SurfaceCard(
+        margin: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary50,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Icon(
+                    _getMeetingIcon(meeting.type),
+                    color: AppColors.primary600,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Icon(Icons.event_busy,
-                              size: 64, color: Colors.grey.shade400),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.noMeetingsFound,
-                            style: Theme.of(context).textTheme.titleLarge,
+                          Expanded(
+                            child: Text(
+                              meeting.title,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _filter == 'all'
-                                ? l10n.createFirstMeeting
-                                : l10n.tryChangingFilter,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(meeting.status)
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              _getStatusText(meeting.status, context),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: _getStatusColor(meeting.status),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadMeetings,
-                      child: ListView.builder(
-                        itemCount: _meetings!.length,
-                        padding: const EdgeInsets.all(8),
-                        itemBuilder: (context, index) {
-                          final meeting = _meetings![index];
-                          return _buildMeetingCard(meeting, context);
-                        },
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          if (meeting.subjectName != null)
+                            _Pill(text: meeting.subjectName!),
+                          if (meeting.isPermanent)
+                            _Pill(
+                              text: l10n.permanent,
+                              icon: Icons.all_inclusive,
+                            ),
+                          if (meeting.allowAnonymous)
+                            _Pill(
+                              text: l10n.allowsAnonymousJoin,
+                              icon: Icons.visibility_off_outlined,
+                            ),
+                          if (meeting.needsVideoRecord)
+                            _Pill(text: l10n.meetingVideoRecord, icon: Icons.videocam),
+                          if (meeting.needsAudioRecord)
+                            _Pill(text: l10n.meetingAudioRecord, icon: Icons.mic_none),
+                        ],
                       ),
-                    ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'meetings_fab',
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CreateMeetingScreen(
-                apiClient: widget.apiClient,
-              ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          );
-
-          // Reload meetings if a meeting was created
-          if (result == true) {
-            _loadMeetings();
-          }
-        },
-        backgroundColor: const Color(0xFF26C6DA),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  _formatDateTime(meeting.scheduledAt, context),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.schedule, size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Text('${meeting.duration} ${l10n.minutes}'),
+                const SizedBox(width: 12),
+                Icon(Icons.people_outline, size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Text('${meeting.participants.length} ${l10n.meetingParticipants}')
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _openMeetingDetails(meeting),
+                  icon: const Icon(Icons.info_outline),
+                  label: Text(l10n.meetingDetailsTitle),
+                ),
+                if (meeting.allowAnonymous)
+                  OutlinedButton.icon(
+                    onPressed: () => _copyAnonymousLink(meeting.id),
+                    icon: Icon(
+                      _copiedMeetingId == meeting.id
+                          ? Icons.check
+                          : Icons.link_outlined,
+                    ),
+                    label: Text(
+                      _copiedMeetingId == meeting.id
+                          ? l10n.linkCopied
+                          : l10n.copyLink,
+                    ),
+                  ),
+                if (canJoin)
+                  ElevatedButton.icon(
+                    onPressed: () => _openMeetingDetails(meeting),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: Text(l10n.joinMeeting),
+                  ),
+                if (hasRecording)
+                  TextButton.icon(
+                    onPressed: () => _openMeetingDetails(meeting),
+                    icon: const Icon(Icons.video_library_outlined),
+                    label: Text(l10n.recordingOptions),
+                  ),
+              ],
+            ),
+          ],
         ),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.newMeeting),
       ),
     );
   }
 
   Widget _buildFilterChip(String label, String value) {
     final isSelected = _filter == value;
-    return FilterChip(
+    return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {
         if (selected) {
-          setState(() {
-            _filter = value;
-          });
+          setState(() => _filter = value);
           _loadMeetings();
         }
       },
-      showCheckmark: false,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      backgroundColor: Colors.white,
-      selectedColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
-      side: BorderSide(
-        color: isSelected ? const Color(0xFF26C6DA) : Colors.grey.shade300,
-        width: 1.5,
-      ),
       labelStyle: TextStyle(
-        color: isSelected ? const Color(0xFF00ACC1) : Colors.grey.shade700,
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        color: isSelected ? AppColors.primary600 : AppColors.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
+      side: BorderSide(
+        color: isSelected ? AppColors.primary200 : AppColors.border,
+      ),
+      selectedColor: AppColors.primary50,
+      backgroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatTile({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Future<void> _copyAnonymousLink(String meetingId) async {
-    final l10n = AppLocalizations.of(context)!;
+class _Pill extends StatelessWidget {
+  final String text;
+  final IconData? icon;
 
-    try {
-      final configService = ConfigService();
-      final apiUrl = await configService.getApiUrl();
-      // Remove /api/v1 from the API URL to get base URL
-      final baseUrl = apiUrl.replaceAll('/api/v1', '');
-      final anonymousLink = '$baseUrl/meeting/$meetingId/join';
+  const _Pill({required this.text, this.icon});
 
-      await Clipboard.setData(ClipboardData(text: anonymousLink));
-
-      if (mounted) {
-        setState(() {
-          _copiedMeetingId = meetingId;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.anonymousLinkCopied),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: AppColors.textSecondary),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
-        );
-
-        // Reset copied state after 2 seconds
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() {
-              _copiedMeetingId = null;
-            });
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to copy link: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+        ],
+      ),
+    );
   }
+}
 
-  Widget _buildMeetingCard(MeetingWithDetails meeting, BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final totalParticipants = meeting.participants.length;
-    final onlineParticipants = meeting.activeParticipantsCount;
-    final anonymousGuests = meeting.anonymousGuestsCount;
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onCreateMeeting;
+  final AppLocalizations l10n;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 2,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MeetingDetailScreen(meetingId: meeting.id),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row with icon, title, and status badge
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
-                    child: Icon(
-                      _getMeetingIcon(meeting.type),
-                      color: const Color(0xFF00ACC1),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          meeting.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _formatDateTime(meeting.scheduledAt, context),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Status or Permanent badge
-                  if (meeting.isPermanent || meeting.recurrence == 'permanent')
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7C3AED),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.all_inclusive, size: 12, color: Colors.white),
-                          const SizedBox(width: 4),
-                          Text(
-                            l10n.permanent,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(meeting.status).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _getStatusColor(meeting.status).withValues(alpha: 0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        _getStatusText(meeting.status, context),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: _getStatusColor(meeting.status),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Participant info row
-              Row(
-                children: [
-                  Icon(Icons.timer, size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${meeting.duration} ${l10n.minutes}',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.people, size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    l10n.participantsSummary(totalParticipants, onlineParticipants),
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-              // Online indicators
-              if (onlineParticipants > 0 || (meeting.allowAnonymous && anonymousGuests > 0)) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 6,
-                  children: [
-                    if (onlineParticipants > 0)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF059669),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            l10n.onlineCount(onlineParticipants),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF059669),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (meeting.allowAnonymous && anonymousGuests > 0)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF2563EB),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            l10n.anonymousGuestsCount(anonymousGuests),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF2563EB),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ],
-              // Anonymous link copy button
-              if (meeting.allowAnonymous) ...[
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () => _copyAnonymousLink(meeting.id),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _copiedMeetingId == meeting.id
-                        ? const Color(0xFF059669)
-                        : const Color(0xFF26C6DA),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
-                  icon: Icon(
-                    _copiedMeetingId == meeting.id ? Icons.check : Icons.link,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _copiedMeetingId == meeting.id ? l10n.linkCopied : l10n.copyLink,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ],
+  const _EmptyState({required this.onCreateMeeting, required this.l10n});
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        children: [
+          const Icon(Icons.event_busy, size: 48, color: AppColors.textTertiary),
+          const SizedBox(height: 12),
+          Text(
+            l10n.noMeetingsFound,
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.createFirstMeeting,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: onCreateMeeting,
+            icon: const Icon(Icons.add_rounded),
+            label: Text(l10n.createMeeting),
+          )
+        ],
       ),
     );
   }

@@ -39,24 +39,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginError => 'Login failed. Please check your credentials.';
 
   @override
-  String get welcomeBackTitle => 'Welcome back';
-
-  @override
-  String get welcomeBackSubtitle => 'Sign in to manage your meetings';
-
-  @override
-  String get validationUsernameRequired => 'Please enter your username';
-
-  @override
-  String get validationPasswordRequired => 'Please enter your password';
-
-  @override
-  String get apiNotConfigured => 'Server URL not configured';
-
-  @override
-  String get currentServer => 'Connected to';
-
-  @override
   String get meetings => 'Meetings';
 
   @override
@@ -756,4 +738,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unknownError => 'Unknown error';
+
+  @override
+  String get welcomeBackTitle => 'Welcome back';
+
+  @override
+  String get welcomeBackSubtitle => 'Sign in to manage your meetings';
+
+  @override
+  String get validationUsernameRequired => 'Please enter your username';
+
+  @override
+  String get validationPasswordRequired => 'Please enter your password';
+
+  @override
+  String get apiNotConfigured => 'Server URL not configured';
+
+  @override
+  String get currentServer => 'Connected to';
 }

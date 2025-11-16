@@ -81,7 +81,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -91,7 +91,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onItemTapped,
           backgroundColor: Colors.white,
-          indicatorColor: const Color(0xFF26C6DA).withOpacity(0.15),
+          indicatorColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
           height: 70,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [

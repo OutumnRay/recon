@@ -416,10 +416,20 @@
     "transcriptComingSoon": "Transcript feature will be available soon. This will include automatic transcription of the meeting with speaker identification.",
     "memoComingSoon": "Memo feature will be available soon. This will include automatic summaries, action items, and key decisions from the meeting.",
     "forceTranscribe": "Transcribe",
+    "retryTranscribe": "Retry Transcription",
     "transcribing": "Transcribing...",
     "transcribed": "Track transcribed",
     "noTranscription": "No transcription available",
-    "transcriptionAvailable": "Transcription available for {{count}} tracks"
+    "transcriptionAvailable": "Transcription available for {{count}} tracks",
+    "memoNotAvailable": "Memo is not yet available for this recording",
+    "status": {
+      "scheduled": "Scheduled",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "finished": "Finished",
+      "recording": "Recording"
+    }
   },
   "mediaSettings": {
     "title": "Video & audio settings",

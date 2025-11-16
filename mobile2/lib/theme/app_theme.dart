@@ -44,7 +44,6 @@ class AppTheme {
       primary: AppColors.primary500,
       secondary: AppColors.secondary500,
       surface: AppColors.surface,
-      background: AppColors.surface,
     );
 
     return ThemeData(
@@ -64,7 +63,7 @@ class AppTheme {
           color: AppColors.textPrimary,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         color: Colors.white,
         elevation: 0,

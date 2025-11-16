@@ -296,7 +296,7 @@ class CreateMeetingRequest {
     // Backend expects format: "2025-01-15T10:00:00Z"
     final utcTime = scheduledAt.toUtc();
     // Remove milliseconds and ensure Z suffix
-    final formattedTime = utcTime.toIso8601String().split('.').first + 'Z';
+    final formattedTime = '${utcTime.toIso8601String().split('.').first}Z';
 
     return {
       'title': title,

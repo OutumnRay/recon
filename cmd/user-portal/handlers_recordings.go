@@ -249,6 +249,8 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 type RoomTranscriptsResponse struct {
 	RoomSID      string                        `json:"room_sid"`
 	Tracks       []TrackTranscriptInfo         `json:"tracks"`
+	Memo         string                        `json:"memo,omitempty"`
+	MemoRu       string                        `json:"memoRu,omitempty"`
 }
 
 // TrackTranscriptInfo представляет транскрипцию трека
@@ -365,6 +367,8 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 	response := RoomTranscriptsResponse{
 		RoomSID: roomSID,
 		Tracks:  []TrackTranscriptInfo{},
+		Memo:    room.Memo,
+		MemoRu:  room.MemoRu,
 	}
 
 	for trackID, phrases := range transcriptionsMap {

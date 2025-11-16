@@ -412,11 +412,11 @@ func (tn *TranscriptionNotifier) generateAndSaveMemo(roomSID string, meetingID u
 	dialogue := dialogueBuilder.String()
 	tn.up.logger.Infof("📝 [MEMO GENERATION] Built dialogue with %d phrases, length: %d chars", len(timedPhrases), len(dialogue))
 
-	// Generate memo using LLM
+	// Generate memo using LLM (English)
 	messages := []llm.Message{
 		{
 			Role:    "system",
-			Content: "You are a professional meeting assistant. Create a concise meeting memo based on the transcript provided. Include: 1) Main topics discussed, 2) Key decisions made, 3) Action items (if any), 4) Important conclusions. Format the memo in a clear, structured way.",
+			Content: "You are a professional meeting assistant. Summarize the whole dialogue naturally and concisely. Highlight the key points discussed and any action items or tasks if necessary. Write in a clear, readable format without forcing a specific structure. Write in English.",
 		},
 		{
 			Role:    "user",
@@ -424,23 +424,47 @@ func (tn *TranscriptionNotifier) generateAndSaveMemo(roomSID string, meetingID u
 		},
 	}
 
-	tn.up.logger.Info("📝 [MEMO GENERATION] Calling LLM API...")
+	tn.up.logger.Info("📝 [MEMO GENERATION] Calling LLM API for English memo...")
 	memo, err := tn.llmClient.GenerateChatCompletion(messages)
 	if err != nil {
 		return fmt.Errorf("failed to generate memo: %w", err)
 	}
 
-	tn.up.logger.Infof("📝 [MEMO GENERATION] Generated memo, length: %d chars", len(memo))
+	tn.up.logger.Infof("📝 [MEMO GENERATION] Generated English memo, length: %d chars", len(memo))
 
-	// Save memo to room
-	err = tn.up.db.DB.Model(&database.LiveKitRoom{}).
-		Where("sid = ?", roomSID).
-		Update("memo", memo).Error
-	if err != nil {
-		return fmt.Errorf("failed to save memo: %w", err)
+	// Generate Russian translation
+	messagesRu := []llm.Message{
+		{
+			Role:    "system",
+			Content: "Ты профессиональный помощник по ведению совещаний. Создай естественное и краткое резюме всего диалога. Выдели ключевые моменты обсуждения и любые задачи или действия, если они есть. Пиши в ясном, читаемом формате без навязывания конкретной структуры. Пиши на русском языке.",
+		},
+		{
+			Role:    "user",
+			Content: dialogue,
+		},
 	}
 
-	tn.up.logger.Infof("📝 [MEMO GENERATION] Saved memo to room %s", roomSID)
+	tn.up.logger.Info("📝 [MEMO GENERATION] Calling LLM API for Russian memo...")
+	memoRu, err := tn.llmClient.GenerateChatCompletion(messagesRu)
+	if err != nil {
+		tn.up.logger.Infof("⚠️ [MEMO GENERATION] Failed to generate Russian memo: %v", err)
+		memoRu = "" // Fallback to empty if Russian generation fails
+	} else {
+		tn.up.logger.Infof("📝 [MEMO GENERATION] Generated Russian memo, length: %d chars", len(memoRu))
+	}
+
+	// Save both memos to room
+	err = tn.up.db.DB.Model(&database.LiveKitRoom{}).
+		Where("sid = ?", roomSID).
+		Updates(map[string]interface{}{
+			"memo":    memo,
+			"memo_ru": memoRu,
+		}).Error
+	if err != nil {
+		return fmt.Errorf("failed to save memos: %w", err)
+	}
+
+	tn.up.logger.Infof("📝 [MEMO GENERATION] Saved memos to room %s", roomSID)
 
 	// Send push notification about memo completion
 	if tn.fcmService != nil {

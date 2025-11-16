@@ -61,7 +61,7 @@
   "statusCancelled": "Отменена",
 
   "filterAll": "Все",
-  "filterScheduled": "Запланированные",
+  "filterScheduled": "План",
   "filterInProgress": "Идут",
   "filterCompleted": "Завершенные",
 
