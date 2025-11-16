@@ -8,7 +8,6 @@ import '../services/config_service.dart';
 import '../services/locale_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
-import '../widgets/app_card.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -116,31 +115,34 @@ class _SettingsScreenState extends State<SettingsScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Row(
           children: [
-            const Icon(Icons.logout, color: Colors.red),
+            const Icon(Icons.logout, color: AppColors.danger),
             const SizedBox(width: 8),
             Text(
               l10n.logout,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
           ],
         ),
-        content: Text(l10n.logoutConfirm),
+        content: Text(
+          l10n.logoutConfirm,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF26C6DA),
+              foregroundColor: AppColors.primary500,
             ),
             child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              backgroundColor: AppColors.danger,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
             child: Text(l10n.logout),
           ),
@@ -183,26 +185,26 @@ class _SettingsScreenState extends State<SettingsScreen>
     final selected = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           l10n.changeLanguage,
-          style: const TextStyle(color: Color(0xFF26C6DA), fontWeight: FontWeight.bold),
+          style: const TextStyle(color: AppColors.primary500, fontWeight: FontWeight.bold),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<String>(
-              title: Text(l10n.english),
+              title: Text(l10n.english, style: const TextStyle(color: AppColors.textPrimary)),
               value: 'en',
               groupValue: localeService.locale.languageCode,
-              activeColor: const Color(0xFF26C6DA),
+              activeColor: AppColors.primary500,
               onChanged: (value) => Navigator.pop(context, value),
             ),
             RadioListTile<String>(
-              title: Text(l10n.russian),
+              title: Text(l10n.russian, style: const TextStyle(color: AppColors.textPrimary)),
               value: 'ru',
               groupValue: localeService.locale.languageCode,
-              activeColor: const Color(0xFF26C6DA),
+              activeColor: AppColors.primary500,
               onChanged: (value) => Navigator.pop(context, value),
             ),
           ],
@@ -211,7 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF26C6DA),
+              foregroundColor: AppColors.primary500,
             ),
             child: Text(l10n.cancel),
           ),
@@ -230,89 +232,118 @@ class _SettingsScreenState extends State<SettingsScreen>
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(l10n.settingsTitle),
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF26C6DA),
-        elevation: 1,
-        shadowColor: Colors.black.withValues(alpha: 0.1),
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
                 // User Profile Section
-                Card(
+                Container(
                   margin: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24), // radius-xl
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 30,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                    border: Border.all(color: AppColors.border),
                   ),
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.15),
-                          child: const Icon(
-                            Icons.person,
-                            size: 50,
-                            color: Color(0xFF00ACC1),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: AppColors.primary50,
+                        child: const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: AppColors.primary500,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _username ?? l10n.unknownUser,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _email ?? '',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary50,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.primary200),
+                        ),
+                        child: Text(
+                          _getRoleDisplayName(_role),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primary600,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _username ?? l10n.unknownUser,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _email ?? '',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Chip(
-                          label: Text(_getRoleDisplayName(_role)),
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .secondaryContainer,
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
 
                 // Server Configuration Section
-                Card(
+                Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24), // radius-xl
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 30,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                    border: Border.all(color: AppColors.border),
                   ),
-                  elevation: 2,
                   child: Column(
                     children: [
                       ListTile(
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                            color: AppColors.primary50,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.dns, color: Color(0xFF26C6DA)),
+                          child: const Icon(Icons.dns, color: AppColors.primary500),
                         ),
                         title: Text(
                           l10n.serverConfiguration,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                         ),
                         subtitle: Text(
                           _currentApiUrl,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: AppColors.textSecondary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -321,7 +352,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           _showApiConfig
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
-                          color: const Color(0xFF26C6DA),
+                          color: AppColors.primary500,
                         ),
                         onTap: () {
                           setState(() {
@@ -343,19 +374,20 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   labelText: l10n.apiUrl,
                                   hintText: 'https://portal.recontext.online',
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(14), // radius-lg
+                                    borderSide: const BorderSide(color: AppColors.border),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(color: AppColors.border),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: const BorderSide(color: Color(0xFF26C6DA), width: 2),
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(color: AppColors.primary400, width: 2),
                                   ),
                                   filled: true,
-                                  fillColor: Colors.white,
-                                  prefixIcon: const Icon(Icons.link, color: Color(0xFF26C6DA)),
+                                  fillColor: AppColors.surfaceMuted,
+                                  prefixIcon: const Icon(Icons.link, color: AppColors.primary500),
                                 ),
                                 keyboardType: TextInputType.url,
                               ),
@@ -369,11 +401,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                                             _configService.getDefaultApiUrl();
                                       },
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFF26C6DA),
-                                        side: const BorderSide(color: Color(0xFF26C6DA), width: 1.5),
+                                        foregroundColor: AppColors.primary500,
+                                        side: const BorderSide(color: AppColors.primary500, width: 1.5),
                                         padding: const EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(14),
                                         ),
                                       ),
                                       child: Text(l10n.defaultButton),
@@ -384,10 +416,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     child: FilledButton(
                                       onPressed: _saveApiUrl,
                                       style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(0xFF26C6DA),
+                                        backgroundColor: AppColors.primary500,
                                         padding: const EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(14),
                                         ),
                                       ),
                                       child: Text(l10n.save),
@@ -398,9 +430,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                               const SizedBox(height: 8),
                               Text(
                                 l10n.restartNote,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
-                                  color: Colors.orange[700],
+                                  color: AppColors.warning,
                                 ),
                               ),
                             ],
@@ -411,33 +443,42 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
 
                 // App Settings Section
-                Card(
+                Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24), // radius-xl
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 30,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                    border: Border.all(color: AppColors.border),
                   ),
-                  elevation: 2,
                   child: Column(
                     children: [
                       ListTile(
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                            color: AppColors.primary50,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.language, color: Color(0xFF26C6DA)),
+                          child: const Icon(Icons.language, color: AppColors.primary500),
                         ),
                         title: Text(
                           AppLocalizations.of(context)!.language,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                         ),
                         subtitle: Text(
                           Provider.of<LocaleService>(context).isRussian
                               ? AppLocalizations.of(context)!.russian
                               : AppLocalizations.of(context)!.english,
+                          style: const TextStyle(color: AppColors.textSecondary),
                         ),
-                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.primary500),
                         onTap: () => _showLanguageDialog(),
                       ),
                       const Divider(height: 1, indent: 72, endIndent: 16),
@@ -445,21 +486,21 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                            color: AppColors.primary50,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.notifications, color: Color(0xFF26C6DA)),
+                          child: const Icon(Icons.notifications, color: AppColors.primary500),
                         ),
                         title: Text(
                           l10n.notifications,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                         ),
-                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.primary500),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.notificationsComingSoon),
-                              backgroundColor: const Color(0xFF26C6DA),
+                              backgroundColor: AppColors.primary500,
                             ),
                           );
                         },
@@ -469,21 +510,21 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                            color: AppColors.primary50,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.security, color: Color(0xFF26C6DA)),
+                          child: const Icon(Icons.security, color: AppColors.primary500),
                         ),
                         title: Text(
                           l10n.privacySecurity,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                         ),
-                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.primary500),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.privacyComingSoon),
-                              backgroundColor: const Color(0xFF26C6DA),
+                              backgroundColor: AppColors.primary500,
                             ),
                           );
                         },
@@ -493,28 +534,36 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
 
                 // About Section
-                Card(
+                Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24), // radius-xl
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 30,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                    border: Border.all(color: AppColors.border),
                   ),
-                  elevation: 2,
                   child: Column(
                     children: [
                       ListTile(
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                            color: AppColors.primary50,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.info_outline, color: Color(0xFF26C6DA)),
+                          child: const Icon(Icons.info_outline, color: AppColors.primary500),
                         ),
                         title: Text(
                           l10n.about,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                         ),
-                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.primary500),
                         onTap: () {
                           showAboutDialog(
                             context: context,
@@ -523,10 +572,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                             applicationIcon: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                                color: AppColors.primary50,
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child: const Icon(Icons.video_call, size: 48, color: Color(0xFF26C6DA)),
+                              child: const Icon(Icons.video_call, size: 48, color: AppColors.primary500),
                             ),
                             children: [
                               Text(l10n.appDescription),
@@ -539,21 +588,21 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                            color: AppColors.primary50,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.help_outline, color: Color(0xFF26C6DA)),
+                          child: const Icon(Icons.help_outline, color: AppColors.primary500),
                         ),
                         title: Text(
                           l10n.helpSupport,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                         ),
-                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.primary500),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.helpComingSoon),
-                              backgroundColor: const Color(0xFF26C6DA),
+                              backgroundColor: AppColors.primary500,
                             ),
                           );
                         },
@@ -563,21 +612,21 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                            color: AppColors.primary50,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.description_outlined, color: Color(0xFF26C6DA)),
+                          child: const Icon(Icons.description_outlined, color: AppColors.primary500),
                         ),
                         title: Text(
                           l10n.termsConditions,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                         ),
-                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF26C6DA)),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.primary500),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.termsComingSoon),
-                              backgroundColor: const Color(0xFF26C6DA),
+                              backgroundColor: AppColors.primary500,
                             ),
                           );
                         },
@@ -601,11 +650,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                         style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                       ),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red, width: 2),
+                        foregroundColor: AppColors.danger,
+                        side: const BorderSide(color: AppColors.danger, width: 2),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14), // radius-lg
                         ),
                       ),
                     ),
@@ -618,18 +667,20 @@ class _SettingsScreenState extends State<SettingsScreen>
                 Center(
                   child: Text(
                     '${l10n.version} 1.0.0',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textTertiary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
                     l10n.allRightsReserved,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textTertiary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),

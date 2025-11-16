@@ -227,13 +227,14 @@ func (mp *ManagingPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		Token:     token,
 		ExpiresAt: expiresAt,
 		User: models.UserInfo{
-			ID:           user.ID,
-			Username:     user.Username,
-			Email:        user.Email,
-			Role:         user.Role,
-			DepartmentID: user.DepartmentID,
-			Permissions:  user.Permissions,
-			Language:     user.Language,
+			ID:             user.ID,
+			Username:       user.Username,
+			Email:          user.Email,
+			Role:           user.Role,
+			OrganizationID: user.OrganizationID,
+			DepartmentID:   user.DepartmentID,
+			Permissions:    user.Permissions,
+			Language:       user.Language,
 		},
 	}
 
@@ -321,13 +322,14 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 	}()
 
 	userInfo := models.UserInfo{
-		ID:           newUser.ID,
-		Username:     newUser.Username,
-		Email:        newUser.Email,
-		Role:         newUser.Role,
-		DepartmentID: newUser.DepartmentID,
-		Permissions:  newUser.Permissions,
-		Language:     newUser.Language,
+		ID:             newUser.ID,
+		Username:       newUser.Username,
+		Email:          newUser.Email,
+		Role:           newUser.Role,
+		OrganizationID: newUser.OrganizationID,
+		DepartmentID:   newUser.DepartmentID,
+		Permissions:    newUser.Permissions,
+		Language:       newUser.Language,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -702,6 +704,45 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 				mp.updateDepartmentHandler(w, r)
 			case http.MethodDelete:
 				mp.deleteDepartmentHandler(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+		adminMiddleware,
+	))
+
+	// Organization management endpoints (admin only)
+	mux.Handle("/api/v1/organizations", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				mp.GetOrganizationsHandler(w, r)
+			} else if r.Method == http.MethodPost {
+				mp.CreateOrganizationHandler(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+		adminMiddleware,
+	))
+
+	mux.Handle("/api/v1/organizations/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Check if this is a stats request
+			if strings.HasSuffix(r.URL.Path, "/stats") && r.Method == http.MethodGet {
+				mp.GetOrganizationStatsHandler(w, r)
+				return
+			}
+
+			// Handle single organization operations
+			switch r.Method {
+			case http.MethodGet:
+				mp.GetOrganizationHandler(w, r)
+			case http.MethodPut:
+				mp.UpdateOrganizationHandler(w, r)
+			case http.MethodDelete:
+				mp.DeleteOrganizationHandler(w, r)
 			default:
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}

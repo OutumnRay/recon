@@ -96,6 +96,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meetingAudioRecord => 'Audio Recording';
 
   @override
+  String get meetingTranscription =>
+      'Transcription (recording individual tracks)';
+
+  @override
+  String get meetingForceEndAtDuration => 'Force end after time elapses';
+
+  @override
+  String get meetingAllowAnonymous => 'Allow anonymous members';
+
+  @override
   String get recordingOptions => 'Recording Options';
 
   @override
@@ -335,7 +345,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get documentsTitle => 'Documents';
 
   @override
-  String get documentsSubtitle => 'Browse, filter, and download your meeting files';
+  String get documentsSubtitle =>
+      'Browse, filter, and download your meeting files';
 
   @override
   String get noDocumentsFound => 'No documents found';

@@ -36,12 +36,14 @@ export interface CreateDepartmentRequest {
   name: string;
   description?: string;
   parent_id?: string;
+  organization_id?: string;
 }
 
 export interface UpdateDepartmentRequest {
   name?: string;
   description?: string;
   parent_id?: string;
+  organization_id?: string;
   is_active?: boolean;
 }
 

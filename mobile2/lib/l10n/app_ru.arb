@@ -33,6 +33,9 @@
   "meetingNotes": "Дополнительные заметки",
   "meetingVideoRecord": "Видеозапись",
   "meetingAudioRecord": "Аудиозапись",
+  "meetingTranscription": "Транскрипция (запись отдельных дорожек)",
+  "meetingForceEndAtDuration": "Принудительное завершение по истечении времени",
+  "meetingAllowAnonymous": "Разрешить анонимных участников",
   "recordingOptions": "Настройки записи",
 
   "typeConference": "Конференция",

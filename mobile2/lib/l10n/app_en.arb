@@ -36,6 +36,9 @@
   "meetingNotes": "Additional Notes",
   "meetingVideoRecord": "Video Recording",
   "meetingAudioRecord": "Audio Recording",
+  "meetingTranscription": "Transcription (recording individual tracks)",
+  "meetingForceEndAtDuration": "Force end after time elapses",
+  "meetingAllowAnonymous": "Allow anonymous members",
   "recordingOptions": "Recording Options",
 
   "typeConference": "Conference",

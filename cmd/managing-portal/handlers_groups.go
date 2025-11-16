@@ -91,12 +91,13 @@ func (mp *ManagingPortal) createGroupHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	group := &models.UserGroup{
-		ID:          uuid.New(),
-		Name:        req.Name,
-		Description: req.Description,
-		Permissions: req.Permissions,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:             uuid.New(),
+		Name:           req.Name,
+		Description:    req.Description,
+		Permissions:    req.Permissions,
+		OrganizationID: req.OrganizationID,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	if err := mp.groupRepo.Create(group); err != nil {
@@ -148,6 +149,9 @@ func (mp *ManagingPortal) updateGroupHandler(w http.ResponseWriter, r *http.Requ
 	}
 	if req.Permissions != nil {
 		group.Permissions = req.Permissions
+	}
+	if req.OrganizationID != nil {
+		group.OrganizationID = req.OrganizationID
 	}
 
 	if err := mp.groupRepo.Update(group); err != nil {

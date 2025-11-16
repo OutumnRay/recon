@@ -1150,6 +1150,43 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
+	// Organizations endpoints
+	mux.Handle("/api/v1/organizations", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				up.GetOrganizationsHandler(w, r)
+			} else if r.Method == http.MethodPost {
+				up.CreateOrganizationHandler(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/organizations/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Check if this is a stats request
+			if strings.HasSuffix(r.URL.Path, "/stats") && r.Method == http.MethodGet {
+				up.GetOrganizationStatsHandler(w, r)
+				return
+			}
+
+			// Handle single organization operations
+			switch r.Method {
+			case http.MethodGet:
+				up.GetOrganizationHandler(w, r)
+			case http.MethodPut:
+				up.UpdateOrganizationHandler(w, r)
+			case http.MethodDelete:
+				up.DeleteOrganizationHandler(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+	))
+
 	// Serve uploaded avatars
 	avatarsFS := http.FileServer(http.Dir("uploads"))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", avatarsFS))

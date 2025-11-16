@@ -22,15 +22,16 @@ func NewUserRepository(db *DB) *UserRepository {
 func (r *UserRepository) Create(user *models.User) error {
 	// Convert API model to DB model
 	dbUser := &User{
-		ID:           user.ID,
-		Username:     user.Username,
-		Email:        user.Email,
-		Password:     user.Password,
-		Role:         string(user.Role),
-		Language:     user.Language,
-		IsActive:     user.IsActive,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
+		ID:             user.ID,
+		Username:       user.Username,
+		Email:          user.Email,
+		Password:       user.Password,
+		Role:           string(user.Role),
+		OrganizationID: user.OrganizationID,
+		Language:       user.Language,
+		IsActive:       user.IsActive,
+		CreatedAt:      user.CreatedAt,
+		UpdatedAt:      user.UpdatedAt,
 	}
 
 	// Convert UUID slice to string slice for groups
@@ -82,16 +83,17 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 
 	// Convert database model to API model
 	user := &models.User{
-		ID:        dbUser.ID,
-		Username:  dbUser.Username,
-		Email:     dbUser.Email,
-		Password:  dbUser.Password,
-		Role:      models.UserRole(dbUser.Role),
-		Language:  dbUser.Language,
-		IsActive:  dbUser.IsActive,
-		LastLogin: dbUser.LastLogin,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
+		ID:             dbUser.ID,
+		Username:       dbUser.Username,
+		Email:          dbUser.Email,
+		Password:       dbUser.Password,
+		Role:           models.UserRole(dbUser.Role),
+		OrganizationID: dbUser.OrganizationID,
+		Language:       dbUser.Language,
+		IsActive:       dbUser.IsActive,
+		LastLogin:      dbUser.LastLogin,
+		CreatedAt:      dbUser.CreatedAt,
+		UpdatedAt:      dbUser.UpdatedAt,
 	}
 
 	// Convert string slice to UUID slice for groups
@@ -139,16 +141,17 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 
 	// Convert database model to API model
 	user := &models.User{
-		ID:        dbUser.ID,
-		Username:  dbUser.Username,
-		Email:     dbUser.Email,
-		Password:  dbUser.Password,
-		Role:      models.UserRole(dbUser.Role),
-		Language:  dbUser.Language,
-		IsActive:  dbUser.IsActive,
-		LastLogin: dbUser.LastLogin,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
+		ID:             dbUser.ID,
+		Username:       dbUser.Username,
+		Email:          dbUser.Email,
+		Password:       dbUser.Password,
+		Role:           models.UserRole(dbUser.Role),
+		OrganizationID: dbUser.OrganizationID,
+		Language:       dbUser.Language,
+		IsActive:       dbUser.IsActive,
+		LastLogin:      dbUser.LastLogin,
+		CreatedAt:      dbUser.CreatedAt,
+		UpdatedAt:      dbUser.UpdatedAt,
 	}
 
 	// Convert string slice to UUID slice for groups
@@ -180,16 +183,17 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 
 	// Convert database model to API model
 	user := &models.User{
-		ID:        dbUser.ID,
-		Username:  dbUser.Username,
-		Email:     dbUser.Email,
-		Password:  dbUser.Password,
-		Role:      models.UserRole(dbUser.Role),
-		Language:  dbUser.Language,
-		IsActive:  dbUser.IsActive,
-		LastLogin: dbUser.LastLogin,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
+		ID:             dbUser.ID,
+		Username:       dbUser.Username,
+		Email:          dbUser.Email,
+		Password:       dbUser.Password,
+		Role:           models.UserRole(dbUser.Role),
+		OrganizationID: dbUser.OrganizationID,
+		Language:       dbUser.Language,
+		IsActive:       dbUser.IsActive,
+		LastLogin:      dbUser.LastLogin,
+		CreatedAt:      dbUser.CreatedAt,
+		UpdatedAt:      dbUser.UpdatedAt,
 	}
 
 	// Convert string slice to UUID slice for groups
@@ -279,12 +283,13 @@ func (r *UserRepository) Update(user *models.User) error {
 
 	// Convert API model to DB model updates
 	updates := map[string]interface{}{
-		"email":      user.Email,
-		"password":   user.Password,
-		"role":       string(user.Role),
-		"language":   user.Language,
-		"is_active":  user.IsActive,
-		"updated_at": user.UpdatedAt,
+		"email":           user.Email,
+		"password":        user.Password,
+		"role":            string(user.Role),
+		"organization_id": user.OrganizationID,
+		"language":        user.Language,
+		"is_active":       user.IsActive,
+		"updated_at":      user.UpdatedAt,
 	}
 
 	// Convert UUID slice to string slice for groups

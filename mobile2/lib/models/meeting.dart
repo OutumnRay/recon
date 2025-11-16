@@ -271,6 +271,9 @@ class CreateMeetingRequest {
   final String subjectId;
   final bool needsVideoRecord;
   final bool needsAudioRecord;
+  final bool needsTranscription;
+  final bool forceEndAtDuration;
+  final bool allowAnonymous;
   final String? additionalNotes;
   final List<String> participantIds;
   final List<String> departmentIds;
@@ -285,6 +288,9 @@ class CreateMeetingRequest {
     required this.subjectId,
     required this.needsVideoRecord,
     required this.needsAudioRecord,
+    required this.needsTranscription,
+    required this.forceEndAtDuration,
+    required this.allowAnonymous,
     this.additionalNotes,
     required this.participantIds,
     required this.departmentIds,
@@ -307,6 +313,9 @@ class CreateMeetingRequest {
       'subject_id': subjectId,
       'needs_video_record': needsVideoRecord,
       'needs_audio_record': needsAudioRecord,
+      'needs_transcription': needsTranscription,
+      'force_end_at_duration': forceEndAtDuration,
+      'allow_anonymous': allowAnonymous,
       if (additionalNotes != null) 'additional_notes': additionalNotes,
       'participant_ids': participantIds,
       'department_ids': departmentIds,

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuLayoutDashboard, LuUsers, LuBuilding2, LuBuilding, LuBookmark, LuVideo, LuLogOut } from 'react-icons/lu';
+import { LuLayoutDashboard, LuUsers, LuBuilding2, LuBuilding, LuBookmark, LuVideo, LuLogOut, LuLandmark } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import './Layout.css';
 
@@ -76,6 +76,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPath }): ReactE
           </a>
 
           <a
+            href="/organizations"
+            className={`nav-item ${isActive('/organizations')}`}
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/organizations';
+            }}
+          >
+            <span className="nav-icon"><LuLandmark /></span>
+            <span className="nav-label">{t('nav.organizations', 'Organizations')}</span>
+          </a>
+
+          <a
             href="/groups"
             className={`nav-item ${isActive('/groups')}`}
             onClick={(e) => {
@@ -138,6 +150,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPath }): ReactE
             <h2 className="page-current-title">
               {currentPath === '/dashboard' && t('dashboard.title')}
               {currentPath === '/users' && t('users.title')}
+              {currentPath === '/organizations' && t('organizations.title', 'Organizations')}
               {currentPath === '/groups' && t('groups.title')}
               {currentPath === '/departments' && t('departments.title')}
               {currentPath === '/subjects' && t('subjects.title')}

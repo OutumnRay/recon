@@ -28,6 +28,8 @@ type User struct {
 	Bio          string          `json:"bio,omitempty" db:"bio"`
 	// URL аватара или base64 изображение
 	Avatar       string          `json:"avatar,omitempty" db:"avatar"`
+	// Идентификатор организации, к которой принадлежит пользователь
+	OrganizationID *uuid.UUID      `json:"organization_id,omitempty" db:"organization_id"`
 	// Идентификатор отдела, к которому принадлежит пользователь
 	DepartmentID *uuid.UUID      `json:"department_id,omitempty" db:"department_id"`
 	// Идентификаторы групп, к которым принадлежит пользователь
@@ -96,6 +98,8 @@ type UserInfo struct {
 	Email        string          `json:"email" example:"admin@recontext.online"`
 	// Роль пользователя в системе
 	Role         UserRole        `json:"role" example:"admin"`
+	// Идентификатор организации, к которой принадлежит пользователь
+	OrganizationID *uuid.UUID    `json:"organization_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Имя пользователя
 	FirstName    string          `json:"first_name,omitempty" example:"John"`
 	// Фамилия пользователя
@@ -136,6 +140,8 @@ type TokenClaims struct {
 	Username string    `json:"username"`
 	// Роль пользователя
 	Role     UserRole  `json:"role"`
+	// Идентификатор организации пользователя
+	OrganizationID *uuid.UUID `json:"organization_id,omitempty"`
 	// Unix timestamp когда токен был выпущен
 	IssuedAt int64     `json:"iat"`
 	// Unix timestamp когда токен истекает

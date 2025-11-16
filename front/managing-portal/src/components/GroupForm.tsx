@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import './UserForm.css';
 
+interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 interface Group {
   id: string;
   name: string;
   description?: string;
+  organization_id?: string | null;
   permissions?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
@@ -21,12 +28,33 @@ export const GroupForm: React.FC = () => {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [organizationId, setOrganizationId] = useState('');
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
 
   useEffect(() => {
+    loadOrganizations();
     if (isEditMode && id) {
       fetchGroup(id);
     }
   }, [id]);
+
+  const loadOrganizations = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch('/api/v1/organizations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch organizations:', err);
+    }
+  };
 
   const fetchGroup = async (groupId: string) => {
     try {
@@ -45,6 +73,7 @@ export const GroupForm: React.FC = () => {
       const group: Group = await response.json();
       setName(group.name);
       setDescription(group.description || '');
+      setOrganizationId(group.organization_id || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load group');
     } finally {
@@ -71,6 +100,7 @@ export const GroupForm: React.FC = () => {
           body: JSON.stringify({
             name,
             description,
+            organization_id: organizationId || null,
           }),
         });
 
@@ -88,6 +118,8 @@ export const GroupForm: React.FC = () => {
           body: JSON.stringify({
             name,
             description,
+            organization_id: organizationId || null,
+            permissions: {},  // Empty permissions object - required field
           }),
         });
 
@@ -156,6 +188,22 @@ export const GroupForm: React.FC = () => {
               rows={4}
               placeholder="Enter group description (optional)"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="organization">Organization</label>
+            <select
+              id="organization"
+              value={organizationId}
+              onChange={(e) => setOrganizationId(e.target.value)}
+            >
+              <option value="">Select an organization...</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

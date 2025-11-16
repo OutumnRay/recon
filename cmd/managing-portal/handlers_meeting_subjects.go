@@ -36,13 +36,14 @@ func (mp *ManagingPortal) createMeetingSubjectHandler(w http.ResponseWriter, r *
 	}
 
 	subject := &models.MeetingSubject{
-		ID:            uuid.New(),
-		Name:          req.Name,
-		Description:   req.Description,
-		DepartmentIDs: req.DepartmentIDs,
-		IsActive:      true,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
+		ID:             uuid.New(),
+		Name:           req.Name,
+		Description:    req.Description,
+		DepartmentIDs:  req.DepartmentIDs,
+		OrganizationID: req.OrganizationID,
+		IsActive:       true,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	if subject.DepartmentIDs == nil {
@@ -166,6 +167,9 @@ func (mp *ManagingPortal) updateMeetingSubjectHandler(w http.ResponseWriter, r *
 	}
 	if req.IsActive != nil {
 		subject.IsActive = *req.IsActive
+	}
+	if req.OrganizationID != nil {
+		subject.OrganizationID = req.OrganizationID
 	}
 
 	if err := mp.meetingRepo.UpdateSubject(subject); err != nil {

@@ -16,6 +16,8 @@ type UserGroup struct {
 	Description string                 `json:"description" db:"description"`
 	// Динамические разрешения на основе JSON
 	Permissions map[string]interface{} `json:"permissions" db:"permissions"`
+	// ID организации, к которой относится группа
+	OrganizationID *uuid.UUID          `json:"organization_id,omitempty" db:"organization_id"`
 	// Время создания группы
 	CreatedAt   time.Time              `json:"created_at" db:"created_at"`
 	// Время последнего обновления группы
@@ -52,6 +54,8 @@ type CreateGroupRequest struct {
 	Description string                 `json:"description" example:"Users who can edit recordings"`
 	// Разрешения группы
 	Permissions map[string]interface{} `json:"permissions" binding:"required"`
+	// ID организации, к которой относится группа
+	OrganizationID *uuid.UUID          `json:"organization_id"`
 }
 
 // UpdateGroupRequest представляет запрос на обновление группы
@@ -62,6 +66,8 @@ type UpdateGroupRequest struct {
 	Description string                 `json:"description,omitempty"`
 	// Разрешения группы
 	Permissions map[string]interface{} `json:"permissions,omitempty"`
+	// ID организации, к которой относится группа
+	OrganizationID *uuid.UUID          `json:"organization_id"`
 }
 
 // GroupMembership представляет членство пользователя в группе

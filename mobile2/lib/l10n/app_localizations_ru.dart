@@ -97,6 +97,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get meetingAudioRecord => 'Аудиозапись';
 
   @override
+  String get meetingTranscription => 'Транскрипция (запись отдельных дорожек)';
+
+  @override
+  String get meetingForceEndAtDuration =>
+      'Принудительное завершение по истечении времени';
+
+  @override
+  String get meetingAllowAnonymous => 'Разрешить анонимных участников';
+
+  @override
   String get recordingOptions => 'Настройки записи';
 
   @override
@@ -336,7 +346,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get documentsTitle => 'Документы';
 
   @override
-  String get documentsSubtitle => 'Просматривайте, фильтруйте и скачивайте файлы встреч';
+  String get documentsSubtitle =>
+      'Просматривайте, фильтруйте и скачивайте файлы встреч';
 
   @override
   String get noDocumentsFound => 'Документы не найдены';

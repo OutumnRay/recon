@@ -39,11 +39,12 @@ func (m *JWTManager) GenerateToken(user *models.User) (string, time.Time, error)
 	expiresAt := now.Add(m.tokenDuration)
 
 	claims := models.TokenClaims{
-		UserID:    user.ID,
-		Username:  user.Username,
-		Role:      user.Role,
-		IssuedAt:  now.Unix(),
-		ExpiresAt: expiresAt.Unix(),
+		UserID:         user.ID,
+		Username:       user.Username,
+		Role:           user.Role,
+		OrganizationID: user.OrganizationID,
+		IssuedAt:       now.Unix(),
+		ExpiresAt:      expiresAt.Unix(),
 	}
 
 	// Create header

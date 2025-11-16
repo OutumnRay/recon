@@ -45,6 +45,8 @@ type MeetingSubject struct {
 	Description   string       `json:"description" db:"description"`
 	// Отделы, с которыми связана эта тема
 	DepartmentIDs []uuid.UUID  `json:"department_ids" db:"department_ids"`
+	// ID организации, к которой относится тема
+	OrganizationID *uuid.UUID  `json:"organization_id,omitempty" db:"organization_id"`
 	// Активна ли тема
 	IsActive      bool         `json:"is_active" db:"is_active"`
 	// Время создания
@@ -165,6 +167,8 @@ type CreateMeetingSubjectRequest struct {
 	Description   string       `json:"description" example:"Обсуждение технических вопросов разработки"`
 	// Идентификаторы отделов
 	DepartmentIDs []uuid.UUID  `json:"department_ids" example:"[\"550e8400-e29b-41d4-a716-446655440000\"]"`
+	// ID организации, к которой относится тема
+	OrganizationID *uuid.UUID  `json:"organization_id"`
 }
 
 // UpdateMeetingSubjectRequest представляет запрос на обновление темы встречи
@@ -177,6 +181,8 @@ type UpdateMeetingSubjectRequest struct {
 	DepartmentIDs []uuid.UUID  `json:"department_ids" example:"[\"550e8400-e29b-41d4-a716-446655440000\"]"`
 	// Активна ли тема
 	IsActive      *bool        `json:"is_active" example:"true"`
+	// ID организации, к которой относится тема
+	OrganizationID *uuid.UUID  `json:"organization_id"`
 }
 
 // CreateMeetingRequest представляет запрос на создание встречи

@@ -4,6 +4,12 @@ import { meetingSubjectsApi } from '../services/meetingSubjects';
 import type { MeetingSubject } from '../services/meetingSubjects';
 import './UserForm.css';
 
+interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export const MeetingSubjectForm: React.FC = () => {
   const { t } = useTranslation();
 
@@ -17,12 +23,33 @@ export const MeetingSubjectForm: React.FC = () => {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [organizationId, setOrganizationId] = useState('');
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
 
   useEffect(() => {
+    loadOrganizations();
     if (isEditMode && id) {
       fetchSubject(id);
     }
   }, [id]);
+
+  const loadOrganizations = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch('/api/v1/organizations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch organizations:', err);
+    }
+  };
 
   const fetchSubject = async (subjectId: string) => {
     try {
@@ -30,6 +57,7 @@ export const MeetingSubjectForm: React.FC = () => {
       const subject: MeetingSubject = await meetingSubjectsApi.getSubject(subjectId);
       setName(subject.name);
       setDescription(subject.description || '');
+      setOrganizationId(subject.organization_id || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('subjects.errors.loadFailed'));
     } finally {
@@ -49,12 +77,14 @@ export const MeetingSubjectForm: React.FC = () => {
         await meetingSubjectsApi.updateSubject(id!, {
           name,
           description,
+          organization_id: organizationId || null,
         });
       } else {
         // Create subject
         await meetingSubjectsApi.createSubject({
           name,
           description,
+          organization_id: organizationId || null,
         });
       }
 
@@ -117,6 +147,22 @@ export const MeetingSubjectForm: React.FC = () => {
               rows={4}
               placeholder={t('subjects.form.descriptionPlaceholder')}
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="organization">{t('subjects.form.organization', 'Organization')}</label>
+            <select
+              id="organization"
+              value={organizationId}
+              onChange={(e) => setOrganizationId(e.target.value)}
+            >
+              <option value="">{t('subjects.form.selectOrganization', 'Select an organization...')}</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

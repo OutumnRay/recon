@@ -20,6 +20,8 @@ type UpdateUserRequest struct {
 	Bio          string           `json:"bio,omitempty" example:"Software developer"`
 	// URL аватара
 	Avatar       string           `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
+	// Идентификатор организации
+	OrganizationID *uuid.UUID     `json:"organization_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Идентификатор отдела
 	DepartmentID *uuid.UUID       `json:"department_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Список групп

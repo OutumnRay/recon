@@ -177,6 +177,7 @@ func (db *DB) RunMigrations() error {
 	log.Println("→ Running AutoMigrate for all models...")
 
 	dbModels := []interface{}{
+		&Organization{},
 		&Department{},
 		&User{},
 		&Group{},
@@ -360,37 +361,49 @@ func (db *DB) insertDefaultData() error {
 	hashedAdminPassword := auth.HashPassword(adminPassword)
 	hashedUserPassword := auth.HashPassword(userPassword)
 
-	// Insert default root department (UUID will be auto-generated)
-	dept := Department{
-		Name:        "Organization",
-		Description: "Root department",
-		Level:       0,
-		Path:        "Organization",
+	// Insert default Recontext organization (UUID will be auto-generated)
+	org := Organization{
+		Name:        "Recontext",
+		Description: "Default Recontext organization",
 		IsActive:    true,
+		Settings:    `{}`,
+	}
+	db.Where(Organization{Name: org.Name}).FirstOrCreate(&org)
+
+	// Insert default root department with organization link (UUID will be auto-generated)
+	dept := Department{
+		Name:           "Organization",
+		Description:    "Root department",
+		Level:          0,
+		Path:           "Organization",
+		IsActive:       true,
+		OrganizationID: &org.ID,
 	}
 	db.Where(Department{Name: dept.Name}).FirstOrCreate(&dept)
 
-	// Insert default admin user (UUID will be auto-generated)
+	// Insert default admin user with organization link (UUID will be auto-generated)
 	adminUser := User{
-		Username:    "admin",
-		Email:       adminEmail,
-		Password:    hashedAdminPassword,
-		Role:        "admin",
-		IsActive:    true,
-		Language:    "en",
-		Permissions: `{"can_schedule_meetings": true, "can_manage_department": true, "can_approve_recordings": true}`,
+		Username:       "admin",
+		Email:          adminEmail,
+		Password:       hashedAdminPassword,
+		Role:           "admin",
+		IsActive:       true,
+		Language:       "en",
+		Permissions:    `{"can_schedule_meetings": true, "can_manage_department": true, "can_approve_recordings": true}`,
+		OrganizationID: &org.ID,
 	}
 	db.Where(User{Username: adminUser.Username}).Assign(&adminUser).FirstOrCreate(&adminUser)
 
-	// Insert default regular user (UUID will be auto-generated)
+	// Insert default regular user with organization link (UUID will be auto-generated)
 	regularUser := User{
-		Username:    "user",
-		Email:       "user@recontext.online",
-		Password:    hashedUserPassword,
-		Role:        "user",
-		IsActive:    true,
-		Language:    "en",
-		Permissions: `{"can_schedule_meetings": false, "can_manage_department": false, "can_approve_recordings": false}`,
+		Username:       "user",
+		Email:          "user@recontext.online",
+		Password:       hashedUserPassword,
+		Role:           "user",
+		IsActive:       true,
+		Language:       "en",
+		Permissions:    `{"can_schedule_meetings": false, "can_manage_department": false, "can_approve_recordings": false}`,
+		OrganizationID: &org.ID,
 	}
 	db.Where(User{Username: regularUser.Username}).FirstOrCreate(&regularUser)
 

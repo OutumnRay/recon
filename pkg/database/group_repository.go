@@ -26,12 +26,13 @@ func (r *GroupRepository) Create(group *models.UserGroup) error {
 	}
 
 	dbGroup := &Group{
-		ID:          group.ID,
-		Name:        group.Name,
-		Description: group.Description,
-		Permissions: string(permissionsJSON),
-		CreatedAt:   group.CreatedAt,
-		UpdatedAt:   group.UpdatedAt,
+		ID:             group.ID,
+		Name:           group.Name,
+		Description:    group.Description,
+		Permissions:    string(permissionsJSON),
+		OrganizationID: group.OrganizationID,
+		CreatedAt:      group.CreatedAt,
+		UpdatedAt:      group.UpdatedAt,
 	}
 
 	if err := r.db.DB.Create(dbGroup).Error; err != nil {
@@ -132,10 +133,11 @@ func (r *GroupRepository) Update(group *models.UserGroup) error {
 	group.UpdatedAt = time.Now()
 
 	updates := map[string]interface{}{
-		"name":        group.Name,
-		"description": group.Description,
-		"permissions": string(permissionsJSON),
-		"updated_at":  group.UpdatedAt,
+		"name":            group.Name,
+		"description":     group.Description,
+		"permissions":     string(permissionsJSON),
+		"organization_id": group.OrganizationID,
+		"updated_at":      group.UpdatedAt,
 	}
 
 	result := r.db.DB.Model(&Group{}).Where("id = ?", group.ID).Updates(updates)

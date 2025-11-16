@@ -4,6 +4,7 @@ export interface MeetingSubject {
   id: string;
   name: string;
   description: string;
+  organization_id?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -12,11 +13,13 @@ export interface MeetingSubject {
 export interface CreateMeetingSubjectRequest {
   name: string;
   description?: string;
+  organization_id?: string | null;
 }
 
 export interface UpdateMeetingSubjectRequest {
   name?: string;
   description?: string;
+  organization_id?: string | null;
   is_active?: boolean;
 }
 

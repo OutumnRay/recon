@@ -289,13 +289,15 @@ export const Meetings: React.FC = () => {
           </div>
 
           <div className="meeting-details-grid">
-            <div className="detail-block">
-              <LuCalendar className="detail-icon" />
-              <div>
-                <span className="detail-label">{t('meetings.details.scheduled')}</span>
-                <div className="detail-value">{formatMeetingDate(selectedMeeting.scheduled_at)}</div>
+            {!selectedMeeting.is_permanent && (
+              <div className="detail-block">
+                <LuCalendar className="detail-icon" />
+                <div>
+                  <span className="detail-label">{t('meetings.details.scheduled')}</span>
+                  <div className="detail-value">{formatMeetingDate(selectedMeeting.scheduled_at)}</div>
+                </div>
               </div>
-            </div>
+            )}
             <div className="detail-block">
               <LuClock className="detail-icon" />
               <div>
@@ -533,18 +535,22 @@ export const Meetings: React.FC = () => {
                       </div>
                     </div>
                     <div className="meeting-row-meta">
-                      <span className="meeting-row-date">
-                        <LuCalendar /> {formatListDateTime(meeting.scheduled_at)}
-                      </span>
+                      {!meeting.is_permanent && (
+                        <span className="meeting-row-date">
+                          <LuCalendar /> {formatListDateTime(meeting.scheduled_at)}
+                        </span>
+                      )}
                       <span className="meeting-row-duration">
                         <LuClock /> {`${meeting.duration} min`}
                       </span>
                       <span className="meeting-row-participants">
                         <LuUsers /> {meeting.participants.length}
                       </span>
-                      <span className={`status-badge ${statusInfo.className}`}>
-                        {t(`meetings.status.${meeting.status}`)}
-                      </span>
+                      {!meeting.is_permanent && (
+                        <span className={`status-badge ${statusInfo.className}`}>
+                          {t(`meetings.status.${meeting.status}`)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="meeting-row-actions">

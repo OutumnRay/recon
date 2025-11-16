@@ -42,12 +42,13 @@ func (mp *ManagingPortal) listUsersHandler(w http.ResponseWriter, r *http.Reques
 	var usersList []models.UserInfo
 	for _, user := range users {
 		usersList = append(usersList, models.UserInfo{
-			ID:           user.ID,
-			Username:     user.Username,
-			Email:        user.Email,
-			Role:         user.Role,
-			DepartmentID: user.DepartmentID,
-			Permissions:  user.Permissions,
+			ID:             user.ID,
+			Username:       user.Username,
+			Email:          user.Email,
+			Role:           user.Role,
+			OrganizationID: user.OrganizationID,
+			DepartmentID:   user.DepartmentID,
+			Permissions:    user.Permissions,
 			Language:     user.Language,
 		})
 	}
@@ -83,13 +84,14 @@ func (mp *ManagingPortal) getUserHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	userInfo := models.UserInfo{
-		ID:           user.ID,
-		Username:     user.Username,
-		Email:        user.Email,
-		Role:         user.Role,
-		DepartmentID: user.DepartmentID,
-		Permissions:  user.Permissions,
-		Language:     user.Language,
+		ID:             user.ID,
+		Username:       user.Username,
+		Email:          user.Email,
+		Role:           user.Role,
+		OrganizationID: user.OrganizationID,
+		DepartmentID:   user.DepartmentID,
+		Permissions:    user.Permissions,
+		Language:       user.Language,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -144,6 +146,9 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 	if req.Role != "" {
 		foundUser.Role = req.Role
 	}
+	if req.OrganizationID != nil {
+		foundUser.OrganizationID = req.OrganizationID
+	}
 	if req.DepartmentID != nil {
 		foundUser.DepartmentID = req.DepartmentID
 	}
@@ -173,13 +178,14 @@ func (mp *ManagingPortal) updateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	userInfo := models.UserInfo{
-		ID:           foundUser.ID,
-		Username:     foundUser.Username,
-		Email:        foundUser.Email,
-		Role:         foundUser.Role,
-		DepartmentID: foundUser.DepartmentID,
-		Permissions:  foundUser.Permissions,
-		Language:     foundUser.Language,
+		ID:             foundUser.ID,
+		Username:       foundUser.Username,
+		Email:          foundUser.Email,
+		Role:           foundUser.Role,
+		OrganizationID: foundUser.OrganizationID,
+		DepartmentID:   foundUser.DepartmentID,
+		Permissions:    foundUser.Permissions,
+		Language:       foundUser.Language,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

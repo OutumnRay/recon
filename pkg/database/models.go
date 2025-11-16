@@ -8,10 +8,36 @@ import (
 	"gorm.io/gorm"
 )
 
+// Organization - организация/компания
+type Organization struct {
+	// ID - уникальный идентификатор организации
+	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	// Name - название организации
+	Name string `gorm:"uniqueIndex;type:varchar(255);not null" json:"name"`
+	// Description - описание организации
+	Description string `gorm:"type:text" json:"description"`
+	// Domain - доменное имя организации (для email-ов сотрудников)
+	Domain *string `gorm:"type:varchar(255)" json:"domain"`
+	// LogoURL - URL логотипа организации
+	LogoURL *string `gorm:"type:text" json:"logo_url"`
+	// IsActive - активна ли организация
+	IsActive bool `gorm:"not null;default:true" json:"is_active"`
+	// Settings - JSON с настройками организации
+	Settings string `gorm:"type:jsonb;not null;default:'{}'" json:"settings"`
+	// CreatedAt - время создания организации
+	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+	// UpdatedAt - время последнего обновления организации
+	UpdatedAt time.Time `gorm:"not null;default:now()" json:"updated_at"`
+	// DeletedAt - время мягкого удаления организации
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
 // Department - отдел/департамент в организации
 type Department struct {
 	// ID - уникальный идентификатор отдела
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	// OrganizationID - ID организации, к которой относится отдел
+	OrganizationID *uuid.UUID `gorm:"type:uuid" json:"organization_id"`
 	// Name - название отдела
 	Name string `gorm:"type:varchar(255);not null" json:"name"`
 	// Description - описание отдела и его функций
@@ -32,6 +58,8 @@ type Department struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
+	// Organization - организация, к которой относится отдел
+	Organization *Organization `gorm:"foreignKey:OrganizationID" json:"organization,omitempty"`
 	// Parent - родительский отдел
 	Parent *Department `gorm:"foreignKey:ParentID" json:"-"`
 	// Children - дочерние отделы
@@ -42,13 +70,19 @@ type Department struct {
 type User struct {
 	// ID - уникальный идентификатор пользователя
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	// OrganizationID - ID организации, к которой относится пользователь
+	OrganizationID *uuid.UUID `gorm:"type:uuid" json:"organization_id"`
 	// Username - уникальное имя пользователя для входа в систему
 	Username string `gorm:"uniqueIndex;type:varchar(255);not null" json:"username"`
 	// Email - адрес электронной почты пользователя
 	Email string `gorm:"uniqueIndex;type:varchar(255);not null" json:"email"`
 	// Password - хеш пароля пользователя
 	Password string `gorm:"type:varchar(255);not null" json:"-"`
-	// Role - роль пользователя в системе (admin, user и т.д.)
+	// Role - роль пользователя в системе (admin, org_admin, operator, user)
+	// admin - полный администратор системы
+	// org_admin - администратор организации (пока не используется)
+	// operator - оператор
+	// user - обычный пользователь
 	Role string `gorm:"type:varchar(50);not null;default:'user'" json:"role"`
 	// Groups - массив идентификаторов групп, к которым принадлежит пользователь
 	Groups pq.StringArray `gorm:"type:text[];default:'{}'" json:"groups"`
@@ -82,6 +116,8 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
+	// Organization - организация, к которой относится пользователь
+	Organization *Organization `gorm:"foreignKey:OrganizationID" json:"organization,omitempty"`
 	// Department - отдел, к которому относится пользователь
 	Department *Department `gorm:"foreignKey:DepartmentID" json:"department,omitempty"`
 }
@@ -90,6 +126,10 @@ type User struct {
 type Group struct {
 	// ID - уникальный идентификатор группы
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	// OrganizationID - ID организации, к которой относится группа
+	OrganizationID *uuid.UUID `gorm:"type:uuid" json:"organization_id"`
+	// Organization - связь с организацией
+	Organization *Organization `gorm:"foreignKey:OrganizationID" json:"organization,omitempty"`
 	// Name - уникальное название группы
 	Name string `gorm:"uniqueIndex;type:varchar(255);not null" json:"name"`
 	// Description - описание группы и ее назначения
@@ -382,6 +422,10 @@ type LiveKitWebhookEvent struct {
 type MeetingSubject struct {
 	// ID - уникальный идентификатор темы встречи
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	// OrganizationID - ID организации, к которой относится тема встречи
+	OrganizationID *uuid.UUID `gorm:"type:uuid" json:"organization_id"`
+	// Organization - связь с организацией
+	Organization *Organization `gorm:"foreignKey:OrganizationID" json:"organization,omitempty"`
 	// Name - уникальное название темы встречи
 	Name string `gorm:"uniqueIndex;type:varchar(255);not null" json:"name"`
 	// Description - описание темы встречи

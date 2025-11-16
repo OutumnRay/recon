@@ -27,6 +27,8 @@ type LiveKitWebhookEvent struct {
 type Room struct {
 	// Внутренний уникальный идентификатор
 	ID                uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid()" json:"id" db:"id"`
+	// ID организации, к которой относится комната
+	OrganizationID    *uuid.UUID     `gorm:"type:uuid" json:"organization_id" db:"organization_id"`
 	// Идентификатор сессии LiveKit
 	SID               string         `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid" db:"sid"`
 	// Название комнаты

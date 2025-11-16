@@ -14,6 +14,7 @@ interface User {
   username: string;
   email: string;
   role: 'admin' | 'user' | 'operator';
+  organization_id?: string | null;
   department_id?: string | null;
   groups?: string[];
   permissions: UserPermissions;
@@ -31,6 +32,12 @@ interface Department {
   id: string;
   name: string;
   path?: string;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 export const UserForm: React.FC = () => {
@@ -61,6 +68,8 @@ export const UserForm: React.FC = () => {
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationId, setOrganizationId] = useState('');
 
   // Function to generate a random password
   const generatePassword = () => {
@@ -88,6 +97,7 @@ export const UserForm: React.FC = () => {
   useEffect(() => {
     fetchGroups();
     fetchDepartments();
+    fetchOrganizations();
 
     if (isEditMode && id) {
       fetchUser(id);
@@ -113,6 +123,7 @@ export const UserForm: React.FC = () => {
       setEmail(user.email);
       setRole(user.role);
       setLanguage(user.language || 'en');
+      setOrganizationId(user.organization_id || '');
       setDepartmentId(user.department_id || '');
       setSelectedGroups(user.groups || []);
       setPermissions(user.permissions);
@@ -160,6 +171,24 @@ export const UserForm: React.FC = () => {
     }
   };
 
+  const fetchOrganizations = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch('/api/v1/organizations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch organizations:', err);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -188,6 +217,7 @@ export const UserForm: React.FC = () => {
         const updateData: any = {
           email,
           role,
+          organization_id: organizationId || null,
           department_id: departmentId || null,
           groups: selectedGroups,
           permissions,
@@ -240,7 +270,7 @@ export const UserForm: React.FC = () => {
         // Get the created user to get their ID
         const createdUser = await registerResponse.json();
 
-        // Update user with additional fields (role, department, groups, permissions)
+        // Update user with additional fields (role, organization, department, groups, permissions)
         const updateResponse = await fetch(`/api/v1/users/${createdUser.id}`, {
           method: 'PUT',
           headers: {
@@ -249,6 +279,7 @@ export const UserForm: React.FC = () => {
           },
           body: JSON.stringify({
             role,
+            organization_id: organizationId || null,
             department_id: departmentId || null,
             groups: selectedGroups,
             permissions,
@@ -428,6 +459,7 @@ export const UserForm: React.FC = () => {
             >
               <option value="user">{t('users.roles.user')}</option>
               <option value="operator">{t('users.roles.operator')}</option>
+              <option value="org_admin">{t('users.roles.org_admin', 'Organization Admin')}</option>
               <option value="admin">{t('users.roles.admin')}</option>
             </select>
           </div>
@@ -462,6 +494,25 @@ export const UserForm: React.FC = () => {
 
         <div className="form-section">
           <h2>{t('users.form.organization')}</h2>
+
+          <div className="form-group">
+            <label htmlFor="organization">
+              {t('users.form.organizationField', 'Organization')} {t('users.form.required')}
+            </label>
+            <select
+              id="organization"
+              value={organizationId}
+              onChange={(e) => setOrganizationId(e.target.value)}
+              required
+            >
+              <option value="">{t('users.form.selectOrganization', 'Select an organization...')}</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="form-group">
             <SearchableSelect

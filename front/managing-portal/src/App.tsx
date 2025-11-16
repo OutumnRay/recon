@@ -5,6 +5,7 @@ import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import UserManagement from './components/UserManagement'
 import UserForm from './components/UserForm'
+import Organizations from './components/Organizations'
 import Groups from './components/Groups'
 import GroupForm from './components/GroupForm'
 import Departments from './components/Departments'
@@ -34,7 +35,7 @@ function App() {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
   // Protected routes - require authentication
-  const protectedRoutes = ['/dashboard', '/users', '/groups', '/departments', '/subjects', '/rooms']
+  const protectedRoutes = ['/dashboard', '/users', '/organizations', '/groups', '/departments', '/subjects', '/rooms']
   const isProtectedRoute = protectedRoutes.some(route => currentPath.startsWith(route))
 
   // If on protected route but not authenticated, redirect to login
@@ -73,6 +74,7 @@ function App() {
         {currentPath === '/users' && <UserManagement />}
         {currentPath === '/users/new' && <UserForm />}
         {userId && <UserForm />}
+        {currentPath === '/organizations' && <Organizations />}
         {currentPath === '/groups' && <Groups />}
         {currentPath === '/groups/new' && <GroupForm />}
         {groupId && <GroupForm />}

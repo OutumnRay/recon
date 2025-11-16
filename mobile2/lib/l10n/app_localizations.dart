@@ -272,6 +272,24 @@ abstract class AppLocalizations {
   /// **'Audio Recording'**
   String get meetingAudioRecord;
 
+  /// No description provided for @meetingTranscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription (recording individual tracks)'**
+  String get meetingTranscription;
+
+  /// No description provided for @meetingForceEndAtDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Force end after time elapses'**
+  String get meetingForceEndAtDuration;
+
+  /// No description provided for @meetingAllowAnonymous.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow anonymous members'**
+  String get meetingAllowAnonymous;
+
   /// No description provided for @recordingOptions.
   ///
   /// In en, this message translates to:
@@ -962,7 +980,7 @@ abstract class AppLocalizations {
   /// **'Yesterday'**
   String get yesterday;
 
-  /// No description provided for @daysAgo.
+  /// Relative day label
   ///
   /// In en, this message translates to:
   /// **'{count} days ago'**

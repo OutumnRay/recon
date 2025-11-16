@@ -8,7 +8,6 @@ import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/config_service.dart';
 import '../widgets/error_display.dart';
-import '../widgets/app_card.dart';
 import '../theme/app_colors.dart';
 import 'video_call_screen.dart';
 import 'recording_player_screen.dart';
@@ -213,6 +212,10 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(l10n.meetingDetailsTitle),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.primary500,
@@ -266,7 +269,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
         if (snapshot.hasError) {
           return Center(
-            child: SurfaceCard(
+            child: _buildCard(
               padding: const EdgeInsets.all(24),
               margin: const EdgeInsets.all(20),
               child: Column(
@@ -300,7 +303,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
         final recordings = snapshot.data ?? [];
         if (recordings.isEmpty) {
           return Center(
-            child: SurfaceCard(
+            child: _buildCard(
               padding: const EdgeInsets.all(32),
               margin: const EdgeInsets.all(20),
               child: Column(
@@ -350,7 +353,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
       durationMinutes = endedAt.difference(startedAt).inMinutes;
     }
 
-    return SurfaceCard(
+    return _buildCard(
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,19 +575,21 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                                   ?.copyWith(color: AppColors.textSecondary),
                             ),
                           ],
-                          const SizedBox(height: 12),
-                          Text(
-                            '${dateFormat.format(meeting.scheduledAt)} • ${timeFormat.format(meeting.scheduledAt)}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
+                          if (!meeting.isPermanent) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              '${dateFormat.format(meeting.scheduledAt)} • ${timeFormat.format(meeting.scheduledAt)}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                     const SizedBox(width: 16),
-                    _buildStatusChip(meeting.status),
+                    if (!meeting.isPermanent) _buildStatusChip(meeting.status),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -596,45 +601,47 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader(
-                  context,
-                  icon: Icons.calendar_today_rounded,
-                  title: l10n.dateAndTime,
-                ),
-                const SizedBox(height: 16),
-                _buildDetailRow(
-                  context,
-                  label: l10n.meetingDate,
-                  value: dateFormat.format(meeting.scheduledAt),
-                ),
-                _buildDetailRow(
-                  context,
-                  label: l10n.meetingTime,
-                  value: timeFormat.format(meeting.scheduledAt),
-                ),
-                _buildDetailRow(
-                  context,
-                  label: l10n.meetingDuration,
-                  value: '${meeting.duration} ${l10n.minutes}',
-                ),
-                _buildDetailRow(
-                  context,
-                  label: l10n.meetingRecurrence,
-                  value: recurrenceLabel,
-                ),
-                _buildDetailRow(
-                  context,
-                  label: l10n.type,
-                  value: _getMeetingTypeText(meeting.type),
-                ),
-              ],
+          if (!meeting.isPermanent) ...[
+            const SizedBox(height: 20),
+            SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.calendar_today_rounded,
+                    title: l10n.dateAndTime,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailRow(
+                    context,
+                    label: l10n.meetingDate,
+                    value: dateFormat.format(meeting.scheduledAt),
+                  ),
+                  _buildDetailRow(
+                    context,
+                    label: l10n.meetingTime,
+                    value: timeFormat.format(meeting.scheduledAt),
+                  ),
+                  _buildDetailRow(
+                    context,
+                    label: l10n.meetingDuration,
+                    value: '${meeting.duration} ${l10n.minutes}',
+                  ),
+                  _buildDetailRow(
+                    context,
+                    label: l10n.meetingRecurrence,
+                    value: recurrenceLabel,
+                  ),
+                  _buildDetailRow(
+                    context,
+                    label: l10n.type,
+                    value: _getMeetingTypeText(meeting.type),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
           if (meeting.allowAnonymous) ...[
             const SizedBox(height: 20),
             SurfaceCard(
@@ -1248,5 +1255,43 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
       default:
         return recurrence;
     }
+  }
+
+  // Helper widget to create Aurora-styled cards
+  Widget _buildCard({
+    required Widget child,
+    EdgeInsets? padding,
+    EdgeInsets? margin,
+  }) {
+    return Container(
+      margin: margin ?? const EdgeInsets.only(bottom: 20),
+      padding: padding ?? const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24), // radius-xl
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
+          ),
+        ],
+        border: Border.all(color: AppColors.border),
+      ),
+      child: child,
+    );
+  }
+
+  // Wrapper methods for compatibility
+  Widget SurfaceCard({
+    required Widget child,
+    EdgeInsets? padding,
+    EdgeInsets? margin,
+  }) {
+    return _buildCard(child: child, padding: padding, margin: margin);
+  }
+
+  Widget GradientHeroCard({required Widget child}) {
+    return _buildCard(child: child);
   }
 }

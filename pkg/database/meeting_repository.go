@@ -47,13 +47,14 @@ func stringSliceToUUIDSlice(strs []string) ([]uuid.UUID, error) {
 // CreateSubject creates a new meeting subject
 func (r *MeetingRepository) CreateSubject(subject *models.MeetingSubject) error {
 	dbSubject := &MeetingSubject{
-		ID:            subject.ID,
-		Name:          subject.Name,
-		Description:   subject.Description,
-		DepartmentIDs: uuidSliceToStringSlice(subject.DepartmentIDs),
-		IsActive:      subject.IsActive,
-		CreatedAt:     subject.CreatedAt,
-		UpdatedAt:     subject.UpdatedAt,
+		ID:             subject.ID,
+		Name:           subject.Name,
+		Description:    subject.Description,
+		DepartmentIDs:  uuidSliceToStringSlice(subject.DepartmentIDs),
+		OrganizationID: subject.OrganizationID,
+		IsActive:       subject.IsActive,
+		CreatedAt:      subject.CreatedAt,
+		UpdatedAt:      subject.UpdatedAt,
 	}
 
 	if err := r.db.DB.Create(dbSubject).Error; err != nil {
@@ -150,11 +151,12 @@ func (r *MeetingRepository) UpdateSubject(subject *models.MeetingSubject) error 
 	subject.UpdatedAt = time.Now()
 
 	result := r.db.DB.Model(&MeetingSubject{}).Where("id = ?", subject.ID).Updates(map[string]interface{}{
-		"name":           subject.Name,
-		"description":    subject.Description,
-		"department_ids": uuidSliceToStringSlice(subject.DepartmentIDs),
-		"is_active":      subject.IsActive,
-		"updated_at":     subject.UpdatedAt,
+		"name":            subject.Name,
+		"description":     subject.Description,
+		"department_ids":  uuidSliceToStringSlice(subject.DepartmentIDs),
+		"organization_id": subject.OrganizationID,
+		"is_active":       subject.IsActive,
+		"updated_at":      subject.UpdatedAt,
 	})
 
 	if result.Error != nil {
@@ -358,10 +360,12 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 	query := r.db.DB.Model(&Meeting{})
 
 	if req.Status != nil {
-		query = query.Where("status = ?", *req.Status)
+		// Permanent meetings should ALWAYS be shown regardless of status filter
+		query = query.Where("(status = ? OR is_permanent = ?)", *req.Status, true)
 	} else if req.ExcludeCancelled {
 		// Exclude cancelled meetings unless specifically requested
-		query = query.Where("status != ?", "cancelled")
+		// But always include permanent meetings regardless
+		query = query.Where("(status != ? OR is_permanent = ?)", "cancelled", true)
 	}
 
 	if req.Type != nil {

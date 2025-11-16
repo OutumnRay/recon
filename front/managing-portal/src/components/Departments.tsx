@@ -5,6 +5,12 @@ import './Departments.css';
 import { LuBuilding2, LuPlus, LuPencil, LuTrash2, LuUsers, LuChevronRight, LuChevronDown } from 'react-icons/lu';
 import { SearchableSelect } from './SearchableSelect';
 
+interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export const Departments = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentTree, setDepartmentTree] = useState<DepartmentTreeNode | null>(null);
@@ -15,17 +21,38 @@ export const Departments = () => {
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<DepartmentWithStats | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     parent_id: '',
+    organization_id: '',
   });
 
   useEffect(() => {
     loadDepartments();
+    loadOrganizations();
   }, [viewMode]);
+
+  const loadOrganizations = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch('/api/v1/organizations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch organizations:', err);
+    }
+  };
 
   const loadDepartments = async () => {
     setLoading(true);
@@ -54,9 +81,10 @@ export const Departments = () => {
         name: formData.name,
         description: formData.description,
         parent_id: formData.parent_id || undefined,
+        organization_id: formData.organization_id || undefined,
       });
       setShowCreateForm(false);
-      setFormData({ name: '', description: '', parent_id: '' });
+      setFormData({ name: '', description: '', parent_id: '', organization_id: '' });
       loadDepartments();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to create department');
@@ -72,10 +100,11 @@ export const Departments = () => {
         name: formData.name,
         description: formData.description,
         parent_id: formData.parent_id || undefined,
+        organization_id: formData.organization_id || undefined,
       });
       setShowCreateForm(false);
       setEditingDepartment(null);
-      setFormData({ name: '', description: '', parent_id: '' });
+      setFormData({ name: '', description: '', parent_id: '', organization_id: '' });
       loadDepartments();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update department');
@@ -111,6 +140,7 @@ export const Departments = () => {
       name: dept.name,
       description: dept.description,
       parent_id: dept.parent_id || '',
+      organization_id: (dept as any).organization_id || '',
     });
     setShowCreateForm(true);
   };
@@ -215,7 +245,7 @@ export const Departments = () => {
             onClick={() => {
               setShowCreateForm(true);
               setEditingDepartment(null);
-              setFormData({ name: '', description: '', parent_id: '' });
+              setFormData({ name: '', description: '', parent_id: '', organization_id: '' });
             }}
           >
             <LuPlus /> Create Department
@@ -385,6 +415,23 @@ export const Departments = () => {
                   placeholder="Enter department description"
                   rows={3}
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="organization">Organization *</label>
+                <select
+                  id="organization"
+                  value={formData.organization_id}
+                  onChange={(e) => setFormData({ ...formData, organization_id: e.target.value })}
+                  required
+                >
+                  <option value="">Select an organization...</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">

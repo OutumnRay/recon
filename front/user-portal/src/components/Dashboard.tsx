@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX, LuUser, LuChevronDown } from 'react-icons/lu';
+import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX, LuUser, LuChevronDown, LuBuilding2 } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { APP_VERSION } from '../config/version';
 import './Dashboard.css';
@@ -132,6 +132,10 @@ export const Dashboard: React.FC = () => {
       return { title: t('search.title'), subtitle: t('search.subtitle') };
     }
 
+    if (location.pathname.startsWith('/dashboard/organizations')) {
+      return { title: t('organizations.title', 'Organizations'), subtitle: t('organizations.subtitle', 'Manage organizations') };
+    }
+
     if (location.pathname.startsWith('/dashboard/management')) {
       return { title: t('management.title'), subtitle: t('management.subtitle') };
     }
@@ -199,6 +203,15 @@ export const Dashboard: React.FC = () => {
               <span className="nav-label">{t('nav.documents')}</span>
             </NavLink>
           )}
+
+          <NavLink
+            to="/dashboard/organizations"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={closeMobileMenu}
+          >
+            <span className="nav-icon"><LuBuilding2 /></span>
+            <span className="nav-label">{t('nav.organizations', 'Organizations')}</span>
+          </NavLink>
 
           <NavLink
             to="/dashboard/management"
