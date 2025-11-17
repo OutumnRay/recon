@@ -268,7 +268,7 @@ class CreateMeetingRequest {
   final int duration;
   final String? recurrence;
   final String type;
-  final String subjectId;
+  final String? subjectId;
   final bool needsVideoRecord;
   final bool needsAudioRecord;
   final bool needsTranscription;
@@ -285,7 +285,7 @@ class CreateMeetingRequest {
     required this.duration,
     this.recurrence,
     required this.type,
-    required this.subjectId,
+    this.subjectId,
     required this.needsVideoRecord,
     required this.needsAudioRecord,
     required this.needsTranscription,
@@ -310,11 +310,12 @@ class CreateMeetingRequest {
       'duration': duration,
       if (recurrence != null) 'recurrence': recurrence,
       'type': type,
-      'subject_id': subjectId,
+      if (subjectId != null && subjectId!.isNotEmpty) 'subject_id': subjectId,
       'needs_video_record': needsVideoRecord,
       'needs_audio_record': needsAudioRecord,
       'needs_transcription': needsTranscription,
       'force_end_at_duration': forceEndAtDuration,
+      'is_permanent': recurrence == 'permanent',
       'allow_anonymous': allowAnonymous,
       if (additionalNotes != null) 'additional_notes': additionalNotes,
       'participant_ids': participantIds,

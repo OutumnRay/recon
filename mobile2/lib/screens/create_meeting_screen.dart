@@ -367,7 +367,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         duration: _duration,
         recurrence: _recurrence,
         type: _type,
-        subjectId: _subjectId!,
+        subjectId: _subjectId,
         needsVideoRecord: _needsVideoRecord,
         needsAudioRecord: _needsAudioRecord,
         needsTranscription: _needsTranscription,
@@ -517,7 +517,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildModalSelectionField(
-                      label: '${l10n.meetingSubject} *',
+                      label: '${l10n.meetingSubject} ${l10n.optional}',
                       icon: Icons.category_rounded,
                       value: _subjectId != null
                           ? _subjects?.firstWhere((s) => s.id == _subjectId).name
