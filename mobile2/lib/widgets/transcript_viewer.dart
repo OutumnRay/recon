@@ -79,16 +79,12 @@ class _TranscriptPhraseCard extends StatelessWidget {
     this.onTap,
   });
 
-  String _formatTimestamp(double seconds) {
-    final duration = Duration(milliseconds: (seconds * 1000).toInt());
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final secs = duration.inSeconds.remainder(60);
-
-    if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-    }
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  String _formatTimestamp(DateTime timestamp) {
+    // Format as HH:MM:SS (wall-clock time, not video offset)
+    final hour = timestamp.hour.toString().padLeft(2, '0');
+    final minute = timestamp.minute.toString().padLeft(2, '0');
+    final second = timestamp.second.toString().padLeft(2, '0');
+    return '$hour:$minute:$second';
   }
 
   Color _getColorForSpeaker(String speakerName) {
@@ -145,7 +141,7 @@ class _TranscriptPhraseCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          _formatTimestamp(phrase.startTime),
+                          _formatTimestamp(phrase.absoluteTimestamp),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
