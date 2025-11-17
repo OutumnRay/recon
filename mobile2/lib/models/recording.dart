@@ -144,6 +144,7 @@ class ParticipantInfo {
   final String? firstName;
   final String? lastName;
   final String? avatar;
+  final String? role;
 
   ParticipantInfo({
     required this.id,
@@ -152,6 +153,7 @@ class ParticipantInfo {
     this.firstName,
     this.lastName,
     this.avatar,
+    this.role,
   });
 
   factory ParticipantInfo.fromJson(Map<String, dynamic> json) {
@@ -162,6 +164,7 @@ class ParticipantInfo {
       firstName: json['first_name'] as String?,
       lastName: json['last_name'] as String?,
       avatar: json['avatar'] as String?,
+      role: json['role'] as String?,
     );
   }
 
@@ -173,16 +176,25 @@ class ParticipantInfo {
       if (firstName != null) 'first_name': firstName,
       if (lastName != null) 'last_name': lastName,
       if (avatar != null) 'avatar': avatar,
+      if (role != null) 'role': role,
     };
   }
 
   String get displayName {
+    String name;
     if (firstName != null && lastName != null) {
-      return '$firstName $lastName';
+      name = '$firstName $lastName';
+    } else if (username.isNotEmpty) {
+      name = username;
+    } else {
+      name = email;
     }
-    if (username.isNotEmpty) {
-      return username;
+
+    // Add (third-party) label for guest/temporary users
+    if (role == 'guest') {
+      name += ' (third-party)';
     }
-    return email;
+
+    return name;
   }
 }

@@ -49,15 +49,25 @@ export default function MeetingRecordings() {
     if (!participant) return t('meetingRecordings.unknownParticipant');
     const first = participant.first_name?.trim();
     const last = participant.last_name?.trim();
+
+    let name: string;
     if (first && last) {
-      return `${first} ${last}`;
+      name = `${first} ${last}`;
+    } else {
+      name = (
+        participant.username ||
+        first ||
+        participant.email ||
+        t('meetingRecordings.unknownParticipant')
+      );
     }
-    return (
-      participant.username ||
-      first ||
-      participant.email ||
-      t('meetingRecordings.unknownParticipant')
-    );
+
+    // Add (third-party) label for guest/temporary users
+    if (participant.role === 'guest') {
+      name += ' (third-party)';
+    }
+
+    return name;
   };
 
   const getParticipantName = (track: any) => formatParticipantDisplayName(track.participant);

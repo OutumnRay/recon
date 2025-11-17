@@ -46,7 +46,23 @@ export const Profile: React.FC = () => {
   const loadUserData = () => {
     const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
     if (storedUser) {
-      const userData = JSON.parse(storedUser);
+      const rawData = JSON.parse(storedUser);
+
+      // Map to camelCase if needed (support both formats)
+      const userData: User = {
+        id: rawData.id,
+        username: rawData.username,
+        email: rawData.email,
+        role: rawData.role,
+        firstName: rawData.firstName || rawData.first_name,
+        lastName: rawData.lastName || rawData.last_name,
+        phone: rawData.phone,
+        bio: rawData.bio,
+        avatar: rawData.avatar,
+        language: rawData.language || 'en',
+        notification_preferences: rawData.notification_preferences,
+      };
+
       setUser(userData);
       setFormData({
         firstName: userData.firstName || '',
@@ -236,7 +252,22 @@ export const Profile: React.FC = () => {
         throw new Error('Server returned invalid response format');
       }
 
-      const updatedUser = await response.json();
+      const responseData = await response.json();
+
+      // Map snake_case to camelCase for frontend
+      const updatedUser: User = {
+        id: responseData.id,
+        username: responseData.username,
+        email: responseData.email,
+        role: responseData.role,
+        firstName: responseData.first_name,
+        lastName: responseData.last_name,
+        phone: responseData.phone,
+        bio: responseData.bio,
+        avatar: responseData.avatar,
+        language: responseData.language,
+        notification_preferences: responseData.notification_preferences,
+      };
 
       // Update stored user
       const storage = localStorage.getItem('user') ? localStorage : sessionStorage;

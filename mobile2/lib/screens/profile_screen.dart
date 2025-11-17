@@ -68,8 +68,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _phoneController.text = user.phone ?? '';
         _bioController.text = user.bio ?? '';
         _avatarUrl = user.avatar;
-        _selectedLanguage = user.language;
-        _selectedNotifications = user.notificationPreferences ?? 'both';
+
+        // Ensure language has a valid value
+        final lang = user.language;
+        _selectedLanguage = (lang == 'en' || lang == 'ru') ? lang : 'en';
+
+        // Ensure notification preferences has a valid value
+        final notifPref = user.notificationPreferences;
+        if (notifPref == 'tracks' || notifPref == 'rooms' || notifPref == 'both') {
+          _selectedNotifications = notifPref!;
+        } else {
+          _selectedNotifications = 'both';
+        }
+
         _isLoading = false;
       });
     } catch (e) {
