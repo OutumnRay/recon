@@ -5,7 +5,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
+	"image"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +17,7 @@ import (
 
 	"Recontext.online/internal/models"
 	"github.com/google/uuid"
+	"github.com/nfnt/resize"
 	"Recontext.online/pkg/auth"
 )
 
@@ -105,13 +109,39 @@ func (up *UserPortal) uploadAvatarHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	// Decode the image
+	var img image.Image
+	switch contentType {
+	case "image/jpeg", "image/jpg":
+		img, err = jpeg.Decode(file)
+		ext = ".jpg"
+	case "image/png":
+		img, err = png.Decode(file)
+		ext = ".png"
+	case "image/gif":
+		img, err = gif.Decode(file)
+		ext = ".gif"
+	default:
+		// Try to decode as JPEG by default
+		img, err = jpeg.Decode(file)
+		ext = ".jpg"
+	}
+
+	if err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Failed to decode image", err.Error())
+		return
+	}
+
+	// Resize image to 300x300
+	resizedImg := resize.Resize(300, 300, img, resize.Lanczos3)
+
 	// Create unique filename using timestamp and hash
 	hash := md5.New()
 	hash.Write([]byte(fmt.Sprintf("%s-%d", userID, time.Now().UnixNano())))
 	filename := fmt.Sprintf("%s%s", hex.EncodeToString(hash.Sum(nil)), ext)
 	filePath := filepath.Join(avatarsDir, filename)
 
-	// Save file
+	// Save resized file
 	dst, err := os.Create(filePath)
 	if err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to save file", err.Error())
@@ -119,8 +149,18 @@ func (up *UserPortal) uploadAvatarHandler(w http.ResponseWriter, r *http.Request
 	}
 	defer dst.Close()
 
-	if _, err := io.Copy(dst, file); err != nil {
-		up.respondWithError(w, http.StatusInternalServerError, "Failed to save file", err.Error())
+	// Encode and save based on format
+	switch ext {
+	case ".jpg":
+		err = jpeg.Encode(dst, resizedImg, &jpeg.Options{Quality: 90})
+	case ".png":
+		err = png.Encode(dst, resizedImg)
+	case ".gif":
+		err = gif.Encode(dst, resizedImg, nil)
+	}
+
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to encode resized image", err.Error())
 		return
 	}
 

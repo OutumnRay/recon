@@ -9,6 +9,7 @@ import '../services/locale_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ApiClient apiClient;
@@ -459,6 +460,34 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                   child: Column(
                     children: [
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary50,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.person_outline, color: AppColors.primary500),
+                        ),
+                        title: const Text(
+                          'My Profile',
+                          style: TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+                        ),
+                        subtitle: const Text(
+                          'Edit your profile information',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.primary500),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProfileScreen(apiClient: widget.apiClient),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(height: 1, indent: 72, endIndent: 16),
                       ListTile(
                         leading: Container(
                           padding: const EdgeInsets.all(8),

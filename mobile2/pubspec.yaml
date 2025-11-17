@@ -69,6 +69,9 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   firebase_core_platform_interface: ^6.0.2
 
+  # Image picker for avatar upload
+  image_picker: ^1.0.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

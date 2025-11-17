@@ -6,6 +6,12 @@ class User {
   final String? departmentId;
   final UserPermissions permissions;
   final String language;
+  final String? firstName;
+  final String? lastName;
+  final String? phone;
+  final String? bio;
+  final String? avatar;
+  final String? notificationPreferences;
 
   User({
     required this.id,
@@ -15,6 +21,12 @@ class User {
     this.departmentId,
     required this.permissions,
     required this.language,
+    this.firstName,
+    this.lastName,
+    this.phone,
+    this.bio,
+    this.avatar,
+    this.notificationPreferences,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -26,6 +38,12 @@ class User {
       departmentId: json['department_id'] as String?,
       permissions: UserPermissions.fromJson(json['permissions'] as Map<String, dynamic>),
       language: json['language'] as String? ?? 'en',
+      firstName: json['first_name'] as String?,
+      lastName: json['last_name'] as String?,
+      phone: json['phone'] as String?,
+      bio: json['bio'] as String?,
+      avatar: json['avatar'] as String?,
+      notificationPreferences: json['notification_preferences'] as String?,
     );
   }
 
@@ -38,7 +56,20 @@ class User {
       'department_id': departmentId,
       'permissions': permissions.toJson(),
       'language': language,
+      'first_name': firstName,
+      'last_name': lastName,
+      'phone': phone,
+      'bio': bio,
+      'avatar': avatar,
+      'notification_preferences': notificationPreferences,
     };
+  }
+
+  String get displayName {
+    if (firstName != null && lastName != null && firstName!.isNotEmpty && lastName!.isNotEmpty) {
+      return '$firstName $lastName';
+    }
+    return username;
   }
 }
 

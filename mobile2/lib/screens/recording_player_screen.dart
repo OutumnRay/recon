@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fijkplayer/fijkplayer.dart';
 import 'package:provider/provider.dart';
@@ -50,6 +51,10 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   RoomTranscripts? _transcripts;
   bool _isLoadingTranscripts = false;
   bool _isFullScreen = false;
+  bool _isDragging = false;
+  double _dragPosition = 0.0;
+  Timer? _positionTimer;
+  int _lastKnownPosition = 0;
 
   @override
   void initState() {
@@ -61,6 +66,18 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
     );
     _initializePlayer();
     _loadTranscripts();
+
+    // Start timer to update UI periodically (needed for smooth progress bar)
+    _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted && !_isDragging) {
+        final currentPos = _player.currentPos.inMilliseconds;
+        if (currentPos != _lastKnownPosition) {
+          setState(() {
+            _lastKnownPosition = currentPos;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _loadTranscripts() async {
@@ -165,6 +182,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
 
   @override
   void dispose() {
+    _positionTimer?.cancel();
     _player.release();
     _tabController.dispose();
     super.dispose();
@@ -466,86 +484,140 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   }
 
   Widget _buildCustomPanel(FijkPlayer player, FijkData data, BuildContext context, Size viewSize, Rect texturePos) {
+    final duration = player.value.duration.inMilliseconds;
+    final position = _lastKnownPosition > 0 ? _lastKnownPosition : player.currentPos.inMilliseconds;
+
+    // Use drag position if dragging, otherwise use actual position
+    final displayProgress = _isDragging ? _dragPosition : (duration > 0 ? position / duration : 0.0);
+    final displayPosition = _isDragging ? (_dragPosition * duration).toInt() : position;
+
+    String formatDuration(Duration d) {
+      String twoDigits(int n) => n.toString().padLeft(2, '0');
+      final hours = d.inHours;
+      final minutes = d.inMinutes.remainder(60);
+      final seconds = d.inSeconds.remainder(60);
+      return hours > 0 ? '$hours:${twoDigits(minutes)}:${twoDigits(seconds)}' : '$minutes:${twoDigits(seconds)}';
+    }
+
     return Positioned.fill(
-      child: GestureDetector(
-        onTap: () {
-          // Toggle play/pause on tap
-          if (player.state == FijkState.started) {
-            player.pause();
-          } else {
-            player.start();
-          }
-        },
-        child: Container(
-          color: Colors.transparent,
-          child: Stack(
-            children: [
-              // Play/Pause and Fullscreen buttons in lower right corner
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Play/Pause button
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          player.state == FijkState.started
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                          color: Colors.white,
-                        ),
-                        iconSize: 32,
-                        onPressed: () {
-                          if (player.state == FijkState.started) {
-                            player.pause();
-                          } else {
-                            player.start();
-                          }
-                        },
+          child: GestureDetector(
+            onTap: () {
+              if (player.state == FijkState.started) {
+                player.pause();
+              } else {
+                player.start();
+              }
+            },
+            child: Container(
+              color: Colors.transparent,
+              child: Stack(
+                children: [
+                  // Progress bar
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 72,
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(formatDuration(Duration(milliseconds: displayPosition)), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                              Text(formatDuration(player.value.duration), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                            ],
+                          ),
+                          SliderTheme(
+                            data: SliderThemeData(
+                              trackHeight: 3,
+                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                              activeTrackColor: Colors.blue,
+                              inactiveTrackColor: Colors.white.withValues(alpha: 0.3),
+                              thumbColor: Colors.blue,
+                              overlayColor: Colors.blue.withValues(alpha: 0.3),
+                            ),
+                            child: Slider(
+                              value: displayProgress.clamp(0.0, 1.0),
+                              onChangeStart: (value) {
+                                setState(() {
+                                  _isDragging = true;
+                                  _dragPosition = value;
+                                });
+                              },
+                              onChanged: (value) {
+                                setState(() {
+                                  _dragPosition = value;
+                                });
+                              },
+                              onChangeEnd: (value) async {
+                                final seekPosition = (value * duration).toInt();
+                                await player.seekTo(seekPosition);
+                                // Update last known position immediately
+                                _lastKnownPosition = seekPosition;
+                                // Small delay to ensure player position updates before releasing drag state
+                                await Future.delayed(const Duration(milliseconds: 200));
+                                if (mounted) {
+                                  setState(() {
+                                    _isDragging = false;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    // Fullscreen/Exit Fullscreen button
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                          color: Colors.white,
+                  ),
+                  // Control buttons
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), shape: BoxShape.circle),
+                          child: IconButton(
+                            icon: Icon(player.state == FijkState.started ? Icons.pause : Icons.play_arrow, color: Colors.white),
+                            iconSize: 32,
+                            onPressed: () {
+                              if (player.state == FijkState.started) {
+                                player.pause();
+                              } else {
+                                player.start();
+                              }
+                            },
+                          ),
                         ),
-                        iconSize: 32,
-                        onPressed: () {
-                          if (_isFullScreen) {
-                            player.exitFullScreen();
-                            setState(() {
-                              _isFullScreen = false;
-                            });
-                          } else {
-                            player.enterFullScreen();
-                            setState(() {
-                              _isFullScreen = true;
-                            });
-                          }
-                        },
-                      ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), shape: BoxShape.circle),
+                          child: IconButton(
+                            icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white),
+                            iconSize: 32,
+                            onPressed: () {
+                              if (_isFullScreen) {
+                                player.exitFullScreen();
+                                setState(() => _isFullScreen = false);
+                              } else {
+                                player.enterFullScreen();
+                                setState(() => _isFullScreen = true);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
   }
 
   String _formatDate(DateTime date) {
