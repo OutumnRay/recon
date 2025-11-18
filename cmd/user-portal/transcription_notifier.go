@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/database"
@@ -17,12 +18,14 @@ import (
 
 // TranscriptionNotifier handles notifications when transcriptions are completed
 type TranscriptionNotifier struct {
-	up          *UserPortal
-	fcmService  *fcm.FCMService
-	llmClient   *llm.Client
-	conn        *amqp.Connection
-	channel     *amqp.Channel
-	stopChan    chan bool
+	up           *UserPortal
+	fcmService   *fcm.FCMService
+	llmClient    *llm.Client
+	conn         *amqp.Connection
+	channel      *amqp.Channel
+	stopChan     chan bool
+	rabbitmqURL  string
+	reconnecting bool
 }
 
 // TranscriptionCompletedMessage represents the message format from transcription service
@@ -43,18 +46,63 @@ func NewTranscriptionNotifier(up *UserPortal, fcmService *fcm.FCMService, llmCli
 
 // Start begins listening for transcription completed events
 func (tn *TranscriptionNotifier) Start(rabbitmqURL string) error {
+	tn.rabbitmqURL = rabbitmqURL
 	tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Starting...")
 
+	// Start connection in goroutine with automatic reconnection
+	go tn.maintainConnection()
+
+	return nil
+}
+
+// maintainConnection maintains the RabbitMQ connection with auto-reconnect
+func (tn *TranscriptionNotifier) maintainConnection() {
+	for {
+		select {
+		case <-tn.stopChan:
+			tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Stopped")
+			return
+		default:
+			err := tn.connect()
+			if err != nil {
+				tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Connection failed: %v. Retrying in 5 seconds...", err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			// Connection established, now consume messages
+			tn.consumeMessages()
+
+			// If we get here, connection was lost
+			tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Connection lost. Reconnecting in 5 seconds...")
+			time.Sleep(5 * time.Second)
+		}
+	}
+}
+
+// connect establishes connection to RabbitMQ
+func (tn *TranscriptionNotifier) connect() error {
+	// Clean up old connection if exists
+	if tn.channel != nil {
+		tn.channel.Close()
+		tn.channel = nil
+	}
+	if tn.conn != nil {
+		tn.conn.Close()
+		tn.conn = nil
+	}
+
 	// Connect to RabbitMQ
-	conn, err := amqp.Dial(rabbitmqURL)
+	conn, err := amqp.Dial(tn.rabbitmqURL)
 	if err != nil {
-		return fmt.Errorf("failed to connect to RabbitMQ: %w", err)
+		return fmt.Errorf("failed to dial: %w", err)
 	}
 	tn.conn = conn
 
 	// Create channel
 	ch, err := conn.Channel()
 	if err != nil {
+		conn.Close()
 		return fmt.Errorf("failed to open channel: %w", err)
 	}
 	tn.channel = ch
@@ -69,6 +117,8 @@ func (tn *TranscriptionNotifier) Start(rabbitmqURL string) error {
 		nil,                       // arguments
 	)
 	if err != nil {
+		ch.Close()
+		conn.Close()
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
 
@@ -79,39 +129,76 @@ func (tn *TranscriptionNotifier) Start(rabbitmqURL string) error {
 		false, // global
 	)
 	if err != nil {
+		ch.Close()
+		conn.Close()
 		return fmt.Errorf("failed to set QoS: %w", err)
 	}
 
+	tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Connected to RabbitMQ (queue: %s)", queue.Name)
+	return nil
+}
+
+// consumeMessages consumes messages from the queue
+func (tn *TranscriptionNotifier) consumeMessages() {
 	// Start consuming messages
-	msgs, err := ch.Consume(
-		queue.Name, // queue
-		"",         // consumer
-		false,      // auto-ack
-		false,      // exclusive
-		false,      // no-local
-		false,      // no-wait
-		nil,        // args
+	msgs, err := tn.channel.Consume(
+		"transcription_completed", // queue
+		"",                        // consumer
+		false,                     // auto-ack
+		false,                     // exclusive
+		false,                     // no-local
+		false,                     // no-wait
+		nil,                       // args
 	)
 	if err != nil {
-		return fmt.Errorf("failed to register consumer: %w", err)
+		tn.up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to start consuming: %v", err)
+		return
 	}
 
-	tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Started (listening for completion events)")
+	tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Listening for completion events...")
 
-	// Process messages in goroutine
-	go func() {
-		for {
-			select {
-			case msg := <-msgs:
-				tn.processMessage(msg)
-			case <-tn.stopChan:
-				tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Stopped")
+	// Listen for connection closure
+	closeChan := make(chan *amqp.Error)
+	tn.channel.NotifyClose(closeChan)
+
+	emptyMessageCount := 0
+	for {
+		select {
+		case err := <-closeChan:
+			if err != nil {
+				tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Channel closed: %v", err)
+			}
+			return
+		case msg, ok := <-msgs:
+			if !ok {
+				tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Message channel closed")
 				return
 			}
-		}
-	}()
 
-	return nil
+			// Check if message body is empty
+			if len(msg.Body) == 0 {
+				emptyMessageCount++
+				// Only log the first empty message to avoid spam
+				if emptyMessageCount == 1 {
+					tn.up.logger.Debug("📢 [TRANSCRIPTION NOTIFIER] Received empty message (connection may be unstable)")
+				}
+				msg.Ack(false)
+
+				// If we get multiple empty messages, connection is likely broken
+				if emptyMessageCount > 10 {
+					tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Too many empty messages, reconnecting...")
+					return
+				}
+				continue
+			}
+
+			// Reset empty message counter on valid message
+			emptyMessageCount = 0
+			tn.processMessage(msg)
+		case <-tn.stopChan:
+			return
+		}
+	}
 }
 
 // Stop stops the transcription notifier
@@ -127,13 +214,6 @@ func (tn *TranscriptionNotifier) Stop() {
 
 // processMessage processes a transcription completed message
 func (tn *TranscriptionNotifier) processMessage(msg amqp.Delivery) {
-	// Check if message body is empty
-	if len(msg.Body) == 0 {
-		tn.up.logger.Debugf("📢 [TRANSCRIPTION NOTIFIER] Received empty message, discarding")
-		msg.Ack(false) // Acknowledge to remove from queue
-		return
-	}
-
 	// Parse message
 	var completedMsg TranscriptionCompletedMessage
 	err := json.Unmarshal(msg.Body, &completedMsg)

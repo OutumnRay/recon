@@ -269,6 +269,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       _SelectionItem<String?>(value: 'daily', label: l10n.recurrenceDaily),
       _SelectionItem<String?>(value: 'weekly', label: l10n.recurrenceWeekly),
       _SelectionItem<String?>(value: 'monthly', label: l10n.recurrenceMonthly),
+      _SelectionItem<String?>(value: 'permanent', label: l10n.recurrencePermanent),
     ];
 
     final selected = await showModalBottomSheet<String?>(
@@ -334,6 +335,8 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         return l10n.recurrenceWeekly;
       case 'monthly':
         return l10n.recurrenceMonthly;
+      case 'permanent':
+        return l10n.recurrencePermanent;
       default:
         return recurrence;
     }
