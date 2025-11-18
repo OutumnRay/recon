@@ -31,9 +31,23 @@ func (r *LiveKitRepository) CreateRoom(room *models.Room) error {
 	}
 	room.EnabledCodecsJSON = string(codecsJSON)
 
+	// Use UPSERT to handle race condition where placeholder room may already exist
+	// Update all fields except ID and SID when conflict occurs
 	err = r.db.DB.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "sid"}},
-		DoUpdates: clause.AssignmentColumns([]string{"name", "status", "updated_at"}),
+		Columns: []clause.Column{{Name: "sid"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"name",
+			"status",
+			"empty_timeout",
+			"departure_timeout",
+			"creation_time",
+			"creation_time_ms",
+			"turn_password",
+			"enabled_codecs_json",
+			"meeting_id",
+			"egress_id",
+			"updated_at",
+		}),
 	}).Create(room).Error
 
 	if err != nil {

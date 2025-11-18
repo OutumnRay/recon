@@ -35,6 +35,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   // Stage participant (main view)
   String? _stageParticipantId;
   bool _showParticipantsList = false;
+  bool _manuallySelectedParticipant = false; // Track if user manually selected a participant
 
   // Active speakers tracking
   List<livekit.Participant> _activeSpeakers = [];
@@ -208,7 +209,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     });
 
     // Auto-switch to active speaker if not manually selected
-    if (speakers.isNotEmpty && _stageParticipantId == null) {
+    if (speakers.isNotEmpty && !_manuallySelectedParticipant) {
       // Find first remote speaker (exclude local participant)
       final remoteSpeakers = speakers.where(
         (s) => s.sid != _room?.localParticipant?.sid,
@@ -349,9 +350,75 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       Logger.logInfo('Disconnecting from room');
       await _room?.disconnect();
       if (mounted) {
-        Navigator.of(context).pop();
+        // Navigate back to meetings list instead of just popping
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     }
+  }
+
+  void _showSettingsBottomSheet() {
+    final l10n = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  children: [
+                    Text(
+                      l10n.settings,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(color: Colors.white24),
+              // Camera flip option
+              ListTile(
+                leading: const Icon(Icons.flip_camera_ios, color: Colors.white),
+                title: Text(
+                  l10n.flipCamera,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                subtitle: Text(
+                  _cameraPosition == livekit.CameraPosition.front
+                      ? 'Front Camera'
+                      : 'Back Camera',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                enabled: _isCameraEnabled,
+                onTap: _isCameraEnabled
+                    ? () {
+                        Navigator.of(context).pop();
+                        _switchCamera();
+                      }
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showDisconnectedDialog() {
@@ -410,9 +477,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               ),
             ),
           IconButton(
-            icon: const Icon(Icons.flip_camera_ios),
-            onPressed: _switchCamera,
-            tooltip: l10n.switchCamera,
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // Show settings bottom sheet
+              _showSettingsBottomSheet();
+            },
+            tooltip: l10n.settings,
           ),
         ],
       ),
@@ -492,12 +562,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     label: l10n.camera,
                     color: _isCameraEnabled ? Colors.white : Colors.red,
                     onPressed: _toggleCamera,
-                  ),
-                  _buildControlButton(
-                    icon: Icons.flip_camera_ios,
-                    label: l10n.flipCamera,
-                    color: Colors.white,
-                    onPressed: _isCameraEnabled ? _switchCamera : null,
                   ),
                   _buildControlButton(
                     icon: Icons.call_end,
@@ -811,6 +875,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       onTap: () {
         setState(() {
           _stageParticipantId = participant.sid;
+          _manuallySelectedParticipant = true; // User manually selected a participant
           _showParticipantsList = false;
         });
       },
