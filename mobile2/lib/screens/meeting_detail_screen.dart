@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import '../main.dart';
 import '../models/meeting.dart';
 import '../models/recording.dart';
 import '../services/api_client.dart';
@@ -52,7 +53,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
   Future<void> _initService() async {
     final apiUrl = await _configService.getApiUrl();
     _publicBaseUrl = apiUrl.replaceAll('/api/v1', '');
-    final apiClient = ApiClient(baseUrl: apiUrl);
+    final apiClient = ApiClient(baseUrl: apiUrl, navigatorKey: navigatorKey);
     _meetingsService = MeetingsService(apiClient);
     _loadMeeting();
   }

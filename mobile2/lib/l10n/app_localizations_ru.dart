@@ -829,4 +829,58 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get failedToLoadMemo => 'Не удалось загрузить саммари';
+
+  @override
+  String get myProfile => 'Мой профиль';
+
+  @override
+  String get editProfileInfo => 'Редактировать информацию профиля';
+
+  @override
+  String get profile => 'Профиль';
+
+  @override
+  String get accountInformation => 'Информация об аккаунте';
+
+  @override
+  String get personalInformation => 'Личная информация';
+
+  @override
+  String get preferences => 'Настройки';
+
+  @override
+  String get firstName => 'Имя';
+
+  @override
+  String get lastName => 'Фамилия';
+
+  @override
+  String get phone => 'Телефон';
+
+  @override
+  String get bio => 'О себе';
+
+  @override
+  String get notificationPreferences => 'Настройки уведомлений';
+
+  @override
+  String get notifTracksOnly => 'Только отдельные треки';
+
+  @override
+  String get notifRoomsOnly => 'Только комнаты';
+
+  @override
+  String get notifBoth => 'Оба';
+
+  @override
+  String get failedToLoadProfile => 'Не удалось загрузить профиль';
+
+  @override
+  String get failedToSelectImage => 'Не удалось выбрать изображение';
+
+  @override
+  String get profileUpdatedSuccessfully => 'Профиль успешно обновлен';
+
+  @override
+  String get failedToSaveProfile => 'Не удалось сохранить профиль';
 }

@@ -496,7 +496,10 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 func (r *MeetingRepository) loadMeetingSubjects(meetingsMap map[uuid.UUID]*models.MeetingWithDetails, meetingIDs []uuid.UUID) {
 	subjectIDs := []string{}
 	for _, meeting := range meetingsMap {
-		subjectIDs = append(subjectIDs, meeting.SubjectID.String())
+		// Skip meetings without a subject
+		if meeting.SubjectID != nil {
+			subjectIDs = append(subjectIDs, meeting.SubjectID.String())
+		}
 	}
 
 	if len(subjectIDs) == 0 {

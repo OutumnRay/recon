@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 import '../utils/logger.dart';
@@ -6,8 +7,9 @@ import '../utils/logger.dart';
 class ApiClient {
   final String baseUrl;
   final StorageService _storageService = StorageService();
+  final GlobalKey<NavigatorState>? navigatorKey;
 
-  ApiClient({required this.baseUrl});
+  ApiClient({required this.baseUrl, this.navigatorKey});
 
   Future<Map<String, String>> _getHeaders({bool requiresAuth = true}) async {
     final headers = {
@@ -24,6 +26,28 @@ class ApiClient {
     return headers;
   }
 
+  // Handle 401 Unauthorized - clear token and redirect to login
+  Future<void> _handleUnauthorized() async {
+    Logger.logWarning('Received 401 Unauthorized - clearing token and redirecting to login');
+
+    // Clear token and user data
+    await _storageService.clearToken();
+    await _storageService.clearUserData();
+
+    // Navigate to login screen if navigator key is available
+    if (navigatorKey?.currentContext != null) {
+      // Import login screen path
+      navigatorKey!.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+    }
+  }
+
+  // Check response for 401 and handle it
+  void _checkUnauthorized(http.Response response) {
+    if (response.statusCode == 401) {
+      _handleUnauthorized();
+    }
+  }
+
   Future<http.Response> get(String endpoint, {bool requiresAuth = true}) async {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _getHeaders(requiresAuth: requiresAuth);
@@ -33,6 +57,11 @@ class ApiClient {
     final response = await http.get(url, headers: headers);
 
     Logger.logResponse(url.toString(), response.statusCode, response.body);
+
+    // Check for 401 Unauthorized
+    if (response.statusCode == 401) {
+      await _handleUnauthorized();
+    }
 
     return response;
   }
@@ -55,6 +84,11 @@ class ApiClient {
 
     Logger.logResponse(url.toString(), response.statusCode, response.body);
 
+    // Check for 401 Unauthorized
+    if (response.statusCode == 401) {
+      await _handleUnauthorized();
+    }
+
     return response;
   }
 
@@ -76,6 +110,11 @@ class ApiClient {
 
     Logger.logResponse(url.toString(), response.statusCode, response.body);
 
+    // Check for 401 Unauthorized
+    if (response.statusCode == 401) {
+      await _handleUnauthorized();
+    }
+
     return response;
   }
 
@@ -88,6 +127,11 @@ class ApiClient {
     final response = await http.delete(url, headers: headers);
 
     Logger.logResponse(url.toString(), response.statusCode, response.body);
+
+    // Check for 401 Unauthorized
+    if (response.statusCode == 401) {
+      await _handleUnauthorized();
+    }
 
     return response;
   }

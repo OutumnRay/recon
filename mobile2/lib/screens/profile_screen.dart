@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/logger.dart';
+import '../l10n/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   final ApiClient apiClient;
@@ -85,10 +86,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       Logger.logError('Failed to load user profile', error: e);
-      setState(() {
-        _errorMessage = 'Failed to load profile: ${e.toString()}';
-        _isLoading = false;
-      });
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        setState(() {
+          _errorMessage = '${l10n.failedToLoadProfile}: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -110,8 +114,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       Logger.logError('Failed to pick image', error: e);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to select image: ${e.toString()}')),
+          SnackBar(content: Text('${l10n.failedToSelectImage}: ${e.toString()}')),
         );
       }
     }
@@ -167,14 +172,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           await _storageService.saveLocale(_selectedLanguage);
         }
 
-        setState(() {
-          _user = updatedUser;
-          _avatarUrl = updatedUser.avatar;
-          _selectedImage = null;
-          _isEditMode = false;
-          _isSaving = false;
-          _successMessage = 'Profile updated successfully';
-        });
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          setState(() {
+            _user = updatedUser;
+            _avatarUrl = updatedUser.avatar;
+            _selectedImage = null;
+            _isEditMode = false;
+            _isSaving = false;
+            _successMessage = l10n.profileUpdatedSuccessfully;
+          });
+        }
 
         // Clear success message after 3 seconds
         Future.delayed(const Duration(seconds: 3), () {
@@ -187,10 +195,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       Logger.logError('Failed to save profile', error: e);
-      setState(() {
-        _errorMessage = 'Failed to save profile: ${e.toString()}';
-        _isSaving = false;
-      });
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        setState(() {
+          _errorMessage = '${l10n.failedToSaveProfile}: ${e.toString()}';
+          _isSaving = false;
+        });
+      }
     }
   }
 
@@ -219,9 +230,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n.profile),
         actions: [
           if (!_isEditMode && !_isLoading)
             IconButton(
@@ -321,15 +334,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Account Information',
+                              l10n.accountInformation,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
                             ),
                             const SizedBox(height: 16),
-                            _buildInfoRow(Icons.person_outline, 'Username', _user?.username ?? ''),
+                            _buildInfoRow(Icons.person_outline, l10n.username, _user?.username ?? ''),
                             const SizedBox(height: 12),
-                            _buildInfoRow(Icons.email_outlined, 'Email', _user?.email ?? ''),
+                            _buildInfoRow(Icons.email_outlined, l10n.email, _user?.email ?? ''),
                             const SizedBox(height: 12),
                             _buildInfoRow(Icons.badge_outlined, 'Role', _user?.role ?? ''),
                           ],
@@ -347,7 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Personal Information',
+                              l10n.personalInformation,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -356,27 +369,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             TextFormField(
                               controller: _firstNameController,
                               enabled: _isEditMode,
-                              decoration: const InputDecoration(
-                                labelText: 'First Name',
-                                prefixIcon: Icon(Icons.person_outline),
+                              decoration: InputDecoration(
+                                labelText: l10n.firstName,
+                                prefixIcon: const Icon(Icons.person_outline),
                               ),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _lastNameController,
                               enabled: _isEditMode,
-                              decoration: const InputDecoration(
-                                labelText: 'Last Name',
-                                prefixIcon: Icon(Icons.person_outline),
+                              decoration: InputDecoration(
+                                labelText: l10n.lastName,
+                                prefixIcon: const Icon(Icons.person_outline),
                               ),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _phoneController,
                               enabled: _isEditMode,
-                              decoration: const InputDecoration(
-                                labelText: 'Phone',
-                                prefixIcon: Icon(Icons.phone_outlined),
+                              decoration: InputDecoration(
+                                labelText: l10n.phone,
+                                prefixIcon: const Icon(Icons.phone_outlined),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -384,9 +397,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               controller: _bioController,
                               enabled: _isEditMode,
                               maxLines: 3,
-                              decoration: const InputDecoration(
-                                labelText: 'Bio',
-                                prefixIcon: Icon(Icons.info_outline),
+                              decoration: InputDecoration(
+                                labelText: l10n.bio,
+                                prefixIcon: const Icon(Icons.info_outline),
                                 alignLabelWithHint: true,
                               ),
                             ),
@@ -405,7 +418,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Preferences',
+                              l10n.preferences,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -413,13 +426,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
                               value: _selectedLanguage,
-                              decoration: const InputDecoration(
-                                labelText: 'Language',
-                                prefixIcon: Icon(Icons.language_outlined),
+                              decoration: InputDecoration(
+                                labelText: l10n.language,
+                                prefixIcon: const Icon(Icons.language_outlined),
                               ),
-                              items: const [
-                                DropdownMenuItem(value: 'en', child: Text('English')),
-                                DropdownMenuItem(value: 'ru', child: Text('Русский')),
+                              items: [
+                                DropdownMenuItem(value: 'en', child: Text(l10n.english)),
+                                DropdownMenuItem(value: 'ru', child: Text(l10n.russian)),
                               ],
                               onChanged: _isEditMode
                                   ? (value) {
@@ -432,14 +445,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
                               value: _selectedNotifications,
-                              decoration: const InputDecoration(
-                                labelText: 'Notification Preferences',
-                                prefixIcon: Icon(Icons.notifications_outlined),
+                              decoration: InputDecoration(
+                                labelText: l10n.notificationPreferences,
+                                prefixIcon: const Icon(Icons.notifications_outlined),
                               ),
-                              items: const [
-                                DropdownMenuItem(value: 'tracks', child: Text('Individual Tracks Only')),
-                                DropdownMenuItem(value: 'rooms', child: Text('Rooms Only')),
-                                DropdownMenuItem(value: 'both', child: Text('Both')),
+                              items: [
+                                DropdownMenuItem(value: 'tracks', child: Text(l10n.notifTracksOnly)),
+                                DropdownMenuItem(value: 'rooms', child: Text(l10n.notifRoomsOnly)),
+                                DropdownMenuItem(value: 'both', child: Text(l10n.notifBoth)),
                               ],
                               onChanged: _isEditMode
                                   ? (value) {
@@ -463,7 +476,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: _isSaving ? null : _cancelEdit,
-                              child: const Text('Cancel'),
+                              child: Text(l10n.cancel),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -476,7 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       width: 20,
                                       child: CircularProgressIndicator(strokeWidth: 2),
                                     )
-                                  : const Text('Save'),
+                                  : Text(l10n.save),
                             ),
                           ),
                         ],

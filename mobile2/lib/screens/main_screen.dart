@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../main.dart';
 import '../services/api_client.dart';
 import '../services/fcm_service.dart';
 import '../theme/app_colors.dart';
@@ -28,7 +29,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _apiClient = ApiClient(baseUrl: widget.apiUrl);
+    _apiClient = ApiClient(baseUrl: widget.apiUrl, navigatorKey: navigatorKey);
     _fcmService = FCMService(_apiClient);
     _screens = [
       MeetingsScreen(apiClient: _apiClient),

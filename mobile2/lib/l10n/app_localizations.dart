@@ -1669,6 +1669,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load memo'**
   String get failedToLoadMemo;
+
+  /// No description provided for @myProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'My Profile'**
+  String get myProfile;
+
+  /// No description provided for @editProfileInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit your profile information'**
+  String get editProfileInfo;
+
+  /// No description provided for @profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profile;
+
+  /// No description provided for @accountInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Information'**
+  String get accountInformation;
+
+  /// No description provided for @personalInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Information'**
+  String get personalInformation;
+
+  /// No description provided for @preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get preferences;
+
+  /// No description provided for @firstName.
+  ///
+  /// In en, this message translates to:
+  /// **'First Name'**
+  String get firstName;
+
+  /// No description provided for @lastName.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Name'**
+  String get lastName;
+
+  /// No description provided for @phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get phone;
+
+  /// No description provided for @bio.
+  ///
+  /// In en, this message translates to:
+  /// **'Bio'**
+  String get bio;
+
+  /// No description provided for @notificationPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Preferences'**
+  String get notificationPreferences;
+
+  /// No description provided for @notifTracksOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Individual Tracks Only'**
+  String get notifTracksOnly;
+
+  /// No description provided for @notifRoomsOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Rooms Only'**
+  String get notifRoomsOnly;
+
+  /// No description provided for @notifBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Both'**
+  String get notifBoth;
+
+  /// No description provided for @failedToLoadProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load profile'**
+  String get failedToLoadProfile;
+
+  /// No description provided for @failedToSelectImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to select image'**
+  String get failedToSelectImage;
+
+  /// No description provided for @profileUpdatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated successfully'**
+  String get profileUpdatedSuccessfully;
+
+  /// No description provided for @failedToSaveProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save profile'**
+  String get failedToSaveProfile;
 }
 
 class _AppLocalizationsDelegate

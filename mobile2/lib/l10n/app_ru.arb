@@ -305,5 +305,25 @@
   "copyMemo": "Копировать саммари",
   "memoCopied": "Саммари скопировано в буфер обмена",
   "failedToLoadTranscript": "Не удалось загрузить транскрипцию",
-  "failedToLoadMemo": "Не удалось загрузить саммари"
+  "failedToLoadMemo": "Не удалось загрузить саммари",
+
+  "myProfile": "Мой профиль",
+  "editProfileInfo": "Редактировать информацию профиля",
+
+  "profile": "Профиль",
+  "accountInformation": "Информация об аккаунте",
+  "personalInformation": "Личная информация",
+  "preferences": "Настройки",
+  "firstName": "Имя",
+  "lastName": "Фамилия",
+  "phone": "Телефон",
+  "bio": "О себе",
+  "notificationPreferences": "Настройки уведомлений",
+  "notifTracksOnly": "Только отдельные треки",
+  "notifRoomsOnly": "Только комнаты",
+  "notifBoth": "Оба",
+  "failedToLoadProfile": "Не удалось загрузить профиль",
+  "failedToSelectImage": "Не удалось выбрать изображение",
+  "profileUpdatedSuccessfully": "Профиль успешно обновлен",
+  "failedToSaveProfile": "Не удалось сохранить профиль"
 }

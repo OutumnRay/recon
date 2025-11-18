@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -7,6 +8,7 @@ import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/users_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/logger.dart';
 import '../widgets/error_display.dart';
 
 class CreateMeetingScreen extends StatefulWidget {
@@ -355,6 +357,25 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     });
 
     try {
+      // Log all field values before creating the request
+      Logger.logInfo('Creating meeting with the following data:');
+      Logger.logInfo('  title: ${_titleController.text}');
+      Logger.logInfo('  scheduledDate: $_scheduledDate');
+      Logger.logInfo('  scheduledTime: $_scheduledTime');
+      Logger.logInfo('  duration: $_duration');
+      Logger.logInfo('  recurrence: $_recurrence');
+      Logger.logInfo('  type: $_type');
+      Logger.logInfo('  subjectId: $_subjectId');
+      Logger.logInfo('  needsVideoRecord: $_needsVideoRecord');
+      Logger.logInfo('  needsAudioRecord: $_needsAudioRecord');
+      Logger.logInfo('  needsTranscription: $_needsTranscription');
+      Logger.logInfo('  forceEndAtDuration: $_forceEndAtDuration');
+      Logger.logInfo('  allowAnonymous: $_allowAnonymous');
+      Logger.logInfo('  additionalNotes: ${_notesController.text}');
+      Logger.logInfo('  participantIds: $_selectedParticipantIds');
+      Logger.logInfo('  departmentIds: $_selectedDepartmentIds');
+      Logger.logInfo('  speakerId: $_selectedSpeakerId');
+
       // Combine date and time
       final scheduledAt = DateTime(
         _scheduledDate.year,
@@ -363,6 +384,8 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         _scheduledTime.hour,
         _scheduledTime.minute,
       );
+
+      Logger.logInfo('Combined scheduledAt: $scheduledAt');
 
       final request = CreateMeetingRequest(
         title: _titleController.text,
@@ -383,7 +406,12 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         speakerId: _selectedSpeakerId,
       );
 
+      Logger.logInfo('Request object created successfully');
+      Logger.logInfo('Request JSON: ${jsonEncode(request.toJson())}');
+
       await _meetingsService.createMeeting(request);
+
+      Logger.logInfo('Meeting created successfully');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -391,7 +419,12 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         );
         Navigator.pop(context, true); // Return true to indicate success
       }
-    } on ApiException catch (e) {
+    } on ApiException catch (e, stackTrace) {
+      Logger.logError('API Exception while creating meeting', error: e, stackTrace: stackTrace);
+      debugPrint('API Exception: ${e.message}');
+      debugPrint('Status Code: ${e.statusCode}');
+      debugPrint('Stack trace: $stackTrace');
+
       if (mounted) {
         setState(() {
           _error = '${l10n.meetingCreatedError}: ${e.message}';
@@ -401,7 +434,12 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           SnackBar(content: Text(_error!)),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      Logger.logError('Unexpected error while creating meeting', error: e, stackTrace: stackTrace);
+      debugPrint('Error type: ${e.runtimeType}');
+      debugPrint('Error: $e');
+      debugPrint('Stack trace: $stackTrace');
+
       if (mounted) {
         setState(() {
           _error = '${l10n.unexpectedError}: ${e.toString()}';

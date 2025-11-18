@@ -469,13 +469,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                           ),
                           child: const Icon(Icons.person_outline, color: AppColors.primary500),
                         ),
-                        title: const Text(
-                          'My Profile',
-                          style: TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+                        title: Text(
+                          l10n.myProfile,
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                         ),
-                        subtitle: const Text(
-                          'Edit your profile information',
-                          style: TextStyle(color: AppColors.textSecondary),
+                        subtitle: Text(
+                          l10n.editProfileInfo,
+                          style: const TextStyle(color: AppColors.textSecondary),
                         ),
                         trailing: const Icon(Icons.chevron_right, color: AppColors.primary500),
                         onTap: () {

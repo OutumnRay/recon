@@ -396,5 +396,25 @@
   "copyMemo": "Copy memo",
   "memoCopied": "Memo copied to clipboard",
   "failedToLoadTranscript": "Failed to load transcript",
-  "failedToLoadMemo": "Failed to load memo"
+  "failedToLoadMemo": "Failed to load memo",
+
+  "myProfile": "My Profile",
+  "editProfileInfo": "Edit your profile information",
+
+  "profile": "Profile",
+  "accountInformation": "Account Information",
+  "personalInformation": "Personal Information",
+  "preferences": "Preferences",
+  "firstName": "First Name",
+  "lastName": "Last Name",
+  "phone": "Phone",
+  "bio": "Bio",
+  "notificationPreferences": "Notification Preferences",
+  "notifTracksOnly": "Individual Tracks Only",
+  "notifRoomsOnly": "Rooms Only",
+  "notifBoth": "Both",
+  "failedToLoadProfile": "Failed to load profile",
+  "failedToSelectImage": "Failed to select image",
+  "profileUpdatedSuccessfully": "Profile updated successfully",
+  "failedToSaveProfile": "Failed to save profile"
 }

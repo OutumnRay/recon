@@ -828,4 +828,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToLoadMemo => 'Failed to load memo';
+
+  @override
+  String get myProfile => 'My Profile';
+
+  @override
+  String get editProfileInfo => 'Edit your profile information';
+
+  @override
+  String get profile => 'Profile';
+
+  @override
+  String get accountInformation => 'Account Information';
+
+  @override
+  String get personalInformation => 'Personal Information';
+
+  @override
+  String get preferences => 'Preferences';
+
+  @override
+  String get firstName => 'First Name';
+
+  @override
+  String get lastName => 'Last Name';
+
+  @override
+  String get phone => 'Phone';
+
+  @override
+  String get bio => 'Bio';
+
+  @override
+  String get notificationPreferences => 'Notification Preferences';
+
+  @override
+  String get notifTracksOnly => 'Individual Tracks Only';
+
+  @override
+  String get notifRoomsOnly => 'Rooms Only';
+
+  @override
+  String get notifBoth => 'Both';
+
+  @override
+  String get failedToLoadProfile => 'Failed to load profile';
+
+  @override
+  String get failedToSelectImage => 'Failed to select image';
+
+  @override
+  String get profileUpdatedSuccessfully => 'Profile updated successfully';
+
+  @override
+  String get failedToSaveProfile => 'Failed to save profile';
 }

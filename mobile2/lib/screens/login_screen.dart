@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
+import '../main.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/config_service.dart';
@@ -53,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _apiUrlController.text = url;
     });
 
-    final authService = AuthService(ApiClient(baseUrl: url));
+    final authService = AuthService(ApiClient(baseUrl: url, navigatorKey: navigatorKey));
     final isLoggedIn = await authService.isLoggedIn();
     if (isLoggedIn && mounted) {
       _navigateToHome(url);
@@ -94,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final apiClient = ApiClient(baseUrl: _currentApiUrl);
+      final apiClient = ApiClient(baseUrl: _currentApiUrl, navigatorKey: navigatorKey);
       final authService = AuthService(apiClient);
 
       await authService.login(

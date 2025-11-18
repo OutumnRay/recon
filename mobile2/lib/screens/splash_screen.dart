@@ -3,6 +3,7 @@ import '../services/storage_service.dart';
 import '../services/config_service.dart';
 import '../services/api_client.dart';
 import '../services/fcm_service.dart';
+import '../main.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
 
@@ -36,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (token != null && token.isNotEmpty) {
         // Токен есть - проверяем его валидность
         final apiUrl = await _configService.getApiUrl();
-        final apiClient = ApiClient(baseUrl: apiUrl);
+        final apiClient = ApiClient(baseUrl: apiUrl, navigatorKey: navigatorKey);
 
         try {
           // Пробуем сделать запрос к API для проверки токена

@@ -6,10 +6,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
+import 'screens/login_screen.dart';
 import 'services/locale_service.dart';
 import 'services/fcm_service.dart';
 import 'l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
+
+// Global navigator key for accessing navigation from anywhere
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,6 +71,7 @@ class _RecontextAppState extends State<RecontextApp> {
         return MaterialApp(
           title: 'Recontext',
           theme: AppTheme.lightTheme,
+          navigatorKey: navigatorKey,
           locale: localeService.locale,
           localizationsDelegates: [
             ...AppLocalizations.localizationsDelegates,
@@ -76,6 +81,9 @@ class _RecontextAppState extends State<RecontextApp> {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: const SplashScreen(),
+          routes: {
+            '/login': (context) => const LoginScreen(),
+          },
         );
       },
     );
