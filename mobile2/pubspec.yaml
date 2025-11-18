@@ -72,6 +72,9 @@ dependencies:
   # Image picker for avatar upload
   image_picker: ^1.0.7
 
+  # Wakelock to keep screen on during video calls
+  wakelock_plus: ^1.2.8
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
 import '../utils/logger.dart';
 import '../models/meeting.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class VideoCallScreen extends StatefulWidget {
   final String token;
@@ -110,6 +111,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       await room.connect(widget.url, widget.token);
 
       Logger.logSuccess('Connected to LiveKit room');
+
+      // Enable wakelock to prevent screen from turning off
+      try {
+        await WakelockPlus.enable();
+        Logger.logInfo('Wakelock enabled - screen will stay on during meeting');
+      } catch (e) {
+        Logger.logWarning('Failed to enable wakelock: $e');
+      }
 
       // Wait for connection state to be fully connected
       await Future.delayed(const Duration(milliseconds: 500));
@@ -356,8 +365,46 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     }
   }
 
-  void _showSettingsBottomSheet() {
+  void _showSettingsBottomSheet() async {
     final l10n = AppLocalizations.of(context)!;
+
+    // Get available audio devices
+    List<livekit.MediaDevice> audioDevices = [];
+    livekit.MediaDevice? selectedAudioDevice;
+    String? currentDeviceId;
+
+    try {
+      audioDevices = await livekit.Hardware.instance.enumerateDevices();
+
+      // Filter audio input devices
+      audioDevices = audioDevices.where((d) => d.kind == 'audioinput').toList();
+
+      // Get current audio device
+      final localParticipant = _room?.localParticipant;
+      if (localParticipant != null) {
+        for (final pub in localParticipant.audioTrackPublications) {
+          if (pub.track is livekit.LocalAudioTrack) {
+            final track = pub.track as livekit.LocalAudioTrack;
+            currentDeviceId = track.currentOptions.deviceId;
+            if (currentDeviceId != null) {
+              try {
+                selectedAudioDevice = audioDevices.firstWhere(
+                  (d) => d.deviceId == currentDeviceId,
+                );
+              } catch (_) {
+                selectedAudioDevice = audioDevices.isNotEmpty ? audioDevices.first : null;
+              }
+            } else {
+              selectedAudioDevice = audioDevices.isNotEmpty ? audioDevices.first : null;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      Logger.logError('Failed to get audio devices', error: e);
+    }
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -393,6 +440,30 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
               ),
               const Divider(color: Colors.white24),
+
+              // Audio source selection
+              if (audioDevices.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.mic, color: Colors.white),
+                  title: const Text(
+                    'Audio Source',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  subtitle: Text(
+                    selectedAudioDevice?.label ?? 'Default',
+                    style: const TextStyle(color: Colors.white70),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  enabled: _isMicEnabled,
+                  onTap: _isMicEnabled
+                      ? () {
+                          Navigator.of(context).pop();
+                          _showAudioSourceSelector(audioDevices, selectedAudioDevice);
+                        }
+                      : null,
+                ),
+
               // Camera flip option
               ListTile(
                 leading: const Icon(Icons.flip_camera_ios, color: Colors.white),
@@ -421,6 +492,117 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     );
   }
 
+  void _showAudioSourceSelector(List<livekit.MediaDevice> devices, livekit.MediaDevice? currentDevice) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Select Audio Source',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(color: Colors.white24),
+
+              // List of audio devices
+              ...devices.map((device) => ListTile(
+                leading: Icon(
+                  Icons.mic,
+                  color: device.deviceId == currentDevice?.deviceId
+                      ? const Color(0xFF26C6DA)
+                      : Colors.white70,
+                ),
+                title: Text(
+                  device.label.isNotEmpty ? device.label : 'Unknown Device',
+                  style: TextStyle(
+                    color: device.deviceId == currentDevice?.deviceId
+                        ? const Color(0xFF26C6DA)
+                        : Colors.white,
+                    fontWeight: device.deviceId == currentDevice?.deviceId
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+                trailing: device.deviceId == currentDevice?.deviceId
+                    ? const Icon(Icons.check, color: Color(0xFF26C6DA))
+                    : null,
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await _switchAudioSource(device);
+                },
+              )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _switchAudioSource(livekit.MediaDevice device) async {
+    if (_room?.localParticipant == null) return;
+
+    try {
+      final localParticipant = _room!.localParticipant!;
+
+      // Find the local audio track
+      for (final publication in localParticipant.audioTrackPublications) {
+        if (publication.track is livekit.LocalAudioTrack) {
+          final track = publication.track as livekit.LocalAudioTrack;
+
+          // Switch audio source
+          await track.setDeviceId(device.deviceId);
+
+          Logger.logInfo('Switched audio source to ${device.label}');
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Audio source changed to: ${device.label}'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+          break;
+        }
+      }
+    } catch (e) {
+      Logger.logError('Failed to switch audio source', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to switch audio source: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showDisconnectedDialog() {
     final l10n = AppLocalizations.of(context)!;
 
@@ -445,6 +627,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   @override
   void dispose() {
+    // Disable wakelock when leaving the video call
+    WakelockPlus.disable();
+
     _room?.removeListener(_onRoomUpdate);
     _room?.disconnect();
     _room?.dispose();
@@ -592,37 +777,42 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
     }
 
-    // If no stage participant, prioritize remote participants
+    // If no stage participant, prioritize remote participants, but show local if alone
     if (stageParticipant == null) {
-      // If only local participant exists, show waiting view
+      // If only local participant exists, show local participant
       if (room.remoteParticipants.isEmpty) {
-        return _buildWaitingView();
-      }
-
-      // First try to find a remote participant with video
-      ParticipantTrack? remoteTrack;
-      try {
-        remoteTrack = _participantTracks.firstWhere(
-          (pt) => !pt.isLocal && pt.participant.isCameraEnabled(),
-        );
-      } catch (_) {
-        // Try to find any remote participant
+        stageParticipant = room.localParticipant;
+      } else {
+        // First try to find a remote participant with video
+        ParticipantTrack? remoteTrack;
         try {
-          remoteTrack = _participantTracks.firstWhere((pt) => !pt.isLocal);
+          remoteTrack = _participantTracks.firstWhere(
+            (pt) => !pt.isLocal && pt.participant.isCameraEnabled(),
+          );
         } catch (_) {
-          // If no remote tracks, use first available track
-          if (_participantTracks.isNotEmpty) {
-            remoteTrack = _participantTracks.first;
+          // Try to find any remote participant
+          try {
+            remoteTrack = _participantTracks.firstWhere((pt) => !pt.isLocal);
+          } catch (_) {
+            // If no remote tracks, use first available track (including local)
+            if (_participantTracks.isNotEmpty) {
+              remoteTrack = _participantTracks.first;
+            }
           }
         }
-      }
 
-      if (remoteTrack != null) {
-        stageParticipant = remoteTrack.participant;
-      } else {
-        // No tracks available, show waiting view
-        return _buildWaitingView();
+        if (remoteTrack != null) {
+          stageParticipant = remoteTrack.participant;
+        } else {
+          // No tracks available, show local participant if available
+          stageParticipant = room.localParticipant;
+        }
       }
+    }
+
+    // If still no participant, show waiting view
+    if (stageParticipant == null) {
+      return _buildWaitingView();
     }
 
     // Check if participant has camera enabled
@@ -635,7 +825,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         ? AppLocalizations.of(context)!.you
         : _getDisplayName(stageParticipant.identity);
 
-    final isSpeaking = _activeSpeakers.any((s) => s.sid == stageParticipant!.sid);
+    final isSpeaking = _activeSpeakers.any((s) => s.sid == stageParticipant?.sid);
 
     return Container(
       color: Colors.black,

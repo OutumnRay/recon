@@ -43,7 +43,7 @@ func (r *LiveKitRepository) CreateRoom(room *models.Room) error {
 			"creation_time",
 			"creation_time_ms",
 			"turn_password",
-			"enabled_codecs_json",
+			"enabled_codecs",
 			"meeting_id",
 			"egress_id",
 			"updated_at",
