@@ -1,6 +1,7 @@
 """RabbitMQ consumer worker for transcription service."""
 import json
 import traceback
+import time
 import pika
 from config import Config
 from database import DatabaseManager
@@ -17,18 +18,30 @@ class TranscriptionConsumer:
         self.connection = None
         self.channel = None
 
-    def connect(self):
-        """Connect to RabbitMQ."""
+    def connect(self, max_retries=5, retry_delay=5):
+        """Connect to RabbitMQ with retry logic."""
         print(f"Connecting to RabbitMQ at {Config.RABBITMQ_HOST}:{Config.RABBITMQ_PORT}")
-        self.connection = pika.BlockingConnection(Config.get_rabbitmq_connection_params())
-        self.channel = self.connection.channel()
 
-        # Declare transcription queue
-        self.channel.queue_declare(queue=Config.RABBITMQ_QUEUE, durable=True)
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.connection = pika.BlockingConnection(Config.get_rabbitmq_connection_params())
+                self.channel = self.connection.channel()
 
-        # Declare notification queue
-        self.channel.queue_declare(queue='transcription_completed', durable=True)
-        print(f"Connected to queue: {Config.RABBITMQ_QUEUE}")
+                # Declare transcription queue
+                self.channel.queue_declare(queue=Config.RABBITMQ_QUEUE, durable=True)
+
+                # Declare notification queue
+                self.channel.queue_declare(queue='transcription_completed', durable=True)
+                print(f"✅ Connected to RabbitMQ queue: {Config.RABBITMQ_QUEUE}")
+                return
+            except pika.exceptions.AMQPConnectionError as e:
+                if attempt < max_retries:
+                    print(f"⚠️ Failed to connect to RabbitMQ (attempt {attempt}/{max_retries}): {e}")
+                    print(f"Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:
+                    print(f"❌ Failed to connect to RabbitMQ after {max_retries} attempts")
+                    raise
 
     def send_transcription_completed_notification(self, track_id):
         """Send notification that transcription is completed."""
@@ -166,8 +179,29 @@ class TranscriptionConsumer:
         self.db.create_transcription_tables()
         print("Database tables ready")
 
-        # Connect to RabbitMQ
-        self.connect()
+        # Connect to RabbitMQ with retry
+        try:
+            self.connect()
+        except pika.exceptions.AMQPConnectionError:
+            print("\n" + "="*60)
+            print("⚠️ RabbitMQ is not available")
+            print("Service will keep running in standby mode")
+            print("Waiting for RabbitMQ to become available...")
+            print("="*60 + "\n")
+
+            # Keep trying to connect in a loop with longer delays
+            while True:
+                try:
+                    time.sleep(30)  # Wait 30 seconds between connection attempts
+                    print("Attempting to reconnect to RabbitMQ...")
+                    self.connect(max_retries=1, retry_delay=0)
+                    break  # Successfully connected, exit the loop
+                except pika.exceptions.AMQPConnectionError:
+                    print("Still waiting for RabbitMQ...")
+                    continue
+                except KeyboardInterrupt:
+                    print("\n\nShutting down...")
+                    return
 
         # Set QoS to process one message at a time
         self.channel.basic_qos(prefetch_count=1)

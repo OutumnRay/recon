@@ -413,6 +413,15 @@ func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) err
 				CreatedAtDB: time.Now(),
 				UpdatedAt:   time.Now(),
 			}
+
+			// Check if roomName is a valid meeting UUID and set MeetingID
+			if roomName != "" {
+				if meetingID, err := uuid.Parse(roomName); err == nil {
+					placeholderRoom.MeetingID = &meetingID
+					mp.logger.Infof("  📌 Set placeholder room MeetingID to %s", meetingID)
+				}
+			}
+
 			// Extract room details from req.Room if available
 			if req.Room != nil {
 				if emptyTimeout, ok := req.Room["emptyTimeout"].(float64); ok {
@@ -586,6 +595,15 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 				CreatedAtDB: time.Now(),
 				UpdatedAt:   time.Now(),
 			}
+
+			// Check if roomName is a valid meeting UUID and set MeetingID
+			if roomName != "" {
+				if meetingID, err := uuid.Parse(roomName); err == nil {
+					placeholderRoom.MeetingID = &meetingID
+					mp.logger.Infof("  📌 Set placeholder room MeetingID to %s", meetingID)
+				}
+			}
+
 			// Extract room details from req.Room if available
 			if req.Room != nil {
 				if emptyTimeout, ok := req.Room["emptyTimeout"].(float64); ok {
