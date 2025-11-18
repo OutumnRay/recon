@@ -601,7 +601,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get serverConfiguration => 'Настройка сервера';
 
   @override
-  String get apiUrl => 'URL API';
+  String get apiUrl => 'API URL';
 
   @override
   String get defaultButton => 'По умолчанию';
@@ -611,11 +611,10 @@ class AppLocalizationsRu extends AppLocalizations {
       'Примечание: После изменения URL API необходимо перезапустить приложение.';
 
   @override
-  String get apiUrlEmpty => 'URL API не может быть пустым';
+  String get apiUrlEmpty => 'API URL не может быть пустым';
 
   @override
-  String get apiUrlSaved =>
-      'URL API сохранён. Пожалуйста, перезапустите приложение.';
+  String get apiUrlSaved => 'API URL сохранен';
 
   @override
   String get notifications => 'Уведомления';
@@ -786,6 +785,21 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get validationPasswordRequired => 'Введите пароль';
+
+  @override
+  String get apiUrlHint => 'https://portal.recontext.online';
+
+  @override
+  String get pleaseCheck => 'Пожалуйста, проверьте:';
+
+  @override
+  String get networkConnection => 'Подключение к сети';
+
+  @override
+  String get apiUrlCorrect => 'Правильность API URL';
+
+  @override
+  String get serverRunning => 'Сервер запущен';
 
   @override
   String get apiNotConfigured => 'URL сервера не настроен';

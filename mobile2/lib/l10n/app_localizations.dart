@@ -1271,7 +1271,7 @@ abstract class AppLocalizations {
   /// No description provided for @apiUrlSaved.
   ///
   /// In en, this message translates to:
-  /// **'API URL saved. Please restart the app.'**
+  /// **'API URL saved'**
   String get apiUrlSaved;
 
   /// No description provided for @notifications.
@@ -1585,6 +1585,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter your password'**
   String get validationPasswordRequired;
+
+  /// No description provided for @apiUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://portal.recontext.online'**
+  String get apiUrlHint;
+
+  /// No description provided for @pleaseCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check:'**
+  String get pleaseCheck;
+
+  /// No description provided for @networkConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Network connection'**
+  String get networkConnection;
+
+  /// No description provided for @apiUrlCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'API URL is correct'**
+  String get apiUrlCorrect;
+
+  /// No description provided for @serverRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Server is running'**
+  String get serverRunning;
 
   /// No description provided for @apiNotConfigured.
   ///

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fijkplayer/fijkplayer.dart';
 import 'package:provider/provider.dart';
+import '../main.dart';
 import '../models/recording.dart';
 import '../models/transcript.dart';
 import '../utils/logger.dart';
@@ -93,7 +94,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
 
       final configService = ConfigService();
       final baseUrl = await configService.getApiUrl();
-      final apiClient = ApiClient(baseUrl: baseUrl);
+      final apiClient = ApiClient(baseUrl: baseUrl, navigatorKey: navigatorKey);
       final meetingsService = MeetingsService(apiClient);
 
       Logger.logInfo('Loading transcripts for room', data: {'roomSid': widget.recording.roomSid});

@@ -613,7 +613,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apiUrlEmpty => 'API URL cannot be empty';
 
   @override
-  String get apiUrlSaved => 'API URL saved. Please restart the app.';
+  String get apiUrlSaved => 'API URL saved';
 
   @override
   String get notifications => 'Notifications';
@@ -784,6 +784,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get validationPasswordRequired => 'Please enter your password';
+
+  @override
+  String get apiUrlHint => 'https://portal.recontext.online';
+
+  @override
+  String get pleaseCheck => 'Please check:';
+
+  @override
+  String get networkConnection => 'Network connection';
+
+  @override
+  String get apiUrlCorrect => 'API URL is correct';
+
+  @override
+  String get serverRunning => 'Server is running';
 
   @override
   String get apiNotConfigured => 'Server URL not configured';

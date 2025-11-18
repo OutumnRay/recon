@@ -382,6 +382,16 @@
   "welcomeBackSubtitle": "Sign in to manage your meetings",
   "validationUsernameRequired": "Please enter your username",
   "validationPasswordRequired": "Please enter your password",
+
+  "apiUrl": "API URL",
+  "apiUrlHint": "https://portal.recontext.online",
+  "apiUrlEmpty": "API URL cannot be empty",
+  "apiUrlSaved": "API URL saved",
+  "connectionError": "Connection Error",
+  "pleaseCheck": "Please check:",
+  "networkConnection": "Network connection",
+  "apiUrlCorrect": "API URL is correct",
+  "serverRunning": "Server is running",
   "apiNotConfigured": "Server URL not configured",
   "currentServer": "Connected to",
 

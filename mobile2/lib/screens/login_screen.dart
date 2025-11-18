@@ -62,10 +62,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _saveApiUrl() async {
+    final l10n = AppLocalizations.of(context)!;
     final url = _apiUrlController.text.trim();
     if (url.isEmpty) {
       setState(() {
-        _error = 'API URL cannot be empty';
+        _error = l10n.apiUrlEmpty;
       });
       return;
     }
@@ -80,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('API URL saved')),
+      SnackBar(content: Text(l10n.apiUrlSaved)),
     );
   }
 
@@ -119,9 +120,10 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on Exception catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
           _error =
-              'Connection Error:\n${e.toString()}\n\nAPI URL: $_currentApiUrl\n\nPlease check:\n• Network connection\n• API URL is correct\n• Server is running';
+              '${l10n.connectionError}:\n${e.toString()}\n\n${l10n.apiUrl}: $_currentApiUrl\n\n${l10n.pleaseCheck}\n• ${l10n.networkConnection}\n• ${l10n.apiUrlCorrect}\n• ${l10n.serverRunning}';
         });
       }
     } catch (e, stackTrace) {
@@ -371,8 +373,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextFormField(
                                 controller: _apiUrlController,
                                 decoration: InputDecoration(
-                                  labelText: 'API URL',
-                                  hintText: 'https://portal.recontext.online',
+                                  labelText: l10n.apiUrl,
+                                  hintText: l10n.apiUrlHint,
                                   prefixIcon: const Icon(Icons.link_outlined, color: AppColors.primary500),
                                   filled: true,
                                   fillColor: AppColors.surfaceMuted,

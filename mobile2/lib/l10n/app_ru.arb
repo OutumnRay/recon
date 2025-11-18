@@ -291,6 +291,16 @@
   "welcomeBackSubtitle": "Войдите, чтобы управлять встречами",
   "validationUsernameRequired": "Введите имя пользователя",
   "validationPasswordRequired": "Введите пароль",
+
+  "apiUrl": "API URL",
+  "apiUrlHint": "https://portal.recontext.online",
+  "apiUrlEmpty": "API URL не может быть пустым",
+  "apiUrlSaved": "API URL сохранен",
+  "connectionError": "Ошибка подключения",
+  "pleaseCheck": "Пожалуйста, проверьте:",
+  "networkConnection": "Подключение к сети",
+  "apiUrlCorrect": "Правильность API URL",
+  "serverRunning": "Сервер запущен",
   "apiNotConfigured": "URL сервера не настроен",
   "currentServer": "Подключено к",
 

@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'storage_service.dart';
 
@@ -13,11 +14,38 @@ class LocaleService extends ChangeNotifier {
   }
 
   Future<void> _loadLocale() async {
+    // Check if user has a saved preference
     final languageCode = await _storageService.getLocale();
+
     if (languageCode != null) {
+      // User has a saved preference, use it
       _locale = Locale(languageCode);
       notifyListeners();
+    } else {
+      // No saved preference, detect system language
+      final systemLocale = _getSystemLocale();
+      _locale = systemLocale;
+      // Save the detected locale as the default
+      await _storageService.saveLocale(systemLocale.languageCode);
+      notifyListeners();
     }
+  }
+
+  /// Get system locale, fallback to English if not supported
+  Locale _getSystemLocale() {
+    final systemLocales = ui.PlatformDispatcher.instance.locales;
+
+    // Check if any of the system locales are supported
+    for (final systemLocale in systemLocales) {
+      if (systemLocale.languageCode == 'ru') {
+        return const Locale('ru');
+      } else if (systemLocale.languageCode == 'en') {
+        return const Locale('en');
+      }
+    }
+
+    // Default to English if no supported locale found
+    return const Locale('en');
   }
 
   Future<void> setLocale(Locale locale) async {
