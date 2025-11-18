@@ -5,7 +5,7 @@ class Meeting {
   final int duration;
   final String? recurrence;
   final String type;
-  final String subjectId;
+  final String? subjectId;
   final String status;
   final bool needsVideoRecord;
   final bool needsAudioRecord;
@@ -28,7 +28,7 @@ class Meeting {
     required this.duration,
     this.recurrence,
     required this.type,
-    required this.subjectId,
+    this.subjectId,
     required this.status,
     required this.needsVideoRecord,
     required this.needsAudioRecord,
@@ -53,7 +53,7 @@ class Meeting {
       duration: json['duration'] as int,
       recurrence: json['recurrence'] as String?,
       type: json['type'] as String,
-      subjectId: json['subject_id'] as String,
+      subjectId: json['subject_id'] as String?,
       status: json['status'] as String,
       needsVideoRecord: json['needs_video_record'] as bool? ?? false,
       needsAudioRecord: json['needs_audio_record'] as bool? ?? false,
@@ -112,7 +112,7 @@ class MeetingWithDetails extends Meeting {
     required super.duration,
     super.recurrence,
     required super.type,
-    required super.subjectId,
+    super.subjectId,
     required super.status,
     required super.needsVideoRecord,
     required super.needsAudioRecord,
@@ -142,7 +142,7 @@ class MeetingWithDetails extends Meeting {
       duration: json['duration'] as int,
       recurrence: json['recurrence'] as String?,
       type: json['type'] as String,
-      subjectId: json['subject_id'] as String,
+      subjectId: json['subject_id'] as String?,
       status: json['status'] as String,
       needsVideoRecord: json['needs_video_record'] as bool? ?? false,
       needsAudioRecord: json['needs_audio_record'] as bool? ?? false,

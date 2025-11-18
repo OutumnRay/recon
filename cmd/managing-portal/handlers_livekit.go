@@ -386,10 +386,68 @@ func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) err
 	}
 
 	// Extract room SID
+	var roomName string
 	if req.Room != nil {
 		if roomSID, ok := req.Room["sid"].(string); ok {
 			participant.RoomSID = roomSID
 			mp.logger.Infof("  📌 Room SID: %s", roomSID)
+		}
+		if name, ok := req.Room["name"].(string); ok {
+			roomName = name
+		}
+	}
+
+	// Ensure room exists before saving participant (fix for race condition)
+	if participant.RoomSID != "" {
+		mp.logger.Infof("🔍 Checking if room %s exists...", participant.RoomSID)
+		_, err := mp.liveKitRepo.GetRoomBySID(participant.RoomSID)
+		if err != nil {
+			mp.logger.Infof("⚠️ Room %s not found in database yet, creating placeholder room from participant_joined event...", participant.RoomSID)
+			// Create placeholder room to satisfy foreign key constraint
+			placeholderRoom := &models.Room{
+				ID:          uuid.New(),
+				SID:         participant.RoomSID,
+				Name:        roomName,
+				Status:      "active",
+				StartedAt:   time.Now(),
+				CreatedAtDB: time.Now(),
+				UpdatedAt:   time.Now(),
+			}
+			// Extract room details from req.Room if available
+			if req.Room != nil {
+				if emptyTimeout, ok := req.Room["emptyTimeout"].(float64); ok {
+					placeholderRoom.EmptyTimeout = int(emptyTimeout)
+				}
+				if departureTimeout, ok := req.Room["departureTimeout"].(float64); ok {
+					placeholderRoom.DepartureTimeout = int(departureTimeout)
+				}
+				if creationTime, ok := req.Room["creationTime"].(string); ok {
+					placeholderRoom.CreationTime = creationTime
+				}
+				if creationTimeMs, ok := req.Room["creationTimeMs"].(string); ok {
+					placeholderRoom.CreationTimeMs = creationTimeMs
+				}
+				if turnPassword, ok := req.Room["turnPassword"].(string); ok {
+					placeholderRoom.TurnPassword = turnPassword
+				}
+				// Parse enabled codecs
+				if enabledCodecs, ok := req.Room["enabledCodecs"].([]interface{}); ok {
+					for _, codec := range enabledCodecs {
+						if codecMap, ok := codec.(map[string]interface{}); ok {
+							if mime, ok := codecMap["mime"].(string); ok {
+								placeholderRoom.EnabledCodecs = append(placeholderRoom.EnabledCodecs, models.EnabledCodec{Mime: mime})
+							}
+						}
+					}
+				}
+			}
+			if err := mp.liveKitRepo.CreateRoom(placeholderRoom); err != nil {
+				mp.logger.Errorf("❌ Failed to create placeholder room: %v", err)
+				return fmt.Errorf("room does not exist and failed to create placeholder: %w", err)
+			}
+			mp.logger.Infof("✅ Created placeholder room %s from participant_joined event", participant.RoomSID)
+		} else {
+			mp.logger.Infof("✅ Room %s exists", participant.RoomSID)
 		}
 	}
 
@@ -509,6 +567,60 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 		if name, ok := req.Room["name"].(string); ok {
 			roomName = name
 			mp.logger.Infof("  📌 Room Name: %s", name)
+		}
+	}
+
+	// Ensure room exists before saving track (fix for race condition)
+	if track.RoomSID != "" {
+		mp.logger.Infof("🔍 Checking if room %s exists...", track.RoomSID)
+		_, err := mp.liveKitRepo.GetRoomBySID(track.RoomSID)
+		if err != nil {
+			mp.logger.Infof("⚠️ Room %s not found in database yet, creating placeholder room from track_published event...", track.RoomSID)
+			// Create placeholder room to satisfy foreign key constraint
+			placeholderRoom := &models.Room{
+				ID:          uuid.New(),
+				SID:         track.RoomSID,
+				Name:        roomName,
+				Status:      "active",
+				StartedAt:   time.Now(),
+				CreatedAtDB: time.Now(),
+				UpdatedAt:   time.Now(),
+			}
+			// Extract room details from req.Room if available
+			if req.Room != nil {
+				if emptyTimeout, ok := req.Room["emptyTimeout"].(float64); ok {
+					placeholderRoom.EmptyTimeout = int(emptyTimeout)
+				}
+				if departureTimeout, ok := req.Room["departureTimeout"].(float64); ok {
+					placeholderRoom.DepartureTimeout = int(departureTimeout)
+				}
+				if creationTime, ok := req.Room["creationTime"].(string); ok {
+					placeholderRoom.CreationTime = creationTime
+				}
+				if creationTimeMs, ok := req.Room["creationTimeMs"].(string); ok {
+					placeholderRoom.CreationTimeMs = creationTimeMs
+				}
+				if turnPassword, ok := req.Room["turnPassword"].(string); ok {
+					placeholderRoom.TurnPassword = turnPassword
+				}
+				// Parse enabled codecs
+				if enabledCodecs, ok := req.Room["enabledCodecs"].([]interface{}); ok {
+					for _, codec := range enabledCodecs {
+						if codecMap, ok := codec.(map[string]interface{}); ok {
+							if mime, ok := codecMap["mime"].(string); ok {
+								placeholderRoom.EnabledCodecs = append(placeholderRoom.EnabledCodecs, models.EnabledCodec{Mime: mime})
+							}
+						}
+					}
+				}
+			}
+			if err := mp.liveKitRepo.CreateRoom(placeholderRoom); err != nil {
+				mp.logger.Errorf("❌ Failed to create placeholder room: %v", err)
+				return fmt.Errorf("room does not exist and failed to create placeholder: %w", err)
+			}
+			mp.logger.Infof("✅ Created placeholder room %s from track_published event", track.RoomSID)
+		} else {
+			mp.logger.Infof("✅ Room %s exists", track.RoomSID)
 		}
 	}
 
