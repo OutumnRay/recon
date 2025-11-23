@@ -133,8 +133,7 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		Type:               req.Type,
 		SubjectID:          req.SubjectID,
 		Status:             models.MeetingStatusScheduled,
-		NeedsVideoRecord:   req.NeedsVideoRecord,
-		NeedsAudioRecord:   req.NeedsAudioRecord,
+		NeedsRecord:        req.NeedsRecord,
 		NeedsTranscription: req.NeedsTranscription,
 		AdditionalNotes:    req.AdditionalNotes,
 		ForceEndAtDuration: req.ForceEndAtDuration,
@@ -463,11 +462,8 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	if req.Status != nil {
 		meeting.Status = *req.Status
 	}
-	if req.NeedsVideoRecord != nil {
-		meeting.NeedsVideoRecord = *req.NeedsVideoRecord
-	}
-	if req.NeedsAudioRecord != nil {
-		meeting.NeedsAudioRecord = *req.NeedsAudioRecord
+	if req.NeedsRecord != nil {
+		meeting.NeedsRecord = *req.NeedsRecord
 	}
 	if req.NeedsTranscription != nil {
 		meeting.NeedsTranscription = *req.NeedsTranscription
