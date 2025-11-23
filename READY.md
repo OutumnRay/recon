@@ -786,6 +786,75 @@
   - Summarization queue
   - Processing results queue
 
+### Phase 10: Mobile Application Improvements (Completed)
+
+#### Timezone Support
+- ✅ Created date/time utility (`mobile2/lib/utils/date_utils.dart`)
+  - `parseToLocal()` - Converts server UTC dates to user's local timezone
+  - `formatDateTime()` - Formats dates for display in user's locale
+  - `formatDate()`, `formatTime()` - Specialized formatters
+  - `formatRelativeDateTime()` - Smart formatting with localized labels (Сегодня/Today, Завтра/Tomorrow, weekday, etc.)
+  - `toUtcString()` - Converts local time to UTC for server communication
+  - Helper methods: `isToday()`, `isPast()`, `isFuture()`
+- ✅ Updated all data models to use timezone-aware parsing
+  - `models/meeting.dart` - Meeting, MeetingWithDetails, MeetingParticipant
+  - `models/recording.dart` - RoomRecording, TrackRecording
+  - All `DateTime.parse()` calls replaced with `AppDateUtils.parseToLocal()`
+  - Ensures all dates are displayed in user's local timezone
+- ✅ Updated UI screens to display localized times
+  - `meetings_screen.dart` - Uses `formatRelativeDateTime()` with localized labels (l10n.today, l10n.tomorrow)
+  - `meetings_screen.dart` - Duration displays use localized "min"/"мин" (l10n.minutes)
+  - `meeting_detail_screen.dart` - Shows times in user's locale with localized duration units
+  - All date/time displays now timezone-aware and fully localized
+
+#### Meeting Creation Improvements
+- ✅ Automatic creator participation (`create_meeting_screen.dart`)
+  - Current user automatically added as participant on form load
+  - Creator ID stored and passed to participant selection dialog
+  - Creator cannot be removed from participant list (checkbox disabled)
+  - Visual badge "Вы" (You) displayed next to creator's name
+  - Ensures meeting creator is always a participant
+
+#### UI/UX Enhancements
+- ✅ Simplified join button text (`meetings_screen.dart`)
+  - Changed from "Присоединиться к встрече" to "Присоединиться"
+  - Shorter, cleaner button label across all meeting types
+  - Permanent meetings always show join button
+- ✅ Fixed filter pills shadow clipping (`meetings_screen.dart`)
+  - Increased bottom padding from 16 to 24 pixels in filter container
+  - Shadow from selected filter pills no longer gets cut off
+  - Improved visual appearance of top filter slider
+- ✅ Screen wake lock during video calls (`video_call_screen.dart`)
+  - Added `wakelock_plus: ^1.2.8` dependency
+  - Screen stays on during active video calls
+  - Automatic wake lock enable on room connection
+  - Automatic wake lock disable on disconnect/dispose
+  - Prevents screen timeout during meetings
+- ✅ Audio source selection (`video_call_screen.dart`)
+  - Settings menu now shows available audio input devices
+  - Users can switch between microphones during calls
+  - Device selection with active device highlighting
+  - Live audio source switching without reconnection
+- ✅ Local video preview (`video_call_screen.dart`)
+  - Shows user's own video immediately when joining alone
+  - Replaces "waiting for participants" screen
+  - Provides instant feedback that camera is working
+
+#### Backend Fixes
+- ✅ Fixed meeting_id population in LiveKit rooms (`handlers_livekit.go`)
+  - Placeholder rooms (from participant_joined/track_published) now set meeting_id
+  - UUID parsing from room name for meeting linkage
+  - Ensures all rooms have meeting_id regardless of event order
+- ✅ Fixed database column name (`livekit_repository.go`)
+  - Changed UPSERT column from `enabled_codecs_json` to `enabled_codecs`
+  - Matches actual database schema defined in GORM model
+  - Prevents "column does not exist" errors
+- ✅ Enhanced transcription service resilience (`transcription-service/worker.py`)
+  - RabbitMQ connection retry logic (5 attempts with 5-second delays)
+  - Standby mode when RabbitMQ unavailable
+  - Automatic reconnection every 30 seconds
+  - Prevents crash loops, provides clear status messages
+
 ### Phase 9: Track Recording Transcription System (Completed)
 
 #### Backend (Go)

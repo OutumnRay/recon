@@ -1,3 +1,5 @@
+import '../utils/date_utils.dart';
+
 class RoomRecording {
   final String id;
   final String roomSid;
@@ -22,9 +24,9 @@ class RoomRecording {
       id: json['id'] as String,
       roomSid: json['room_sid'] as String,
       status: json['status'] as String,
-      startedAt: DateTime.parse(json['started_at'] as String),
+      startedAt: AppDateUtils.parseToLocal(json['started_at'] as String),
       endedAt: json['ended_at'] != null
-          ? DateTime.parse(json['ended_at'] as String)
+          ? AppDateUtils.parseToLocal(json['ended_at'] as String)
           : null,
       playlistUrl: json['playlist_url'] as String?,
       tracks: (json['tracks'] as List<dynamic>?)
@@ -83,9 +85,9 @@ class TrackRecording {
     return TrackRecording(
       id: json['id'] as String,
       status: json['status'] as String,
-      startedAt: DateTime.parse(json['started_at'] as String),
+      startedAt: AppDateUtils.parseToLocal(json['started_at'] as String),
       endedAt: json['ended_at'] != null
-          ? DateTime.parse(json['ended_at'] as String)
+          ? AppDateUtils.parseToLocal(json['ended_at'] as String)
           : null,
       playlistUrl: json['playlist_url'] as String,
       participantId: json['participant_id'] as String,

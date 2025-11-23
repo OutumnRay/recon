@@ -9,18 +9,12 @@ class Config:
     """Application configuration."""
 
     # RabbitMQ Configuration
-    RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
+    RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', '5.129.227.21')
     RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT', '5672'))
-    RABBITMQ_USER = os.getenv('RABBITMQ_USER', 'guest')
-    RABBITMQ_PASSWORD = os.getenv('RABBITMQ_PASSWORD', 'guest')
+    RABBITMQ_USER = os.getenv('RABBITMQ_USER', 'recontext')
+    RABBITMQ_PASSWORD = os.getenv('RABBITMQ_PASSWORD', 'je9rO4k6CQ3M')
     RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE', 'transcription_queue')
-
-    # Database Configuration
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = int(os.getenv('DB_PORT', '5432'))
-    DB_NAME = os.getenv('DB_NAME', 'recontext')
-    DB_USER = os.getenv('DB_USER', 'postgres')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
+    RABBITMQ_RESULT_QUEUE = os.getenv('RABBITMQ_RESULT_QUEUE', 'transcription_results')
 
     # Whisper Configuration
     WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'medium')
@@ -33,11 +27,6 @@ class Config:
     MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
     MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', '32a4953d5bff4a1c6aea4d4ccfb757e5')
     MINIO_SECURE = os.getenv('MINIO_SECURE', 'true').lower() == 'true'  # Use HTTPS by default
-
-    @classmethod
-    def get_db_connection_string(cls):
-        """Get PostgreSQL connection string."""
-        return f"host={cls.DB_HOST} port={cls.DB_PORT} dbname={cls.DB_NAME} user={cls.DB_USER} password={cls.DB_PASSWORD}"
 
     @classmethod
     def get_rabbitmq_connection_params(cls):

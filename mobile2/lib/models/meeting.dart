@@ -1,3 +1,5 @@
+import '../utils/date_utils.dart';
+
 class Meeting {
   final String id;
   final String title;
@@ -7,8 +9,7 @@ class Meeting {
   final String type;
   final String? subjectId;
   final String status;
-  final bool needsVideoRecord;
-  final bool needsAudioRecord;
+  final bool needsRecord;
   final bool needsTranscription;
   final bool isRecording;
   final bool isTranscribing;
@@ -30,8 +31,7 @@ class Meeting {
     required this.type,
     this.subjectId,
     required this.status,
-    required this.needsVideoRecord,
-    required this.needsAudioRecord,
+    required this.needsRecord,
     required this.needsTranscription,
     required this.isRecording,
     required this.isTranscribing,
@@ -49,14 +49,13 @@ class Meeting {
     return Meeting(
       id: json['id'] as String,
       title: json['title'] as String,
-      scheduledAt: DateTime.parse(json['scheduled_at'] as String),
+      scheduledAt: AppDateUtils.parseToLocal(json['scheduled_at'] as String),
       duration: json['duration'] as int,
       recurrence: json['recurrence'] as String?,
       type: json['type'] as String,
       subjectId: json['subject_id'] as String?,
       status: json['status'] as String,
-      needsVideoRecord: json['needs_video_record'] as bool? ?? false,
-      needsAudioRecord: json['needs_audio_record'] as bool? ?? false,
+      needsRecord: json['needs_record'] as bool? ?? false,
       needsTranscription: json['needs_transcription'] as bool? ?? false,
       isRecording: json['is_recording'] as bool? ?? false,
       isTranscribing: json['is_transcribing'] as bool? ?? false,
@@ -66,8 +65,8 @@ class Meeting {
       allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
       createdBy: json['created_by'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: AppDateUtils.parseToLocal(json['created_at'] as String),
+      updatedAt: AppDateUtils.parseToLocal(json['updated_at'] as String),
     );
   }
 
@@ -81,8 +80,7 @@ class Meeting {
       'type': type,
       'subject_id': subjectId,
       'status': status,
-      'needs_video_record': needsVideoRecord,
-      'needs_audio_record': needsAudioRecord,
+      'needs_record': needsRecord,
       'needs_transcription': needsTranscription,
       'is_recording': isRecording,
       'is_transcribing': isTranscribing,
@@ -114,8 +112,7 @@ class MeetingWithDetails extends Meeting {
     required super.type,
     super.subjectId,
     required super.status,
-    required super.needsVideoRecord,
-    required super.needsAudioRecord,
+    required super.needsRecord,
     required super.needsTranscription,
     required super.isRecording,
     required super.isTranscribing,
@@ -138,14 +135,13 @@ class MeetingWithDetails extends Meeting {
     return MeetingWithDetails(
       id: json['id'] as String,
       title: json['title'] as String,
-      scheduledAt: DateTime.parse(json['scheduled_at'] as String),
+      scheduledAt: AppDateUtils.parseToLocal(json['scheduled_at'] as String),
       duration: json['duration'] as int,
       recurrence: json['recurrence'] as String?,
       type: json['type'] as String,
       subjectId: json['subject_id'] as String?,
       status: json['status'] as String,
-      needsVideoRecord: json['needs_video_record'] as bool? ?? false,
-      needsAudioRecord: json['needs_audio_record'] as bool? ?? false,
+      needsRecord: json['needs_record'] as bool? ?? false,
       needsTranscription: json['needs_transcription'] as bool? ?? false,
       isRecording: json['is_recording'] as bool? ?? false,
       isTranscribing: json['is_transcribing'] as bool? ?? false,
@@ -155,8 +151,8 @@ class MeetingWithDetails extends Meeting {
       allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
       createdBy: json['created_by'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: AppDateUtils.parseToLocal(json['created_at'] as String),
+      updatedAt: AppDateUtils.parseToLocal(json['updated_at'] as String),
       subjectName: json['subject_name'] as String?,
       participants: (json['participants'] as List<dynamic>?)
               ?.map((p) => MeetingParticipant.fromJson(p as Map<String, dynamic>))
@@ -198,7 +194,7 @@ class MeetingParticipant {
       userId: json['user_id'] as String,
       role: json['role'] as String,
       status: json['status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: AppDateUtils.parseToLocal(json['created_at'] as String),
       user: json['user'] != null
           ? ParticipantUser.fromJson(json['user'] as Map<String, dynamic>)
           : null,
@@ -269,8 +265,7 @@ class CreateMeetingRequest {
   final String? recurrence;
   final String type;
   final String? subjectId;
-  final bool needsVideoRecord;
-  final bool needsAudioRecord;
+  final bool needsRecord;
   final bool needsTranscription;
   final bool forceEndAtDuration;
   final bool allowAnonymous;
@@ -286,8 +281,7 @@ class CreateMeetingRequest {
     this.recurrence,
     required this.type,
     this.subjectId,
-    required this.needsVideoRecord,
-    required this.needsAudioRecord,
+    required this.needsRecord,
     required this.needsTranscription,
     required this.forceEndAtDuration,
     required this.allowAnonymous,
@@ -311,8 +305,7 @@ class CreateMeetingRequest {
       if (recurrence != null) 'recurrence': recurrence,
       'type': type,
       if (subjectId != null && subjectId!.isNotEmpty) 'subject_id': subjectId,
-      'needs_video_record': needsVideoRecord,
-      'needs_audio_record': needsAudioRecord,
+      'needs_record': needsRecord,
       'needs_transcription': needsTranscription,
       'force_end_at_duration': forceEndAtDuration,
       'is_permanent': recurrence == 'permanent',

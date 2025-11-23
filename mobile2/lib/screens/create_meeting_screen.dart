@@ -7,6 +7,7 @@ import '../models/meeting.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/users_service.dart';
+import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/logger.dart';
 import '../widgets/error_display.dart';
@@ -34,8 +35,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   String _type = 'conference';
   String? _subjectId;
   String? _recurrence;
-  bool _needsVideoRecord = true;
-  bool _needsAudioRecord = true;
+  bool _needsRecord = true;
   bool _needsTranscription = false;
   bool _forceEndAtDuration = false;
   bool _allowAnonymous = false;
@@ -46,6 +46,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   Set<String> _selectedParticipantIds = {};
   Set<String> _selectedDepartmentIds = {};
   String? _selectedSpeakerId;
+  String? _currentUserId; // ID текущего пользователя (создателя встречи)
 
   bool _isLoading = false;
   bool _isLoadingData = true;
@@ -77,6 +78,11 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     });
 
     try {
+      // Получаем ID текущего пользователя
+      final storageService = StorageService();
+      final userData = await storageService.getUserData();
+      _currentUserId = userData['userId'];
+
       final results = await Future.wait([
         _meetingsService.getMeetingSubjects(),
         _usersService.getUsers(),
@@ -93,6 +99,12 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           // Set default subject if available
           if (_subjects != null && _subjects!.isNotEmpty) {
             _subjectId = _subjects!.first.id;
+          }
+
+          // Автоматически добавляем текущего пользователя как участника
+          if (_currentUserId != null) {
+            _selectedParticipantIds.add(_currentUserId!);
+            Logger.logInfo('Current user automatically added as participant: $_currentUserId');
           }
         });
       }
@@ -145,6 +157,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         users: _users!,
         selectedIds: _selectedParticipantIds,
         selectedSpeakerId: _selectedSpeakerId,
+        currentUserId: _currentUserId, // Передаем ID текущего пользователя
       ),
     );
 
@@ -366,8 +379,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       Logger.logInfo('  recurrence: $_recurrence');
       Logger.logInfo('  type: $_type');
       Logger.logInfo('  subjectId: $_subjectId');
-      Logger.logInfo('  needsVideoRecord: $_needsVideoRecord');
-      Logger.logInfo('  needsAudioRecord: $_needsAudioRecord');
+      Logger.logInfo('  needsRecord: $_needsRecord');
       Logger.logInfo('  needsTranscription: $_needsTranscription');
       Logger.logInfo('  forceEndAtDuration: $_forceEndAtDuration');
       Logger.logInfo('  allowAnonymous: $_allowAnonymous');
@@ -394,8 +406,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         recurrence: _recurrence,
         type: _type,
         subjectId: _subjectId,
-        needsVideoRecord: _needsVideoRecord,
-        needsAudioRecord: _needsAudioRecord,
+        needsRecord: _needsRecord,
         needsTranscription: _needsTranscription,
         forceEndAtDuration: _forceEndAtDuration,
         allowAnonymous: _allowAnonymous,
@@ -676,29 +687,10 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildSwitchTile(
-                      title: l10n.meetingVideoRecord,
-                      subtitle: _needsVideoRecord ? l10n.enabled : l10n.disabled,
-                      value: _needsVideoRecord,
-                      onChanged: (value) {
-                        setState(() {
-                          _needsVideoRecord = value;
-                          // Auto-enable audio when video is enabled
-                          if (value && !_needsAudioRecord) {
-                            _needsAudioRecord = true;
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    _buildSwitchTile(
-                      title: l10n.meetingAudioRecord,
-                      subtitle: _needsVideoRecord
-                          ? l10n.enabled
-                          : (_needsAudioRecord ? l10n.enabled : l10n.disabled),
-                      value: _needsAudioRecord,
-                      onChanged: _needsVideoRecord
-                          ? null // Disabled when video is enabled
-                          : (value) => setState(() => _needsAudioRecord = value),
+                      title: l10n.meetingRecord,
+                      subtitle: _needsRecord ? l10n.enabled : l10n.disabled,
+                      value: _needsRecord,
+                      onChanged: (value) => setState(() => _needsRecord = value),
                     ),
                     const SizedBox(height: 8),
                     _buildSwitchTile(
@@ -1194,11 +1186,13 @@ class _ParticipantSelectionDialog extends StatefulWidget {
   final List<UserListItem> users;
   final Set<String> selectedIds;
   final String? selectedSpeakerId;
+  final String? currentUserId; // ID текущего пользователя (создателя)
 
   const _ParticipantSelectionDialog({
     required this.users,
     required this.selectedIds,
     this.selectedSpeakerId,
+    this.currentUserId,
   });
 
   @override
@@ -1277,12 +1271,36 @@ class _ParticipantSelectionDialogState
                 itemBuilder: (context, index) {
                   final user = filteredUsers[index];
                   final isSelected = _selected.contains(user.id);
+                  final isCurrentUser = user.id == widget.currentUserId;
+
                   return CheckboxListTile(
-                    title: Text(user.displayName),
+                    title: Row(
+                      children: [
+                        Expanded(child: Text(user.displayName)),
+                        if (isCurrentUser)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.primary200),
+                            ),
+                            child: Text(
+                              l10n.you,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                     subtitle: Text(user.email),
                     value: isSelected,
                     activeColor: AppColors.primary600,
-                    onChanged: (value) {
+                    // Блокируем изменение для текущего пользователя
+                    onChanged: isCurrentUser ? null : (value) {
                       setState(() {
                         if (value == true) {
                           _selected.add(user.id);

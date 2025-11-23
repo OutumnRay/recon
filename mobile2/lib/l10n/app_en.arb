@@ -34,8 +34,7 @@
   "meetingParticipants": "Participants",
   "meetingDepartments": "Departments",
   "meetingNotes": "Additional Notes",
-  "meetingVideoRecord": "Video Recording",
-  "meetingAudioRecord": "Audio Recording",
+  "meetingRecord": "Record Meeting (Audio & Video)",
   "meetingTranscription": "Transcription (recording individual tracks)",
   "meetingForceEndAtDuration": "Force end after time elapses",
   "meetingAllowAnonymous": "Allow anonymous members",
@@ -267,6 +266,7 @@
     }
   },
   "you": "You",
+  "join": "Join",
   "mic": "Mic",
   "camera": "Camera",
   "leave": "Leave",

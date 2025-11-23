@@ -1,6 +1,5 @@
 faster-whisper
 pika
-psycopg2-binary
 python-dotenv
 requests
 minio

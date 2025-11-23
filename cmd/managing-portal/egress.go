@@ -101,12 +101,16 @@ func (mp *ManagingPortal) startRoomCompositeEgress(roomName string, roomSID stri
 	return res.EgressId, nil
 }
 
-// startTrackCompositeEgress запускает запись отдельного аудио трека
-func (mp *ManagingPortal) startTrackCompositeEgress(roomName, roomSID, trackID string) (string, error) {
+// startTrackCompositeEgress запускает запись отдельного аудио/видео трека
+func (mp *ManagingPortal) startTrackCompositeEgress(roomName, roomSID, audioTrackID, videoTrackID string) (string, error) {
 	config := loadEgressConfig()
 
 	if !config.Enabled || !config.RecordTracks {
 		return "", nil // Запись треков отключена
+	}
+
+	if audioTrackID == "" && videoTrackID == "" {
+		return "", fmt.Errorf("no track IDs provided for track egress")
 	}
 
 	// Создаем Egress клиент
@@ -119,8 +123,14 @@ func (mp *ManagingPortal) startTrackCompositeEgress(roomName, roomSID, trackID s
 	// Формируем запрос на запись трека
 	req := &livekit.TrackCompositeEgressRequest{
 		RoomName:     roomName,
-		AudioTrackId: trackID,
-		VideoTrackId: "",
+		AudioTrackId: audioTrackID,
+		VideoTrackId: videoTrackID,
+	}
+
+	// Определяем, какой идентификатор использовать в имени файла
+	targetTrackID := audioTrackID
+	if targetTrackID == "" {
+		targetTrackID = videoTrackID
 	}
 
 	// Настройки кодирования
@@ -132,9 +142,9 @@ func (mp *ManagingPortal) startTrackCompositeEgress(roomName, roomSID, trackID s
 	// Используем структуру: {meetingID}_{sessionID}/tracks/{trackID}
 	req.SegmentOutputs = []*livekit.SegmentedFileOutput{
 		{
-			FilenamePrefix:   fmt.Sprintf("%s_%s/tracks/%s", roomName, roomSID, trackID),
-			PlaylistName:     fmt.Sprintf("%s.m3u8", trackID),
-			LivePlaylistName: fmt.Sprintf("%s-live.m3u8", trackID),
+			FilenamePrefix:   fmt.Sprintf("%s_%s/tracks/%s", roomName, roomSID, targetTrackID),
+			PlaylistName:     fmt.Sprintf("%s.m3u8", targetTrackID),
+			LivePlaylistName: fmt.Sprintf("%s-live.m3u8", targetTrackID),
 			SegmentDuration:  20,
 			Output: &livekit.SegmentedFileOutput_S3{
 				S3: &livekit.S3Upload{
@@ -155,7 +165,7 @@ func (mp *ManagingPortal) startTrackCompositeEgress(roomName, roomSID, trackID s
 		return "", fmt.Errorf("failed to start track composite egress: %w", err)
 	}
 
-	mp.logger.Infof("Started track composite egress for track %s in room %s (SID: %s): EgressID=%s", trackID, roomName, roomSID, res.EgressId)
+	mp.logger.Infof("Started track composite egress for track %s in room %s (SID: %s): EgressID=%s", targetTrackID, roomName, roomSID, res.EgressId)
 	return res.EgressId, nil
 }
 

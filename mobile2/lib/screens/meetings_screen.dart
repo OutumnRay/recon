@@ -10,6 +10,7 @@ import 'meeting_detail_screen.dart';
 import 'create_meeting_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../utils/date_utils.dart';
 
 class MeetingsScreen extends StatefulWidget {
   final ApiClient apiClient;
@@ -83,20 +84,14 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   }
 
   String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final meetingDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
-
-    if (meetingDate == today) {
-      return 'Today, ${DateFormat.Hm().format(dateTime)}';
-    } else if (meetingDate == today.add(const Duration(days: 1))) {
-      return 'Tomorrow, ${DateFormat.Hm().format(dateTime)}';
-    } else if (meetingDate.isAfter(today) &&
-        meetingDate.isBefore(today.add(const Duration(days: 7)))) {
-      return '${DateFormat.E().format(dateTime)}, ${DateFormat.Hm().format(dateTime)}';
-    } else {
-      return DateFormat('dd MMM yyyy, HH:mm').format(dateTime);
-    }
+    final locale = Localizations.localeOf(context).toString();
+    final l10n = AppLocalizations.of(context)!;
+    return AppDateUtils.formatRelativeDateTime(
+      dateTime,
+      locale: locale,
+      todayLabel: l10n.today,
+      tomorrowLabel: l10n.tomorrow,
+    );
   }
 
   Color _getStatusColor(String status) {
@@ -231,7 +226,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
               // Status filter pills
               SliverToBoxAdapter(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -382,7 +377,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                       ),
                     _buildMetadata(
                       Icons.schedule,
-                      '${meeting.duration} min',
+                      '${meeting.duration} ${l10n.minutes}',
                     ),
                     _buildMetadata(
                       Icons.people_outline,
@@ -431,7 +426,8 @@ class _MeetingsScreenState extends State<MeetingsScreen>
 
                     const Spacer(),
 
-                    if (canJoin && !isPast)
+                    // Для постоянных встреч всегда показываем кнопку присоединения
+                    if (meeting.isPermanent || (canJoin && !isPast))
                       Container(
                         height: 40,
                         decoration: BoxDecoration(
@@ -464,7 +460,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                               const Icon(Icons.play_arrow_rounded, size: 20),
                               const SizedBox(width: 6),
                               Text(
-                                l10n.joinMeeting,
+                                l10n.join,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,

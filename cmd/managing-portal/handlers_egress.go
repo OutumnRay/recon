@@ -12,132 +12,6 @@ import (
 	"Recontext.online/pkg/database"
 )
 
-// startRoomRecordingHandler godoc
-// @Summary Начать запись всей комнаты
-// @Description Начинает запись всей комнаты с композитным представлением
-// @Tags LiveKit Egress
-// @Accept json
-// @Produce json
-// @Param request body StartRoomRecordingRequest true "Room recording request"
-// @Success 200 {object} map[string]interface{} "Egress started"
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Security BearerAuth
-// @Router /api/v1/livekit/egress/room/start [post]
-func (mp *ManagingPortal) startRoomRecordingHandler(w http.ResponseWriter, r *http.Request) {
-	var req StartRoomRecordingRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		mp.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
-		return
-	}
-
-	// Validate request
-	if req.RoomName == "" {
-		mp.respondWithError(w, http.StatusBadRequest, "room_name is required", "")
-		return
-	}
-
-	// Get room by name to get room_sid
-	room, err := mp.liveKitRepo.GetRoomByName(req.RoomName)
-	if err != nil {
-		mp.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
-		return
-	}
-
-	// Check if room is active
-	if room.Status != "active" {
-		mp.respondWithError(w, http.StatusBadRequest, "Room is not active", "")
-		return
-	}
-
-	// Start room composite egress
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	audioOnly := req.AudioOnly != nil && *req.AudioOnly
-	egressInfo, err := mp.egressClient.StartRoomCompositeEgress(ctx, req.RoomName, room.SID, audioOnly)
-	if err != nil {
-		mp.respondWithError(w, http.StatusInternalServerError, "Failed to start room recording", err.Error())
-		return
-	}
-
-	// Store egress info in database
-	egressID, err := uuid.Parse(egressInfo.EgressId)
-	if err != nil {
-		mp.respondWithError(w, http.StatusInternalServerError, "Invalid egress ID format", err.Error())
-		return
-	}
-
-	egress := &database.LiveKitEgress{
-		ID:        egressID,
-		RoomSID:   room.SID,
-		RoomName:  req.RoomName,
-		Type:      "room_composite",
-		Status:    "pending",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	if err := mp.egressRepo.Create(egress); err != nil {
-		log.Printf("Warning: Failed to store egress in database: %v", err)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"egress_id": egressInfo.EgressId,
-		"room_sid":  room.SID,
-		"room_name": req.RoomName,
-		"status":    egressInfo.Status.String(),
-		"message":   "Room recording started successfully",
-	})
-}
-
-// stopRoomRecordingHandler godoc
-// @Summary Остановить запись комнаты
-// @Description Останавливает текущую запись комнаты
-// @Tags LiveKit Egress
-// @Accept json
-// @Produce json
-// @Param request body StopEgressRequest true "Stop egress request"
-// @Success 200 {object} map[string]interface{} "Egress stopped"
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Security BearerAuth
-// @Router /api/v1/livekit/egress/stop [post]
-func (mp *ManagingPortal) stopRoomRecordingHandler(w http.ResponseWriter, r *http.Request) {
-	var req StopEgressRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		mp.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
-		return
-	}
-
-	if req.EgressID == "" {
-		mp.respondWithError(w, http.StatusBadRequest, "egress_id is required", "")
-		return
-	}
-
-	// Stop egress
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	egressInfo, err := mp.egressClient.StopEgress(ctx, req.EgressID)
-	if err != nil {
-		mp.respondWithError(w, http.StatusInternalServerError, "Failed to stop recording", err.Error())
-		return
-	}
-
-	// Update status in database
-	if err := mp.egressRepo.UpdateStatus(uuid.Must(uuid.Parse(req.EgressID)), "finishing"); err != nil {
-		log.Printf("Warning: Failed to update egress status in database: %v", err)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"egress_id": egressInfo.EgressId,
-		"status":    egressInfo.Status.String(),
-		"message":   "Recording stopped successfully",
-	})
-}
 
 // startTrackRecordingHandler godoc
 // @Summary Начать запись конкретного трека
@@ -226,6 +100,130 @@ func (mp *ManagingPortal) startTrackRecordingHandler(w http.ResponseWriter, r *h
 		"room_name": req.RoomName,
 		"status":    egressInfo.Status.String(),
 		"message":   "Track recording started successfully",
+	})
+}
+
+// startRoomRecordingHandler godoc
+// @Summary Начать запись всей комнаты
+// @Description Начинает запись всей комнаты (composite)
+// @Tags LiveKit Egress
+// @Accept json
+// @Produce json
+// @Param request body StartRoomRecordingRequest true "Room recording request"
+// @Success 200 {object} map[string]interface{} "Room recording started"
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/livekit/egress/room/start [post]
+func (mp *ManagingPortal) startRoomRecordingHandler(w http.ResponseWriter, r *http.Request) {
+	var req StartRoomRecordingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		mp.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate request
+	if req.RoomName == "" {
+		mp.respondWithError(w, http.StatusBadRequest, "room_name is required", "")
+		return
+	}
+
+	// Get room by name
+	room, err := mp.liveKitRepo.GetRoomByName(req.RoomName)
+	if err != nil {
+		mp.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
+		return
+	}
+
+	// Determine if audio only
+	audioOnly := false
+	if req.AudioOnly != nil {
+		audioOnly = *req.AudioOnly
+	}
+
+	// Start room composite egress
+	egressID, err := mp.startRoomCompositeEgress(req.RoomName, room.SID, audioOnly)
+	if err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to start room recording", err.Error())
+		return
+	}
+
+	// Store egress info in database
+	egressUUID, err := uuid.Parse(egressID)
+	if err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Invalid egress ID format", err.Error())
+		return
+	}
+
+	egress := &database.LiveKitEgress{
+		ID:       egressUUID,
+		RoomSID:  room.SID,
+		RoomName: req.RoomName,
+		Type:     "room_composite",
+		Status:   "pending",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	if err := mp.egressRepo.Create(egress); err != nil {
+		log.Printf("Warning: Failed to store egress in database: %v", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"egress_id": egressID,
+		"room_sid":  room.SID,
+		"room_name": req.RoomName,
+		"audio_only": audioOnly,
+		"message":   "Room recording started successfully",
+	})
+}
+
+// stopRoomRecordingHandler godoc
+// @Summary Остановить запись (egress)
+// @Description Останавливает активную сессию egress
+// @Tags LiveKit Egress
+// @Accept json
+// @Produce json
+// @Param request body StopEgressRequest true "Stop egress request"
+// @Success 200 {object} map[string]interface{} "Egress stopped"
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/livekit/egress/stop [post]
+func (mp *ManagingPortal) stopRoomRecordingHandler(w http.ResponseWriter, r *http.Request) {
+	var req StopEgressRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		mp.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate request
+	if req.EgressID == "" {
+		mp.respondWithError(w, http.StatusBadRequest, "egress_id is required", "")
+		return
+	}
+
+	// Stop the egress
+	if err := mp.stopEgress(req.EgressID); err != nil {
+		mp.respondWithError(w, http.StatusInternalServerError, "Failed to stop egress", err.Error())
+		return
+	}
+
+	// Update egress status in database
+	egressUUID, err := uuid.Parse(req.EgressID)
+	if err != nil {
+		log.Printf("Warning: Invalid egress ID format: %v", err)
+	} else {
+		if err := mp.egressRepo.UpdateStatus(egressUUID, "stopped"); err != nil {
+			log.Printf("Warning: Failed to update egress status in database: %v", err)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"egress_id": req.EgressID,
+		"message":   "Egress stopped successfully",
 	})
 }
 

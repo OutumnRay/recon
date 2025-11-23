@@ -571,6 +571,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get you => 'Вы';
 
   @override
+  String get join => 'Присоединиться';
+
+  @override
   String get mic => 'Микрофон';
 
   @override

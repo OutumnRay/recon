@@ -187,8 +187,6 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	}
 
 	// Link room to meeting if room.Name is a valid UUID (meeting ID) BEFORE saving to database
-	var needsVideoRecord bool
-	var needsAudioRecord bool
 	var needsTranscription bool
 	var meetingUUID *uuid.UUID
 
@@ -205,29 +203,21 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 			// Find meeting by ID and update its LiveKitRoomID
 			meeting, err := mp.meetingRepo.GetMeetingByID(meetingID)
 			if err == nil {
-				mp.logger.Infof("Found meeting %s: NeedsVideoRecord=%v, NeedsAudioRecord=%v, NeedsTranscription=%v",
-					meetingID, meeting.NeedsVideoRecord, meeting.NeedsAudioRecord, meeting.NeedsTranscription)
+				mp.logger.Infof("Found meeting %s: NeedsRecord=%v, NeedsTranscription=%v",
+					meetingID, meeting.NeedsRecord, meeting.NeedsTranscription)
 
 				// Link meeting to the room ID (not SID - SID is a string like RM_xxx)
 				// We'll update this after saving the room
-				needsVideoRecord = meeting.NeedsVideoRecord
-				needsAudioRecord = meeting.NeedsAudioRecord
 				needsTranscription = meeting.NeedsTranscription
-
-				// Если включено видео, автоматически включаем аудио
-				if needsVideoRecord {
-					needsAudioRecord = true
-					mp.logger.Infof("Video recording enabled, automatically enabling audio recording")
-				}
 
 				// Auto-enable is_recording and is_transcribing based on needs_* settings
 				// This allows user to start with enabled recording/transcription and then manually control it
 				updateNeeded := false
-				if (needsVideoRecord || needsAudioRecord) && !meeting.IsRecording {
+				if meeting.NeedsRecord && !meeting.IsRecording {
 					meeting.IsRecording = true
 					updateNeeded = true
-					mp.logger.Infof("Auto-enabling is_recording for meeting %s (needs_video=%v, needs_audio=%v)",
-						meetingID, needsVideoRecord, needsAudioRecord)
+					mp.logger.Infof("Auto-enabling is_recording for meeting %s (needs_record=%v)",
+						meetingID, meeting.NeedsRecord)
 				}
 				if needsTranscription && !meeting.IsTranscribing {
 					meeting.IsTranscribing = true
@@ -269,66 +259,8 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 		}
 	}
 
-	// Start room composite egress recording if enabled in meeting settings
-	mp.logger.Infof("📹 Checking room egress requirements...")
-	mp.logger.Infof("  • Video Recording: %v", needsVideoRecord)
-	mp.logger.Infof("  • Audio Recording: %v", needsAudioRecord)
-	mp.logger.Infof("  • Transcription: %v", needsTranscription)
-	mp.logger.Infof("  • Room Name: %s", room.Name)
-
-	if room.Name != "" && (needsVideoRecord || needsAudioRecord) {
-		// If video is not needed, record audio only
-		audioOnly := !needsVideoRecord && needsAudioRecord
-
-		mp.logger.Infof("🚀 Starting room composite egress for room '%s' (audioOnly=%v) asynchronously...", room.Name, audioOnly)
-
-		// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
-		// meetingUUID is already set above
-		go func(roomName string, audioOnly bool, roomSID string, meetingID *uuid.UUID) {
-			egressID, err := mp.startRoomCompositeEgress(roomName, roomSID, audioOnly)
-			if err != nil {
-				mp.logger.Errorf("❌ Failed to start room composite egress: %v", err)
-			} else if egressID != "" {
-				mp.logger.Infof("✅ Room egress started successfully: %s (audioOnly=%v)", egressID, audioOnly)
-
-				// Save EgressID to database
-				err = mp.db.DB.Model(&models.Room{}).Where("sid = ?", roomSID).Update("egress_id", egressID).Error
-				if err != nil {
-					mp.logger.Errorf("❌ Failed to save room egress ID to database: %v", err)
-				} else {
-					mp.logger.Infof("✅ Room egress ID saved to database: %s", egressID)
-				}
-
-				// Create EgressRecording entry
-				egressRec := &models.EgressRecording{
-					EgressID:  egressID,
-					Type:      "room_composite",
-					Status:    "started",
-					RoomSID:   roomSID,
-					RoomName:  roomName,
-					MeetingID: meetingID,
-					AudioOnly: audioOnly,
-					StartedAt: time.Now(),
-				}
-				err = mp.db.DB.Create(egressRec).Error
-				if err != nil {
-					mp.logger.Errorf("❌ Failed to create egress recording entry: %v", err)
-				} else {
-					mp.logger.Infof("✅ Egress recording entry created: %s (Type: room_composite, Meeting: %v)", egressID, meetingID)
-				}
-			} else {
-				mp.logger.Infof("⚠️ Room egress not started (disabled in config or returned empty ID)")
-			}
-		}(room.Name, audioOnly, room.SID, meetingUUID)
-
-		mp.logger.Infof("ℹ️ Room egress request sent asynchronously")
-	} else {
-		mp.logger.Infof("ℹ️ Room egress skipped:")
-		mp.logger.Infof("  • Room Name: '%s' (empty=%v)", room.Name, room.Name == "")
-		mp.logger.Infof("  • Video needed: %v", needsVideoRecord)
-		mp.logger.Infof("  • Audio needed: %v", needsAudioRecord)
-		mp.logger.Infof("  • Any recording needed: %v", needsVideoRecord || needsAudioRecord)
-	}
+	// Room-level composite recording removed in favor of per-track recordings
+	mp.logger.Infof("ℹ️ Room composite egress skipped - tracks will be recorded individually when published")
 
 	mp.logger.Infof("✅ room_started event processed successfully")
 	return nil
@@ -654,14 +586,19 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	mp.logger.Infof("📊 Track Summary: SID=%s | Source=%s | Type=%s | Room=%s | Participant=%s | MimeType=%s",
 		track.SID, track.Source, track.Type, roomName, participantSID, track.MimeType)
 
-	// Получаем настройки транскрибации напрямую из базы по room name (meeting ID)
+	// Получаем настройки записи напрямую из базы по room name (meeting ID)
 	var needsTranscription bool
+	var needsAudioRecord bool
+	var needsVideoRecord bool
 	if roomName != "" {
 		if meetingID, err := uuid.Parse(roomName); err == nil {
 			meeting, err := mp.meetingRepo.GetMeetingByID(meetingID)
 			if err == nil {
 				needsTranscription = meeting.NeedsTranscription
-				mp.logger.Infof("📝 Meeting %s: NeedsTranscription=%v", meetingID, needsTranscription)
+				needsAudioRecord = meeting.NeedsRecord    // needs_record includes both audio and video
+				needsVideoRecord = meeting.NeedsRecord    // needs_record includes both audio and video
+				mp.logger.Infof("📝 Meeting %s: NeedsTranscription=%v, NeedsRecord=%v",
+					meetingID, needsTranscription, meeting.NeedsRecord)
 			} else {
 				mp.logger.Infof("📝 Room name '%s' is not a meeting ID or meeting not found: %v", roomName, err)
 			}
@@ -672,20 +609,32 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 		mp.logger.Infof("📝 Room name is empty, cannot check transcription settings")
 	}
 
-	// Start track egress recording for audio tracks if transcription is enabled
+	// Start per-track egress recording for all audio/video tracks when recording is required
 	isAudioTrack := track.Source == "MICROPHONE" || (track.Source == "SCREEN_SHARE_AUDIO") ||
 		(track.MimeType != "" && strings.HasPrefix(track.MimeType, "audio/"))
+	isVideoTrack := track.Type == "video" || strings.EqualFold(track.Source, "camera") ||
+		strings.EqualFold(track.Source, "screen_share") || (track.MimeType != "" && strings.HasPrefix(track.MimeType, "video/"))
 
-	if isAudioTrack && needsTranscription {
-		mp.logger.Infof("🎤 Audio track detected with transcription enabled - checking egress eligibility...")
+	shouldRecordAudio := isAudioTrack && (needsAudioRecord || needsTranscription)
+	shouldRecordVideo := isVideoTrack && needsVideoRecord
+
+	if shouldRecordAudio || shouldRecordVideo {
+		mp.logger.Infof("🎥 Track requires recording - preparing egress...")
 		mp.logger.Infof("  ✓ Track Source: %s", track.Source)
 		mp.logger.Infof("  ✓ MIME Type: %s", track.MimeType)
 		mp.logger.Infof("  ✓ Room Name: %s (empty=%v)", roomName, roomName == "")
 		mp.logger.Infof("  ✓ Track SID: %s (empty=%v)", track.SID, track.SID == "")
-		mp.logger.Infof("  ✓ Transcription needed: %v", needsTranscription)
+		mp.logger.Infof("  ✓ Audio required: %v | Video required: %v", shouldRecordAudio, shouldRecordVideo)
 
 		if roomName != "" && track.SID != "" {
-			mp.logger.Infof("🚀 Starting track composite egress for audio track %s in room '%s' asynchronously...", track.SID, roomName)
+			audioTrackID := ""
+			videoTrackID := ""
+			if shouldRecordAudio {
+				audioTrackID = track.SID
+			}
+			if shouldRecordVideo {
+				videoTrackID = track.SID
+			}
 
 			// Parse meeting ID from room name
 			var meetingUUID *uuid.UUID
@@ -694,12 +643,12 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 			}
 
 			// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond
-			go func(roomName string, trackSID string, roomSID string, partSID string, meetingID *uuid.UUID) {
-				egressID, err := mp.startTrackCompositeEgress(roomName, roomSID, trackSID)
+			go func(roomName string, roomSID string, partSID string, meetingID *uuid.UUID, audioID string, videoID string, trackSID string) {
+				egressID, err := mp.startTrackCompositeEgress(roomName, roomSID, audioID, videoID)
 				if err != nil {
 					mp.logger.Errorf("❌ Failed to start track composite egress: %v", err)
 				} else if egressID != "" {
-					mp.logger.Infof("✅ Track egress started successfully: %s (track: %s)", egressID, trackSID)
+					mp.logger.Infof("✅ Track egress started successfully: %s (track: %s, audioID=%s, videoID=%s)", egressID, trackSID, audioID, videoID)
 
 					// Save EgressID to database
 					err = mp.db.DB.Model(&models.Track{}).Where("sid = ?", trackSID).Update("egress_id", egressID).Error
@@ -712,6 +661,7 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 					// Create EgressRecording entry
 					trackSIDPtr := &trackSID
 					partSIDPtr := &partSID
+					audioOnly := videoID == "" && audioID != ""
 					egressRec := &models.EgressRecording{
 						EgressID:       egressID,
 						Type:           "track_composite",
@@ -721,7 +671,7 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 						MeetingID:      meetingID,
 						TrackSID:       trackSIDPtr,
 						ParticipantSID: partSIDPtr,
-						AudioOnly:      true, // Track egress is always audio only for transcription
+						AudioOnly:      audioOnly,
 						StartedAt:      time.Now(),
 					}
 					err = mp.db.DB.Create(egressRec).Error
@@ -733,7 +683,7 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 				} else {
 					mp.logger.Infof("⚠️ Track egress not started (disabled in config or returned empty ID)")
 				}
-			}(roomName, track.SID, track.RoomSID, participantSID, meetingUUID)
+			}(roomName, track.RoomSID, participantSID, meetingUUID, audioTrackID, videoTrackID, track.SID)
 
 			mp.logger.Infof("ℹ️ Track egress request sent asynchronously")
 		} else {
@@ -742,11 +692,8 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 			mp.logger.Infof("  • Track SID empty: %v", track.SID == "")
 		}
 	} else {
-		if !isAudioTrack {
-			mp.logger.Infof("ℹ️ Track egress skipped - not an audio track (Source=%s, MimeType=%s)", track.Source, track.MimeType)
-		} else {
-			mp.logger.Infof("ℹ️ Track egress skipped - transcription not enabled for this room (NeedsTranscription=%v)", needsTranscription)
-		}
+		mp.logger.Infof("ℹ️ Track egress skipped - requirements not met (AudioNeeded=%v, VideoNeeded=%v, Transcription=%v, AudioTrack=%v, VideoTrack=%v)",
+			needsAudioRecord, needsVideoRecord, needsTranscription, isAudioTrack, isVideoTrack)
 	}
 
 	mp.logger.Infof("✅ track_published event processed successfully")
@@ -897,8 +844,8 @@ func (mp *ManagingPortal) handleTrackUnpublished(req models.WebhookRequest) erro
 											trackID,
 											userID,
 											url,
-											"",   // Auto-detect language
-											"",   // No auth token needed
+											"", // Auto-detect language
+											"", // No auth token needed
 										)
 										if err != nil {
 											mp.logger.Errorf("❌ Failed to send transcription task to RabbitMQ: %v", err)
@@ -1249,90 +1196,98 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 		var track models.Track
 		err := mp.db.DB.Where("egress_id = ?", egressID).First(&track).Error
 		if err == nil {
-			// Found a track with this egress ID - send transcription task
-			mp.logger.Infof("📝 Sending transcription task for track %s (egress: %s)", track.SID, egressID)
-
-			// Build audio URL from file path
-			// File path format from LiveKit: "recontext/<egress_id>/..." or just "<egress_id>/..."
-			// For track recordings, LiveKit creates m3u8 playlists
-			storageURL := os.Getenv("MINIO_ENDPOINT")
-			if storageURL == "" {
-				storageURL = "minio:9000"
-			}
-			bucket := os.Getenv("MINIO_BUCKET")
-			if bucket == "" {
-				bucket = "recontext"
-			}
-
-			// Construct URL to m3u8 playlist
-			// LiveKit stores track recordings in: <bucket>/<egress_id>/playlist.m3u8
-			var audioURL string
-			if strings.HasSuffix(filePath, ".m3u8") {
-				// File path already points to playlist
-				audioURL = fmt.Sprintf("http://%s/%s/%s", storageURL, bucket, filePath)
-			} else if strings.Contains(filePath, "/") {
-				// File path is a directory or file path, append playlist.m3u8
-				audioURL = fmt.Sprintf("http://%s/%s/%s/playlist.m3u8", storageURL, bucket, strings.TrimSuffix(filePath, "/"))
+			isAudioTrack := strings.EqualFold(track.Type, "audio") ||
+				strings.EqualFold(track.Source, "microphone") ||
+				strings.EqualFold(track.Source, "screen_share_audio") ||
+				(track.MimeType != "" && strings.HasPrefix(track.MimeType, "audio/"))
+			if !isAudioTrack {
+				mp.logger.Infof("ℹ️ Egress %s belongs to non-audio track %s, skipping transcription task", egressID, track.SID)
 			} else {
-				// File path is just egress ID
-				audioURL = fmt.Sprintf("http://%s/%s/%s/playlist.m3u8", storageURL, bucket, filePath)
-			}
+				// Found a track with this egress ID - send transcription task
+				mp.logger.Infof("📝 Sending transcription task for track %s (egress: %s)", track.SID, egressID)
 
-			mp.logger.Infof("📌 Constructed audio URL: %s", audioURL)
+				// Build audio URL from file path
+				// File path format from LiveKit: "recontext/<egress_id>/..." or just "<egress_id>/..."
+				// For track recordings, LiveKit creates m3u8 playlists
+				storageURL := os.Getenv("MINIO_ENDPOINT")
+				if storageURL == "" {
+					storageURL = "minio:9000"
+				}
+				bucket := os.Getenv("MINIO_BUCKET")
+				if bucket == "" {
+					bucket = "recontext"
+				}
 
-			// Get room to find user_id
-			var room models.Room
-			err := mp.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
-			if err != nil {
-				mp.logger.Errorf("❌ Failed to get room for track %s: %v", track.SID, err)
-			} else {
-				// Get meeting to find user_id
-				var meeting models.Meeting
-				err := mp.db.DB.Where("id = ?", room.Name).First(&meeting).Error
-				if err != nil {
-					mp.logger.Errorf("❌ Failed to get meeting for room %s: %v", room.Name, err)
+				// Construct URL to m3u8 playlist
+				// LiveKit stores track recordings in: <bucket>/<egress_id>/playlist.m3u8
+				var audioURL string
+				if strings.HasSuffix(filePath, ".m3u8") {
+					// File path already points to playlist
+					audioURL = fmt.Sprintf("http://%s/%s/%s", storageURL, bucket, filePath)
+				} else if strings.Contains(filePath, "/") {
+					// File path is a directory or file path, append playlist.m3u8
+					audioURL = fmt.Sprintf("http://%s/%s/%s/playlist.m3u8", storageURL, bucket, strings.TrimSuffix(filePath, "/"))
 				} else {
-					// Parse track ID as UUID
-					trackUUID, err := uuid.Parse(track.ID.String())
-					if err != nil {
-						mp.logger.Errorf("❌ Invalid track ID format: %v", err)
-					} else {
-						// Log the complete task details before sending
-						mp.logger.Infof("📋 ========================================")
-						mp.logger.Infof("📋 TRANSCRIPTION TASK DETAILS:")
-						mp.logger.Infof("📋 ========================================")
-						mp.logger.Infof("📋 Track ID:       %s", trackUUID.String())
-						mp.logger.Infof("📋 Track SID:      %s", track.SID)
-						mp.logger.Infof("📋 User ID:        %s", meeting.CreatedBy.String())
-						mp.logger.Infof("📋 Audio URL:      %s", audioURL)
-						mp.logger.Infof("📋 Room SID:       %s", room.SID)
-						mp.logger.Infof("📋 Room Name:      %s", room.Name)
-						mp.logger.Infof("📋 Meeting ID:     %s", meeting.ID.String())
-						mp.logger.Infof("📋 Meeting Title:  %s", meeting.Title)
-						mp.logger.Infof("📋 Egress ID:      %s", egressID)
-						mp.logger.Infof("📋 File Path:      %s", filePath)
-						mp.logger.Infof("📋 Language:       auto-detect")
-						mp.logger.Infof("📋 ========================================")
+					// File path is just egress ID
+					audioURL = fmt.Sprintf("http://%s/%s/%s/playlist.m3u8", storageURL, bucket, filePath)
+				}
 
-						// Send message to RabbitMQ
-						err := mp.rabbitMQPublisher.PublishTranscriptionTask(
-							trackUUID,
-							meeting.CreatedBy,
-							audioURL,
-							"",   // Auto-detect language
-							"",   // No auth token needed for MinIO access from transcription service
-						)
+				mp.logger.Infof("📌 Constructed audio URL: %s", audioURL)
+
+				// Get room to find user_id
+				var room models.Room
+				err := mp.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
+				if err != nil {
+					mp.logger.Errorf("❌ Failed to get room for track %s: %v", track.SID, err)
+				} else {
+					// Get meeting to find user_id
+					var meeting models.Meeting
+					err := mp.db.DB.Where("id = ?", room.Name).First(&meeting).Error
+					if err != nil {
+						mp.logger.Errorf("❌ Failed to get meeting for room %s: %v", room.Name, err)
+					} else {
+						// Parse track ID as UUID
+						trackUUID, err := uuid.Parse(track.ID.String())
 						if err != nil {
-							mp.logger.Errorf("❌ Failed to send transcription task to RabbitMQ: %v", err)
-							mp.logger.Errorf("❌ Task that failed: track_id=%s, user_id=%s, audio_url=%s",
-								trackUUID.String(), meeting.CreatedBy.String(), audioURL)
+							mp.logger.Errorf("❌ Invalid track ID format: %v", err)
 						} else {
-							mp.logger.Infof("✅ ========================================")
-							mp.logger.Infof("✅ Transcription task SUCCESSFULLY sent to RabbitMQ!")
-							mp.logger.Infof("✅ Track: %s (SID: %s)", trackUUID.String(), track.SID)
-							mp.logger.Infof("✅ Queue: transcription_queue")
-							mp.logger.Infof("✅ Message format: {track_id, user_id, audio_url}")
-							mp.logger.Infof("✅ ========================================")
+							// Log the complete task details before sending
+							mp.logger.Infof("📋 ========================================")
+							mp.logger.Infof("📋 TRANSCRIPTION TASK DETAILS:")
+							mp.logger.Infof("📋 ========================================")
+							mp.logger.Infof("📋 Track ID:       %s", trackUUID.String())
+							mp.logger.Infof("📋 Track SID:      %s", track.SID)
+							mp.logger.Infof("📋 User ID:        %s", meeting.CreatedBy.String())
+							mp.logger.Infof("📋 Audio URL:      %s", audioURL)
+							mp.logger.Infof("📋 Room SID:       %s", room.SID)
+							mp.logger.Infof("📋 Room Name:      %s", room.Name)
+							mp.logger.Infof("📋 Meeting ID:     %s", meeting.ID.String())
+							mp.logger.Infof("📋 Meeting Title:  %s", meeting.Title)
+							mp.logger.Infof("📋 Egress ID:      %s", egressID)
+							mp.logger.Infof("📋 File Path:      %s", filePath)
+							mp.logger.Infof("📋 Language:       auto-detect")
+							mp.logger.Infof("📋 ========================================")
+
+							// Send message to RabbitMQ
+							err := mp.rabbitMQPublisher.PublishTranscriptionTask(
+								trackUUID,
+								meeting.CreatedBy,
+								audioURL,
+								"", // Auto-detect language
+								"", // No auth token needed for MinIO access from transcription service
+							)
+							if err != nil {
+								mp.logger.Errorf("❌ Failed to send transcription task to RabbitMQ: %v", err)
+								mp.logger.Errorf("❌ Task that failed: track_id=%s, user_id=%s, audio_url=%s",
+									trackUUID.String(), meeting.CreatedBy.String(), audioURL)
+							} else {
+								mp.logger.Infof("✅ ========================================")
+								mp.logger.Infof("✅ Transcription task SUCCESSFULLY sent to RabbitMQ!")
+								mp.logger.Infof("✅ Track: %s (SID: %s)", trackUUID.String(), track.SID)
+								mp.logger.Infof("✅ Queue: transcription_queue")
+								mp.logger.Infof("✅ Message format: {track_id, user_id, audio_url}")
+								mp.logger.Infof("✅ ========================================")
+							}
 						}
 					}
 				}

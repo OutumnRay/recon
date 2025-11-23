@@ -17,8 +17,8 @@ services:
       - DB_NAME=recontext
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=guest
-      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_USER=recontext
+      - RABBITMQ_PASSWORD=je9rO4k6CQ3M
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
@@ -107,8 +107,8 @@ services:
       - "15672:15672"
       - "15692:15692"   # Prometheus metrics
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_USER=recontext
+      - RABBITMQ_DEFAULT_PASS=je9rO4k6CQ3M
     command: >
       sh -c "rabbitmq-plugins enable --offline rabbitmq_prometheus rabbitmq_management &&
              rabbitmq-server"

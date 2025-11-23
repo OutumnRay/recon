@@ -21,8 +21,8 @@ services:
       - DB_NAME=recontext
       - RABBITMQ_HOST=192.168.5.153
       - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=guest
-      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_USER=recontext
+      - RABBITMQ_PASSWORD=je9rO4k6CQ3M
       - MINIO_ENDPOINT=192.168.5.153:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=32a4953d5bff4a1c6aea4d4ccfb757e5
@@ -78,8 +78,8 @@ services:
       - DB_NAME=recontext
       - RABBITMQ_HOST=192.168.5.153
       - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=guest
-      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_USER=recontext
+      - RABBITMQ_PASSWORD=je9rO4k6CQ3M
  #     - MINIO_ENDPOINT=minio:9000
       - MINIO_ENDPOINT=192.168.5.153:9000
       - MINIO_ACCESS_KEY=minioadmin

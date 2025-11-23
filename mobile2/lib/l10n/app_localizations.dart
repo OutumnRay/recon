@@ -1184,6 +1184,12 @@ abstract class AppLocalizations {
   /// **'You'**
   String get you;
 
+  /// No description provided for @join.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get join;
+
   /// No description provided for @mic.
   ///
   /// In en, this message translates to:

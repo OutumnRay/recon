@@ -570,6 +570,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get you => 'You';
 
   @override
+  String get join => 'Join';
+
+  @override
   String get mic => 'Mic';
 
   @override

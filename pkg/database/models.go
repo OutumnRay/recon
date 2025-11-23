@@ -460,10 +460,8 @@ type Meeting struct {
 	SubjectID *uuid.UUID `gorm:"type:uuid" json:"subject_id"`
 	// Status - статус встречи (scheduled, in_progress, completed, cancelled)
 	Status string `gorm:"type:varchar(50);not null;default:'scheduled'" json:"status"`
-	// NeedsVideoRecord - требуется ли видеозапись встречи
-	NeedsVideoRecord bool `gorm:"not null;default:false" json:"needs_video_record"`
-	// NeedsAudioRecord - требуется ли аудиозапись встречи
-	NeedsAudioRecord bool `gorm:"not null;default:false" json:"needs_audio_record"`
+	// NeedsRecord - требуется ли запись встречи (аудио и видео)
+	NeedsRecord bool `gorm:"column:needs_record;not null;default:false" json:"needs_record"`
 	// NeedsTranscription - требуется ли транскрибация (запись отдельных аудио треков участников)
 	NeedsTranscription bool `gorm:"not null;default:false" json:"needs_transcription"`
 	// IsRecording - идет ли сейчас запись (композитная room egress)

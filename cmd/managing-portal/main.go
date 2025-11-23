@@ -887,6 +887,12 @@ func main() {
 		log.Fatalf("Failed to initialize portal: %v", err)
 	}
 
+	// Start transcription result consumer in background
+	go func() {
+		log.Info("Starting transcription result consumer...")
+		StartTranscriptionConsumer()
+	}()
+
 	if err := portal.Start(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

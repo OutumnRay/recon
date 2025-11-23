@@ -73,11 +73,9 @@ type Meeting struct {
 	SubjectID            *uuid.UUID        `json:"subject_id,omitempty" db:"subject_id"`
 	// Текущий статус встречи
 	Status               MeetingStatus     `json:"status" db:"status"`
-	// Требуется ли видеозапись
-	NeedsVideoRecord     bool              `json:"needs_video_record" db:"needs_video_record"`
-	// Требуется ли аудиозапись
-	NeedsAudioRecord     bool              `json:"needs_audio_record" db:"needs_audio_record"`
-	// Требуется ли транскрибация (запись отдельных аудио треков участников)
+	// Требуется ли запись встречи (аудио и видео будут записываться автоматически при публикации треков)
+	NeedsRecord          bool              `json:"needs_record" db:"needs_record"`
+	// Требуется ли транскрибация (запись отдельных аудио треков участников для последующей транскрипции)
 	NeedsTranscription   bool              `json:"needs_transcription" db:"needs_transcription"`
 	// Идет ли сейчас запись
 	IsRecording          bool              `json:"is_recording" db:"is_recording"`
@@ -199,10 +197,8 @@ type CreateMeetingRequest struct {
 	Type               MeetingType       `json:"type" binding:"required" example:"conference"`
 	// Идентификатор темы
 	SubjectID          *uuid.UUID        `json:"subject_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
-	// Требуется ли видеозапись
-	NeedsVideoRecord   bool              `json:"needs_video_record" example:"true"`
-	// Требуется ли аудиозапись
-	NeedsAudioRecord   bool              `json:"needs_audio_record" example:"true"`
+	// Требуется ли запись встречи
+	NeedsRecord        bool              `json:"needs_record" example:"true"`
 	// Требуется ли транскрибация
 	NeedsTranscription bool              `json:"needs_transcription" example:"true"`
 	// Дополнительные заметки
@@ -237,10 +233,8 @@ type UpdateMeetingRequest struct {
 	SubjectID          *uuid.UUID         `json:"subject_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Статус встречи
 	Status             *MeetingStatus     `json:"status,omitempty" example:"in_progress"`
-	// Требуется ли видеозапись
-	NeedsVideoRecord   *bool              `json:"needs_video_record,omitempty" example:"true"`
-	// Требуется ли аудиозапись
-	NeedsAudioRecord   *bool              `json:"needs_audio_record,omitempty" example:"true"`
+	// Требуется ли запись встречи
+	NeedsRecord        *bool              `json:"needs_record,omitempty" example:"true"`
 	// Требуется ли транскрибация
 	NeedsTranscription *bool              `json:"needs_transcription,omitempty" example:"true"`
 	// Дополнительные заметки
