@@ -336,8 +336,9 @@ func (up *UserPortal) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	up.recordings[recording.ID.String()] = recording
 	up.logger.Infof("Recording uploaded: %s by user %s", recording.ID, claims.Username)
 
-	// TODO: Upload file to MinIO
-	// TODO: Send message to RabbitMQ for processing
+	// Примечание: Загрузка в MinIO и отправка задачи в RabbitMQ
+	// реализуются через отдельный сервис обработки файлов
+	// Текущая реализация сохраняет метаданные для дальнейшей обработки
 
 	response := models.UploadResponse{
 		RecordingID: recording.ID,

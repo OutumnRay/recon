@@ -134,6 +134,8 @@ func (mp *ManagingPortal) liveKitWebhookHandler(w http.ResponseWriter, r *http.R
 	}()
 }
 
+// handleRoomStarted обрабатывает событие создания комнаты LiveKit
+// Создаёт запись в базе данных, связывает с встречей, настраивает запись при необходимости
 func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	mp.logger.Infof("🏠 Processing room_started event...")
 
@@ -266,6 +268,8 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	return nil
 }
 
+// handleParticipantJoined обрабатывает событие присоединения участника к комнате
+// Создаёт запись участника, обеспечивает существование комнаты, сохраняет метаданные
 func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) error {
 	mp.logger.Infof("👤 Processing participant_joined event...")
 
@@ -402,6 +406,8 @@ func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) err
 	return nil
 }
 
+// handleTrackPublished обрабатывает событие публикации медиа-трека (аудио/видео)
+// Сохраняет метаданные трека, запускает запись egress если требуется, создаёт задачу транскрибации
 func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error {
 	mp.logger.Infof("🎬 Processing track_published event...")
 
@@ -700,6 +706,8 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	return nil
 }
 
+// handleTrackUnpublished обрабатывает событие отключения медиа-трека
+// Останавливает запись egress, обновляет статус, создаёт задачу транскрибации для аудио-треков
 func (mp *ManagingPortal) handleTrackUnpublished(req models.WebhookRequest) error {
 	mp.logger.Infof("🔴 Processing track_unpublished event...")
 
@@ -880,6 +888,8 @@ func (mp *ManagingPortal) handleTrackUnpublished(req models.WebhookRequest) erro
 	return nil
 }
 
+// handleParticipantLeft обрабатывает событие выхода участника из комнаты
+// Обновляет статус участника, сохраняет причину отключения и время выхода
 func (mp *ManagingPortal) handleParticipantLeft(req models.WebhookRequest) error {
 	mp.logger.Infof("👋 Processing participant_left event...")
 
@@ -926,6 +936,8 @@ func (mp *ManagingPortal) handleParticipantLeft(req models.WebhookRequest) error
 	return nil
 }
 
+// handleRoomFinished обрабатывает событие завершения комнаты
+// Останавливает все записи egress, обновляет статус встречи, помечает комнату как завершённую
 func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 	mp.logger.Infof("🏁 Processing room_finished event...")
 
@@ -1046,14 +1058,7 @@ func (mp *ManagingPortal) handleEgressStarted(req models.WebhookRequest) error {
 	mp.logger.Infof("📌 Room Name: %s", roomName)
 	mp.logger.Infof("📌 Status: %s", status)
 
-	// Update egress status in database (legacy)
-	if egressID != "" {
-		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, "active"); err != nil {
-			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
-		}
-	}
-
-	// Update EgressRecording table
+	// Обновляем статус записи в таблице EgressRecording
 	if egressID != "" {
 		err := mp.db.DB.Model(&models.EgressRecording{}).
 			Where("egress_id = ?", egressID).
@@ -1089,14 +1094,7 @@ func (mp *ManagingPortal) handleEgressUpdated(req models.WebhookRequest) error {
 		mp.logger.Infof("📌 Error: %s", errorStr)
 	}
 
-	// Update egress status in database (legacy)
-	if egressID != "" && status != "" {
-		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, status); err != nil {
-			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
-		}
-	}
-
-	// Update EgressRecording table
+	// Обновляем статус и сообщение об ошибке в таблице EgressRecording
 	if egressID != "" && status != "" {
 		updates := map[string]interface{}{
 			"status": status,
@@ -1158,14 +1156,7 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 		mp.logger.Infof("📌 Error: %s", errorStr)
 	}
 
-	// Update egress status to completed in database (legacy)
-	if egressID != "" {
-		if err := mp.liveKitRepo.UpdateEgressStatus(egressID, "completed"); err != nil {
-			mp.logger.Errorf("❌ Failed to update egress status: %v", err)
-		}
-	}
-
-	// Update EgressRecording table with ended status and file path
+	// Обновляем статус завершения записи, путь к файлу и время окончания в таблице EgressRecording
 	if egressID != "" {
 		now := time.Now()
 		updates := map[string]interface{}{

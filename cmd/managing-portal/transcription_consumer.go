@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
+	"Recontext.online/pkg/database"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -38,9 +40,10 @@ type TranscriptionPhrase struct {
 	Language   string  `json:"language"`
 }
 
-// StartTranscriptionConsumer starts consuming transcription results from RabbitMQ
+// StartTranscriptionConsumer запускает потребителя результатов транскрибации из RabbitMQ
+// Функция подключается к RabbitMQ и обрабатывает результаты транскрибации в фоновом режиме
 func StartTranscriptionConsumer() {
-	// Get RabbitMQ connection details from environment
+	// Получаем параметры подключения к RabbitMQ из переменных окружения
 	rabbitmqURL := os.Getenv("RABBITMQ_URL")
 	if rabbitmqURL == "" {
 		rabbitmqURL = "amqp://recontext:je9rO4k6CQ3M@5.129.227.21:5672/"
@@ -55,7 +58,7 @@ func StartTranscriptionConsumer() {
 	log.Printf("RabbitMQ URL: %s", rabbitmqURL)
 	log.Printf("Result Queue: %s", resultQueue)
 
-	// Connect to RabbitMQ with retry
+	// Подключаемся к RabbitMQ с повторными попытками
 	var conn *amqp.Connection
 	var err error
 
@@ -79,10 +82,10 @@ func StartTranscriptionConsumer() {
 	}
 	defer ch.Close()
 
-	// Declare result queue
+	// Объявляем очередь результатов
 	q, err := ch.QueueDeclare(
 		resultQueue, // name
-		true,        // durable
+		true,        // durable - очередь переживёт перезапуск брокера
 		false,       // delete when unused
 		false,       // exclusive
 		false,       // no-wait
@@ -92,9 +95,9 @@ func StartTranscriptionConsumer() {
 		log.Fatalf("Failed to declare queue: %v", err)
 	}
 
-	// Set QoS to process one message at a time
+	// Устанавливаем QoS для обработки одного сообщения за раз
 	err = ch.Qos(
-		1,     // prefetch count
+		1,     // prefetch count - обрабатываем по одному сообщению
 		0,     // prefetch size
 		false, // global
 	)
@@ -102,11 +105,11 @@ func StartTranscriptionConsumer() {
 		log.Fatalf("Failed to set QoS: %v", err)
 	}
 
-	// Start consuming messages
+	// Начинаем потребление сообщений
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
-		false,  // auto-ack (manual ack to ensure processing)
+		false,  // auto-ack - используем ручное подтверждение для надёжности
 		false,  // exclusive
 		false,  // no-local
 		false,  // no-wait
@@ -118,19 +121,20 @@ func StartTranscriptionConsumer() {
 
 	log.Printf("✅ Transcription consumer started, waiting for results...")
 
-	// Process messages
+	// Обрабатываем сообщения в фоновой горутине
 	go func() {
 		for msg := range msgs {
 			processTranscriptionResult(msg.Body)
-			msg.Ack(false) // Acknowledge message
+			msg.Ack(false) // Подтверждаем обработку сообщения
 		}
 	}()
 
-	// Block forever
+	// Блокируем выполнение навсегда
 	select {}
 }
 
-// processTranscriptionResult processes a transcription result message
+// processTranscriptionResult обрабатывает сообщение с результатом транскрибации
+// Извлекает данные из JSON и обновляет статус трека в базе данных
 func processTranscriptionResult(body []byte) {
 	var result TranscriptionResult
 
@@ -150,35 +154,37 @@ func processTranscriptionResult(body []byte) {
 	log.Printf("  Duration: %.2f seconds", result.Transcription.TotalDuration)
 	log.Printf(strings.Repeat("=", 60) + "\n")
 
-	// TODO: Update database with transcription result
-	// Example:
-	// - Update track status to "transcribed"
-	// - Store JSON URL in database
-	// - Update track metadata
-	// - Send notification to user
-
-	// For now, just log the result
+	// Обновляем базу данных с результатами транскрибации
 	updateTrackTranscriptionStatus(result.TrackID, result.JSONURL, result.Transcription.PhraseCount, result.Transcription.TotalDuration)
 }
 
-// updateTrackTranscriptionStatus updates the track with transcription information
+// updateTrackTranscriptionStatus обновляет трек информацией о транскрибации
+// Сохраняет URL JSON-файла, количество фраз и длительность в базу данных
 func updateTrackTranscriptionStatus(trackID string, jsonURL string, phraseCount int, duration float64) {
-	// TODO: Implement database update
-	// This is a placeholder - you should update your database schema to include:
-	// - transcription_json_url (TEXT)
-	// - transcription_status (VARCHAR) - e.g., "pending", "processing", "completed", "failed"
-	// - transcription_phrase_count (INTEGER)
-	// - transcription_duration (FLOAT)
-
 	log.Printf("📝 Updating track %s with transcription data", trackID)
 	log.Printf("   JSON URL: %s", jsonURL)
 	log.Printf("   Phrases: %d", phraseCount)
 	log.Printf("   Duration: %.2f", duration)
 
-	// Example update query (uncomment and adapt to your schema):
-	/*
-	db := getDB() // Your database connection
-	_, err := db.Exec(`
+	// Получаем подключение к базе данных из глобального контекста
+	// Используем конфигурацию из переменных окружения
+	dbConfig := database.Config{
+		Host:     getEnvOrDefault("DB_HOST", "localhost"),
+		Port:     getEnvIntOrDefault("DB_PORT", 5432),
+		User:     getEnvOrDefault("DB_USER", "recontext"),
+		Password: getEnvOrDefault("DB_PASSWORD", "recontext"),
+		DBName:   getEnvOrDefault("DB_NAME", "recontext"),
+		SSLMode:  getEnvOrDefault("DB_SSL_MODE", "disable"),
+	}
+
+	db, err := database.NewDB(dbConfig)
+	if err != nil {
+		log.Printf("❌ Failed to connect to database: %v", err)
+		return
+	}
+
+	// Обновляем статус транскрибации в таблице livekit_tracks
+	result := db.DB.Exec(`
 		UPDATE livekit_tracks
 		SET
 			transcription_status = 'completed',
@@ -189,10 +195,34 @@ func updateTrackTranscriptionStatus(trackID string, jsonURL string, phraseCount 
 		WHERE id = $4
 	`, jsonURL, phraseCount, duration, trackID)
 
-	if err != nil {
-		log.Printf("❌ Failed to update track %s: %v", trackID, err)
-	} else {
-		log.Printf("✅ Track %s updated successfully", trackID)
+	if result.Error != nil {
+		log.Printf("❌ Failed to update track %s: %v", trackID, result.Error)
+		return
 	}
-	*/
+
+	if result.RowsAffected == 0 {
+		log.Printf("⚠️ Track %s not found in database", trackID)
+		return
+	}
+
+	log.Printf("✅ Track %s updated successfully (rows affected: %d)", trackID, result.RowsAffected)
+}
+
+// getEnvOrDefault возвращает значение переменной окружения или значение по умолчанию
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvIntOrDefault возвращает значение переменной окружения как int или значение по умолчанию
+func getEnvIntOrDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		var intVal int
+		if _, err := fmt.Sscanf(value, "%d", &intVal); err == nil {
+			return intVal
+		}
+	}
+	return defaultValue
 }

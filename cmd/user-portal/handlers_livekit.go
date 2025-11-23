@@ -153,34 +153,14 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	// Get current time
+	// Получаем текущее время для проверки доступа к встрече
 	now := time.Now()
 	fmt.Printf("DEBUG: Current time: %s\n", now.Format(time.RFC3339))
 
-	// TEMPORARY: Allow joining at any time (removed time restrictions)
-	// TODO: Uncomment these checks when time-based restrictions are needed again
-
-	// // Check if meeting can be joined (10 minutes before start)
-	// tenMinutesBeforeStart := meeting.ScheduledAt.Add(-10 * time.Minute)
-	// if now.Before(tenMinutesBeforeStart) {
-	// 	minutesUntil := int(meeting.ScheduledAt.Sub(now).Minutes())
-	// 	up.respondWithError(w, http.StatusForbidden,
-	// 		fmt.Sprintf("Meeting starts in %d minutes. You can join 10 minutes before start.", minutesUntil),
-	// 		"")
-	// 	return
-	// }
-
-	// Calculate when meeting ends
+	// Вычисляем время окончания встречи для проверки доступа
 	meetingEnd := meeting.ScheduledAt.Add(time.Duration(meeting.Duration) * time.Minute)
 	fmt.Printf("DEBUG: Meeting scheduled: %s, duration: %d min, ends: %s\n",
 		meeting.ScheduledAt.Format(time.RFC3339), meeting.Duration, meetingEnd.Format(time.RFC3339))
-
-	// // If force_end_at_duration is true, meeting must end exactly at scheduled time
-	// // Otherwise, allow joining if within scheduled time or up to end time
-	// if meeting.ForceEndAtDuration && now.After(meetingEnd) {
-	// 	up.respondWithError(w, http.StatusForbidden, "Meeting has ended", "")
-	// 	return
-	// }
 
 	// Get LiveKit configuration
 	fmt.Printf("DEBUG: Getting LiveKit configuration...\n")

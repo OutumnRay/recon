@@ -13,7 +13,8 @@ import (
 )
 
 
-// startTrackRecordingHandler godoc
+// startTrackRecordingHandler запускает запись конкретного трека (аудио или видео)
+// Создаёт egress для указанного трека, сохраняет информацию в базе данных
 // @Summary Начать запись конкретного трека
 // @Description Начинает запись конкретного аудио или видео трека
 // @Tags LiveKit Egress
@@ -103,7 +104,8 @@ func (mp *ManagingPortal) startTrackRecordingHandler(w http.ResponseWriter, r *h
 	})
 }
 
-// startRoomRecordingHandler godoc
+// startRoomRecordingHandler запускает композитную запись всей комнаты
+// Объединяет все треки комнаты в одну запись, поддерживает режим только аудио
 // @Summary Начать запись всей комнаты
 // @Description Начинает запись всей комнаты (composite)
 // @Tags LiveKit Egress
@@ -179,7 +181,8 @@ func (mp *ManagingPortal) startRoomRecordingHandler(w http.ResponseWriter, r *ht
 	})
 }
 
-// stopRoomRecordingHandler godoc
+// stopRoomRecordingHandler останавливает активную сессию записи egress
+// Завершает запись, обновляет статус в базе данных
 // @Summary Остановить запись (egress)
 // @Description Останавливает активную сессию egress
 // @Tags LiveKit Egress
@@ -227,7 +230,8 @@ func (mp *ManagingPortal) stopRoomRecordingHandler(w http.ResponseWriter, r *htt
 	})
 }
 
-// listEgressHandler godoc
+// listEgressHandler возвращает список всех сессий egress с фильтрацией
+// Поддерживает фильтрацию по комнате, статусу, пагинацию
 // @Summary Список сессий egress
 // @Description Получить список всех сессий egress с дополнительными фильтрами
 // @Tags LiveKit Egress

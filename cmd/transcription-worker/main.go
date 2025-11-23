@@ -29,8 +29,8 @@ type TranscriptionWorker struct {
 	config   *config.Config
 	logger   *logger.Logger
 	tasks    map[string]*models.TranscriptionTask
-	tasksMux sync.RWMutex
-	isActive bool
+	tasksMux sync.RWMutex // Защита от гонки данных (race condition) при доступе к map tasks
+	isActive bool         // ВНИМАНИЕ: доступ из нескольких горутин, но используется только для чтения после инициализации
 }
 
 func main() {

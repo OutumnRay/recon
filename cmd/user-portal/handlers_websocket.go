@@ -95,19 +95,40 @@ func (h *WSHub) Run() {
 			h.mu.Unlock()
 
 		case message := <-h.broadcast:
+			// ВАЖНО: Исправление гонки данных (race condition)
+			// Нельзя изменять map под read lock - нужно собрать клиенты для удаления,
+			// затем освободить read lock и удалить их под write lock
 			h.mu.RLock()
 			meetingID := message.MeetingID
+			var failedClients []*WSClient
 			if clients, ok := h.clients[meetingID]; ok {
 				for client := range clients {
 					select {
 					case client.Send <- message:
+						// Успешно отправлено
 					default:
-						close(client.Send)
-						delete(clients, client)
+						// Канал заблокирован - клиент не успевает обрабатывать сообщения
+						// Собираем его для удаления
+						failedClients = append(failedClients, client)
 					}
 				}
 			}
 			h.mu.RUnlock()
+
+			// Очищаем неудачные клиенты под write lock
+			// CRITICAL: Это должно быть ПОСЛЕ RUnlock(), иначе возникает гонка данных
+			if len(failedClients) > 0 {
+				h.mu.Lock()
+				for _, client := range failedClients {
+					if clients, ok := h.clients[meetingID]; ok {
+						if _, ok := clients[client]; ok {
+							close(client.Send)
+							delete(clients, client)
+						}
+					}
+				}
+				h.mu.Unlock()
+			}
 		}
 	}
 }
