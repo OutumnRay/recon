@@ -68,23 +68,60 @@ class TranscriptionConsumer:
                     print(f"❌ Failed to connect to RabbitMQ after {max_retries} attempts")
                     raise
 
+    def _safe_publish(self, routing_key, message_body, max_retries=3):
+        """
+        Безопасная публикация сообщения с автоматическим переподключением.
+        Safe message publishing with automatic reconnection.
+
+        Args:
+            routing_key: Queue name to publish to
+            message_body: Message body (dict or string)
+            max_retries: Maximum number of retry attempts
+        """
+        body = json.dumps(message_body) if isinstance(message_body, dict) else message_body
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.channel.basic_publish(
+                    exchange='',
+                    routing_key=routing_key,
+                    body=body,
+                    properties=pika.BasicProperties(
+                        delivery_mode=2,  # Make message persistent
+                        content_type='application/json'
+                    )
+                )
+                return True
+            except (pika.exceptions.ConnectionClosedByBroker,
+                    pika.exceptions.AMQPConnectionError,
+                    pika.exceptions.StreamLostError) as e:
+                print(f"⚠️ Failed to publish message (attempt {attempt}/{max_retries}): {e}")
+
+                if attempt < max_retries:
+                    try:
+                        print("Reconnecting to RabbitMQ...")
+                        self.connect(max_retries=1, retry_delay=2)
+                        print("✅ Reconnected, retrying publish...")
+                    except Exception as reconnect_error:
+                        print(f"❌ Reconnection failed: {reconnect_error}")
+                        time.sleep(2)
+                else:
+                    print(f"❌ Failed to publish message after {max_retries} attempts")
+                    return False
+
+        return False
+
     def send_transcription_completed_notification(self, track_id):
-        """Send notification that transcription is completed."""
+        """Отправка уведомления о завершении транскрипции / Send notification that transcription is completed."""
         message = {
             'track_id': track_id,
             'event': 'transcription_completed'
         }
 
-        self.channel.basic_publish(
-            exchange='',
-            routing_key='transcription_completed',
-            body=json.dumps(message),
-            properties=pika.BasicProperties(
-                delivery_mode=2,  # Make message persistent
-                content_type='application/json'
-            )
-        )
-        print(f"📢 Sent transcription completed notification for track {track_id}")
+        if self._safe_publish('transcription_completed', message):
+            print(f"📢 Sent transcription completed notification for track {track_id}")
+        else:
+            print(f"⚠️ Failed to send transcription completed notification for track {track_id}")
 
     def save_json_to_minio(self, track_id, user_id, audio_url, phrases):
         """
@@ -167,6 +204,7 @@ class TranscriptionConsumer:
 
     def send_result_to_queue(self, track_id, user_id, audio_url, phrases, json_url):
         """
+        Отправка результата транскрипции в очередь RabbitMQ.
         Send transcription result back to RabbitMQ result queue.
 
         Args:
@@ -176,36 +214,27 @@ class TranscriptionConsumer:
             phrases: List of transcription phrases
             json_url: URL to the JSON file in MinIO
         """
-        try:
-            result_payload = {
-                'event': 'transcription_completed',
-                'track_id': track_id,
-                'user_id': user_id,
-                'audio_url': audio_url,
-                'json_url': json_url,
-                'transcription': {
-                    'phrases': phrases,
-                    'phrase_count': len(phrases),
-                    'total_duration': phrases[-1]['end'] if phrases else 0.0
-                },
-                'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-                'status': 'completed'
-            }
+        result_payload = {
+            'event': 'transcription_completed',
+            'track_id': track_id,
+            'user_id': user_id,
+            'audio_url': audio_url,
+            'json_url': json_url,
+            'transcription': {
+                'phrases': phrases,
+                'phrase_count': len(phrases),
+                'total_duration': phrases[-1]['end'] if phrases else 0.0
+            },
+            'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            'status': 'completed'
+        }
 
-            print(f"📤 Sending result to RabbitMQ queue: {Config.RABBITMQ_RESULT_QUEUE}")
-            self.channel.basic_publish(
-                exchange='',
-                routing_key=Config.RABBITMQ_RESULT_QUEUE,
-                body=json.dumps(result_payload),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,  # Make message persistent
-                    content_type='application/json'
-                )
-            )
+        print(f"📤 Sending result to RabbitMQ queue: {Config.RABBITMQ_RESULT_QUEUE}")
+
+        if self._safe_publish(Config.RABBITMQ_RESULT_QUEUE, result_payload):
             print(f"✅ Result sent to queue successfully")
-
-        except Exception as e:
-            print(f"⚠️  Failed to send result to queue: {e}")
+        else:
+            print(f"⚠️ Failed to send result to queue after retries")
             # Don't raise - result queue failure shouldn't fail the transcription
 
     def process_message(self, ch, method, properties, body):
@@ -340,13 +369,65 @@ class TranscriptionConsumer:
         print("Press CTRL+C to exit")
         print("="*60 + "\n")
 
-        try:
-            self.channel.start_consuming()
-        except KeyboardInterrupt:
-            print("\n\nShutting down gracefully...")
-            self.channel.stop_consuming()
-            self.connection.close()
-            print("Service stopped")
+        # Главный цикл с автоматическим переподключением / Main loop with automatic reconnection
+        while True:
+            try:
+                self.channel.start_consuming()
+            except KeyboardInterrupt:
+                print("\n\nShutting down gracefully...")
+                if self.channel and self.channel.is_open:
+                    self.channel.stop_consuming()
+                if self.connection and self.connection.is_open:
+                    self.connection.close()
+                print("Service stopped")
+                break
+            except (pika.exceptions.ConnectionClosedByBroker,
+                    pika.exceptions.AMQPConnectionError,
+                    pika.exceptions.StreamLostError) as e:
+                # RabbitMQ отключился - пытаемся переподключиться / RabbitMQ disconnected - trying to reconnect
+                print(f"\n⚠️ Connection to RabbitMQ lost: {e}")
+                print("Attempting to reconnect...")
+
+                # Закрываем старое соединение если оно есть / Close old connection if exists
+                try:
+                    if self.connection and self.connection.is_open:
+                        self.connection.close()
+                except Exception:
+                    pass
+
+                # Пытаемся переподключиться с экспоненциальной задержкой / Try to reconnect with exponential backoff
+                retry_delay = 5
+                max_delay = 60
+                while True:
+                    try:
+                        print(f"Reconnecting in {retry_delay} seconds...")
+                        time.sleep(retry_delay)
+
+                        # Переподключаемся / Reconnect
+                        self.connect(max_retries=1, retry_delay=0)
+
+                        # Восстанавливаем QoS и consumer / Restore QoS and consumer
+                        self.channel.basic_qos(prefetch_count=1)
+                        self.channel.basic_consume(
+                            queue=Config.RABBITMQ_QUEUE,
+                            on_message_callback=self.process_message
+                        )
+
+                        print("✅ Successfully reconnected to RabbitMQ!")
+                        print("Resuming message consumption...\n")
+                        break  # Успешно переподключились / Successfully reconnected
+
+                    except (pika.exceptions.AMQPConnectionError, Exception) as reconnect_error:
+                        print(f"❌ Reconnection failed: {reconnect_error}")
+                        # Увеличиваем задержку, но не более max_delay / Increase delay but not more than max_delay
+                        retry_delay = min(retry_delay * 2, max_delay)
+                        continue
+            except Exception as e:
+                # Неожиданная ошибка - логируем и пытаемся продолжить / Unexpected error - log and try to continue
+                print(f"\n❌ Unexpected error in consumer: {e}")
+                traceback.print_exc()
+                print("Attempting to recover...")
+                time.sleep(5)
 
 
 if __name__ == '__main__':
