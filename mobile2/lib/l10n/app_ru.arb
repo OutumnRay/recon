@@ -275,6 +275,7 @@
   "downloadComplete": "Загрузка завершена",
   "downloadFailed": "Ошибка загрузки",
   "recordingSaved": "Запись сохранена в Downloads",
+  "viewRecordings": "Просмотр сессий",
 
   "sessionStatusRecording": "Запись",
   "sessionStatusCompleted": "Завершена",

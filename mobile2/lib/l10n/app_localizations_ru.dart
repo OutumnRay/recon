@@ -741,6 +741,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get recordingSaved => 'Запись сохранена в Downloads';
 
   @override
+  String get viewRecordings => 'Просмотр сессий';
+
+  @override
   String get sessionStatusRecording => 'Запись';
 
   @override

@@ -1508,6 +1508,12 @@ abstract class AppLocalizations {
   /// **'Recording saved to Downloads'**
   String get recordingSaved;
 
+  /// No description provided for @viewRecordings.
+  ///
+  /// In en, this message translates to:
+  /// **'View Sessions'**
+  String get viewRecordings;
+
   /// No description provided for @sessionStatusRecording.
   ///
   /// In en, this message translates to:

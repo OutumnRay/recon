@@ -741,6 +741,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordingSaved => 'Recording saved to Downloads';
 
   @override
+  String get viewRecordings => 'View Sessions';
+
+  @override
   String get sessionStatusRecording => 'Recording';
 
   @override

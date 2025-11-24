@@ -342,6 +342,7 @@
   "downloadComplete": "Download Complete",
   "downloadFailed": "Download Failed",
   "recordingSaved": "Recording saved to Downloads",
+  "viewRecordings": "View Sessions",
 
   "sessionStatusRecording": "Recording",
   "sessionStatusCompleted": "Completed",

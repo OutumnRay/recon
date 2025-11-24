@@ -864,6 +864,12 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
+	// AI task extraction endpoint
+	mux.Handle("/api/v1/sessions/extract-tasks", chainMiddleware(
+		http.HandlerFunc(mp.extractTasksHandler),
+		authMiddleware,
+	))
+
 	// Serve React frontend for all other routes
 	mux.Handle("/", serveStaticFiles())
 
