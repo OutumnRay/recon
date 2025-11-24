@@ -429,67 +429,54 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 
 // checkRecordingAccess checks if user has access to a recording
 func (up *UserPortal) checkRecordingAccess(egressID string, userID uuid.UUID) bool {
-	// Find the room or track associated with this egress
-	// First try to find in rooms
-	var room models.Room
-	err := up.db.DB.Where("egress_id = ?", egressID).First(&room).Error
-	if err == nil {
-		// Found room, now check if user is participant in the meeting
-		// Get all rooms with this name (meeting ID)
-		rooms, err := up.liveKitRepo.GetRoomsByName(room.Name)
-		if err == nil && len(rooms) > 0 {
-			// room.Name should be the meeting ID
-			meetingID, err := uuid.Parse(room.Name)
-			if err == nil {
-				// Check if user is participant or creator
-				meeting, err := up.meetingRepo.GetMeetingByID(meetingID)
-				if err == nil {
-					if meeting.CreatedBy == userID {
-						return true
-					}
-
-					participants, err := up.meetingRepo.GetMeetingParticipants(meetingID)
-					if err == nil {
-						for _, p := range participants {
-							if p.UserID == userID {
-								return true
-							}
-						}
-					}
-				}
-			}
-		}
+	// Find the track associated with this egress
+	// Note: Only tracks have egress_id, rooms do not
+	var track models.Track
+	err := up.db.DB.Where("egress_id = ?", egressID).First(&track).Error
+	if err != nil {
+		// Track not found, access denied
 		return false
 	}
 
-	// Try to find in tracks
-	var track models.Track
-	err = up.db.DB.Where("egress_id = ?", egressID).First(&track).Error
-	if err == nil {
-		// Found track, get its room
-		err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
-		if err == nil {
-			// Check meeting access
-			meetingID, err := uuid.Parse(room.Name)
-			if err == nil {
-				meeting, err := up.meetingRepo.GetMeetingByID(meetingID)
-				if err == nil {
-					if meeting.CreatedBy == userID {
-						return true
-					}
+	// Found track, get its room
+	var room models.Room
+	err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
+	if err != nil {
+		// Room not found, access denied
+		return false
+	}
 
-					participants, err := up.meetingRepo.GetMeetingParticipants(meetingID)
-					if err == nil {
-						for _, p := range participants {
-							if p.UserID == userID {
-								return true
-							}
-						}
-					}
-				}
-			}
+	// Check meeting access
+	meetingID, err := uuid.Parse(room.Name)
+	if err != nil {
+		// Invalid meeting ID format, access denied
+		return false
+	}
+
+	meeting, err := up.meetingRepo.GetMeetingByID(meetingID)
+	if err != nil {
+		// Meeting not found, access denied
+		return false
+	}
+
+	// Check if user is the creator
+	if meeting.CreatedBy == userID {
+		return true
+	}
+
+	// Check if user is a participant
+	participants, err := up.meetingRepo.GetMeetingParticipants(meetingID)
+	if err != nil {
+		// Failed to get participants, access denied
+		return false
+	}
+
+	for _, p := range participants {
+		if p.UserID == userID {
+			return true
 		}
 	}
 
+	// User is neither creator nor participant, access denied
 	return false
 }
