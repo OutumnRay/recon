@@ -437,5 +437,12 @@
   "failedToLoadProfile": "Failed to load profile",
   "failedToSelectImage": "Failed to select image",
   "profileUpdatedSuccessfully": "Profile updated successfully",
-  "failedToSaveProfile": "Failed to save profile"
+  "failedToSaveProfile": "Failed to save profile",
+
+  "viewCompositeVideo": "View Composite Video",
+  "processingVideo": "Processing...",
+  "processingVideoDescription": "Merging video tracks and creating composite video",
+  "nowSpeaking": "Now Speaking",
+  "speaker": "Speaker",
+  "participant": "Participant"
 }

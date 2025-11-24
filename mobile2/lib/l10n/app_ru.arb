@@ -346,5 +346,12 @@
   "failedToLoadProfile": "Не удалось загрузить профиль",
   "failedToSelectImage": "Не удалось выбрать изображение",
   "profileUpdatedSuccessfully": "Профиль успешно обновлен",
-  "failedToSaveProfile": "Не удалось сохранить профиль"
+  "failedToSaveProfile": "Не удалось сохранить профиль",
+
+  "viewCompositeVideo": "Просмотр составного видео",
+  "processingVideo": "Обработка...",
+  "processingVideoDescription": "Объединение видео дорожек и создание составного видео",
+  "nowSpeaking": "Сейчас говорит",
+  "speaker": "Докладчик",
+  "participant": "Участник"
 }

@@ -5,7 +5,6 @@ import '../services/auth_service.dart';
 import '../services/api_client.dart';
 import '../services/config_service.dart';
 import '../widgets/task_card.dart';
-import '../l10n/app_localizations.dart';
 import '../main.dart';
 
 class MyTasksScreen extends StatefulWidget {

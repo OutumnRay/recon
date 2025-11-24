@@ -928,4 +928,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToSaveProfile => 'Failed to save profile';
+
+  @override
+  String get viewCompositeVideo => 'View Composite Video';
+
+  @override
+  String get processingVideo => 'Processing...';
+
+  @override
+  String get processingVideoDescription =>
+      'Merging video tracks and creating composite video';
+
+  @override
+  String get nowSpeaking => 'Now Speaking';
+
+  @override
+  String get speaker => 'Speaker';
+
+  @override
+  String get participant => 'Participant';
 }

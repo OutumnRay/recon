@@ -1801,9 +1801,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                         _getUserDisplayName(task.assignedToUser!),
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      if (task.assignedToUser!.email != null)
+                      if (task.assignedToUser?.email != null)
                         Text(
-                          task.assignedToUser!.email!,
+                          task.assignedToUser!.email,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],

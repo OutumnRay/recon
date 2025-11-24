@@ -1867,6 +1867,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to save profile'**
   String get failedToSaveProfile;
+
+  /// No description provided for @viewCompositeVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'View Composite Video'**
+  String get viewCompositeVideo;
+
+  /// No description provided for @processingVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing...'**
+  String get processingVideo;
+
+  /// No description provided for @processingVideoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Merging video tracks and creating composite video'**
+  String get processingVideoDescription;
+
+  /// No description provided for @nowSpeaking.
+  ///
+  /// In en, this message translates to:
+  /// **'Now Speaking'**
+  String get nowSpeaking;
+
+  /// No description provided for @speaker.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaker'**
+  String get speaker;
+
+  /// No description provided for @participant.
+  ///
+  /// In en, this message translates to:
+  /// **'Participant'**
+  String get participant;
 }
 
 class _AppLocalizationsDelegate

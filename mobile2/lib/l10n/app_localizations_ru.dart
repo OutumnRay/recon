@@ -928,4 +928,23 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get failedToSaveProfile => 'Не удалось сохранить профиль';
+
+  @override
+  String get viewCompositeVideo => 'Просмотр составного видео';
+
+  @override
+  String get processingVideo => 'Обработка...';
+
+  @override
+  String get processingVideoDescription =>
+      'Объединение видео дорожек и создание составного видео';
+
+  @override
+  String get nowSpeaking => 'Сейчас говорит';
+
+  @override
+  String get speaker => 'Докладчик';
+
+  @override
+  String get participant => 'Участник';
 }
