@@ -5,10 +5,14 @@ import 'package:intl/intl.dart';
 import '../main.dart';
 import '../models/meeting.dart';
 import '../models/recording.dart';
+import '../models/task.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/config_service.dart';
+import '../services/task_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/error_display.dart';
+import '../widgets/task_card.dart';
 import '../theme/app_colors.dart';
 import 'video_call_screen.dart';
 import 'recording_player_screen.dart';
@@ -40,7 +44,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _initService();
   }
 
@@ -225,6 +229,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           tabs: [
             Tab(text: l10n.tabInfo),
             Tab(text: l10n.tabRecordings),
+            const Tab(text: 'Tasks'),
           ],
         ),
       ),
@@ -244,6 +249,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                         children: [
                           _buildMeetingContent(),
                           _buildRecordingsTab(),
+                          _buildTasksTab(),
                         ],
                       ),
       ),
@@ -1389,6 +1395,286 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
       ),
       child: child,
     );
+  }
+
+  Widget _buildTasksTab() {
+    if (_meeting == null) {
+      return const Center(child: Text('No meeting data'));
+    }
+
+    return FutureBuilder<List<Task>>(
+      future: _loadMeetingTasks(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error: ${snapshot.error}'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {}); // Trigger rebuild to retry
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final tasks = snapshot.data ?? [];
+
+        if (tasks.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.task_alt, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'No tasks yet',
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tasks will appear here after the meeting',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {}); // Trigger rebuild to reload tasks
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: tasks.length,
+            itemBuilder: (context, index) {
+              final task = tasks[index];
+              return TaskCard(
+                task: task,
+                onTap: () => _showTaskDetails(task),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<List<Task>> _loadMeetingTasks() async {
+    if (_meeting == null) return [];
+
+    try {
+      final apiUrl = await _configService.getApiUrl();
+      final authService = AuthService();
+      final taskService = TaskService(
+        baseUrl: apiUrl.replaceAll('/api/v1', ''),
+        authService: authService,
+      );
+
+      return await taskService.getMeetingTasks(_meeting!.id);
+    } catch (e) {
+      throw Exception('Failed to load tasks: $e');
+    }
+  }
+
+  void _showTaskDetails(Task task) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => _buildTaskDetailSheet(
+          task,
+          scrollController,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaskDetailSheet(Task task, ScrollController scrollController) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: ListView(
+        controller: scrollController,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Title
+          Text(
+            task.title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 16),
+
+          // Description
+          if (task.description != null && task.description!.isNotEmpty) ...[
+            Text(
+              'Description',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(task.description!),
+            const SizedBox(height: 16),
+          ],
+
+          // Hint
+          if (task.hint != null && task.hint!.isNotEmpty) ...[
+            Text(
+              'Hint',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lightbulb_outline, color: Colors.blue[700]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      task.hint!,
+                      style: TextStyle(color: Colors.blue[700]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Assigned to
+          if (task.assignedToUser != null) ...[
+            Text(
+              'Assigned to',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.primary100,
+                  child: Text(
+                    _getUserInitials(task.assignedToUser!),
+                    style: const TextStyle(color: AppColors.primary600),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _getUserDisplayName(task.assignedToUser!),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      if (task.assignedToUser!.email != null)
+                        Text(
+                          task.assignedToUser!.email!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // AI Source (if present)
+          if (task.extractedByAi && task.sourceSegment != null) ...[
+            Text(
+              'AI Extracted From',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purple.withOpacity(0.2)),
+              ),
+              child: Text(
+                task.sourceSegment!,
+                style: TextStyle(
+                  color: Colors.purple[900],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _getUserDisplayName(dynamic user) {
+    if (user.firstName != null && user.firstName!.isNotEmpty) {
+      return '${user.firstName} ${user.lastName ?? ''}'.trim();
+    }
+    return user.username ?? user.email ?? 'Unknown';
+  }
+
+  String _getUserInitials(dynamic user) {
+    if (user.firstName != null && user.firstName!.isNotEmpty) {
+      final first = user.firstName![0].toUpperCase();
+      final last = user.lastName != null && user.lastName!.isNotEmpty
+          ? user.lastName![0].toUpperCase()
+          : '';
+      return '$first$last';
+    }
+    if (user.username != null && user.username!.isNotEmpty) {
+      return user.username![0].toUpperCase();
+    }
+    return '?';
   }
 
   // Вспомогательные методы для совместимости (используют lowerCamelCase согласно Dart naming conventions)
