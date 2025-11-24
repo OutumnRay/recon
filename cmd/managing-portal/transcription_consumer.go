@@ -188,7 +188,7 @@ func updateTrackTranscriptionStatus(trackID string, jsonURL string, phraseCount 
 		UPDATE livekit_tracks
 		SET
 			transcription_status = 'completed',
-			transcription_json_url = $1,
+			transcription_url = $1,
 			transcription_phrase_count = $2,
 			transcription_duration = $3,
 			updated_at = NOW()
