@@ -71,10 +71,10 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   );
   const [type, setType] = useState<MeetingType>(meeting?.type || 'conference');
   const [subjectId, setSubjectId] = useState(meeting?.subject_id || '');
-  // Single checkbox for recording - enables both audio and video
-  // Один чекбокс для записи - включает и аудио, и видео
+  // Single checkbox for recording
+  // Один чекбокс для записи
   const [needsRecord, setNeedsRecord] = useState(
-    meeting?.needs_video_record || meeting?.needs_audio_record || false
+    meeting?.needs_record || false
   );
   const [needsTranscription, setNeedsTranscription] = useState(
     meeting?.needs_transcription || false
@@ -257,10 +257,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           recurrence,
           type,
           subject_id: subjectId || undefined,
-          needs_video_record: needsRecord,
-          needs_audio_record: needsRecord,
+          needs_record: needsRecord,
           needs_transcription: needsTranscription,
-          force_end_at_duration: false,
           is_permanent: isPermanent,
           allow_anonymous: allowAnonymous,
           additional_notes: additionalNotes || undefined,
@@ -280,10 +278,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           recurrence,
           type,
           subject_id: subjectId || undefined,
-          needs_video_record: needsRecord,
-          needs_audio_record: needsRecord,
+          needs_record: needsRecord,
           needs_transcription: needsTranscription,
-          force_end_at_duration: false,
           is_permanent: isPermanent,
           allow_anonymous: allowAnonymous,
           additional_notes: additionalNotes || undefined,

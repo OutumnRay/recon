@@ -83,8 +83,6 @@ type Meeting struct {
 	IsTranscribing       bool              `json:"is_transcribing" db:"is_transcribing"`
 	// Дополнительные заметки
 	AdditionalNotes      string            `json:"additional_notes" db:"additional_notes"`
-	// Принудительно завершить встречу после истечения времени
-	ForceEndAtDuration   bool              `json:"force_end_at_duration" db:"force_end_at_duration"`
 	// Постоянная встреча (всегда доступна)
 	IsPermanent          bool              `json:"is_permanent" db:"is_permanent"`
 	// Разрешить анонимные подключения к встрече
@@ -203,8 +201,6 @@ type CreateMeetingRequest struct {
 	NeedsTranscription bool              `json:"needs_transcription" example:"true"`
 	// Дополнительные заметки
 	AdditionalNotes    string            `json:"additional_notes" example:"Подготовить отчеты"`
-	// Принудительно завершить встречу после истечения времени
-	ForceEndAtDuration bool              `json:"force_end_at_duration" example:"true"`
 	// Постоянная встреча (всегда доступна)
 	IsPermanent        bool              `json:"is_permanent" example:"false"`
 	// Разрешить анонимный доступ
@@ -239,8 +235,6 @@ type UpdateMeetingRequest struct {
 	NeedsTranscription *bool              `json:"needs_transcription,omitempty" example:"true"`
 	// Дополнительные заметки
 	AdditionalNotes    *string            `json:"additional_notes,omitempty" example:"Обновленные комментарии"`
-	// Принудительно завершить встречу после истечения времени
-	ForceEndAtDuration *bool              `json:"force_end_at_duration,omitempty" example:"true"`
 	// Постоянная встреча (всегда доступна)
 	IsPermanent        *bool              `json:"is_permanent,omitempty" example:"false"`
 	// Разрешить анонимный доступ
