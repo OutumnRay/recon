@@ -29,10 +29,15 @@ class Config:
 
     @classmethod
     def get_rabbitmq_connection_params(cls):
-        """Get RabbitMQ connection parameters."""
+        """Get RabbitMQ connection parameters with extended heartbeat for long-running tasks."""
         import pika
         return pika.ConnectionParameters(
             host=cls.RABBITMQ_HOST,
             port=cls.RABBITMQ_PORT,
-            credentials=pika.PlainCredentials(cls.RABBITMQ_USER, cls.RABBITMQ_PASSWORD)
+            credentials=pika.PlainCredentials(cls.RABBITMQ_USER, cls.RABBITMQ_PASSWORD),
+            # Heartbeat interval in seconds (0 = disable, default 60)
+            # Set to 3600 (1 hour) to support long transcription tasks
+            heartbeat=3600,
+            # Connection timeout in seconds
+            blocked_connection_timeout=300
         )
