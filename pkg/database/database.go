@@ -86,8 +86,10 @@ func NewDB(cfg Config) (*DB, error) {
 	)
 
 	// Configure GORM logger
+	// Используем Warn для скрытия обычных SQL запросов в логах
+	// Use Warn level to hide routine SQL queries from logs
 	gormConfig := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Warn),
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), gormConfig)
