@@ -1005,6 +1005,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   ],
                 ),
                 const SizedBox(height: 12),
+                // Active Speaker Display (for ongoing meetings)
+                if (meeting.status == 'in_progress' && meeting.activeParticipantsCount > 0)
+                  _buildActiveSpeakerCard(context, meeting),
                 if (meeting.participants.isEmpty)
                   Text(
                     l10n.noParticipants,
@@ -1794,5 +1797,176 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
   Widget gradientHeroCard({required Widget child}) {
     return _buildCard(child: child);
+  }
+
+  Widget _buildActiveSpeakerCard(
+      BuildContext context, MeetingWithDetails meeting) {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Find the first active participant (participant with joined_at but no left_at)
+    // In a real implementation, this would come from WebSocket updates
+    final activeSpeaker = meeting.participants.firstWhere(
+      (p) => p.joinedAt != null && p.leftAt == null,
+      orElse: () => meeting.participants.first,
+    );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary500.withOpacity(0.1),
+            AppColors.primary300.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary300,
+          width: 2,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary500,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.mic,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.nowSpeaking ?? 'Now Speaking',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.primary700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                // Animated pulse indicator
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.success.withOpacity(0.5),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                // Avatar
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: AppColors.primary100,
+                  child: Text(
+                    activeSpeaker.user?.firstName?.isNotEmpty == true
+                        ? activeSpeaker.user!.firstName![0].toUpperCase()
+                        : activeSpeaker.user?.username[0].toUpperCase() ?? '?',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Speaker info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        activeSpeaker.user?.displayName ??
+                            activeSpeaker.user?.username ??
+                            'Unknown',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  activeSpeaker.role == 'speaker'
+                                      ? Icons.campaign
+                                      : Icons.person,
+                                  size: 12,
+                                  color: AppColors.primary600,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  activeSpeaker.role == 'speaker'
+                                      ? l10n.speaker ?? 'Speaker'
+                                      : l10n.participant ?? 'Participant',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.primary600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Video placeholder (for future implementation)
+                Container(
+                  width: 80,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(
+                    Icons.videocam,
+                    color: AppColors.textSecondary,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
