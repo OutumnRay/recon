@@ -429,11 +429,121 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                 ],
             ],
           ),
-          // Show View Session button only if tracks are available
+          // Show participant tracks if available
           if (recording.tracks.isNotEmpty) ...[
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
+            // Group tracks by participant
+            ...() {
+              final participantTracks = <String, List<TrackRecording>>{};
+              for (final track in recording.tracks) {
+                final key = track.participant?.displayName ?? 'Unknown';
+                participantTracks.putIfAbsent(key, () => []).add(track);
+              }
+
+              return participantTracks.entries.map((entry) {
+                final participantName = entry.key;
+                final tracks = entry.value;
+                final hasVideo = tracks.any((t) => t.isVideo);
+                final hasAudio = tracks.any((t) => t.isAudioOnly);
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppColors.primary100,
+                        child: Text(
+                          participantName.isNotEmpty ? participantName[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                            color: AppColors.primary600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              participantName,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                if (hasVideo)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary50,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.videocam, size: 12, color: AppColors.primary600),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          'Video',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.primary600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (hasVideo && hasAudio) const SizedBox(width: 4),
+                                if (hasAudio)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary50,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.mic, size: 12, color: AppColors.primary600),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          'Audio',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.primary600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList();
+            }(),
+            const SizedBox(height: 12),
+            // Compact "View Session" button
+            Align(
+              alignment: Alignment.centerRight,
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -446,26 +556,21 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                     ),
                   );
                 },
-                icon: const Icon(Icons.play_arrow_rounded),
+                icon: const Icon(Icons.arrow_forward, size: 16),
                 label: Text(l10n.viewSession),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary500,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: AppColors.primary50,
+                  foregroundColor: AppColors.primary600,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: AppColors.primary200),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.viewSessionDetails,
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
             ),
           ] else if (recording.playlistUrl != null) ...[
             // Fallback: Show icon buttons for room recording only (no tracks)
