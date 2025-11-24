@@ -16,7 +16,7 @@ import type {
 import { SearchableSelect } from './SearchableSelect';
 import { MultiSelectWithSearch } from './MultiSelectWithSearch';
 import { DateTimePicker } from './DateTimePicker';
-import { LuMic, LuVideo, LuClock, LuInfo, LuLoader } from 'react-icons/lu';
+import { LuMic, LuVideo, LuInfo, LuLoader } from 'react-icons/lu';
 import './MeetingForm.css';
 
 interface MeetingFormProps {
@@ -79,9 +79,6 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   );
   const [needsTranscription, setNeedsTranscription] = useState(
     meeting?.needs_transcription || false
-  );
-  const [forceEndAtDuration, setForceEndAtDuration] = useState(
-    meeting?.force_end_at_duration || false
   );
   const [isPermanent, setIsPermanent] = useState(
     meeting?.is_permanent || false
@@ -271,7 +268,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           needs_video_record: needsVideoRecord,
           needs_audio_record: needsAudioRecord,
           needs_transcription: needsTranscription,
-          force_end_at_duration: forceEndAtDuration,
+          force_end_at_duration: false,
           is_permanent: isPermanent,
           allow_anonymous: allowAnonymous,
           additional_notes: additionalNotes || undefined,
@@ -294,7 +291,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           needs_video_record: needsVideoRecord,
           needs_audio_record: needsAudioRecord,
           needs_transcription: needsTranscription,
-          force_end_at_duration: forceEndAtDuration,
+          force_end_at_duration: false,
           is_permanent: isPermanent,
           allow_anonymous: allowAnonymous,
           additional_notes: additionalNotes || undefined,
@@ -551,19 +548,6 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 {t('meetings.form.transcriptionHelp')}
               </p>
             )}
-          </div>
-
-          <div className="form-group">
-            <label className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={forceEndAtDuration}
-                onChange={(e) => setForceEndAtDuration(e.target.checked)}
-              />
-              <span className="checkbox-label">
-                <LuClock className="checkbox-icon" /> {t('meetings.form.forceEndAtDuration')}
-              </span>
-            </label>
           </div>
 
           <div className="form-group">
