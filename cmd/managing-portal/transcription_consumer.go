@@ -234,16 +234,16 @@ func updateTrackTranscriptionStatus(trackID string, userID string, jsonURL strin
 
 	// Получаем информацию о треке и комнате для расчета абсолютного времени
 	// Get track and room information to calculate absolute time from meeting start
-	var trackStartedAt time.Time
+	var trackPublishedAt time.Time
 	var roomStartedAt time.Time
 	err = tx.Raw(`
 		SELECT
-			t.started_at as track_started_at,
+			t.published_at as track_published_at,
 			r.started_at as room_started_at
 		FROM livekit_tracks t
 		JOIN livekit_rooms r ON t.room_sid = r.sid
 		WHERE t.id = $1
-	`, trackID).Row().Scan(&trackStartedAt, &roomStartedAt)
+	`, trackID).Row().Scan(&trackPublishedAt, &roomStartedAt)
 
 	if err != nil {
 		tx.Rollback()
@@ -253,7 +253,7 @@ func updateTrackTranscriptionStatus(trackID string, userID string, jsonURL strin
 
 	// Вычисляем смещение трека относительно начала встречи (в секундах)
 	// Calculate track offset from meeting start (in seconds)
-	trackOffsetSeconds := trackStartedAt.Sub(roomStartedAt).Seconds()
+	trackOffsetSeconds := trackPublishedAt.Sub(roomStartedAt).Seconds()
 	log.Printf("📊 Track offset from meeting start: %.2f seconds", trackOffsetSeconds)
 
 	// Сохраняем фразы в таблицу transcription_phrases

@@ -855,6 +855,24 @@
   - Automatic reconnection every 30 seconds
   - Prevents crash loops, provides clear status messages
 
+### Phase 12: Transcription Database Fix (Completed)
+
+#### Issue
+- ✅ **Fixed SQL query in transcription result handler** (`cmd/managing-portal/transcription_consumer.go`)
+  - **Problem**: Transcription was successful (3 phrases, 15 seconds) but results weren't saved to database
+  - **Root cause**: SQL query tried to access non-existent column `t.started_at` in livekit_tracks table
+  - **Error**: `ERROR: column t.started_at does not exist (SQLSTATE 42703)`
+  - **Impact**: Track status remained "pending" and phrases field was empty despite successful transcription
+  - **Fix**:
+    - Changed `t.started_at` to `t.published_at` (correct column name)
+    - Updated variable names: `trackStartedAt` → `trackPublishedAt`
+    - Now phrases are correctly saved with absolute timestamps
+  - **Technical details**:
+    - Track.PublishedAt - time when track was published in LiveKit
+    - Room.StartedAt - time when room/meeting started
+    - Offset calculated as difference between track publication and room start
+    - Each phrase gets absolute_start_time and absolute_end_time for semantic search
+
 ### Phase 9: Track Recording Transcription System (Completed)
 
 #### Backend (Go)
