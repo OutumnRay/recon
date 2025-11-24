@@ -14,7 +14,6 @@ class Meeting {
   final bool isRecording;
   final bool isTranscribing;
   final String? additionalNotes;
-  final bool forceEndAtDuration;
   final bool isPermanent;
   final bool allowAnonymous;
   final String? liveKitRoomId;
@@ -36,7 +35,6 @@ class Meeting {
     required this.isRecording,
     required this.isTranscribing,
     this.additionalNotes,
-    required this.forceEndAtDuration,
     required this.isPermanent,
     required this.allowAnonymous,
     this.liveKitRoomId,
@@ -60,7 +58,6 @@ class Meeting {
       isRecording: json['is_recording'] as bool? ?? false,
       isTranscribing: json['is_transcribing'] as bool? ?? false,
       additionalNotes: json['additional_notes'] as String?,
-      forceEndAtDuration: json['force_end_at_duration'] as bool? ?? false,
       isPermanent: json['is_permanent'] as bool? ?? false,
       allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
@@ -85,7 +82,6 @@ class Meeting {
       'is_recording': isRecording,
       'is_transcribing': isTranscribing,
       'additional_notes': additionalNotes,
-      'force_end_at_duration': forceEndAtDuration,
       'is_permanent': isPermanent,
       'allow_anonymous': allowAnonymous,
       'livekit_room_id': liveKitRoomId,
@@ -117,7 +113,6 @@ class MeetingWithDetails extends Meeting {
     required super.isRecording,
     required super.isTranscribing,
     super.additionalNotes,
-    required super.forceEndAtDuration,
     required super.isPermanent,
     required super.allowAnonymous,
     super.liveKitRoomId,
@@ -146,7 +141,6 @@ class MeetingWithDetails extends Meeting {
       isRecording: json['is_recording'] as bool? ?? false,
       isTranscribing: json['is_transcribing'] as bool? ?? false,
       additionalNotes: json['additional_notes'] as String?,
-      forceEndAtDuration: json['force_end_at_duration'] as bool? ?? false,
       isPermanent: json['is_permanent'] as bool? ?? false,
       allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
@@ -267,7 +261,6 @@ class CreateMeetingRequest {
   final String? subjectId;
   final bool needsRecord;
   final bool needsTranscription;
-  final bool forceEndAtDuration;
   final bool allowAnonymous;
   final String? additionalNotes;
   final List<String> participantIds;
@@ -283,7 +276,6 @@ class CreateMeetingRequest {
     this.subjectId,
     required this.needsRecord,
     required this.needsTranscription,
-    required this.forceEndAtDuration,
     required this.allowAnonymous,
     this.additionalNotes,
     required this.participantIds,
@@ -307,7 +299,6 @@ class CreateMeetingRequest {
       if (subjectId != null && subjectId!.isNotEmpty) 'subject_id': subjectId,
       'needs_record': needsRecord,
       'needs_transcription': needsTranscription,
-      'force_end_at_duration': forceEndAtDuration,
       'is_permanent': recurrence == 'permanent',
       'allow_anonymous': allowAnonymous,
       if (additionalNotes != null) 'additional_notes': additionalNotes,

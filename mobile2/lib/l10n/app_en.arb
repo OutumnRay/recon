@@ -64,6 +64,8 @@
   "statusInProgress": "In Progress",
   "statusCompleted": "Completed",
   "statusCancelled": "Cancelled",
+  "statusFinished": "Finished",
+  "statusRecording": "Recording",
 
   "filterAll": "All",
   "filterScheduled": "Scheduled",

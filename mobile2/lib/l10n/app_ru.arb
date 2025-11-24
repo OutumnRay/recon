@@ -61,6 +61,8 @@
   "statusInProgress": "Идет",
   "statusCompleted": "Завершена",
   "statusCancelled": "Отменена",
+  "statusFinished": "Завершена",
+  "statusRecording": "Запись",
 
   "filterAll": "Все",
   "filterScheduled": "План",
