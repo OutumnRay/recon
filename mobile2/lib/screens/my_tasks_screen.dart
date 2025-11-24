@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
+import '../services/api_client.dart';
+import '../services/config_service.dart';
 import '../widgets/task_card.dart';
 import '../l10n/app_localizations.dart';
+import '../main.dart';
 
 class MyTasksScreen extends StatefulWidget {
-  const MyTasksScreen({Key? key}) : super(key: key);
+  const MyTasksScreen({super.key});
 
   @override
   State<MyTasksScreen> createState() => _MyTasksScreenState();
 }
 
 class _MyTasksScreenState extends State<MyTasksScreen> {
+  final _configService = ConfigService();
   late TaskService _taskService;
   List<Task> _tasks = [];
   bool _isLoading = true;
@@ -33,11 +37,12 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
   }
 
   Future<void> _initializeService() async {
-    final authService = AuthService();
-    final baseUrl = 'http://localhost:8081'; // TODO: Get from config
+    final apiUrl = await _configService.getApiUrl();
+    final apiClient = ApiClient(baseUrl: apiUrl, navigatorKey: navigatorKey);
+    final authService = AuthService(apiClient);
 
     _taskService = TaskService(
-      baseUrl: baseUrl,
+      baseUrl: apiUrl.replaceAll('/api/v1', ''),
       authService: authService,
     );
 
@@ -270,8 +275,6 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Tasks'),

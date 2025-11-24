@@ -33,6 +33,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     with SingleTickerProviderStateMixin {
   final _configService = ConfigService();
   late MeetingsService _meetingsService;
+  late ApiClient _apiClient;
   late TabController _tabController;
   String? _publicBaseUrl;
 
@@ -57,8 +58,8 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
   Future<void> _initService() async {
     final apiUrl = await _configService.getApiUrl();
     _publicBaseUrl = apiUrl.replaceAll('/api/v1', '');
-    final apiClient = ApiClient(baseUrl: apiUrl, navigatorKey: navigatorKey);
-    _meetingsService = MeetingsService(apiClient);
+    _apiClient = ApiClient(baseUrl: apiUrl, navigatorKey: navigatorKey);
+    _meetingsService = MeetingsService(_apiClient);
     _loadMeeting();
   }
 
@@ -1477,7 +1478,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
     try {
       final apiUrl = await _configService.getApiUrl();
-      final authService = AuthService();
+      final authService = AuthService(_apiClient);
       final taskService = TaskService(
         baseUrl: apiUrl.replaceAll('/api/v1', ''),
         authService: authService,

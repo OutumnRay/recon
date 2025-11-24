@@ -3,17 +3,17 @@ import 'package:intl/intl.dart';
 import '../models/task.dart';
 import '../l10n/app_localizations.dart';
 
-class TaskCard extends Widget {
+class TaskCard extends StatelessWidget {
   final Task task;
   final VoidCallback? onTap;
   final Function(TaskStatus)? onStatusChange;
 
   const TaskCard({
-    Key? key,
+    super.key,
     required this.task,
     this.onTap,
     this.onStatusChange,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
