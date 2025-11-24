@@ -91,6 +91,8 @@ type Meeting struct {
 	LiveKitRoomID        *uuid.UUID        `json:"livekit_room_id,omitempty" db:"livekit_room_id"`
 	// URL плейлиста объединенного видео в формате HLS (m3u8)
 	VideoPlaylistURL     *string           `json:"video_playlist_url,omitempty" db:"video_playlist_url"`
+	// Временная линия активных спикеров (JSON с сегментами речи и активными спикерами)
+	SpeakerTimeline      *string           `json:"speaker_timeline,omitempty" db:"speaker_timeline"`
 	// Идентификатор пользователя, создавшего встречу
 	CreatedBy            uuid.UUID         `json:"created_by" db:"created_by"`
 	// Время создания

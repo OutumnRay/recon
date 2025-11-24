@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"Recontext.online/pkg/audio"
 	"Recontext.online/pkg/database"
 	"Recontext.online/pkg/video"
 	"github.com/google/uuid"
@@ -100,7 +102,21 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 	}
 	defer vpp.cleanupLocalTracks(localTracks)
 
-	// 4. Объединяем видео в режиме picture-in-picture
+	// 4. Анализируем аудио треки для определения активных спикеров
+	speakerTimeline, err := vpp.analyzeSpeakerActivity(localTracks)
+	if err != nil {
+		log.Printf("⚠️ Failed to analyze speaker activity: %v (continuing without timeline)", err)
+		speakerTimeline = nil
+	}
+
+	// Сохраняем временную линию спикеров в базу данных
+	if speakerTimeline != nil {
+		if err := vpp.saveSpeakerTimeline(roomSID, speakerTimeline); err != nil {
+			log.Printf("⚠️ Failed to save speaker timeline: %v", err)
+		}
+	}
+
+	// 5. Объединяем видео в режиме picture-in-picture
 	mergedVideoPath := filepath.Join(vpp.workDir, fmt.Sprintf("merged_%s.mp4", uuid.New().String()))
 	if err := vpp.videoProcessor.MergeTracksPiP(localTracks, mergedVideoPath); err != nil {
 		return fmt.Errorf("failed to merge videos: %w", err)
@@ -109,7 +125,7 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	log.Printf("✅ Video merged successfully: %s", mergedVideoPath)
 
-	// 5. Конвертируем в HLS формат
+	// 6. Конвертируем в HLS формат
 	hlsDir := filepath.Join(vpp.workDir, fmt.Sprintf("hls_%s", uuid.New().String()))
 	playlistPath, err := vpp.videoProcessor.ConvertToHLS(mergedVideoPath, hlsDir)
 	if err != nil {
@@ -119,7 +135,7 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	log.Printf("✅ HLS conversion completed: %s", playlistPath)
 
-	// 6. Загружаем HLS файлы в S3
+	// 7. Загружаем HLS файлы в S3
 	remotePrefix := fmt.Sprintf("meetings/%s/hls", roomSID)
 	uploadedURLs, err := vpp.storageUploader.UploadDirectory(ctx, hlsDir, remotePrefix)
 	if err != nil {
@@ -128,7 +144,7 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	log.Printf("✅ Uploaded %d files to S3", len(uploadedURLs))
 
-	// 7. Находим URL плейлиста
+	// 8. Находим URL плейлиста
 	playlistURL := ""
 	for _, url := range uploadedURLs {
 		if filepath.Base(url) == "playlist.m3u8" {
@@ -141,7 +157,7 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 		return fmt.Errorf("playlist URL not found in uploaded files")
 	}
 
-	// 8. Обновляем базу данных с URL плейлиста
+	// 9. Обновляем базу данных с URL плейлиста
 	if err := vpp.updateMeetingWithPlaylist(roomSID, playlistURL); err != nil {
 		return fmt.Errorf("failed to update database: %w", err)
 	}
@@ -333,4 +349,90 @@ func extractRemotePath(url string) string {
 	}
 
 	return filepath.Base(url)
+}
+
+// analyzeSpeakerActivity анализирует аудио треки для определения активных спикеров
+func (vpp *VideoPostProcessor) analyzeSpeakerActivity(tracks []video.TrackInfo) (*audio.SpeakerTimeline, error) {
+	// Создаем анализатор аудио
+	analyzer, err := audio.NewAudioAnalyzer()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create audio analyzer: %w", err)
+	}
+
+	// Конвертируем video.TrackInfo в audio.TrackAudioInfo
+	// Извлекаем только аудио треки
+	var audioTracks []audio.TrackAudioInfo
+	for _, track := range tracks {
+		if track.Type == "audio" {
+			audioTracks = append(audioTracks, audio.TrackAudioInfo{
+				ParticipantID: track.ParticipantID,
+				FilePath:      track.FilePath,
+				StartTime:     track.StartTime,
+				Duration:      track.Duration,
+			})
+		}
+	}
+
+	if len(audioTracks) == 0 {
+		log.Printf("⚠️ No audio tracks found for speaker analysis")
+		return nil, nil
+	}
+
+	// Анализируем аудио треки
+	timeline, err := analyzer.AnalyzeAudioTracks(audioTracks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to analyze audio tracks: %w", err)
+	}
+
+	return timeline, nil
+}
+
+// saveSpeakerTimeline сохраняет временную линию спикеров в базу данных
+func (vpp *VideoPostProcessor) saveSpeakerTimeline(roomSID string, timeline *audio.SpeakerTimeline) error {
+	// Сериализуем timeline в JSON
+	timelineJSON, err := json.Marshal(timeline)
+	if err != nil {
+		return fmt.Errorf("failed to marshal timeline: %w", err)
+	}
+
+	// Находим meeting_id по room_sid
+	var meetingID uuid.UUID
+	err = vpp.db.DB.Table("livekit_rooms").
+		Select("meeting_id").
+		Where("sid = ?", roomSID).
+		Where("meeting_id IS NOT NULL").
+		First(&meetingID).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			log.Printf("⚠️ No meeting found for room %s", roomSID)
+			return nil
+		}
+		return err
+	}
+
+	// Обновляем meeting с временной линией спикеров
+	// Используем JSONB тип для эффективного хранения
+	result := vpp.db.DB.Exec(`
+		UPDATE meetings
+		SET
+			speaker_timeline = ?::jsonb,
+			updated_at = NOW()
+		WHERE id = ?
+	`, string(timelineJSON), meetingID)
+
+	if result.Error != nil {
+		// Если колонка не существует, логируем предупреждение
+		if strings.Contains(result.Error.Error(), "speaker_timeline") {
+			log.Printf("⚠️ Column 'speaker_timeline' does not exist yet, skipping timeline save")
+			log.Printf("   Please add migration: ALTER TABLE meetings ADD COLUMN speaker_timeline JSONB;")
+			return nil
+		}
+		return result.Error
+	}
+
+	log.Printf("✅ Speaker timeline saved for meeting %s (%d segments, %d timeline points)",
+		meetingID, len(timeline.Segments), len(timeline.ActiveSpeaker))
+
+	return nil
 }
