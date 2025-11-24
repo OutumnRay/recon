@@ -1177,6 +1177,10 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 		mp.logger.Infof("📌 Error: %s", errorStr)
 	}
 
+	// Debug: Check conditions for transcription
+	mp.logger.Infof("🔍 Transcription check: egressID=%v, status=%v (not failed=%v), filePath=%v, rabbitmq=%v",
+		egressID != "", status, status != "failed", filePath != "", mp.rabbitMQPublisher != nil)
+
 	// Обновляем статус завершения записи, путь к файлу и время окончания в таблице EgressRecording
 	if egressID != "" {
 		now := time.Now()
@@ -1204,18 +1208,23 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 
 	// Send transcription task to RabbitMQ if this is a track recording that completed successfully
 	if egressID != "" && status != "failed" && filePath != "" && mp.rabbitMQPublisher != nil {
+		mp.logger.Infof("🔍 Checking if egress %s is associated with a track...", egressID)
 		// Check if this egress is associated with a track
 		var track models.Track
 		err := mp.db.DB.Where("egress_id = ?", egressID).First(&track).Error
 		if err == nil {
+			mp.logger.Infof("✅ Found track: SID=%s, Type=%s, Source=%s, MimeType=%s",
+				track.SID, track.Type, track.Source, track.MimeType)
 			isAudioTrack := strings.EqualFold(track.Type, "audio") ||
 				strings.EqualFold(track.Source, "microphone") ||
 				strings.EqualFold(track.Source, "screen_share_audio") ||
 				(track.MimeType != "" && strings.HasPrefix(track.MimeType, "audio/"))
+			mp.logger.Infof("🔍 Is audio track: %v", isAudioTrack)
 			if !isAudioTrack {
 				mp.logger.Infof("ℹ️ Egress %s belongs to non-audio track %s, skipping transcription task", egressID, track.SID)
 			} else {
 				// Found a track with this egress ID - send transcription task
+				mp.logger.Infof("📝 Audio track confirmed! Checking meeting transcription settings...")
 				mp.logger.Infof("📝 Sending transcription task for track %s (egress: %s)", track.SID, egressID)
 
 				// Build audio URL from file path
@@ -1252,14 +1261,17 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 				if err != nil {
 					mp.logger.Errorf("❌ Failed to get room for track %s: %v", track.SID, err)
 				} else {
+					mp.logger.Infof("✅ Found room: SID=%s, Name=%s", room.SID, room.Name)
 					// Get meeting to find user_id and check if transcription is enabled
 					var meeting models.Meeting
 					err := mp.db.DB.Where("id = ?", room.Name).First(&meeting).Error
 					if err != nil {
 						mp.logger.Errorf("❌ Failed to get meeting for room %s: %v", room.Name, err)
 					} else if !meeting.NeedsTranscription {
-						mp.logger.Infof("ℹ️ Transcription is disabled for meeting %s, skipping transcription task", meeting.ID)
+						mp.logger.Infof("ℹ️ Transcription is disabled for meeting %s (needs_transcription=%v), skipping transcription task",
+							meeting.ID, meeting.NeedsTranscription)
 					} else {
+						mp.logger.Infof("✅ Transcription is ENABLED for meeting %s!", meeting.ID)
 						// Parse track ID as UUID
 						trackUUID, err := uuid.Parse(track.ID.String())
 						if err != nil {
@@ -1308,8 +1320,11 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 			}
 		} else {
 			// Not a track egress, might be room composite egress
-			mp.logger.Infof("ℹ️  Egress %s is not associated with a track (might be room composite)", egressID)
+			mp.logger.Infof("ℹ️ Egress %s is not associated with a track (error: %v) - might be room composite", egressID, err)
 		}
+	} else {
+		mp.logger.Infof("⚠️ Skipping transcription check - conditions not met: egressID=%v, status=%v, filePath=%v, rabbitmq=%v",
+			egressID != "", status, filePath != "", mp.rabbitMQPublisher != nil)
 	}
 
 	mp.logger.Infof("✅ egress_ended event processed successfully")
