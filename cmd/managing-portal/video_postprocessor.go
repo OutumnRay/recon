@@ -12,6 +12,7 @@ import (
 
 	"Recontext.online/pkg/audio"
 	"Recontext.online/pkg/database"
+	"Recontext.online/pkg/summary"
 	"Recontext.online/pkg/video"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -114,6 +115,11 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 		if err := vpp.saveSpeakerTimeline(roomSID, speakerTimeline); err != nil {
 			log.Printf("⚠️ Failed to save speaker timeline: %v", err)
 		}
+	}
+
+	// 4.5. Генерируем сводки встречи на русском и английском
+	if err := vpp.generateMeetingSummary(roomSID); err != nil {
+		log.Printf("⚠️ Failed to generate meeting summary: %v (continuing)", err)
 	}
 
 	// 5. Объединяем видео в режиме picture-in-picture с динамическим переключением спикера
@@ -444,5 +450,166 @@ func (vpp *VideoPostProcessor) saveSpeakerTimeline(roomSID string, timeline *aud
 	log.Printf("✅ Speaker timeline saved for meeting %s (%d segments, %d timeline points)",
 		meetingID, len(timeline.Segments), len(timeline.ActiveSpeaker))
 
+	return nil
+}
+
+// generateMeetingSummary генерирует сводки встречи на русском и английском
+func (vpp *VideoPostProcessor) generateMeetingSummary(roomSID string) error {
+	log.Print("\n" + "==============================================")
+	log.Printf("📝 Generating meeting summary for room: %s", roomSID)
+	log.Print("==============================================")
+
+	ctx := context.Background()
+
+	// Получаем информацию о встрече и транскрипции
+	type MeetingInfo struct {
+		MeetingID    uuid.UUID
+		MeetingTitle string
+	}
+
+	var meetingInfo MeetingInfo
+	err := vpp.db.DB.Raw(`
+		SELECT m.id as meeting_id, m.title as meeting_title
+		FROM livekit_rooms r
+		JOIN meetings m ON r.meeting_id = m.id
+		WHERE r.sid = ? AND r.meeting_id IS NOT NULL
+	`, roomSID).Scan(&meetingInfo).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			log.Printf("⚠️ No meeting found for room %s", roomSID)
+			return nil
+		}
+		return fmt.Errorf("failed to get meeting info: %w", err)
+	}
+
+	// Получаем транскрипции всех треков
+	type TranscriptionData struct {
+		ParticipantName string
+		Segments        string // JSON
+	}
+
+	var transcriptions []TranscriptionData
+	err = vpp.db.DB.Raw(`
+		SELECT
+			COALESCE(p.name, 'Unknown') as participant_name,
+			t.transcription_segments as segments
+		FROM livekit_tracks t
+		LEFT JOIN livekit_participants p ON t.participant_sid = p.sid
+		WHERE t.room_sid = ?
+			AND t.type = 'audio'
+			AND t.transcription_segments IS NOT NULL
+		ORDER BY t.published_at ASC
+	`, roomSID).Scan(&transcriptions).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to get transcriptions: %w", err)
+	}
+
+	if len(transcriptions) == 0 {
+		log.Printf("⚠️ No transcriptions found for room %s", roomSID)
+		return nil
+	}
+
+	log.Printf("   Found %d transcription(s) to process", len(transcriptions))
+
+	// Собираем все сегменты транскрипции
+	var allSegments []summary.TranscriptSegment
+
+	for _, trans := range transcriptions {
+		var segments []struct {
+			Start float64 `json:"start"`
+			End   float64 `json:"end"`
+			Text  string  `json:"text"`
+		}
+
+		if err := json.Unmarshal([]byte(trans.Segments), &segments); err != nil {
+			log.Printf("⚠️ Failed to parse segments for %s: %v", trans.ParticipantName, err)
+			continue
+		}
+
+		for _, seg := range segments {
+			allSegments = append(allSegments, summary.TranscriptSegment{
+				ParticipantName: trans.ParticipantName,
+				StartTime:       seg.Start,
+				EndTime:         seg.End,
+				Text:            seg.Text,
+			})
+		}
+	}
+
+	if len(allSegments) == 0 {
+		log.Printf("⚠️ No valid transcript segments found")
+		return nil
+	}
+
+	// Создаем генератор сводок
+	summaryGen, err := summary.NewSummaryGenerator()
+	if err != nil {
+		return fmt.Errorf("failed to create summary generator: %w", err)
+	}
+
+	// Генерируем сводки
+	summaries, err := summaryGen.GenerateSummaries(ctx, meetingInfo.MeetingTitle, allSegments)
+	if err != nil {
+		return fmt.Errorf("failed to generate summaries: %w", err)
+	}
+
+	// Сохраняем сводки в базу данных
+	if err := vpp.saveSummariesToDatabase(meetingInfo.MeetingID, summaries); err != nil {
+		return fmt.Errorf("failed to save summaries: %w", err)
+	}
+
+	log.Print("==============================================")
+	log.Printf("✅ Meeting summary generated and saved for meeting: %s", meetingInfo.MeetingID)
+	log.Print("==============================================\n")
+
+	return nil
+}
+
+// saveSummariesToDatabase сохраняет сводки в базу данных
+func (vpp *VideoPostProcessor) saveSummariesToDatabase(meetingID uuid.UUID, summaries *summary.MeetingSummary) error {
+	// Сериализуем сводки в JSON
+	var summaryEN, summaryRU *string
+
+	if summaries.English != nil {
+		jsonEN, err := json.Marshal(summaries.English)
+		if err != nil {
+			return fmt.Errorf("failed to marshal English summary: %w", err)
+		}
+		summaryENStr := string(jsonEN)
+		summaryEN = &summaryENStr
+	}
+
+	if summaries.Russian != nil {
+		jsonRU, err := json.Marshal(summaries.Russian)
+		if err != nil {
+			return fmt.Errorf("failed to marshal Russian summary: %w", err)
+		}
+		summaryRUStr := string(jsonRU)
+		summaryRU = &summaryRUStr
+	}
+
+	// Обновляем встречу
+	result := vpp.db.DB.Exec(`
+		UPDATE meetings
+		SET
+			summary_en = ?::jsonb,
+			summary_ru = ?::jsonb,
+			updated_at = NOW()
+		WHERE id = ?
+	`, summaryEN, summaryRU, meetingID)
+
+	if result.Error != nil {
+		// Если колонки не существуют, логируем предупреждение
+		if strings.Contains(result.Error.Error(), "summary_en") || strings.Contains(result.Error.Error(), "summary_ru") {
+			log.Printf("⚠️ Summary columns do not exist yet, skipping summary save")
+			log.Printf("   Please add migration: ALTER TABLE meetings ADD COLUMN summary_en JSONB, ADD COLUMN summary_ru JSONB;")
+			return nil
+		}
+		return result.Error
+	}
+
+	log.Printf("✅ Summaries saved for meeting %s", meetingID)
 	return nil
 }

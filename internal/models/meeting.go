@@ -93,6 +93,10 @@ type Meeting struct {
 	VideoPlaylistURL     *string           `json:"video_playlist_url,omitempty" db:"video_playlist_url"`
 	// Временная линия активных спикеров (JSON с сегментами речи и активными спикерами)
 	SpeakerTimeline      *string           `json:"speaker_timeline,omitempty" db:"speaker_timeline"`
+	// Сводка встречи на английском (JSON с основными тезисами, решениями, действиями)
+	SummaryEN            *string           `json:"summary_en,omitempty" db:"summary_en"`
+	// Сводка встречи на русском (JSON с основными тезисами, решениями, действиями)
+	SummaryRU            *string           `json:"summary_ru,omitempty" db:"summary_ru"`
 	// Идентификатор пользователя, создавшего встречу
 	CreatedBy            uuid.UUID         `json:"created_by" db:"created_by"`
 	// Время создания

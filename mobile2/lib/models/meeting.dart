@@ -18,6 +18,8 @@ class Meeting {
   final bool allowAnonymous;
   final String? liveKitRoomId;
   final String? videoPlaylistUrl;
+  final String? summaryEn;
+  final String? summaryRu;
   final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -40,6 +42,8 @@ class Meeting {
     required this.allowAnonymous,
     this.liveKitRoomId,
     this.videoPlaylistUrl,
+    this.summaryEn,
+    this.summaryRu,
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
@@ -64,6 +68,8 @@ class Meeting {
       allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
       videoPlaylistUrl: json['video_playlist_url'] as String?,
+      summaryEn: json['summary_en'] as String?,
+      summaryRu: json['summary_ru'] as String?,
       createdBy: json['created_by'] as String,
       createdAt: AppDateUtils.parseToLocal(json['created_at'] as String),
       updatedAt: AppDateUtils.parseToLocal(json['updated_at'] as String),
@@ -89,6 +95,8 @@ class Meeting {
       'allow_anonymous': allowAnonymous,
       'livekit_room_id': liveKitRoomId,
       'video_playlist_url': videoPlaylistUrl,
+      'summary_en': summaryEn,
+      'summary_ru': summaryRu,
       'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -121,6 +129,8 @@ class MeetingWithDetails extends Meeting {
     required super.allowAnonymous,
     super.liveKitRoomId,
     super.videoPlaylistUrl,
+    super.summaryEn,
+    super.summaryRu,
     required super.createdBy,
     required super.createdAt,
     required super.updatedAt,
@@ -150,6 +160,8 @@ class MeetingWithDetails extends Meeting {
       allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
       videoPlaylistUrl: json['video_playlist_url'] as String?,
+      summaryEn: json['summary_en'] as String?,
+      summaryRu: json['summary_ru'] as String?,
       createdBy: json['created_by'] as String,
       createdAt: AppDateUtils.parseToLocal(json['created_at'] as String),
       updatedAt: AppDateUtils.parseToLocal(json['updated_at'] as String),
