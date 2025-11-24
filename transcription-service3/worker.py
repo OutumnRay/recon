@@ -173,16 +173,17 @@ class TranscriptionConsumer:
             bucket = url_parts[3] if len(url_parts) > 3 else 'recontext'
 
             # Find the tracks folder position and build path to track folder
-            # Format: user-id/tracks/track-id/
+            # Format: user-id/tracks/track-id_transcription.json (файл в папке tracks)
             # Filename format: TR_XXXXX_transcription.json
             if 'tracks' in url_parts:
                 tracks_index = url_parts.index('tracks')
-                # Path up to and including track ID
-                base_path = '/'.join(url_parts[4:tracks_index + 2])
+                # Path up to (but NOT including) the tracks folder content
+                # We just need: meeting-id_room-id/tracks/
+                base_path = '/'.join(url_parts[4:tracks_index + 1])
                 json_object_key = f"{base_path}/{track_id}_transcription.json"
             else:
                 # Fallback: create path from user_id and track_id
-                json_object_key = f"{user_id}/tracks/{track_id}/{track_id}_transcription.json"
+                json_object_key = f"{user_id}/tracks/{track_id}_transcription.json"
 
             # Prepare JSON content
             json_content = {
