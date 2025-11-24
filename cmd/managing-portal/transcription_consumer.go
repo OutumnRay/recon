@@ -232,17 +232,46 @@ func updateTrackTranscriptionStatus(trackID string, userID string, jsonURL strin
 		log.Printf("🗑️ Deleted %d old phrases for track %s", deleteResult.RowsAffected, trackID)
 	}
 
+	// Получаем информацию о треке и комнате для расчета абсолютного времени
+	// Get track and room information to calculate absolute time from meeting start
+	var trackStartedAt time.Time
+	var roomStartedAt time.Time
+	err = tx.Raw(`
+		SELECT
+			t.started_at as track_started_at,
+			r.started_at as room_started_at
+		FROM livekit_tracks t
+		JOIN livekit_rooms r ON t.room_sid = r.sid
+		WHERE t.id = $1
+	`, trackID).Row().Scan(&trackStartedAt, &roomStartedAt)
+
+	if err != nil {
+		tx.Rollback()
+		log.Printf("❌ Failed to get track/room times for track %s: %v", trackID, err)
+		return
+	}
+
+	// Вычисляем смещение трека относительно начала встречи (в секундах)
+	// Calculate track offset from meeting start (in seconds)
+	trackOffsetSeconds := trackStartedAt.Sub(roomStartedAt).Seconds()
+	log.Printf("📊 Track offset from meeting start: %.2f seconds", trackOffsetSeconds)
+
 	// Сохраняем фразы в таблицу transcription_phrases
 	if len(phrases) > 0 {
 		log.Printf("💾 Saving %d transcription phrases to database...", len(phrases))
 
 		// Подготавливаем пакетную вставку
 		for i, phrase := range phrases {
+			// Вычисляем абсолютное время относительно начала встречи
+			// Calculate absolute time from meeting start
+			absoluteStart := trackOffsetSeconds + phrase.Start
+			absoluteEnd := trackOffsetSeconds + phrase.End
+
 			insertResult := tx.Exec(`
 				INSERT INTO transcription_phrases
-				(track_id, user_id, phrase_index, start_time, end_time, text, confidence, language, created_at, updated_at)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-			`, trackID, userID, i, phrase.Start, phrase.End, phrase.Text, phrase.Confidence, phrase.Language)
+				(track_id, user_id, phrase_index, start_time, end_time, absolute_start_time, absolute_end_time, text, confidence, language, created_at, updated_at)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+			`, trackID, userID, i, phrase.Start, phrase.End, absoluteStart, absoluteEnd, phrase.Text, phrase.Confidence, phrase.Language)
 
 			if insertResult.Error != nil {
 				tx.Rollback()
