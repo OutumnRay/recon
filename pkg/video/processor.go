@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -21,6 +22,11 @@ type TrackInfo struct {
 	FilePath        string // Путь к файлу записи трека
 	StartTime       time.Time
 	Duration        float64
+}
+
+// SpeakerTimeline представляет временную линию активных спикеров
+type SpeakerTimeline struct {
+	ActiveSpeaker map[float64]string `json:"active_speaker"` // Время -> ParticipantID
 }
 
 // MergeConfig конфигурация для объединения видео
@@ -173,6 +179,286 @@ func (vp *VideoProcessor) MergeTracksPiP(tracks []TrackInfo, outputPath string) 
 
 	log.Printf("✅ Video merge completed: %s", outputPath)
 	return nil
+}
+
+// MergeTracksPiPWithSpeakerSwitch объединяет треки с динамическим переключением активного спикера
+// Использует speaker timeline для автоматического переключения главного видео
+func (vp *VideoProcessor) MergeTracksPiPWithSpeakerSwitch(tracks []TrackInfo, speakerTimeline *SpeakerTimeline, outputPath string) error {
+	if len(tracks) == 0 {
+		return fmt.Errorf("no tracks to merge")
+	}
+
+	if speakerTimeline == nil || len(speakerTimeline.ActiveSpeaker) == 0 {
+		log.Printf("⚠️ No speaker timeline provided, falling back to static PiP")
+		return vp.MergeTracksPiP(tracks, outputPath)
+	}
+
+	log.Printf("🎬 Starting picture-in-picture merge with dynamic speaker switching")
+	log.Printf("   Tracks: %d, Timeline points: %d", len(tracks), len(speakerTimeline.ActiveSpeaker))
+	log.Printf("   Output: %s", outputPath)
+
+	// Группируем треки по участникам
+	participantTracks := vp.groupTracksByParticipant(tracks)
+
+	// Находим видео и аудио треки
+	var videoTracks []TrackInfo
+	var audioTracks []TrackInfo
+	videoTracksByParticipant := make(map[string]TrackInfo)
+
+	for participantID, trackList := range participantTracks {
+		for _, track := range trackList {
+			if track.Type == "video" {
+				videoTracks = append(videoTracks, track)
+				videoTracksByParticipant[participantID] = track
+			} else if track.Type == "audio" {
+				audioTracks = append(audioTracks, track)
+			}
+		}
+	}
+
+	if len(videoTracks) == 0 {
+		return fmt.Errorf("no video tracks found")
+	}
+
+	if len(videoTracks) == 1 {
+		log.Printf("⚠️ Only one video track, using static PiP")
+		return vp.MergeTracksPiP(tracks, outputPath)
+	}
+
+	log.Printf("   Video tracks: %d", len(videoTracks))
+	log.Printf("   Audio tracks: %d", len(audioTracks))
+
+	// Создаем временные видео для каждого сегмента спикера
+	segments, err := vp.createSpeakerSegments(videoTracks, audioTracks, speakerTimeline, videoTracksByParticipant)
+	if err != nil {
+		log.Printf("⚠️ Failed to create speaker segments: %v, falling back to static PiP", err)
+		return vp.MergeTracksPiP(tracks, outputPath)
+	}
+	defer vp.cleanupSegments(segments)
+
+	// Объединяем все сегменты в финальное видео
+	if err := vp.concatenateSegments(segments, outputPath); err != nil {
+		return fmt.Errorf("failed to concatenate segments: %w", err)
+	}
+
+	log.Printf("✅ Video merge with speaker switching completed: %s", outputPath)
+	return nil
+}
+
+// createSpeakerSegments создает видео сегменты для каждого активного спикера
+func (vp *VideoProcessor) createSpeakerSegments(videoTracks, audioTracks []TrackInfo, timeline *SpeakerTimeline, videoByParticipant map[string]TrackInfo) ([]string, error) {
+	// Получаем отсортированные точки смены спикера
+	var timePoints []float64
+	for t := range timeline.ActiveSpeaker {
+		timePoints = append(timePoints, t)
+	}
+	sort.Float64s(timePoints)
+
+	if len(timePoints) == 0 {
+		return nil, fmt.Errorf("no timeline points")
+	}
+
+	log.Printf("   Creating %d speaker segments", len(timePoints))
+
+	var segments []string
+	workDir := filepath.Dir(videoTracks[0].FilePath)
+
+	// Для каждой смены спикера создаем сегмент
+	for i, startTime := range timePoints {
+		speakerID := timeline.ActiveSpeaker[startTime]
+
+		// Определяем длительность сегмента
+		var duration float64
+		if i < len(timePoints)-1 {
+			duration = timePoints[i+1] - startTime
+		} else {
+			// Последний сегмент - до конца видео
+			duration = 30.0 // По умолчанию 30 секунд, если не указано
+		}
+
+		// Пропускаем очень короткие сегменты (менее 0.5 секунды)
+		if duration < 0.5 {
+			continue
+		}
+
+		segmentPath := filepath.Join(workDir, fmt.Sprintf("segment_%s_%d.mp4", uuid.New().String(), i))
+
+		log.Printf("   Segment %d: speaker=%s, start=%.2fs, duration=%.2fs", i, speakerID, startTime, duration)
+
+		// Создаем PiP для этого сегмента с активным спикером главным
+		if err := vp.createSegmentWithActiveSpeaker(videoTracks, audioTracks, videoByParticipant, speakerID, startTime, duration, segmentPath); err != nil {
+			log.Printf("⚠️ Failed to create segment %d: %v", i, err)
+			continue
+		}
+
+		segments = append(segments, segmentPath)
+	}
+
+	if len(segments) == 0 {
+		return nil, fmt.Errorf("no segments created")
+	}
+
+	log.Printf("   Successfully created %d segments", len(segments))
+	return segments, nil
+}
+
+// createSegmentWithActiveSpeaker создает видео сегмент с указанным активным спикером
+func (vp *VideoProcessor) createSegmentWithActiveSpeaker(videoTracks, audioTracks []TrackInfo, videoByParticipant map[string]TrackInfo, activeSpeakerID string, startTime, duration float64, outputPath string) error {
+	// Строим команду FFmpeg
+	args := []string{
+		"-y", // Перезаписываем
+	}
+
+	// Добавляем все видео входы
+	for _, track := range videoTracks {
+		args = append(args, "-ss", fmt.Sprintf("%.2f", startTime), "-t", fmt.Sprintf("%.2f", duration), "-i", track.FilePath)
+	}
+
+	// Добавляем все аудио входы
+	for _, track := range audioTracks {
+		args = append(args, "-ss", fmt.Sprintf("%.2f", startTime), "-t", fmt.Sprintf("%.2f", duration), "-i", track.FilePath)
+	}
+
+	// Строим фильтр с активным спикером главным
+	filterComplex := vp.buildPiPFilterWithActiveSpeaker(videoTracks, videoByParticipant, activeSpeakerID)
+	args = append(args, "-filter_complex", filterComplex)
+
+	// Микшируем аудио
+	if len(audioTracks) > 0 {
+		audioMix := vp.buildAudioMixFilter(len(videoTracks), len(audioTracks))
+		args = append(args, "-filter_complex", audioMix)
+		args = append(args, "-map", "[aout]")
+	}
+
+	args = append(args, "-map", "[vout]")
+
+	// Параметры кодирования
+	args = append(args,
+		"-c:v", "libx264",
+		"-preset", "ultrafast", // Быстрое кодирование для сегментов
+		"-crf", "23",
+		"-c:a", "aac",
+		"-b:a", vp.config.AudioBitrate,
+		"-r", fmt.Sprintf("%d", vp.config.Framerate),
+		outputPath,
+	)
+
+	cmd := exec.Command(vp.ffmpegPath, args...)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ffmpeg segment creation failed: %w", err)
+	}
+
+	return nil
+}
+
+// buildPiPFilterWithActiveSpeaker строит фильтр с указанным спикером главным
+func (vp *VideoProcessor) buildPiPFilterWithActiveSpeaker(videoTracks []TrackInfo, videoByParticipant map[string]TrackInfo, activeSpeakerID string) string {
+	// Находим индекс активного спикера
+	activeSpeakerIndex := -1
+	for i, track := range videoTracks {
+		if track.ParticipantID == activeSpeakerID {
+			activeSpeakerIndex = i
+			break
+		}
+	}
+
+	if activeSpeakerIndex == -1 {
+		// Активный спикер не найден, используем первого
+		activeSpeakerIndex = 0
+	}
+
+	// Главное видео - активный спикер
+	filter := fmt.Sprintf("[%d:v]scale=%d:%d[main];", activeSpeakerIndex, vp.config.Width, vp.config.Height)
+
+	// Остальные видео накладываем в углы
+	currentBase := "[main]"
+	positions := []string{
+		fmt.Sprintf("x=%d:y=%d", vp.config.Width-vp.config.PipVideoWidth-vp.config.PipPadding, vp.config.PipPadding),
+		fmt.Sprintf("x=%d:y=%d", vp.config.Width-vp.config.PipVideoWidth-vp.config.PipPadding, vp.config.Height-vp.config.PipVideoHeight-vp.config.PipPadding),
+		fmt.Sprintf("x=%d:y=%d", vp.config.PipPadding, vp.config.Height-vp.config.PipVideoHeight-vp.config.PipPadding),
+		fmt.Sprintf("x=%d:y=%d", vp.config.PipPadding, vp.config.PipPadding),
+	}
+
+	pipIndex := 0
+	for i := 0; i < len(videoTracks) && pipIndex < len(positions); i++ {
+		if i == activeSpeakerIndex {
+			continue // Пропускаем активного спикера
+		}
+
+		pipLabel := fmt.Sprintf("pip%d", i)
+		outLabel := fmt.Sprintf("out%d", i)
+
+		filter += fmt.Sprintf("[%d:v]scale=%d:%d[%s];", i, vp.config.PipVideoWidth, vp.config.PipVideoHeight, pipLabel)
+		filter += fmt.Sprintf("%s[%s]overlay=%s[%s];", currentBase, pipLabel, positions[pipIndex], outLabel)
+		currentBase = fmt.Sprintf("[%s]", outLabel)
+		pipIndex++
+	}
+
+	filter = strings.TrimSuffix(filter, ";")
+	filter = strings.ReplaceAll(filter, currentBase, "[vout]")
+
+	return filter
+}
+
+// concatenateSegments объединяет сегменты в финальное видео
+func (vp *VideoProcessor) concatenateSegments(segments []string, outputPath string) error {
+	if len(segments) == 0 {
+		return fmt.Errorf("no segments to concatenate")
+	}
+
+	if len(segments) == 1 {
+		// Только один сегмент, просто копируем
+		return vp.copyFile(segments[0], outputPath)
+	}
+
+	log.Printf("   Concatenating %d segments into final video", len(segments))
+
+	// Создаем concat файл
+	workDir := filepath.Dir(segments[0])
+	concatFile := filepath.Join(workDir, fmt.Sprintf("concat_%s.txt", uuid.New().String()))
+	defer os.Remove(concatFile)
+
+	// Записываем список сегментов
+	var concatContent strings.Builder
+	for _, segment := range segments {
+		concatContent.WriteString(fmt.Sprintf("file '%s'\n", segment))
+	}
+
+	if err := os.WriteFile(concatFile, []byte(concatContent.String()), 0644); err != nil {
+		return fmt.Errorf("failed to create concat file: %w", err)
+	}
+
+	// Используем concat demuxer для объединения
+	args := []string{
+		"-f", "concat",
+		"-safe", "0",
+		"-i", concatFile,
+		"-c", "copy", // Копируем без перекодирования
+		outputPath,
+	}
+
+	cmd := exec.Command(vp.ffmpegPath, args...)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ffmpeg concat failed: %w", err)
+	}
+
+	return nil
+}
+
+// copyFile копирует файл
+func (vp *VideoProcessor) copyFile(src, dst string) error {
+	input, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, input, 0644)
+}
+
+// cleanupSegments удаляет временные сегменты
+func (vp *VideoProcessor) cleanupSegments(segments []string) {
+	for _, segment := range segments {
+		os.Remove(segment)
+	}
 }
 
 // groupTracksByParticipant группирует треки по участникам

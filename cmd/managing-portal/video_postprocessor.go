@@ -116,9 +116,19 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 		}
 	}
 
-	// 5. Объединяем видео в режиме picture-in-picture
+	// 5. Объединяем видео в режиме picture-in-picture с динамическим переключением спикера
 	mergedVideoPath := filepath.Join(vpp.workDir, fmt.Sprintf("merged_%s.mp4", uuid.New().String()))
-	if err := vpp.videoProcessor.MergeTracksPiP(localTracks, mergedVideoPath); err != nil {
+
+	// Конвертируем audio.SpeakerTimeline в video.SpeakerTimeline
+	var videoTimeline *video.SpeakerTimeline
+	if speakerTimeline != nil {
+		videoTimeline = &video.SpeakerTimeline{
+			ActiveSpeaker: speakerTimeline.ActiveSpeaker,
+		}
+	}
+
+	// Используем новый метод с переключением спикера
+	if err := vpp.videoProcessor.MergeTracksPiPWithSpeakerSwitch(localTracks, videoTimeline, mergedVideoPath); err != nil {
 		return fmt.Errorf("failed to merge videos: %w", err)
 	}
 	defer os.Remove(mergedVideoPath)
