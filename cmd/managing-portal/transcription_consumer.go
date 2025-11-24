@@ -155,12 +155,12 @@ func processTranscriptionResult(body []byte) {
 	log.Printf(strings.Repeat("=", 60) + "\n")
 
 	// Обновляем базу данных с результатами транскрибации
-	updateTrackTranscriptionStatus(result.TrackID, result.JSONURL, result.Transcription.PhraseCount, result.Transcription.TotalDuration)
+	updateTrackTranscriptionStatus(result.TrackID, result.UserID, result.JSONURL, result.Transcription.PhraseCount, result.Transcription.TotalDuration, result.Transcription.Phrases)
 }
 
 // updateTrackTranscriptionStatus обновляет трек информацией о транскрибации
-// Сохраняет URL JSON-файла, количество фраз и длительность в базу данных
-func updateTrackTranscriptionStatus(trackID string, jsonURL string, phraseCount int, duration float64) {
+// Сохраняет URL JSON-файла, количество фраз, длительность и сами фразы в базу данных
+func updateTrackTranscriptionStatus(trackID string, userID string, jsonURL string, phraseCount int, duration float64, phrases []TranscriptionPhrase) {
 	log.Printf("📝 Updating track %s with transcription data", trackID)
 	log.Printf("   JSON URL: %s", jsonURL)
 	log.Printf("   Phrases: %d", phraseCount)
@@ -183,8 +183,20 @@ func updateTrackTranscriptionStatus(trackID string, jsonURL string, phraseCount 
 		return
 	}
 
+	// Начинаем транзакцию для атомарного обновления
+	tx := db.DB.Begin()
+	if tx.Error != nil {
+		log.Printf("❌ Failed to start transaction: %v", tx.Error)
+		return
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// Обновляем статус транскрибации в таблице livekit_tracks
-	result := db.DB.Exec(`
+	result := tx.Exec(`
 		UPDATE livekit_tracks
 		SET
 			transcription_status = 'completed',
@@ -196,16 +208,59 @@ func updateTrackTranscriptionStatus(trackID string, jsonURL string, phraseCount 
 	`, jsonURL, phraseCount, duration, trackID)
 
 	if result.Error != nil {
+		tx.Rollback()
 		log.Printf("❌ Failed to update track %s: %v", trackID, result.Error)
 		return
 	}
 
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		log.Printf("⚠️ Track %s not found in database", trackID)
 		return
 	}
 
-	log.Printf("✅ Track %s updated successfully (rows affected: %d)", trackID, result.RowsAffected)
+	log.Printf("✅ Track %s updated successfully", trackID)
+
+	// Удаляем старые фразы для этого трека (если есть)
+	deleteResult := tx.Exec(`DELETE FROM transcription_phrases WHERE track_id = $1`, trackID)
+	if deleteResult.Error != nil {
+		tx.Rollback()
+		log.Printf("❌ Failed to delete old phrases for track %s: %v", trackID, deleteResult.Error)
+		return
+	}
+	if deleteResult.RowsAffected > 0 {
+		log.Printf("🗑️ Deleted %d old phrases for track %s", deleteResult.RowsAffected, trackID)
+	}
+
+	// Сохраняем фразы в таблицу transcription_phrases
+	if len(phrases) > 0 {
+		log.Printf("💾 Saving %d transcription phrases to database...", len(phrases))
+
+		// Подготавливаем пакетную вставку
+		for i, phrase := range phrases {
+			insertResult := tx.Exec(`
+				INSERT INTO transcription_phrases
+				(track_id, user_id, phrase_index, start_time, end_time, text, confidence, language, created_at, updated_at)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+			`, trackID, userID, i, phrase.Start, phrase.End, phrase.Text, phrase.Confidence, phrase.Language)
+
+			if insertResult.Error != nil {
+				tx.Rollback()
+				log.Printf("❌ Failed to insert phrase %d for track %s: %v", i, trackID, insertResult.Error)
+				return
+			}
+		}
+
+		log.Printf("✅ Saved %d phrases to database", len(phrases))
+	}
+
+	// Фиксируем транзакцию
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("❌ Failed to commit transaction: %v", err)
+		return
+	}
+
+	log.Printf("✅ Transcription data saved successfully for track %s", trackID)
 }
 
 // getEnvOrDefault возвращает значение переменной окружения или значение по умолчанию

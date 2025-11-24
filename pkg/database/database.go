@@ -200,6 +200,7 @@ func (db *DB) RunMigrations() error {
 		&TemporaryUser{},
 		&PasswordResetToken{},
 		&models.FCMDevice{},
+		&models.TranscriptionPhrase{},
 	}
 
 	if err := db.AutoMigrate(dbModels...); err != nil {

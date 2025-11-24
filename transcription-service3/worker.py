@@ -302,6 +302,13 @@ class TranscriptionConsumer:
             if not track_id or not user_id or not audio_url:
                 raise ValueError("Missing required fields: track_id, user_id, or audio_url")
 
+            # Skip video tracks (TR_V prefix) - they don't need transcription
+            # Пропускаем видео треки (префикс TR_V) - они не требуют транскрибации
+            if track_id.startswith('TR_V'):
+                print(f"⏭️  Skipping video track {track_id} - video tracks don't need transcription")
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
+
             # Transcribe audio
             phrases = self.transcriber.transcribe_from_url(
                 audio_url=audio_url,
