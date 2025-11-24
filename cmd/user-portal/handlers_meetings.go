@@ -136,7 +136,6 @@ func (up *UserPortal) createMeetingHandler(w http.ResponseWriter, r *http.Reques
 		NeedsRecord:        req.NeedsRecord,
 		NeedsTranscription: req.NeedsTranscription,
 		AdditionalNotes:    req.AdditionalNotes,
-		ForceEndAtDuration: req.ForceEndAtDuration,
 		IsPermanent:        req.IsPermanent,
 		AllowAnonymous:     req.AllowAnonymous,
 		LiveKitRoomID:      nil, // Will be set below
@@ -467,9 +466,6 @@ func (up *UserPortal) updateMeetingHandler(w http.ResponseWriter, r *http.Reques
 	}
 	if req.NeedsTranscription != nil {
 		meeting.NeedsTranscription = *req.NeedsTranscription
-	}
-	if req.ForceEndAtDuration != nil {
-		meeting.ForceEndAtDuration = *req.ForceEndAtDuration
 	}
 	if req.IsPermanent != nil {
 		meeting.IsPermanent = *req.IsPermanent

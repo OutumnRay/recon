@@ -211,21 +211,14 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 
 	// Calculate token validity duration
 	fmt.Printf("DEBUG: Calculating token validity...\n")
-	var tokenValidity time.Duration
 
-	if meeting.ForceEndAtDuration {
-		// Token valid until meeting end + 10 minutes
-		tokenValidity = meetingEnd.Add(10 * time.Minute).Sub(now)
-		fmt.Printf("DEBUG: ForceEndAtDuration=true, token valid until: %s\n", now.Add(tokenValidity).Format(time.RFC3339))
-	} else {
-		// Token valid for meeting duration from now + 10 minutes
-		remainingDuration := meetingEnd.Sub(now)
-		if remainingDuration < 0 {
-			remainingDuration = time.Duration(meeting.Duration) * time.Minute
-		}
-		tokenValidity = remainingDuration + 10*time.Minute
-		fmt.Printf("DEBUG: ForceEndAtDuration=false, remaining: %v, token validity: %v\n", remainingDuration, tokenValidity)
+	// Token valid for meeting duration from now + 10 minutes
+	remainingDuration := meetingEnd.Sub(now)
+	if remainingDuration < 0 {
+		remainingDuration = time.Duration(meeting.Duration) * time.Minute
 	}
+	tokenValidity := remainingDuration + 10*time.Minute
+	fmt.Printf("DEBUG: Remaining duration: %v, token validity: %v\n", remainingDuration, tokenValidity)
 
 	// Ensure minimum validity of 10 minutes
 	if tokenValidity < 10*time.Minute {
@@ -287,11 +280,6 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 		MeetingID:       meetingID,
 		ScheduledAt:     meeting.ScheduledAt.Format(time.RFC3339),
 		Duration:        meeting.Duration,
-	}
-
-	if meeting.ForceEndAtDuration {
-		response.ForceEndAt = meetingEnd.Format(time.RFC3339)
-		fmt.Printf("DEBUG: Force end at: %s\n", response.ForceEndAt)
 	}
 
 	fmt.Printf("DEBUG: Preparing to send response...\n")

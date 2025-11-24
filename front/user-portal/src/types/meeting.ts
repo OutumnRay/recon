@@ -27,13 +27,11 @@ export interface Meeting {
   type: MeetingType;
   subject_id?: string;
   status: MeetingStatus;
-  needs_video_record: boolean;
-  needs_audio_record: boolean;
+  needs_record: boolean;
   needs_transcription: boolean;
   is_recording: boolean;
   is_transcribing: boolean;
   additional_notes: string;
-  force_end_at_duration: boolean;
   is_permanent: boolean;
   allow_anonymous: boolean;
   livekit_room_id?: string;
@@ -94,13 +92,11 @@ export interface MeetingWithDetails {
   type: MeetingType;
   subject_id?: string;
   status: MeetingStatus;
-  needs_video_record: boolean;
-  needs_audio_record: boolean;
+  needs_record: boolean;
   needs_transcription: boolean;
   is_recording: boolean;
   is_transcribing: boolean;
   additional_notes: string;
-  force_end_at_duration: boolean;
   is_permanent: boolean;
   allow_anonymous: boolean;
   livekit_room_id?: string;
@@ -124,11 +120,9 @@ export interface CreateMeetingRequest {
   recurrence: MeetingRecurrence;
   type: MeetingType;
   subject_id?: string;
-  needs_video_record: boolean;
-  needs_audio_record: boolean;
+  needs_record: boolean;
   needs_transcription: boolean;
   additional_notes?: string;
-  force_end_at_duration: boolean;
   is_permanent: boolean;
   allow_anonymous: boolean;
   speaker_id?: string; // For presentations
@@ -144,11 +138,9 @@ export interface UpdateMeetingRequest {
   type?: MeetingType;
   subject_id?: string;
   status?: MeetingStatus;
-  needs_video_record?: boolean;
-  needs_audio_record?: boolean;
+  needs_record?: boolean;
   needs_transcription?: boolean;
   additional_notes?: string;
-  force_end_at_duration?: boolean;
   is_permanent?: boolean;
   allow_anonymous?: boolean;
   speaker_id?: string;

@@ -237,12 +237,8 @@ export const Meetings: React.FC = () => {
                 <span className="detail-value">{selectedMeeting.recurrence}</span>
               </div>
               <div className="detail-item">
-                <span className="detail-label">Video Recording:</span>
-                <span className="detail-value">{selectedMeeting.needs_video_record ? '✓ Yes' : '✗ No'}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Audio Recording:</span>
-                <span className="detail-value">{selectedMeeting.needs_audio_record ? '✓ Yes' : '✗ No'}</span>
+                <span className="detail-label">Recording:</span>
+                <span className="detail-value">{selectedMeeting.needs_record ? '✓ Yes' : '✗ No'}</span>
               </div>
             </div>
           </div>
@@ -500,10 +496,10 @@ export const Meetings: React.FC = () => {
                         <span className="info-icon">👥</span>
                         <span className="info-text">{meeting.participants.length} participants</span>
                       </div>
-                      {meeting.needs_video_record && (
+                      {meeting.needs_record && (
                         <div className="info-item">
                           <span className="info-icon">🎥</span>
-                          <span className="info-text">Video Recording</span>
+                          <span className="info-text">Recording</span>
                         </div>
                       )}
                     </div>

@@ -231,16 +231,11 @@ func (up *UserPortal) anonymousJoinHandler(w http.ResponseWriter, r *http.Reques
 	now := time.Now()
 
 	// Calculate token validity
-	var tokenValidity time.Duration
-	if meeting.ForceEndAtDuration {
-		tokenValidity = meetingEnd.Add(10 * time.Minute).Sub(now)
-	} else {
-		remainingDuration := meetingEnd.Sub(now)
-		if remainingDuration < 0 {
-			remainingDuration = time.Duration(meeting.Duration) * time.Minute
-		}
-		tokenValidity = remainingDuration + 10*time.Minute
+	remainingDuration := meetingEnd.Sub(now)
+	if remainingDuration < 0 {
+		remainingDuration = time.Duration(meeting.Duration) * time.Minute
 	}
+	tokenValidity := remainingDuration + 10*time.Minute
 
 	// Ensure minimum validity of 10 minutes
 	if tokenValidity < 10*time.Minute {
@@ -291,10 +286,6 @@ func (up *UserPortal) anonymousJoinHandler(w http.ResponseWriter, r *http.Reques
 		MeetingTitle:    meeting.Title,
 		ScheduledAt:     meeting.ScheduledAt.Format(time.RFC3339),
 		Duration:        meeting.Duration,
-	}
-
-	if meeting.ForceEndAtDuration {
-		response.ForceEndAt = meetingEnd.Format(time.RFC3339)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

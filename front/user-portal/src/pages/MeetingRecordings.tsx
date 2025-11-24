@@ -358,7 +358,7 @@ export default function MeetingRecordings() {
                     {openSection === 'video' && (
                       <div className="accordion-content">
                         {selectedRecording.playlist_url ? (
-                          meeting && meeting.needs_video_record && !selectedRecording.audio_only ? (
+                          meeting && meeting.needs_record && !selectedRecording.audio_only ? (
                             <div className="player-surface">
                               <HLSPlayer
                                 src={selectedRecording.playlist_url}
@@ -366,7 +366,7 @@ export default function MeetingRecordings() {
                               />
                             </div>
                           ) : (
-                            meeting && meeting.needs_audio_record && (
+                            meeting && meeting.needs_record && (
                               <div className="audio-player-container">
                                 <audio controls style={{ width: '100%' }}>
                                   <source src={selectedRecording.playlist_url} type="application/x-mpegURL" />

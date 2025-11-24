@@ -308,18 +308,9 @@ export const Meetings: React.FC = () => {
             <div className="detail-block">
               <LuVideo className="detail-icon" />
               <div>
-                <span className="detail-label">{t('meetings.details.videoRecording')}</span>
+                <span className="detail-label">{t('meetings.details.recording')}</span>
                 <div className="detail-value">
-                  {selectedMeeting.needs_video_record ? t('common.yes') : t('common.no')}
-                </div>
-              </div>
-            </div>
-            <div className="detail-block">
-              <LuMic className="detail-icon" />
-              <div>
-                <span className="detail-label">{t('meetings.details.audioRecording')}</span>
-                <div className="detail-value">
-                  {selectedMeeting.needs_audio_record ? t('common.yes') : t('common.no')}
+                  {selectedMeeting.needs_record ? t('common.yes') : t('common.no')}
                 </div>
               </div>
             </div>
@@ -495,7 +486,7 @@ export const Meetings: React.FC = () => {
               const statusInfo = getMeetingStatusInfo(meeting.status);
               const isNow = isMeetingNow(meeting);
               const isPast = isMeetingPast(meeting);
-              const hasRecording = meeting.needs_video_record || meeting.needs_audio_record;
+              const hasRecording = meeting.needs_record;
               // Show recordings button if there are any recording rooms for this meeting
               const hasRecordings = (meeting.recordings_count || 0) > 0;
               const canJoinFromRow = meeting.is_permanent || meeting.status === 'scheduled' || meeting.status === 'in_progress';
@@ -528,8 +519,7 @@ export const Meetings: React.FC = () => {
                         <span>{t(`meetings.type.${meeting.type}`)}</span>
                         {hasRecording && (
                           <span className="meeting-row-icons">
-                            {meeting.needs_video_record && <LuVideo />}
-                            {meeting.needs_audio_record && <LuMic />}
+                            {meeting.needs_record && <LuVideo />}
                           </span>
                         )}
                       </div>

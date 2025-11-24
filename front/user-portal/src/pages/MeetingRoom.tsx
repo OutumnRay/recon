@@ -503,8 +503,7 @@ export default function MeetingRoom() {
         setIsRecording(meeting.is_recording || false);
         setIsTranscribing(meeting.is_transcribing || false);
 
-        console.log('[Meeting Settings] needs_video_record:', meeting.needs_video_record);
-        console.log('[Meeting Settings] needs_audio_record:', meeting.needs_audio_record);
+        console.log('[Meeting Settings] needs_record:', meeting.needs_record);
         console.log('[Meeting Settings] needs_transcription:', meeting.needs_transcription);
         console.log('[Meeting Settings] is_recording:', meeting.is_recording);
         console.log('[Meeting Settings] is_transcribing:', meeting.is_transcribing);
