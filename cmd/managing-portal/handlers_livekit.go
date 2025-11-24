@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"Recontext.online/internal/models"
+	"Recontext.online/pkg/rabbitmq"
 	"github.com/google/uuid"
 )
 
@@ -1207,8 +1208,50 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 	}
 
 	// Send transcription task to RabbitMQ if this is a track recording that completed successfully
-	if egressID != "" && status != "failed" && filePath != "" && mp.rabbitMQPublisher != nil {
-		mp.logger.Infof("🔍 Checking if egress %s is associated with a track...", egressID)
+	if egressID != "" && status != "failed" && filePath != "" {
+		// Check if RabbitMQ publisher is available, try to reconnect if not
+		if mp.rabbitMQPublisher == nil {
+			mp.logger.Infof("⚠️ RabbitMQ publisher not initialized, attempting to reconnect...")
+			rabbitMQHost := os.Getenv("RABBITMQ_HOST")
+			if rabbitMQHost == "" {
+				rabbitMQHost = "localhost"
+			}
+			rabbitMQPort := 5672
+			if portStr := os.Getenv("RABBITMQ_PORT"); portStr != "" {
+				if port, err := strconv.Atoi(portStr); err == nil {
+					rabbitMQPort = port
+				}
+			}
+			rabbitMQUser := os.Getenv("RABBITMQ_USER")
+			if rabbitMQUser == "" {
+				rabbitMQUser = "guest"
+			}
+			rabbitMQPassword := os.Getenv("RABBITMQ_PASSWORD")
+			if rabbitMQPassword == "" {
+				rabbitMQPassword = "guest"
+			}
+			rabbitMQQueue := os.Getenv("RABBITMQ_QUEUE")
+			if rabbitMQQueue == "" {
+				rabbitMQQueue = "transcription_queue"
+			}
+
+			publisher, err := rabbitmq.NewPublisher(
+				rabbitMQHost,
+				rabbitMQPort,
+				rabbitMQUser,
+				rabbitMQPassword,
+				rabbitMQQueue,
+			)
+			if err != nil {
+				mp.logger.Errorf("❌ Failed to reconnect to RabbitMQ: %v", err)
+			} else {
+				mp.logger.Infof("✅ Successfully reconnected to RabbitMQ!")
+				mp.rabbitMQPublisher = publisher
+			}
+		}
+
+		if mp.rabbitMQPublisher != nil {
+			mp.logger.Infof("🔍 Checking if egress %s is associated with a track...", egressID)
 		// Check if this egress is associated with a track
 		var track models.Track
 		err := mp.db.DB.Where("egress_id = ?", egressID).First(&track).Error
@@ -1322,9 +1365,12 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 			// Not a track egress, might be room composite egress
 			mp.logger.Infof("ℹ️ Egress %s is not associated with a track (error: %v) - might be room composite", egressID, err)
 		}
+		} else {
+			mp.logger.Infof("⚠️ Skipping transcription - RabbitMQ publisher still not available after reconnection attempt")
+		}
 	} else {
-		mp.logger.Infof("⚠️ Skipping transcription check - conditions not met: egressID=%v, status=%v, filePath=%v, rabbitmq=%v",
-			egressID != "", status, filePath != "", mp.rabbitMQPublisher != nil)
+		mp.logger.Infof("⚠️ Skipping transcription check - conditions not met: egressID=%v, status=%v, filePath=%v",
+			egressID != "", status, filePath != "")
 	}
 
 	mp.logger.Infof("✅ egress_ended event processed successfully")
