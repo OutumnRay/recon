@@ -133,19 +133,18 @@ export default function MeetingRecordings() {
           setOpenSection('tracks');
         }
 
-        // Auto-select first room composite recording
+        // Auto-select first room (with or without composite recording)
+        // Автоматически выбираем первую комнату (с композитной записью или без)
         if (recordingsData.length > 0) {
           const firstRoom = recordingsData[0];
-          if (firstRoom.playlist_url) {
-            setSelectedRecording({
-              playlist_url: firstRoom.playlist_url,
-              started_at: firstRoom.started_at,
-              ended_at: firstRoom.ended_at,
-              status: firstRoom.status,
-              audio_only: firstRoom.audio_only || false,
-              room_sid: firstRoom.room_sid,
-            });
-          }
+          setSelectedRecording({
+            playlist_url: firstRoom.playlist_url || '',
+            started_at: firstRoom.started_at,
+            ended_at: firstRoom.ended_at,
+            status: firstRoom.status,
+            audio_only: firstRoom.audio_only || false,
+            room_sid: firstRoom.room_sid,
+          });
         }
       } catch (err: any) {
         console.error('Failed to fetch recordings:', err);
@@ -163,10 +162,10 @@ export default function MeetingRecordings() {
   }, [meetingId, navigate, t]);
 
   const selectRoomRecording = (room: RoomRecording) => {
-    if (!room.playlist_url) return;
-
+    // Allow selecting room even without composite recording if it has tracks
+    // Разрешаем выбирать комнату даже без композитной записи, если есть треки
     setSelectedRecording({
-      playlist_url: room.playlist_url,
+      playlist_url: room.playlist_url || '', // Empty string if no composite recording
       started_at: room.started_at,
       ended_at: room.ended_at,
       status: room.status,
@@ -358,22 +357,26 @@ export default function MeetingRecordings() {
                     </button>
                     {openSection === 'video' && (
                       <div className="accordion-content">
-                        {meeting && meeting.needs_video_record && !selectedRecording.audio_only ? (
-                          <div className="player-surface">
-                            <HLSPlayer
-                              src={selectedRecording.playlist_url}
-                              autoplay={false}
-                            />
-                          </div>
-                        ) : (
-                          meeting && meeting.needs_audio_record && (
-                            <div className="audio-player-container">
-                              <audio controls style={{ width: '100%' }}>
-                                <source src={selectedRecording.playlist_url} type="application/x-mpegURL" />
-                                Your browser does not support the audio element.
-                              </audio>
+                        {selectedRecording.playlist_url ? (
+                          meeting && meeting.needs_video_record && !selectedRecording.audio_only ? (
+                            <div className="player-surface">
+                              <HLSPlayer
+                                src={selectedRecording.playlist_url}
+                                autoplay={false}
+                              />
                             </div>
+                          ) : (
+                            meeting && meeting.needs_audio_record && (
+                              <div className="audio-player-container">
+                                <audio controls style={{ width: '100%' }}>
+                                  <source src={selectedRecording.playlist_url} type="application/x-mpegURL" />
+                                  Your browser does not support the audio element.
+                                </audio>
+                              </div>
+                            )
                           )
+                        ) : (
+                          <p className="no-composite-recording">{t('meetingRecordings.noCompositeRecording')}</p>
                         )}
                       </div>
                     )}
@@ -660,8 +663,8 @@ export default function MeetingRecordings() {
                     </div>
                     <div
                       className="session-card-content"
-                      onClick={() => room.playlist_url && selectRoomRecording(room)}
-                      style={{ cursor: room.playlist_url ? 'pointer' : 'default' }}
+                      onClick={() => selectRoomRecording(room)}
+                      style={{ cursor: 'pointer' }}
                     >
                       <div className="session-card-header">
                         <h3>
