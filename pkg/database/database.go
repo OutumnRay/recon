@@ -288,12 +288,8 @@ func (db *DB) createAdditionalIndexes() error {
 		"CREATE INDEX IF NOT EXISTS idx_livekit_tracks_source ON livekit_tracks(source)",
 		"CREATE INDEX IF NOT EXISTS idx_livekit_tracks_status ON livekit_tracks(status)",
 
-		// LiveKit webhook events indexes
-		"CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_event_type ON livekit_webhook_events(event_type)",
-		"CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_event_id ON livekit_webhook_events(event_id)",
-		"CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_room_sid ON livekit_webhook_events(room_sid)",
-		"CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_participant_sid ON livekit_webhook_events(participant_sid)",
-		"CREATE INDEX IF NOT EXISTS idx_livekit_webhook_events_created_at ON livekit_webhook_events(created_at DESC)",
+		// LiveKit webhook events indexes - теперь создаются автоматически через GORM tags
+		// (event_type, event_id, room_sid, participant_sid, created_at имеют ;index в модели)
 
 		// Meeting subjects indexes
 		"CREATE INDEX IF NOT EXISTS idx_meeting_subjects_name ON meeting_subjects(name)",

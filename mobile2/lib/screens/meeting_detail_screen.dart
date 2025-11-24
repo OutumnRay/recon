@@ -592,7 +592,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
         ),
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
         children: [
-          GradientHeroCard(
+          gradientHeroCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -655,7 +655,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           ),
           if (!meeting.isPermanent) ...[
             const SizedBox(height: 20),
-            SurfaceCard(
+            surfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -696,7 +696,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           ],
           if (meeting.allowAnonymous) ...[
             const SizedBox(height: 20),
-            SurfaceCard(
+            surfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -737,7 +737,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
             ),
           ],
           const SizedBox(height: 20),
-          SurfaceCard(
+          surfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -751,15 +751,16 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   spacing: 12,
                   runSpacing: 12,
                   children: [
+                    // Отображение статуса записи (аудио и видео объединены в один флаг)
                     _buildFeatureChip(
                       icon: Icons.videocam_outlined,
                       label: l10n.videoRecording,
-                      isActive: meeting.needsVideoRecord,
+                      isActive: meeting.needsRecord,
                     ),
                     _buildFeatureChip(
                       icon: Icons.mic_none_rounded,
                       label: l10n.audioRecording,
-                      isActive: meeting.needsAudioRecord,
+                      isActive: meeting.needsRecord,
                     ),
                     _buildFeatureChip(
                       icon: Icons.description_outlined,
@@ -783,7 +784,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
             ),
           ),
           const SizedBox(height: 20),
-          SurfaceCard(
+          surfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -868,7 +869,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           ),
           if (meeting.departments.isNotEmpty) ...[
             const SizedBox(height: 20),
-            SurfaceCard(
+            surfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -892,7 +893,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           if (meeting.additionalNotes != null &&
               meeting.additionalNotes!.isNotEmpty) ...[
             const SizedBox(height: 20),
-            SurfaceCard(
+            surfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -913,7 +914,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
             ),
           ],
           const SizedBox(height: 20),
-          SurfaceCard(
+          surfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1334,8 +1335,8 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     );
   }
 
-  // Wrapper methods for compatibility
-  Widget SurfaceCard({
+  // Вспомогательные методы для совместимости (используют lowerCamelCase согласно Dart naming conventions)
+  Widget surfaceCard({
     required Widget child,
     EdgeInsets? padding,
     EdgeInsets? margin,
@@ -1343,7 +1344,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     return _buildCard(child: child, padding: padding, margin: margin);
   }
 
-  Widget GradientHeroCard({required Widget child}) {
+  Widget gradientHeroCard({required Widget child}) {
     return _buildCard(child: child);
   }
 }

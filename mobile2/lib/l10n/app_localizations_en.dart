@@ -90,10 +90,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meetingNotes => 'Additional Notes';
 
   @override
-  String get meetingVideoRecord => 'Video Recording';
-
-  @override
-  String get meetingAudioRecord => 'Audio Recording';
+  String get meetingRecord => 'Record Meeting (Audio & Video)';
 
   @override
   String get meetingTranscription =>

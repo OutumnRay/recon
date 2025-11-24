@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
+// Удалён неиспользуемый import intl - форматирование дат выполняется через date_utils.dart
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/config_service.dart';

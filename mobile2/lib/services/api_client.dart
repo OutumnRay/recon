@@ -41,12 +41,7 @@ class ApiClient {
     }
   }
 
-  // Check response for 401 and handle it
-  void _checkUnauthorized(http.Response response) {
-    if (response.statusCode == 401) {
-      _handleUnauthorized();
-    }
-  }
+  // Метод _checkUnauthorized удалён - проверка 401 выполняется напрямую в каждом запросе
 
   Future<http.Response> get(String endpoint, {bool requiresAuth = true}) async {
     final url = Uri.parse('$baseUrl$endpoint');

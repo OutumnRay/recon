@@ -126,12 +126,16 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 	roomRecordings := []RoomRecordingInfo{}
 
 	// Pre-collect all participant SIDs for batch loading
+	// Собираем участников для всех треков с записями (аудио и видео)
+	// Collect participants for all tracks with recordings (audio and video)
 	allParticipantSIDsSet := make(map[string]bool)
 	for _, room := range rooms {
 		tracks, err := up.liveKitRepo.GetTracksByRoomSID(room.SID)
 		if err == nil {
 			for _, track := range tracks {
-				if track.EgressID != "" && track.Source == "MICROPHONE" {
+				// Включаем всех участников, у которых есть записанные треки (audio or video)
+				// Include all participants who have recorded tracks (audio or video)
+				if track.EgressID != "" {
 					allParticipantSIDsSet[track.ParticipantSID] = true
 				}
 			}
@@ -219,7 +223,11 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 				up.logger.Infof("📹 [RECORDINGS]   Track %d: SID=%s, Source=%s, EgressID=%s, Type=%s",
 					j, track.SID, track.Source, track.EgressID, track.Type)
 
-				if track.EgressID != "" && track.Source == "MICROPHONE" {
+				// Включаем треки с записью (egress_id не пустой)
+				// Это могут быть: аудио (MICROPHONE), видео (CAMERA), шаринг экрана (SCREEN_SHARE, SCREEN_SHARE_AUDIO)
+				// Include tracks that have recordings (egress_id is not empty)
+				// This can be: audio (MICROPHONE), video (CAMERA), screen sharing (SCREEN_SHARE, SCREEN_SHARE_AUDIO)
+				if track.EgressID != "" {
 					trackRec := TrackRecordingInfo{
 						ID:            track.SID,
 						Status:        "completed",
@@ -314,10 +322,15 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Collect track IDs for transcription loading
+	// Транскрипции делаются только для аудио-треков (MICROPHONE, SCREEN_SHARE_AUDIO)
+	// Transcriptions are only done for audio tracks (MICROPHONE, SCREEN_SHARE_AUDIO)
 	var trackIDs []uuid.UUID
 	trackMap := make(map[uuid.UUID]*models.Track)
 	for i := range tracks {
-		if tracks[i].EgressID != "" && tracks[i].Source == "MICROPHONE" && tracks[i].TranscriptionStatus == "completed" {
+		// Для транскрипций: egress_id не пустой, это аудио-трек, и транскрипция завершена
+		// For transcriptions: egress_id not empty, it's an audio track, and transcription is completed
+		isAudioTrack := tracks[i].Source == "MICROPHONE" || tracks[i].Source == "SCREEN_SHARE_AUDIO"
+		if tracks[i].EgressID != "" && isAudioTrack && tracks[i].TranscriptionStatus == "completed" {
 			trackIDs = append(trackIDs, tracks[i].ID)
 			trackMap[tracks[i].ID] = tracks[i]
 		}
@@ -343,9 +356,11 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Pre-load participants
+	// Загружаем участников для всех треков с записью (аудио и видео)
+	// Load participants for all tracks with recordings (audio and video)
 	participantSIDsSet := make(map[string]bool)
 	for _, track := range tracks {
-		if track.EgressID != "" && track.Source == "MICROPHONE" {
+		if track.EgressID != "" {
 			participantSIDsSet[track.ParticipantSID] = true
 		}
 	}

@@ -125,6 +125,9 @@ Maintain this file to document the project structure:
 
 Always read both files before starting work and update them as the project evolves.
 
+DO NOT CREATE ANOTHER MD FIELS!
+AFTER MAKE CHANGES FIX IT ON GIT COMMIT AND DESCRIBE RUSSIAN MESSAGE!
+
 ## Development Notes
 
 ### Current State

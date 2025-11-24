@@ -1108,6 +1108,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
       ),
+      // Используем SwitchListTile.adaptive с обновленным API (activeTrackColor вместо устаревшего activeColor)
       child: SwitchListTile.adaptive(
         value: value,
         onChanged: _isLoading ? null : onChanged,
@@ -1119,7 +1120,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             fontSize: 12,
           ),
         ),
-        activeColor: AppColors.primary600,
+        activeTrackColor: AppColors.primary600,
         contentPadding: EdgeInsets.zero,
       ),
     );
@@ -1497,12 +1498,18 @@ class _SpeakerSelectionDialogState extends State<_SpeakerSelectionDialog> {
               },
             ),
             const SizedBox(height: 16),
+            // Radio для выбора "Без спикера" (используем обновленный API без deprecated параметров)
             ListTile(
               title: Text(l10n.noSpeaker),
               leading: Radio<String?>(
                 value: null,
                 groupValue: _selectedId,
-                activeColor: AppColors.primary600,
+                fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return AppColors.primary600;
+                  }
+                  return Colors.grey;
+                }),
                 onChanged: (value) {
                   setState(() {
                     _selectedId = value;
@@ -1522,12 +1529,18 @@ class _SpeakerSelectionDialogState extends State<_SpeakerSelectionDialog> {
                 itemCount: filteredUsers.length,
                 itemBuilder: (context, index) {
                   final user = filteredUsers[index];
+                  // RadioListTile для выбора пользователя (используем fillColor вместо deprecated activeColor)
                   return RadioListTile<String>(
                     title: Text(user.displayName),
                     subtitle: Text(user.email),
                     value: user.id,
                     groupValue: _selectedId,
-                    activeColor: AppColors.primary600,
+                    fillColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return AppColors.primary600;
+                      }
+                      return Colors.grey;
+                    }),
                     onChanged: (value) {
                       setState(() {
                         _selectedId = value;

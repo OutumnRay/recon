@@ -166,23 +166,24 @@ type Track struct {
 }
 
 // WebhookEventLog представляет лог всех полученных событий webhook
+// Сохраняет полную информацию о каждом webhook событии для аудита и отладки
 type WebhookEventLog struct {
 	// Уникальный идентификатор записи лога
-	ID          uuid.UUID       `gorm:"type:uuid;default:gen_random_uuid()" json:"id" db:"id"`
-	// Тип события
-	EventType   string          `gorm:"type:varchar(100)" json:"event_type" db:"event_type"`
+	ID          uuid.UUID       `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id" db:"id"`
+	// Тип события (room_started, track_published, egress_ended, и т.д.)
+	EventType   string          `gorm:"column:event_type;type:varchar(100);not null;index" json:"event_type" db:"event_type"`
 	// Идентификатор события от LiveKit
-	EventID     string          `gorm:"type:varchar(255)" json:"event_id" db:"event_id"`
+	EventID     string          `gorm:"column:event_id;type:varchar(255);index" json:"event_id" db:"event_id"`
 	// Идентификатор комнаты (если применимо)
-	RoomSID     string          `gorm:"type:varchar(255)" json:"room_sid,omitempty" db:"room_sid"`
+	RoomSID     string          `gorm:"column:room_sid;type:varchar(255);index" json:"room_sid,omitempty" db:"room_sid"`
 	// Идентификатор участника (если применимо)
-	ParticipantSID string       `gorm:"type:varchar(255)" json:"participant_sid,omitempty" db:"participant_sid"`
+	ParticipantSID string       `gorm:"column:participant_sid;type:varchar(255);index" json:"participant_sid,omitempty" db:"participant_sid"`
 	// Идентификатор дорожки (если применимо)
-	TrackSID    string          `gorm:"type:varchar(255)" json:"track_sid,omitempty" db:"track_sid"`
+	TrackSID    string          `gorm:"column:track_sid;type:varchar(255)" json:"track_sid,omitempty" db:"track_sid"`
 	// Полезная нагрузка события (необработанный JSON)
-	Payload     json.RawMessage `gorm:"type:jsonb" json:"payload" db:"payload"`
+	Payload     json.RawMessage `gorm:"column:payload;type:jsonb;not null" json:"payload" db:"payload"`
 	// Время создания записи
-	CreatedAt   time.Time       `gorm:"autoCreateTime" json:"created_at" db:"created_at"`
+	CreatedAt   time.Time       `gorm:"column:created_at;autoCreateTime;index" json:"created_at" db:"created_at"`
 }
 
 // WebhookRequest представляет входящую полезную нагрузку webhook

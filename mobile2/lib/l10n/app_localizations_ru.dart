@@ -91,10 +91,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get meetingNotes => 'Дополнительные заметки';
 
   @override
-  String get meetingVideoRecord => 'Видеозапись';
-
-  @override
-  String get meetingAudioRecord => 'Аудиозапись';
+  String get meetingRecord => 'Запись встречи (Аудио и Видео)';
 
   @override
   String get meetingTranscription => 'Транскрипция (запись отдельных дорожек)';

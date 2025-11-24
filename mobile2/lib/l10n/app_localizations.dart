@@ -260,17 +260,11 @@ abstract class AppLocalizations {
   /// **'Additional Notes'**
   String get meetingNotes;
 
-  /// No description provided for @meetingVideoRecord.
+  /// No description provided for @meetingRecord.
   ///
   /// In en, this message translates to:
-  /// **'Video Recording'**
-  String get meetingVideoRecord;
-
-  /// No description provided for @meetingAudioRecord.
-  ///
-  /// In en, this message translates to:
-  /// **'Audio Recording'**
-  String get meetingAudioRecord;
+  /// **'Record Meeting (Audio & Video)'**
+  String get meetingRecord;
 
   /// No description provided for @meetingTranscription.
   ///
