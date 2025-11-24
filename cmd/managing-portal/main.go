@@ -66,6 +66,7 @@ type ManagingPortal struct {
 	meetingRepo       *database.MeetingRepository    // Meeting repository
 	liveKitRepo       *database.LiveKitRepository    // LiveKit repository
 	egressRepo        *database.EgressRepository     // LiveKit Egress repository
+	taskRepo          *database.TaskRepository       // Task repository
 	mailer            *email.Mailer                  // Email service
 	egressClient      *livekit.EgressClient          // LiveKit Egress client
 	metricsData       []models.Metric                // In-memory metrics store
@@ -111,6 +112,7 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 	meetingRepo := database.NewMeetingRepository(db)
 	liveKitRepo := database.NewLiveKitRepository(db)
 	egressRepo := database.NewEgressRepository(db)
+	taskRepo := database.NewTaskRepository(db.DB)
 
 	// Initialize email mailer
 	emailConfig := email.LoadConfigFromEnv()
@@ -156,6 +158,7 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 		meetingRepo:       meetingRepo,
 		liveKitRepo:       liveKitRepo,
 		egressRepo:        egressRepo,
+		taskRepo:          taskRepo,
 		mailer:            mailer,
 		egressClient:      egressClient,
 		metricsData:       make([]models.Metric, 0),
@@ -828,6 +831,36 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/livekit/egress", chainMiddleware(
 		http.HandlerFunc(mp.listEgressHandler),
+		authMiddleware,
+	))
+
+	// Task management endpoints (authenticated)
+	mux.Handle("/api/v1/sessions/tasks", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				mp.listSessionTasksHandler(w, r)
+			} else if r.Method == http.MethodPost {
+				mp.createTaskHandler(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/sessions/tasks/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodGet:
+				mp.getTaskHandler(w, r)
+			case http.MethodPut:
+				mp.updateTaskHandler(w, r)
+			case http.MethodDelete:
+				mp.deleteTaskHandler(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
 		authMiddleware,
 	))
 

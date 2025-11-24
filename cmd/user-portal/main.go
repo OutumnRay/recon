@@ -65,6 +65,7 @@ type UserPortal struct {
 	meetingRepo              *database.MeetingRepository    // Meeting repository
 	liveKitRepo              *database.LiveKitRepository    // LiveKit repository
 	fcmDeviceRepo            *database.FCMDeviceRepository  // FCM device repository
+	taskRepo                 *database.TaskRepository       // Task repository
 	recordings               map[string]*models.Recording   // In-memory recordings store
 	prometheusMetrics        *metrics.ServiceMetrics        // Prometheus metrics
 	embeddingsClient         *embeddings.EmbeddingsClient   // Embeddings client for RAG
@@ -116,6 +117,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 	meetingRepo := database.NewMeetingRepository(db)
 	liveKitRepo := database.NewLiveKitRepository(db)
 	fcmDeviceRepo := database.NewFCMDeviceRepository(db.DB)
+	taskRepo := database.NewTaskRepository(db.DB)
 
 	// Initialize embeddings client for RAG
 	embeddingsClient := embeddings.NewEmbeddingsClient()
@@ -173,6 +175,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		meetingRepo:       meetingRepo,
 		liveKitRepo:       liveKitRepo,
 		fcmDeviceRepo:     fcmDeviceRepo,
+		taskRepo:          taskRepo,
 		recordings:        make(map[string]*models.Recording),
 		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
 		embeddingsClient:  embeddingsClient,
@@ -1094,6 +1097,29 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/fcm/unregister", chainMiddleware(
 		http.HandlerFunc(up.unregisterFCMDeviceHandler),
+		authMiddleware,
+	))
+
+	// Task endpoints
+	mux.Handle("/api/v1/my-tasks", chainMiddleware(
+		http.HandlerFunc(up.getMyTasksHandler),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/tasks/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Check if this is a status update request
+			if strings.HasSuffix(r.URL.Path, "/status") && r.Method == http.MethodPut {
+				up.updateTaskStatusHandler(w, r)
+				return
+			}
+			http.Error(w, "Not found", http.StatusNotFound)
+		}),
+		authMiddleware,
+	))
+
+	mux.Handle("/api/v1/meetings/tasks", chainMiddleware(
+		http.HandlerFunc(up.getMeetingTasksHandler),
 		authMiddleware,
 	))
 

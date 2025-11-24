@@ -234,6 +234,7 @@ func (db *DB) RunMigrations() error {
 		&PasswordResetToken{},
 		&models.FCMDevice{},
 		&models.TranscriptionPhrase{},
+		&models.Task{}, // Tasks for sessions/meetings
 	}
 
 	if err := db.AutoMigrate(dbModels...); err != nil {
