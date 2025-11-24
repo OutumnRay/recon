@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/task.dart';
-import '../models/user.dart';
 import 'auth_service.dart';
 
 class TaskService {

@@ -174,6 +174,8 @@ class MeetingParticipant {
   final String userId;
   final String role;
   final String status;
+  final DateTime? joinedAt;
+  final DateTime? leftAt;
   final DateTime createdAt;
   final ParticipantUser? user;
 
@@ -183,6 +185,8 @@ class MeetingParticipant {
     required this.userId,
     required this.role,
     required this.status,
+    this.joinedAt,
+    this.leftAt,
     required this.createdAt,
     this.user,
   });
@@ -194,6 +198,12 @@ class MeetingParticipant {
       userId: json['user_id'] as String,
       role: json['role'] as String,
       status: json['status'] as String,
+      joinedAt: json['joined_at'] != null
+          ? AppDateUtils.parseToLocal(json['joined_at'] as String)
+          : null,
+      leftAt: json['left_at'] != null
+          ? AppDateUtils.parseToLocal(json['left_at'] as String)
+          : null,
       createdAt: AppDateUtils.parseToLocal(json['created_at'] as String),
       user: json['user'] != null
           ? ParticipantUser.fromJson(json['user'] as Map<String, dynamic>)
@@ -230,12 +240,16 @@ class ParticipantUser {
   final String id;
   final String username;
   final String email;
+  final String? firstName;
+  final String? lastName;
   final String? role;
 
   ParticipantUser({
     required this.id,
     required this.username,
     required this.email,
+    this.firstName,
+    this.lastName,
     this.role,
   });
 
@@ -244,6 +258,8 @@ class ParticipantUser {
       id: json['id'] as String,
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
+      firstName: json['first_name'] as String?,
+      lastName: json['last_name'] as String?,
       role: json['role'] as String?,
     );
   }
@@ -253,8 +269,20 @@ class ParticipantUser {
       'id': id,
       'username': username,
       'email': email,
+      if (firstName != null) 'first_name': firstName,
+      if (lastName != null) 'last_name': lastName,
       if (role != null) 'role': role,
     };
+  }
+
+  String get displayName {
+    if (firstName != null && lastName != null && firstName!.isNotEmpty && lastName!.isNotEmpty) {
+      return '$firstName $lastName';
+    }
+    if (username.isNotEmpty) {
+      return username;
+    }
+    return email;
   }
 }
 

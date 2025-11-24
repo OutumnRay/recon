@@ -1963,7 +1963,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   radius: 32,
                   backgroundColor: AppColors.primary100,
                   child: Text(
-                    activeSpeaker.user?.firstName?.isNotEmpty == true
+                    (activeSpeaker.user?.firstName?.isNotEmpty ?? false)
                         ? activeSpeaker.user!.firstName![0].toUpperCase()
                         : activeSpeaker.user?.username[0].toUpperCase() ?? '?',
                     style: const TextStyle(
