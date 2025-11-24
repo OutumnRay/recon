@@ -1127,22 +1127,43 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 		return fmt.Errorf("invalid egress_info")
 	}
 
-	egressID, _ := egressInfo["egress_id"].(string)
-	roomName, _ := egressInfo["room_name"].(string)
+	// Try both camelCase (new format) and snake_case (old format) for egress_id
+	egressID, _ := egressInfo["egressId"].(string)
+	if egressID == "" {
+		egressID, _ = egressInfo["egress_id"].(string)
+	}
+
+	// Try both camelCase (new format) and snake_case (old format) for room_name
+	roomName, _ := egressInfo["roomName"].(string)
+	if roomName == "" {
+		roomName, _ = egressInfo["room_name"].(string)
+	}
+
 	status, _ := egressInfo["status"].(string)
 	errorStr, _ := egressInfo["error"].(string)
 
-	// Extract file paths from file_results or file
+	// Extract file paths from segments (new format), file_results, or file (old format)
 	var filePath string
-	if fileResults, ok := egressInfo["file_results"].([]interface{}); ok && len(fileResults) > 0 {
-		if fileResult, ok := fileResults[0].(map[string]interface{}); ok {
-			if fp, ok := fileResult["filename"].(string); ok {
+
+	// Try segments.playlistName (new format for track egress)
+	if segments, ok := egressInfo["segments"].(map[string]interface{}); ok {
+		if playlistName, ok := segments["playlistName"].(string); ok {
+			filePath = playlistName
+		}
+	}
+
+	// Fallback to file_results or file (old format)
+	if filePath == "" {
+		if fileResults, ok := egressInfo["file_results"].([]interface{}); ok && len(fileResults) > 0 {
+			if fileResult, ok := fileResults[0].(map[string]interface{}); ok {
+				if fp, ok := fileResult["filename"].(string); ok {
+					filePath = fp
+				}
+			}
+		} else if file, ok := egressInfo["file"].(map[string]interface{}); ok {
+			if fp, ok := file["filename"].(string); ok {
 				filePath = fp
 			}
-		}
-	} else if file, ok := egressInfo["file"].(map[string]interface{}); ok {
-		if fp, ok := file["filename"].(string); ok {
-			filePath = fp
 		}
 	}
 
