@@ -17,6 +17,7 @@ class Meeting {
   final bool isPermanent;
   final bool allowAnonymous;
   final String? liveKitRoomId;
+  final String? videoPlaylistUrl;
   final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -38,6 +39,7 @@ class Meeting {
     required this.isPermanent,
     required this.allowAnonymous,
     this.liveKitRoomId,
+    this.videoPlaylistUrl,
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
@@ -61,6 +63,7 @@ class Meeting {
       isPermanent: json['is_permanent'] as bool? ?? false,
       allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
+      videoPlaylistUrl: json['video_playlist_url'] as String?,
       createdBy: json['created_by'] as String,
       createdAt: AppDateUtils.parseToLocal(json['created_at'] as String),
       updatedAt: AppDateUtils.parseToLocal(json['updated_at'] as String),
@@ -85,6 +88,7 @@ class Meeting {
       'is_permanent': isPermanent,
       'allow_anonymous': allowAnonymous,
       'livekit_room_id': liveKitRoomId,
+      'video_playlist_url': videoPlaylistUrl,
       'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -116,6 +120,7 @@ class MeetingWithDetails extends Meeting {
     required super.isPermanent,
     required super.allowAnonymous,
     super.liveKitRoomId,
+    super.videoPlaylistUrl,
     required super.createdBy,
     required super.createdAt,
     required super.updatedAt,
@@ -144,6 +149,7 @@ class MeetingWithDetails extends Meeting {
       isPermanent: json['is_permanent'] as bool? ?? false,
       allowAnonymous: json['allow_anonymous'] as bool? ?? false,
       liveKitRoomId: json['livekit_room_id'] as String?,
+      videoPlaylistUrl: json['video_playlist_url'] as String?,
       createdBy: json['created_by'] as String,
       createdAt: AppDateUtils.parseToLocal(json['created_at'] as String),
       updatedAt: AppDateUtils.parseToLocal(json['updated_at'] as String),

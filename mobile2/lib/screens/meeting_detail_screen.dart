@@ -540,38 +540,120 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                 );
               }).toList();
             }(),
-            const SizedBox(height: 12),
-            // Compact "View Session" button
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RecordingPlayerScreen(
-                        recording: recording,
-                        initialTabIndex: 0,
+            const SizedBox(height: 16),
+            // Processing status or View button
+            if (_meeting?.videoPlaylistUrl != null) ...[
+              // Composite video is ready
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // TODO: Navigate to composite video player
+                    // For now, navigate to recording player
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RecordingPlayerScreen(
+                          recording: recording,
+                          initialTabIndex: 0,
+                        ),
                       ),
+                    );
+                  },
+                  icon: const Icon(Icons.play_circle_filled, size: 16),
+                  label: Text(l10n.viewCompositeVideo ?? 'View Composite Video'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary500,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.arrow_forward, size: 16),
-                label: Text(l10n.viewSession),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary50,
-                  foregroundColor: AppColors.primary600,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(color: AppColors.primary200),
                   ),
                 ),
               ),
-            ),
+            ] else if (recording.status == 'ended' && recording.tracks.where((t) => t.status == 'ended').length == recording.tracks.length) ...[
+              // All tracks are ended, video is being processed
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.warning),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.processingVideo ?? 'Processing...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l10n.processingVideoDescription ?? 'Merging video tracks and creating composite video',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              // Fallback: View individual tracks
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RecordingPlayerScreen(
+                          recording: recording,
+                          initialTabIndex: 0,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.arrow_forward, size: 16),
+                  label: Text(l10n.viewSession),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary50,
+                    foregroundColor: AppColors.primary600,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(color: AppColors.primary200),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ] else if (recording.playlistUrl != null) ...[
             // Fallback: Show icon buttons for room recording only (no tracks)
             const SizedBox(height: 16),
