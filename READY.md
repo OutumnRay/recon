@@ -920,7 +920,6 @@
     - RABBITMQ_HOST=192.168.5.153
     - DB_HOST=postgres
     - WHISPER_MODEL=medium
-    - STORAGE_BASE_URL=https://api.storage.recontext.online
     - MINIO_SECRET_KEY=32a4953d5bff4a1c6aea4d4ccfb757e5
   - Volume: whisper-models for model caching
   - Network: recontext-network

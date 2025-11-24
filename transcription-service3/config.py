@@ -22,7 +22,6 @@ class Config:
     WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'float16')  # int8, float16, float32
 
     # Storage Configuration
-    STORAGE_BASE_URL = os.getenv('STORAGE_BASE_URL', 'https://api.storage.recontext.online')
     MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'api.storage.recontext.online')
     MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
     MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', '32a4953d5bff4a1c6aea4d4ccfb757e5')
