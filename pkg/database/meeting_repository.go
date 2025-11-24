@@ -319,10 +319,13 @@ func (r *MeetingRepository) GetMeetingWithDetails(id uuid.UUID) (*models.Meeting
 			// Use the most recent room
 			room := rooms[0]
 
+			// Подсчёт активных участников (не ботов/рекордеров)
 			// Count participants that are ACTIVE and NOT hidden (not bots/recorders)
 			// hidden = true means it's a bot/recorder that should not be counted
+			// Используем Unscoped() т.к. у модели Participant нет soft delete
+			// Use Unscoped() because Participant model doesn't have soft delete
 			var activeCount int64
-			err = r.db.DB.Model(&LiveKitParticipant{}).
+			err = r.db.DB.Model(&LiveKitParticipant{}).Unscoped().
 				Where("room_sid = ? AND state = ? AND (permission->>'hidden' IS NULL OR permission->>'hidden' = 'false')",
 					room.SID, "ACTIVE").
 				Count(&activeCount).Error
