@@ -71,11 +71,10 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   );
   const [type, setType] = useState<MeetingType>(meeting?.type || 'conference');
   const [subjectId, setSubjectId] = useState(meeting?.subject_id || '');
-  const [needsVideoRecord, setNeedsVideoRecord] = useState(
-    meeting?.needs_video_record || false
-  );
-  const [needsAudioRecord, setNeedsAudioRecord] = useState(
-    meeting?.needs_audio_record || false
+  // Single checkbox for recording - enables both audio and video
+  // Один чекбокс для записи - включает и аудио, и видео
+  const [needsRecord, setNeedsRecord] = useState(
+    meeting?.needs_video_record || meeting?.needs_audio_record || false
   );
   const [needsTranscription, setNeedsTranscription] = useState(
     meeting?.needs_transcription || false
@@ -89,13 +88,6 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   const [additionalNotes, setAdditionalNotes] = useState(
     meeting?.additional_notes || ''
   );
-
-  // Auto-enable audio recording when video is enabled
-  useEffect(() => {
-    if (needsVideoRecord && !needsAudioRecord) {
-      setNeedsAudioRecord(true);
-    }
-  }, [needsVideoRecord]);
 
   // Participants and departments
   const [speakerId, setSpeakerId] = useState('');
@@ -265,8 +257,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           recurrence,
           type,
           subject_id: subjectId || undefined,
-          needs_video_record: needsVideoRecord,
-          needs_audio_record: needsAudioRecord,
+          needs_video_record: needsRecord,
+          needs_audio_record: needsRecord,
           needs_transcription: needsTranscription,
           force_end_at_duration: false,
           is_permanent: isPermanent,
@@ -288,8 +280,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           recurrence,
           type,
           subject_id: subjectId || undefined,
-          needs_video_record: needsVideoRecord,
-          needs_audio_record: needsAudioRecord,
+          needs_video_record: needsRecord,
+          needs_audio_record: needsRecord,
           needs_transcription: needsTranscription,
           force_end_at_duration: false,
           is_permanent: isPermanent,
@@ -508,28 +500,18 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             <label className="checkbox-item">
               <input
                 type="checkbox"
-                checked={needsVideoRecord}
-                onChange={(e) => setNeedsVideoRecord(e.target.checked)}
+                checked={needsRecord}
+                onChange={(e) => setNeedsRecord(e.target.checked)}
               />
               <span className="checkbox-label">
-                <LuVideo className="checkbox-icon" /> {t('meetings.form.videoRecording')}
+                <LuVideo className="checkbox-icon" /> {t('meetings.form.enableRecord')}
               </span>
             </label>
-          </div>
-
-          <div className="form-group">
-            <label className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={needsAudioRecord}
-                onChange={(e) => setNeedsAudioRecord(e.target.checked)}
-                disabled={needsVideoRecord}
-              />
-              <span className="checkbox-label">
-                <LuMic className="checkbox-icon" /> {t('meetings.form.audioRecording')}
-                {needsVideoRecord && <span className="text-muted"> ({t('meetings.form.autoEnabled')})</span>}
-              </span>
-            </label>
+            {needsRecord && (
+              <p className="form-help-text">
+                {t('meetings.form.recordHelp')}
+              </p>
+            )}
           </div>
 
           <div className="form-group">
