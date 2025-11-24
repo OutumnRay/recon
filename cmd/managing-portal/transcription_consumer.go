@@ -144,7 +144,7 @@ func processTranscriptionResult(body []byte) {
 		return
 	}
 
-	log.Printf("\n" + strings.Repeat("=", 60))
+	log.Print("\n" + strings.Repeat("=", 60))
 	log.Printf("📥 Received transcription result:")
 	log.Printf("  Track ID: %s", result.TrackID)
 	log.Printf("  User ID: %s", result.UserID)
@@ -152,7 +152,7 @@ func processTranscriptionResult(body []byte) {
 	log.Printf("  JSON URL: %s", result.JSONURL)
 	log.Printf("  Phrases: %d", result.Transcription.PhraseCount)
 	log.Printf("  Duration: %.2f seconds", result.Transcription.TotalDuration)
-	log.Printf(strings.Repeat("=", 60) + "\n")
+	log.Print(strings.Repeat("=", 60) + "\n")
 
 	// Обновляем базу данных с результатами транскрибации
 	updateTrackTranscriptionStatus(result.TrackID, result.UserID, result.JSONURL, result.Transcription.PhraseCount, result.Transcription.TotalDuration, result.Transcription.Phrases)

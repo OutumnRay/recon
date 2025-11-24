@@ -134,7 +134,7 @@ func (tn *TranscriptionNotifier) connect() error {
 		return fmt.Errorf("failed to set QoS: %w", err)
 	}
 
-	tn.up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Connected to RabbitMQ (queue: %s)", queue.Name)
+	tn.up.logger.Infof("📢 [TRANSCRIPTION NOTIFIER] Connected to RabbitMQ (queue: %s)", queue.Name)
 	return nil
 }
 

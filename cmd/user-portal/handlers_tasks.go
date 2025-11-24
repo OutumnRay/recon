@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
