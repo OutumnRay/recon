@@ -60,9 +60,18 @@ class TranscriptionWorker:
         elif minio_endpoint.startswith('http://'):
             minio_endpoint = minio_endpoint.replace('http://', '')
 
-        # Add default port if not specified
+        # Определяем порт в зависимости от типа подключения
+        # Determine port based on connection type
         if ':' not in minio_endpoint:
-            minio_endpoint = f"{minio_endpoint}:9000"
+            if Config.MINIO_SECURE and 'api.storage' in minio_endpoint:
+                # HTTPS публичный endpoint - используем стандартный HTTPS порт 443
+                # HTTPS public endpoint - use standard HTTPS port 443
+                # Не добавляем порт, MinIO клиент использует 443 автоматически для HTTPS
+                pass
+            else:
+                # Локальный MinIO или HTTP - используем порт 9000
+                # Local MinIO or HTTP - use port 9000
+                minio_endpoint = f"{minio_endpoint}:9000"
 
         self.minio_client = Minio(
             minio_endpoint,
@@ -70,7 +79,7 @@ class TranscriptionWorker:
             secret_key=Config.MINIO_SECRET_KEY,
             secure=Config.MINIO_SECURE
         )
-        print(f"MinIO client initialized successfully (endpoint: {minio_endpoint})")
+        print(f"MinIO client initialized successfully (endpoint: {minio_endpoint}, secure: {Config.MINIO_SECURE})")
 
     def parse_minio_url(self, url: str) -> tuple[str, str]:
         """

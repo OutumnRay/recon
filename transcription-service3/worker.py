@@ -45,13 +45,28 @@ class TranscriptionConsumer:
         print(f"Initializing MinIO client for JSON uploads: {Config.MINIO_ENDPOINT}")
         minio_endpoint = Config.MINIO_ENDPOINT
 
+        # Для HTTPS соединений с api.storage.recontext.online используем порт 443
+        # For HTTPS connections to api.storage.recontext.online use port 443
+        # Для локального MinIO используем порт 9000
+        # For local MinIO use port 9000
+        if ':' not in minio_endpoint:
+            if Config.MINIO_SECURE and 'api.storage' in minio_endpoint:
+                # HTTPS публичный endpoint - используем стандартный HTTPS порт 443
+                # HTTPS public endpoint - use standard HTTPS port 443
+                # Не добавляем порт, MinIO клиент использует 443 автоматически для HTTPS
+                pass
+            else:
+                # Локальный MinIO или HTTP - используем порт 9000
+                # Local MinIO or HTTP - use port 9000
+                minio_endpoint = f"{minio_endpoint}:9000"
+
         self.minio_client = Minio(
             minio_endpoint,
             access_key=Config.MINIO_ACCESS_KEY,
             secret_key=Config.MINIO_SECRET_KEY,
             secure=Config.MINIO_SECURE
         )
-        print(f"MinIO client initialized for uploads (endpoint: {minio_endpoint})")
+        print(f"MinIO client initialized for uploads (endpoint: {minio_endpoint}, secure: {Config.MINIO_SECURE})")
 
     def connect(self, max_retries=5, retry_delay=5):
         """Connect to RabbitMQ with retry logic."""
