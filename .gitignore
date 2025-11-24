@@ -41,3 +41,5 @@ recontext-firebase.json
 firebase-credentials.json
 google-services.json
 GoogleService-Info.plist
+
+__pycache__

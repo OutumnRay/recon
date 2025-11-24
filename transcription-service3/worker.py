@@ -174,14 +174,15 @@ class TranscriptionConsumer:
 
             # Find the tracks folder position and build path to track folder
             # Format: user-id/tracks/track-id/
+            # Filename format: TR_XXXXX_transcription.json
             if 'tracks' in url_parts:
                 tracks_index = url_parts.index('tracks')
                 # Path up to and including track ID
                 base_path = '/'.join(url_parts[4:tracks_index + 2])
-                json_object_key = f"{base_path}/transcription.json"
+                json_object_key = f"{base_path}/{track_id}_transcription.json"
             else:
                 # Fallback: create path from user_id and track_id
-                json_object_key = f"{user_id}/tracks/{track_id}/transcription.json"
+                json_object_key = f"{user_id}/tracks/{track_id}/{track_id}_transcription.json"
 
             # Prepare JSON content
             json_content = {
