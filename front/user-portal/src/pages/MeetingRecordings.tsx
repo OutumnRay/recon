@@ -408,6 +408,11 @@ export default function MeetingRecordings() {
                                       ),
                                     )
                                     : null;
+
+                                  // Check if this is a video track (TR_V prefix)
+                                  // Проверка, является ли трек видео (префикс TR_V)
+                                  const isVideoTrack = track.track_id?.startsWith('TR_V');
+
                                   return (
                                     <div key={track.id} className="track-item">
                                       <div className="track-avatar">
@@ -436,10 +441,12 @@ export default function MeetingRecordings() {
                                         <div className="track-player-wrapper">
                                           <HLSPlayer
                                             src={track.playlist_url}
-                                            audioOnly={true}
+                                            audioOnly={!isVideoTrack}
                                             className="track-player"
                                           />
-                                          {(() => {
+                                          {/* Show transcription controls only for audio tracks */}
+                                          {/* Показываем кнопки транскрибации только для аудио треков */}
+                                          {!isVideoTrack && (() => {
                                             // Check status: completed > processing > failed > pending
                                             if (track.transcription_status === 'completed' || (track.transcription_phrases && track.transcription_phrases.length > 0)) {
                                               return (
