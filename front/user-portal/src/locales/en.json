@@ -271,6 +271,7 @@
       "duration": "Duration",
       "subject": "Subject",
       "recurrence": "Recurrence",
+      "recording": "Recording",
       "videoRecording": "Video Recording",
       "audioRecording": "Audio Recording",
       "additionalNotes": "Additional Notes",
