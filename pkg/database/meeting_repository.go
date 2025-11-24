@@ -778,13 +778,19 @@ func (r *MeetingRepository) UpdateMeeting(meeting *models.Meeting) error {
 		liveKitRoomID = &roomIDStr
 	}
 
+	var subjectID *string
+	if meeting.SubjectID != nil {
+		subjectIDStr := meeting.SubjectID.String()
+		subjectID = &subjectIDStr
+	}
+
 	result := r.db.DB.Model(&Meeting{}).Where("id = ?", meeting.ID.String()).Updates(map[string]interface{}{
 		"title":                 meeting.Title,
 		"scheduled_at":          meeting.ScheduledAt,
 		"duration":              meeting.Duration,
 		"recurrence":            string(meeting.Recurrence),
 		"type":                  string(meeting.Type),
-		"subject_id":            meeting.SubjectID.String(),
+		"subject_id":            subjectID,
 		"status":                string(meeting.Status),
 		"needs_record":          meeting.NeedsRecord,
 		"needs_transcription":   meeting.NeedsTranscription,
