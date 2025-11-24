@@ -159,6 +159,10 @@ type Track struct {
 	TranscriptionStatus string       `gorm:"column:transcription_status;type:varchar(50);default:'pending'" json:"transcription_status,omitempty" db:"transcription_status"`
 	// URL результата транскрипции
 	TranscriptionURL *string          `gorm:"column:transcription_url;type:text" json:"transcription_url,omitempty" db:"transcription_url"`
+	// Количество фраз в транскрипции
+	TranscriptionPhraseCount *int    `gorm:"column:transcription_phrase_count;type:integer" json:"transcription_phrase_count,omitempty" db:"transcription_phrase_count"`
+	// Длительность транскрипции в секундах
+	TranscriptionDuration *float64    `gorm:"column:transcription_duration;type:double precision" json:"transcription_duration,omitempty" db:"transcription_duration"`
 	// Время создания записи в БД
 	CreatedAtDB      time.Time       `gorm:"column:created_at;autoCreateTime" json:"-" db:"created_at"`
 	// Время последнего обновления
