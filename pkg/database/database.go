@@ -175,6 +175,39 @@ func (db *DB) RunMigrations() error {
 
 	log.Println("✓ Column migrations completed")
 
+	// Migration 3: Remove deprecated meeting columns
+	// Миграция 3: Удаление устаревших колонок из таблицы meetings
+	log.Println("→ Removing deprecated columns from meetings table...")
+
+	deprecatedColumns := []string{
+		"needs_video_record",
+		"needs_audio_record",
+		"force_end_at_duration",
+	}
+
+	for _, columnName := range deprecatedColumns {
+		var exists bool
+		err = db.DB.Raw(`
+			SELECT EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_name = 'meetings'
+				AND column_name = $1
+			)
+		`, columnName).Scan(&exists).Error
+
+		if err == nil && exists {
+			log.Printf("  → Dropping column %s from meetings table...", columnName)
+			if err := db.DB.Exec(fmt.Sprintf(`ALTER TABLE meetings DROP COLUMN IF EXISTS %s`, columnName)).Error; err != nil {
+				log.Printf("  → Warning: Could not drop %s column: %v", columnName, err)
+			} else {
+				log.Printf("  ✓ Column %s dropped successfully", columnName)
+			}
+		}
+	}
+
+	log.Println("✓ Deprecated columns migration completed")
+
 	// Run AutoMigrate for all models
 	log.Println("→ Running AutoMigrate for all models...")
 
