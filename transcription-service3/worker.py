@@ -15,6 +15,28 @@ class TranscriptionConsumer:
 
     def __init__(self):
         """Initialize consumer."""
+        # Вывод настроек подключения / Display connection settings
+        print("\n" + "="*70)
+        print("📋 TRANSCRIPTION SERVICE CONFIGURATION / НАСТРОЙКИ СЕРВИСА")
+        print("="*70)
+        print("\n🐰 RabbitMQ Connection:")
+        print(f"   Host:          {Config.RABBITMQ_HOST}")
+        print(f"   Port:          {Config.RABBITMQ_PORT}")
+        print(f"   User:          {Config.RABBITMQ_USER}")
+        print(f"   Password:      {Config.RABBITMQ_PASSWORD}")
+        print(f"   Input Queue:   {Config.RABBITMQ_QUEUE}")
+        print(f"   Result Queue:  {Config.RABBITMQ_RESULT_QUEUE}")
+        print("\n💾 MinIO Storage:")
+        print(f"   Endpoint:      {Config.MINIO_ENDPOINT}")
+        print(f"   Access Key:    {Config.MINIO_ACCESS_KEY}")
+        print(f"   Secret Key:    {Config.MINIO_SECRET_KEY}")
+        print(f"   Use HTTPS:     {Config.MINIO_SECURE}")
+        print("\n🎤 Whisper Model:")
+        print(f"   Model:         {Config.WHISPER_MODEL}")
+        print(f"   Device:        {Config.WHISPER_DEVICE}")
+        print(f"   Compute Type:  {Config.WHISPER_COMPUTE_TYPE}")
+        print("="*70 + "\n")
+
         self.transcriber = TranscriptionWorker()
         self.connection = None
         self.channel = None
@@ -22,13 +44,6 @@ class TranscriptionConsumer:
         # Initialize MinIO client for uploading JSON files
         print(f"Initializing MinIO client for JSON uploads: {Config.MINIO_ENDPOINT}")
         minio_endpoint = Config.MINIO_ENDPOINT
-        if minio_endpoint.startswith('https://'):
-            minio_endpoint = minio_endpoint.replace('https://', '')
-        elif minio_endpoint.startswith('http://'):
-            minio_endpoint = minio_endpoint.replace('http://', '')
-
-        if ':' not in minio_endpoint:
-            minio_endpoint = f"{minio_endpoint}:9000"
 
         self.minio_client = Minio(
             minio_endpoint,
