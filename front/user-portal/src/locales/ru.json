@@ -304,6 +304,7 @@
       "departments": "Отделы",
       "searchUsers": "Поиск пользователей...",
       "searchDepartments": "Поиск отделов...",
+      "enableRecord": "Включить запись",
       "videoRecording": "Включить видеозапись",
       "audioRecording": "Включить аудиозапись",
       "autoEnabled": "включается автоматически",

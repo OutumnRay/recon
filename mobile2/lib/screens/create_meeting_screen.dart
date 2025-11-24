@@ -37,7 +37,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   String? _recurrence;
   bool _needsRecord = true;
   bool _needsTranscription = false;
-  bool _forceEndAtDuration = false;
   bool _allowAnonymous = false;
 
   List<MeetingSubject>? _subjects;
@@ -381,7 +380,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       Logger.logInfo('  subjectId: $_subjectId');
       Logger.logInfo('  needsRecord: $_needsRecord');
       Logger.logInfo('  needsTranscription: $_needsTranscription');
-      Logger.logInfo('  forceEndAtDuration: $_forceEndAtDuration');
       Logger.logInfo('  allowAnonymous: $_allowAnonymous');
       Logger.logInfo('  additionalNotes: ${_notesController.text}');
       Logger.logInfo('  participantIds: $_selectedParticipantIds');
@@ -408,7 +406,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         subjectId: _subjectId,
         needsRecord: _needsRecord,
         needsTranscription: _needsTranscription,
-        forceEndAtDuration: _forceEndAtDuration,
         allowAnonymous: _allowAnonymous,
         additionalNotes:
             _notesController.text.isEmpty ? null : _notesController.text,
@@ -699,14 +696,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                       value: _needsTranscription,
                       onChanged: (value) =>
                           setState(() => _needsTranscription = value),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildSwitchTile(
-                      title: l10n.meetingForceEndAtDuration,
-                      subtitle: _forceEndAtDuration ? l10n.enabled : l10n.disabled,
-                      value: _forceEndAtDuration,
-                      onChanged: (value) =>
-                          setState(() => _forceEndAtDuration = value),
                     ),
                     const SizedBox(height: 8),
                     _buildSwitchTile(

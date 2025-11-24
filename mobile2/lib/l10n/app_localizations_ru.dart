@@ -170,6 +170,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get statusCancelled => 'Отменена';
 
   @override
+  String get statusFinished => 'Завершена';
+
+  @override
+  String get statusRecording => 'Запись';
+
+  @override
   String get filterAll => 'Все';
 
   @override
@@ -733,6 +739,28 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get recordingSaved => 'Запись сохранена в Downloads';
+
+  @override
+  String get sessionStatusRecording => 'Запись';
+
+  @override
+  String get sessionStatusCompleted => 'Завершена';
+
+  @override
+  String get sessionStatusProcessing => 'Обработка';
+
+  @override
+  String get sessionStatusFailed => 'Ошибка';
+
+  @override
+  String get sessionStatusFinished => 'Завершена';
+
+  @override
+  String get viewSession => 'Открыть сессию';
+
+  @override
+  String get viewSessionDetails =>
+      'Просмотр деталей сессии, треков, транскрипции и саммари';
 
   @override
   String onlineCount(int count) {

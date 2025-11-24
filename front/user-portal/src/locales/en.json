@@ -304,6 +304,7 @@
       "departments": "Departments",
       "searchUsers": "Search users...",
       "searchDepartments": "Search departments...",
+      "enableRecord": "Enable Record",
       "videoRecording": "Enable Video Recording",
       "audioRecording": "Enable Audio Recording",
       "autoEnabled": "auto-enabled",

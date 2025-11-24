@@ -1231,11 +1231,13 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 				if err != nil {
 					mp.logger.Errorf("❌ Failed to get room for track %s: %v", track.SID, err)
 				} else {
-					// Get meeting to find user_id
+					// Get meeting to find user_id and check if transcription is enabled
 					var meeting models.Meeting
 					err := mp.db.DB.Where("id = ?", room.Name).First(&meeting).Error
 					if err != nil {
 						mp.logger.Errorf("❌ Failed to get meeting for room %s: %v", room.Name, err)
+					} else if !meeting.NeedsTranscription {
+						mp.logger.Infof("ℹ️ Transcription is disabled for meeting %s, skipping transcription task", meeting.ID)
 					} else {
 						// Parse track ID as UUID
 						trackUUID, err := uuid.Parse(track.ID.String())

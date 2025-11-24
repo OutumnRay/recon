@@ -276,6 +276,14 @@
   "downloadFailed": "Ошибка загрузки",
   "recordingSaved": "Запись сохранена в Downloads",
 
+  "sessionStatusRecording": "Запись",
+  "sessionStatusCompleted": "Завершена",
+  "sessionStatusProcessing": "Обработка",
+  "sessionStatusFailed": "Ошибка",
+  "sessionStatusFinished": "Завершена",
+  "viewSession": "Открыть сессию",
+  "viewSessionDetails": "Просмотр деталей сессии, треков, транскрипции и саммари",
+
   "onlineCount": "{count} онлайн",
   "anonymousGuestsCount": "{count} гостей",
   "participantsSummary": "{total} участников ({online} онлайн)",

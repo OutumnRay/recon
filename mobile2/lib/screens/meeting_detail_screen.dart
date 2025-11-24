@@ -383,7 +383,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  recording.status.toUpperCase(),
+                  _getLocalizedStatus(recording.status, l10n),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -422,7 +422,46 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                 ],
             ],
           ),
-          if (recording.playlistUrl != null) ...[
+          // Show View Session button only if tracks are available
+          if (recording.tracks.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecordingPlayerScreen(
+                        recording: recording,
+                        initialTabIndex: 0,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: Text(l10n.viewSession),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary500,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.viewSessionDetails,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ] else if (recording.playlistUrl != null) ...[
+            // Fallback: Show icon buttons for room recording only (no tracks)
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -521,6 +560,23 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
         return const Color(0xFF991B1B); // Red
       default:
         return const Color(0xFF6B7280); // Gray
+    }
+  }
+
+  String _getLocalizedStatus(String status, AppLocalizations l10n) {
+    switch (status.toLowerCase()) {
+      case 'recording':
+        return l10n.sessionStatusRecording;
+      case 'completed':
+        return l10n.sessionStatusCompleted;
+      case 'processing':
+        return l10n.sessionStatusProcessing;
+      case 'failed':
+        return l10n.sessionStatusFailed;
+      case 'finished':
+        return l10n.sessionStatusFinished;
+      default:
+        return status.toUpperCase();
     }
   }
 

@@ -169,6 +169,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusCancelled => 'Cancelled';
 
   @override
+  String get statusFinished => 'Finished';
+
+  @override
+  String get statusRecording => 'Recording';
+
+  @override
   String get filterAll => 'All';
 
   @override
@@ -733,6 +739,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recordingSaved => 'Recording saved to Downloads';
+
+  @override
+  String get sessionStatusRecording => 'Recording';
+
+  @override
+  String get sessionStatusCompleted => 'Completed';
+
+  @override
+  String get sessionStatusProcessing => 'Processing';
+
+  @override
+  String get sessionStatusFailed => 'Failed';
+
+  @override
+  String get sessionStatusFinished => 'Finished';
+
+  @override
+  String get viewSession => 'View Session';
+
+  @override
+  String get viewSessionDetails =>
+      'View session details, tracks, transcript and memo';
 
   @override
   String onlineCount(int count) {

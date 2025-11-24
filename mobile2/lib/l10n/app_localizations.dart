@@ -416,6 +416,18 @@ abstract class AppLocalizations {
   /// **'Cancelled'**
   String get statusCancelled;
 
+  /// No description provided for @statusFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get statusFinished;
+
+  /// No description provided for @statusRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get statusRecording;
+
   /// No description provided for @filterAll.
   ///
   /// In en, this message translates to:
@@ -1495,6 +1507,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recording saved to Downloads'**
   String get recordingSaved;
+
+  /// No description provided for @sessionStatusRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get sessionStatusRecording;
+
+  /// No description provided for @sessionStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get sessionStatusCompleted;
+
+  /// No description provided for @sessionStatusProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing'**
+  String get sessionStatusProcessing;
+
+  /// No description provided for @sessionStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get sessionStatusFailed;
+
+  /// No description provided for @sessionStatusFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get sessionStatusFinished;
+
+  /// No description provided for @viewSession.
+  ///
+  /// In en, this message translates to:
+  /// **'View Session'**
+  String get viewSession;
+
+  /// No description provided for @viewSessionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View session details, tracks, transcript and memo'**
+  String get viewSessionDetails;
 
   /// No description provided for @onlineCount.
   ///

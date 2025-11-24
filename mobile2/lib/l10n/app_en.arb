@@ -343,6 +343,14 @@
   "downloadFailed": "Download Failed",
   "recordingSaved": "Recording saved to Downloads",
 
+  "sessionStatusRecording": "Recording",
+  "sessionStatusCompleted": "Completed",
+  "sessionStatusProcessing": "Processing",
+  "sessionStatusFailed": "Failed",
+  "sessionStatusFinished": "Finished",
+  "viewSession": "View Session",
+  "viewSessionDetails": "View session details, tracks, transcript and memo",
+
   "onlineCount": "{count} online",
   "@onlineCount": {
     "placeholders": {
