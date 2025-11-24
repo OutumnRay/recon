@@ -288,8 +288,6 @@ type LiveKitRoom struct {
 	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
 	// UpdatedAt - время последнего обновления записи о комнате
 	UpdatedAt time.Time `gorm:"not null;default:now()" json:"updated_at"`
-	// DeletedAt - время мягкого удаления комнаты
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // LiveKitParticipant - участник комнаты LiveKit
@@ -328,8 +326,6 @@ type LiveKitParticipant struct {
 	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
 	// UpdatedAt - время последнего обновления записи об участнике
 	UpdatedAt time.Time `gorm:"not null;default:now()" json:"updated_at"`
-	// DeletedAt - время мягкого удаления участника
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	// Room - комната, в которой находится участник
