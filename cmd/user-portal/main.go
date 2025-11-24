@@ -1041,6 +1041,12 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				return
 			}
 
+			// Check if this is a tasks request
+			if strings.HasSuffix(r.URL.Path, "/tasks") && r.Method == http.MethodGet {
+				up.getMeetingTasksHandler(w, r)
+				return
+			}
+
 			switch r.Method {
 			case http.MethodGet:
 				up.getMeetingHandler(w, r)
@@ -1115,11 +1121,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 			}
 			http.Error(w, "Not found", http.StatusNotFound)
 		}),
-		authMiddleware,
-	))
-
-	mux.Handle("/api/v1/meetings/tasks", chainMiddleware(
-		http.HandlerFunc(up.getMeetingTasksHandler),
 		authMiddleware,
 	))
 

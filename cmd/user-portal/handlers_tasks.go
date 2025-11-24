@@ -172,8 +172,17 @@ func (up *UserPortal) getMeetingTasksHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Get meeting_id from URL
-	meetingIDStr := r.URL.Query().Get("meeting_id")
+	// Get meeting_id from path: /api/v1/meetings/{meeting_id}/tasks
+	pathPrefix := "/api/v1/meetings/"
+	pathSuffix := "/tasks"
+	path := r.URL.Path
+
+	if !strings.HasPrefix(path, pathPrefix) || !strings.HasSuffix(path, pathSuffix) {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid URL format", "")
+		return
+	}
+
+	meetingIDStr := strings.TrimSuffix(strings.TrimPrefix(path, pathPrefix), pathSuffix)
 	if meetingIDStr == "" {
 		up.respondWithError(w, http.StatusBadRequest, "meeting_id is required", "")
 		return
