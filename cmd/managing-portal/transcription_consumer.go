@@ -290,6 +290,56 @@ func updateTrackTranscriptionStatus(trackID string, userID string, jsonURL strin
 	}
 
 	log.Printf("✅ Transcription data saved successfully for track %s", trackID)
+
+	// Триггерим пост-обработку видео после успешной транскрибации
+	// Проверяем, завершены ли все транскрибации для комнаты и запускаем объединение видео
+	triggerVideoPostProcessing(trackID)
+}
+
+// triggerVideoPostProcessing запускает пост-обработку видео для комнаты
+// Это происходит асинхронно после завершения транскрибации трека
+func triggerVideoPostProcessing(trackID string) {
+	// Получаем room_sid для трека
+	dbConfig := database.Config{
+		Host:     getEnvOrDefault("DB_HOST", "localhost"),
+		Port:     getEnvIntOrDefault("DB_PORT", 5432),
+		User:     getEnvOrDefault("DB_USER", "recontext"),
+		Password: getEnvOrDefault("DB_PASSWORD", "recontext"),
+		DBName:   getEnvOrDefault("DB_NAME", "recontext"),
+		SSLMode:  getEnvOrDefault("DB_SSL_MODE", "disable"),
+	}
+
+	db, err := database.NewDB(dbConfig)
+	if err != nil {
+		log.Printf("⚠️ Failed to connect to database for video processing: %v", err)
+		return
+	}
+
+	var roomSID string
+	err = db.DB.Table("livekit_tracks").
+		Select("room_sid").
+		Where("id = ?", trackID).
+		First(&roomSID).Error
+
+	if err != nil {
+		log.Printf("⚠️ Failed to get room_sid for track %s: %v", trackID, err)
+		return
+	}
+
+	// Запускаем пост-обработку в горутине, чтобы не блокировать обработку транскрибаций
+	go func() {
+		log.Printf("🎬 Triggering video post-processing check for room: %s", roomSID)
+
+		postProcessor, err := NewVideoPostProcessor(db)
+		if err != nil {
+			log.Printf("❌ Failed to create video post-processor: %v", err)
+			return
+		}
+
+		if err := postProcessor.ProcessMeetingVideo(roomSID); err != nil {
+			log.Printf("❌ Video post-processing failed for room %s: %v", roomSID, err)
+		}
+	}()
 }
 
 // getEnvOrDefault возвращает значение переменной окружения или значение по умолчанию
