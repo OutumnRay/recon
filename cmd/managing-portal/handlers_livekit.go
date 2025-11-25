@@ -342,13 +342,15 @@ func (mp *ManagingPortal) handleParticipantJoined(req models.WebhookRequest) err
 			mp.logger.Infof("⚠️ Room %s not found in database yet, creating placeholder room from participant_joined event...", participant.RoomSID)
 			// Create placeholder room to satisfy foreign key constraint
 			placeholderRoom := &models.Room{
-				ID:          uuid.New(),
-				SID:         participant.RoomSID,
-				Name:        roomName,
-				Status:      "active",
-				StartedAt:   time.Now(),
-				CreatedAtDB: time.Now(),
-				UpdatedAt:   time.Now(),
+				ID:            uuid.New(),
+				SID:           participant.RoomSID,
+				Name:          roomName,
+				Status:        "active",
+				StartedAt:     time.Now(),
+				CreatedAtDB:   time.Now(),
+				UpdatedAt:     time.Now(),
+				Summaries:     "{}", // Valid JSON for jsonb field
+				SummaryStatus: "pending",
 			}
 
 			// Check if roomName is a valid meeting UUID and set MeetingID
@@ -526,13 +528,15 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 			mp.logger.Infof("⚠️ Room %s not found in database yet, creating placeholder room from track_published event...", track.RoomSID)
 			// Create placeholder room to satisfy foreign key constraint
 			placeholderRoom := &models.Room{
-				ID:          uuid.New(),
-				SID:         track.RoomSID,
-				Name:        roomName,
-				Status:      "active",
-				StartedAt:   time.Now(),
-				CreatedAtDB: time.Now(),
-				UpdatedAt:   time.Now(),
+				ID:            uuid.New(),
+				SID:           track.RoomSID,
+				Name:          roomName,
+				Status:        "active",
+				StartedAt:     time.Now(),
+				CreatedAtDB:   time.Now(),
+				UpdatedAt:     time.Now(),
+				Summaries:     "{}", // Valid JSON for jsonb field
+				SummaryStatus: "pending",
 			}
 
 			// Check if roomName is a valid meeting UUID and set MeetingID
@@ -1310,17 +1314,20 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 				if err != nil {
 					mp.logger.Errorf("❌ Failed to get room for track %s: %v", track.SID, err)
 				} else {
-					mp.logger.Infof("✅ Found room: SID=%s, Name=%s", room.SID, room.Name)
+					mp.logger.Infof("✅ Found room: SID=%s, MeetingID=%v", room.SID, room.MeetingID)
 					// Get meeting to find user_id and check if transcription is enabled
-					var meeting models.Meeting
-					err := mp.db.DB.Where("id = ?", room.Name).First(&meeting).Error
-					if err != nil {
-						mp.logger.Errorf("❌ Failed to get meeting for room %s: %v", room.Name, err)
-					} else if !meeting.NeedsTranscription {
-						mp.logger.Infof("ℹ️ Transcription is disabled for meeting %s (needs_transcription=%v), skipping transcription task",
-							meeting.ID, meeting.NeedsTranscription)
+					if room.MeetingID == nil {
+						mp.logger.Errorf("❌ Room %s has no MeetingID, skipping transcription task", room.SID)
 					} else {
-						mp.logger.Infof("✅ Transcription is ENABLED for meeting %s!", meeting.ID)
+						var meeting models.Meeting
+						err := mp.db.DB.Where("id = ?", *room.MeetingID).First(&meeting).Error
+						if err != nil {
+							mp.logger.Errorf("❌ Failed to get meeting for room %s (MeetingID: %s): %v", room.SID, room.MeetingID.String(), err)
+						} else if !meeting.NeedsTranscription {
+							mp.logger.Infof("ℹ️ Transcription is disabled for meeting %s (needs_transcription=%v), skipping transcription task",
+								meeting.ID, meeting.NeedsTranscription)
+						} else {
+							mp.logger.Infof("✅ Transcription is ENABLED for meeting %s!", meeting.ID)
 						// Parse track ID as UUID
 						trackUUID, err := uuid.Parse(track.ID.String())
 						if err != nil {
@@ -1363,6 +1370,7 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 								mp.logger.Infof("✅ Message format: {track_id, user_id, audio_url}")
 								mp.logger.Infof("✅ ========================================")
 							}
+						}
 						}
 					}
 				}

@@ -127,7 +127,7 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 		}
 		egressID = track.EgressID
 
-		// Get room to find meeting ID (room.Name = meetingID)
+		// Get room to find meeting ID from room.MeetingID
 		var room models.Room
 		err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
 		if err != nil {
@@ -135,7 +135,12 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		meetingID = room.Name
+		if room.MeetingID == nil {
+			up.logger.Errorf("Room %s has no MeetingID", room.SID)
+			up.respondWithError(w, http.StatusNotFound, "Meeting not found for room", "")
+			return
+		}
+		meetingID = room.MeetingID.String()
 	} else {
 		egressID = pathParts[0]
 	}
@@ -187,7 +192,12 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		meetingID = room.Name
+		if room.MeetingID == nil {
+			up.logger.Errorf("Room %s has no MeetingID", room.SID)
+			up.respondWithError(w, http.StatusNotFound, "Meeting not found for room", "")
+			return
+		}
+		meetingID = room.MeetingID.String()
 		playlistPath = fmt.Sprintf("%s_%s/composite.m3u8", meetingID, room.SID)
 	}
 
@@ -318,7 +328,7 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 		}
 		egressID = track.EgressID
 
-		// Get room to find meeting ID (room.Name = meetingID)
+		// Get room to find meeting ID from room.MeetingID
 		var room models.Room
 		err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
 		if err != nil {
@@ -326,7 +336,12 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		meetingID = room.Name
+		if room.MeetingID == nil {
+			up.logger.Errorf("Room %s has no MeetingID", room.SID)
+			up.respondWithError(w, http.StatusNotFound, "Meeting not found for room", "")
+			return
+		}
+		meetingID = room.MeetingID.String()
 	} else {
 		egressID = pathParts[0]
 		filename = pathParts[2]
@@ -383,7 +398,12 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
-		meetingID = room.Name
+		if room.MeetingID == nil {
+			up.logger.Errorf("Room %s has no MeetingID", room.SID)
+			up.respondWithError(w, http.StatusNotFound, "Meeting not found for room", "")
+			return
+		}
+		meetingID = room.MeetingID.String()
 		segmentPath = fmt.Sprintf("%s_%s/%s", meetingID, room.SID, filename)
 	}
 
@@ -447,13 +467,12 @@ func (up *UserPortal) checkRecordingAccess(egressID string, userID uuid.UUID) bo
 	}
 
 	// Check meeting access
-	meetingID, err := uuid.Parse(room.Name)
-	if err != nil {
-		// Invalid meeting ID format, access denied
+	if room.MeetingID == nil {
+		// No meeting ID, access denied
 		return false
 	}
 
-	meeting, err := up.meetingRepo.GetMeetingByID(meetingID)
+	meeting, err := up.meetingRepo.GetMeetingByID(*room.MeetingID)
 	if err != nil {
 		// Meeting not found, access denied
 		return false
@@ -465,7 +484,7 @@ func (up *UserPortal) checkRecordingAccess(egressID string, userID uuid.UUID) bo
 	}
 
 	// Check if user is a participant
-	participants, err := up.meetingRepo.GetMeetingParticipants(meetingID)
+	participants, err := up.meetingRepo.GetMeetingParticipants(*room.MeetingID)
 	if err != nil {
 		// Failed to get participants, access denied
 		return false

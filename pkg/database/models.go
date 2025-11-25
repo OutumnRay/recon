@@ -264,6 +264,8 @@ type LiveKitRoom struct {
 	Sid string `gorm:"column:sid;uniqueIndex;type:varchar(255);not null" json:"sid"`
 	// Name - название комнаты
 	Name string `gorm:"type:varchar(255);not null" json:"name"`
+	// MeetingID - ID встречи (meeting UUID), к которой относится комната
+	MeetingID *uuid.UUID `gorm:"type:uuid;index" json:"meeting_id,omitempty"`
 	// EmptyTimeout - таймаут закрытия пустой комнаты (в секундах)
 	EmptyTimeout int `gorm:"default:300" json:"empty_timeout"`
 	// DepartureTimeout - таймаут ожидания переподключения участника (в секундах)
@@ -288,6 +290,10 @@ type LiveKitRoom struct {
 	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
 	// UpdatedAt - время последнего обновления записи о комнате
 	UpdatedAt time.Time `gorm:"not null;default:now()" json:"updated_at"`
+
+	// Relations
+	// Meeting - встреча, к которой относится комната
+	Meeting *Meeting `gorm:"foreignKey:MeetingID;constraint:OnDelete:SET NULL" json:"meeting,omitempty"`
 }
 
 // LiveKitParticipant - участник комнаты LiveKit

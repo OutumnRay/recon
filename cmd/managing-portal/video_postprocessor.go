@@ -81,11 +81,10 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 		return fmt.Errorf("failed to find room: %w", err)
 	}
 
-	var meetingID *uuid.UUID
-	if room.Name != "" {
-		if parsedID, err := uuid.Parse(room.Name); err == nil {
-			meetingID = &parsedID
-		}
+	// Get meeting ID from room.MeetingID (not from room.Name)
+	meetingID := room.MeetingID
+	if meetingID == nil {
+		log.Printf("⚠️ Room %s has no MeetingID, composite video will not be linked to a meeting", roomSID)
 	}
 
 	// Send notification: composite video processing started
