@@ -878,7 +878,6 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     final locale = Localizations.localeOf(context).toString();
     final dateFormat = DateFormat.yMMMMEEEEd(locale);
     final timeFormat = DateFormat.Hm(locale);
-    final timestampFormat = DateFormat.yMMMd(locale).add_Hm();
     final recurrenceLabel = meeting.isPermanent ||
             (meeting.recurrence?.toLowerCase() == 'permanent')
         ? l10n.recurrencePermanent
@@ -1123,11 +1122,6 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   label: l10n.allowsAnonymousJoin,
                   value: meeting.allowAnonymous ? l10n.enabled : l10n.disabled,
                 ),
-                _buildDetailRow(
-                  context,
-                  label: l10n.roomId,
-                  value: meeting.liveKitRoomId ?? '—',
-                ),
               ],
             ),
           ),
@@ -1264,35 +1258,6 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
               ),
             ),
           ],
-          const SizedBox(height: 20),
-          surfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader(
-                  context,
-                  icon: Icons.info_outline_rounded,
-                  title: l10n.metadata,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  context,
-                  label: l10n.createdBy,
-                  value: meeting.createdBy,
-                ),
-                _buildDetailRow(
-                  context,
-                  label: l10n.created,
-                  value: timestampFormat.format(meeting.createdAt),
-                ),
-                _buildDetailRow(
-                  context,
-                  label: l10n.updated,
-                  value: timestampFormat.format(meeting.updatedAt),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 40),
         ],
       ),
