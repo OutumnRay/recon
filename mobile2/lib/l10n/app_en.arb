@@ -113,6 +113,7 @@
   "retry": "Retry",
   "close": "Close",
   "select": "Select",
+  "confirm": "Confirm",
 
   "loading": "Loading...",
   "error": "Error",
@@ -126,6 +127,10 @@
   "meetingCreatedError": "Failed to create meeting",
   "meetingUpdatedSuccess": "Meeting updated successfully",
   "meetingDeletedSuccess": "Meeting deleted successfully",
+  "meetingCancelledSuccess": "Meeting cancelled successfully",
+  "failedToCancelMeeting": "Failed to cancel meeting",
+  "cancelMeetingTitle": "Cancel Meeting",
+  "cancelMeetingConfirm": "Are you sure you want to cancel this meeting? This action cannot be undone.",
 
   "failedToLoadMeetings": "Failed to load meetings",
   "failedToLoadFormData": "Failed to load form data",

@@ -252,6 +252,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get select => 'Выбрать';
 
   @override
+  String get confirm => 'Подтвердить';
+
+  @override
   String get loading => 'Загрузка...';
 
   @override
@@ -280,6 +283,19 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get meetingDeletedSuccess => 'Встреча успешно удалена';
+
+  @override
+  String get meetingCancelledSuccess => 'Встреча успешно отменена';
+
+  @override
+  String get failedToCancelMeeting => 'Не удалось отменить встречу';
+
+  @override
+  String get cancelMeetingTitle => 'Отменить встречу';
+
+  @override
+  String get cancelMeetingConfirm =>
+      'Вы уверены, что хотите отменить эту встречу? Это действие нельзя отменить.';
 
   @override
   String get failedToLoadMeetings => 'Не удалось загрузить встречи';

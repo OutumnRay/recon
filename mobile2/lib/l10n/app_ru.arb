@@ -94,6 +94,7 @@
   "retry": "Повторить",
   "close": "Закрыть",
   "select": "Выбрать",
+  "confirm": "Подтвердить",
 
   "loading": "Загрузка...",
   "error": "Ошибка",
@@ -107,6 +108,10 @@
   "meetingCreatedError": "Не удалось создать встречу",
   "meetingUpdatedSuccess": "Встреча успешно обновлена",
   "meetingDeletedSuccess": "Встреча успешно удалена",
+  "meetingCancelledSuccess": "Встреча успешно отменена",
+  "failedToCancelMeeting": "Не удалось отменить встречу",
+  "cancelMeetingTitle": "Отменить встречу",
+  "cancelMeetingConfirm": "Вы уверены, что хотите отменить эту встречу? Это действие нельзя отменить.",
 
   "failedToLoadMeetings": "Не удалось загрузить встречи",
   "failedToLoadFormData": "Не удалось загрузить данные формы",

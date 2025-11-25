@@ -127,6 +127,29 @@ class MeetingsService {
     }
   }
 
+  /// Cancel a meeting (changes status to 'cancelled' regardless of current status)
+  Future<MeetingWithDetails> cancelMeeting(String meetingId) async {
+    try {
+      Logger.logInfo('Cancelling meeting', data: {'meetingId': meetingId});
+
+      final response = await _apiClient.put(
+        '/api/v1/meetings/$meetingId',
+        {'status': 'cancelled'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        Logger.logSuccess('Meeting cancelled successfully');
+        return MeetingWithDetails.fromJson(data);
+      } else {
+        throw _apiClient.handleError(response);
+      }
+    } catch (e) {
+      Logger.logError('Failed to cancel meeting', error: e);
+      rethrow;
+    }
+  }
+
   /// Get LiveKit token for joining a meeting
   Future<LiveKitToken> getLiveKitToken(String meetingId) async {
     try {

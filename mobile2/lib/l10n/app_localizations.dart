@@ -572,6 +572,12 @@ abstract class AppLocalizations {
   /// **'Select'**
   String get select;
 
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
   /// No description provided for @loading.
   ///
   /// In en, this message translates to:
@@ -631,6 +637,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Meeting deleted successfully'**
   String get meetingDeletedSuccess;
+
+  /// No description provided for @meetingCancelledSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting cancelled successfully'**
+  String get meetingCancelledSuccess;
+
+  /// No description provided for @failedToCancelMeeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to cancel meeting'**
+  String get failedToCancelMeeting;
+
+  /// No description provided for @cancelMeetingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Meeting'**
+  String get cancelMeetingTitle;
+
+  /// No description provided for @cancelMeetingConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel this meeting? This action cannot be undone.'**
+  String get cancelMeetingConfirm;
 
   /// No description provided for @failedToLoadMeetings.
   ///

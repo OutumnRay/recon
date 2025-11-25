@@ -202,6 +202,94 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     }
   }
 
+  Future<void> _cancelMeeting() async {
+    if (_meeting == null) return;
+
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.cancelMeetingTitle),
+        content: Text(l10n.cancelMeetingConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+            ),
+            child: Text(l10n.confirm),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    if (!mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF26C6DA),
+        ),
+      ),
+    );
+
+    try {
+      await _meetingsService.cancelMeeting(widget.meetingId);
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.meetingCancelledSuccess),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Refresh meeting details
+      _loadMeeting();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.failedToCancelMeeting}: ${e.message}'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.error}: $e'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -222,6 +310,16 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          // Show cancel button only if meeting is not already cancelled
+          if (_meeting != null && _meeting!.status != 'cancelled')
+            IconButton(
+              icon: const Icon(Icons.cancel_outlined),
+              tooltip: l10n.cancelMeetingTitle,
+              onPressed: _cancelMeeting,
+              color: AppColors.danger,
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.primary500,

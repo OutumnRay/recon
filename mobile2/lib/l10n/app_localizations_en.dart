@@ -251,6 +251,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get select => 'Select';
 
   @override
+  String get confirm => 'Confirm';
+
+  @override
   String get loading => 'Loading...';
 
   @override
@@ -279,6 +282,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meetingDeletedSuccess => 'Meeting deleted successfully';
+
+  @override
+  String get meetingCancelledSuccess => 'Meeting cancelled successfully';
+
+  @override
+  String get failedToCancelMeeting => 'Failed to cancel meeting';
+
+  @override
+  String get cancelMeetingTitle => 'Cancel Meeting';
+
+  @override
+  String get cancelMeetingConfirm =>
+      'Are you sure you want to cancel this meeting? This action cannot be undone.';
 
   @override
   String get failedToLoadMeetings => 'Failed to load meetings';
