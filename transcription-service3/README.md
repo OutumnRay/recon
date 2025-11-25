@@ -255,6 +255,95 @@ python main.py
 pip freeze > requirements.txt
 ```
 
+## Building and Publishing
+
+### Using Make (Recommended)
+
+```bash
+# Interactive build and push (asks for confirmation)
+make build-and-push
+
+# Non-interactive build and push
+make publish
+
+# Specify custom version
+make publish VERSION=v1.0.0
+
+# Legacy command (alias for publish)
+make push
+```
+
+### Using Build Script Directly
+
+```bash
+# Make script executable (first time only)
+chmod +x build-and-push.sh
+
+# Build and optionally push
+./build-and-push.sh
+
+# Build with specific version
+./build-and-push.sh v1.0.0
+```
+
+The script will:
+1. Build the Docker image (~15-20 min due to Whisper model download)
+2. Tag with both version and `latest`
+3. Ask if you want to push to Docker Hub
+4. Show image size after completion
+
+### CI/CD Integration
+
+#### GitHub Actions
+
+The `.github/workflows/transcription-service.yml` workflow automatically:
+- Builds on push to `main` (when files in `transcription-service3/` change)
+- Builds on tags matching `transcription-v*`
+- Pushes to Docker Hub: `sivanov2018/recontext-transcription-service3`
+
+**Trigger build:**
+```bash
+# Push changes
+git add transcription-service3/
+git commit -m "Update transcription service"
+git push
+
+# Or create a tag
+git tag transcription-v1.0.0
+git push origin transcription-v1.0.0
+```
+
+#### GitLab CI/CD
+
+The `.gitlab-ci.yml` pipeline includes:
+- **Build stage**: Builds image and saves to artifacts
+- **Publish stage**: Pushes to Docker Hub (auto on main/tags)
+- **Manual publish**: For testing in merge requests
+
+**Required GitLab CI/CD Variables:**
+- `DOCKER_HUB_USERNAME`: Your Docker Hub username
+- `DOCKER_HUB_PASSWORD`: Your Docker Hub access token
+
+**Trigger build:**
+```bash
+# Push to main or create tag
+git push origin main
+
+# Or create version tag
+git tag transcription-v1.0.0
+git push origin transcription-v1.0.0
+```
+
+### Published Images
+
+Images are available at: `docker pull sivanov2018/recontext-transcription-service3:latest`
+
+Tags:
+- `latest` - Latest build from main branch
+- `vX.Y.Z` - Semantic version tags
+- `transcription-vX.Y.Z` - Service-specific version tags
+- `<commit-sha>` - Specific commit builds
+
 ## License
 
 Part of the Recontext platform.

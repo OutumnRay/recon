@@ -4,15 +4,20 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'transcription-service3/**'
+      - '.github/workflows/transcription-service.yml'
     tags:
-      - 'v*'
+      - 'transcription-v*'
   pull_request:
     branches:
       - main
+    paths:
+      - 'transcription-service3/**'
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE: sivanov2018/recontext-transcription-service
+  DOCKER_IMAGE: sivanov2018/recontext-transcription-service3
 
 jobs:
   build-and-push-transcription-service:

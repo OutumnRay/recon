@@ -1,10 +1,12 @@
-.PHONY: help build up down logs restart clean test gpu-check
+.PHONY: help build up down logs restart clean test gpu-check build-and-push publish
 
 # Variables
 COMPOSE_FILE := docker-compose.yml
 COMPOSE_INTEGRATED := docker-compose.integrated.yml
 SERVICE_NAME := transcription-service3
 IMAGE_NAME := recontext-transcription-service3
+DOCKER_REGISTRY := sivanov2018
+VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -77,10 +79,20 @@ health: ## Check health status
 pull: ## Pull the base image
 	docker pull nvcr.io/nvidia/pytorch:25.04-py3
 
-push: ## Push image to registry (integrated mode)
-	docker-compose -f $(COMPOSE_INTEGRATED) build
-	docker tag recontext-$(SERVICE_NAME):latest sivanov2018/recontext-$(SERVICE_NAME):latest
-	docker push sivanov2018/recontext-$(SERVICE_NAME):latest
+build-and-push: ## Build and push image using script (interactive)
+	./build-and-push.sh $(VERSION)
+
+publish: ## Build and push image to Docker Hub (non-interactive)
+	@echo "Building image version: $(VERSION)"
+	docker build -t $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(VERSION) -t $(DOCKER_REGISTRY)/$(IMAGE_NAME):latest -f Dockerfile .
+	@echo "Pushing image to Docker Hub..."
+	docker push $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(VERSION)
+	docker push $(DOCKER_REGISTRY)/$(IMAGE_NAME):latest
+	@echo "✅ Published: $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(VERSION)"
+	@echo "✅ Published: $(DOCKER_REGISTRY)/$(IMAGE_NAME):latest"
+
+push: ## Legacy alias for publish
+	$(MAKE) publish
 
 dev: ## Run service locally (outside Docker)
 	python main.py
