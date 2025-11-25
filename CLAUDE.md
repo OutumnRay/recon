@@ -128,6 +128,69 @@ Always read both files before starting work and update them as the project evolv
 DO NOT CREATE ANOTHER MD FIELS!
 AFTER MAKE CHANGES FIX IT ON GIT COMMIT AND DESCRIBE RUSSIAN MESSAGE!
 
+## Database Access and ORM
+
+**CRITICAL**: This project uses GORM ORM for all database operations. You MUST follow these rules:
+
+### GORM Usage Rules
+
+1. **NEVER use raw SQL queries** (`db.DB.Raw()`, `db.DB.Exec()`, or any SQL string interpolation)
+2. **ALWAYS use GORM methods** for all database operations:
+   - `db.DB.Table()` - for table selection
+   - `db.DB.Select()` - for column selection
+   - `db.DB.Where()` - for filtering
+   - `db.DB.Joins()` - for table joins
+   - `db.DB.Order()` - for sorting
+   - `db.DB.Create()` - for inserts
+   - `db.DB.Updates()` - for updates
+   - `db.DB.Delete()` - for deletes
+   - `db.DB.First()`, `db.DB.Find()`, `db.DB.Scan()` - for queries
+
+3. **Models location**: All database models are defined in `internal/models/` and `pkg/database/models.go`
+
+4. **Example of CORRECT GORM usage**:
+```go
+// Query with joins
+var results []struct {
+    TrackID         string
+    ParticipantName string
+    PlaylistURL     string
+}
+err := db.DB.
+    Table("livekit_tracks").
+    Select("livekit_tracks.id as track_id, COALESCE(p.name, 'Unknown') as participant_name, er.playlist_url").
+    Joins("LEFT JOIN livekit_participants p ON livekit_tracks.participant_sid = p.sid").
+    Joins("LEFT JOIN livekit_egress_recordings er ON er.track_sid = livekit_tracks.sid").
+    Where("livekit_tracks.room_sid = ?", roomSID).
+    Where("livekit_tracks.type IN ?", []string{"audio", "video"}).
+    Scan(&results).Error
+
+// Update
+db.DB.Table("meetings").
+    Where("id = ?", meetingID).
+    Updates(map[string]interface{}{
+        "video_playlist_url": playlistURL,
+        "updated_at":         time.Now(),
+    })
+```
+
+5. **Example of INCORRECT usage** (DO NOT DO THIS):
+```go
+// ❌ WRONG - Never use Raw or Exec
+db.DB.Raw("SELECT * FROM meetings WHERE id = ?", id).Scan(&result)
+db.DB.Exec("UPDATE meetings SET title = ? WHERE id = ?", title, id)
+```
+
+### Why GORM Only?
+
+- **Security**: Automatic SQL injection prevention through parameter binding
+- **Maintainability**: Consistent API across the codebase
+- **Type safety**: Compile-time checking with Go models
+- **Database portability**: Easy to switch database backends
+- **Testing**: Easier to mock and test
+
+If you need to write a database query, ALWAYS check existing GORM code in the project for patterns and examples.
+
 ## Development Notes
 
 ### Current State
