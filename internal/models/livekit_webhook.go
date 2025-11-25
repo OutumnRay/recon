@@ -244,6 +244,8 @@ type EgressRecording struct {
 	ParticipantSID *string   `gorm:"column:participant_sid;type:varchar(255)" json:"participant_sid,omitempty" db:"participant_sid"`
 	// Путь к файлу в MinIO/S3
 	FilePath      string     `gorm:"column:file_path;type:text" json:"file_path,omitempty" db:"file_path"`
+	// URL плейлиста HLS (для воспроизведения)
+	PlaylistURL   string     `gorm:"column:playlist_url;type:text" json:"playlist_url,omitempty" db:"playlist_url"`
 	// Только аудио (для room_composite)
 	AudioOnly     bool       `gorm:"column:audio_only;default:false" json:"audio_only" db:"audio_only"`
 	// Время начала записи

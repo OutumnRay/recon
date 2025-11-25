@@ -273,25 +273,26 @@ func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string) ([]video.Tra
 
 	var trackData []TrackData
 
-	// Получаем информацию о треках с плейлистами из livekit_egress_recordings
-	err := vpp.db.DB.Raw(`
-		SELECT
-			t.id as track_id,
-			t.participant_sid,
-			COALESCE(p.name, 'Unknown') as participant_name,
-			t.type,
-			er.playlist_url,
-			t.published_at,
-			COALESCE(t.transcription_duration, 0) as duration
-		FROM livekit_tracks t
-		LEFT JOIN livekit_participants p ON t.participant_sid = p.sid
-		LEFT JOIN livekit_egress_recordings er ON er.track_sid = t.sid
-		WHERE t.room_sid = ?
-			AND t.type IN ('audio', 'video')
-			AND er.playlist_url IS NOT NULL
-			AND er.status = 'ended'
-		ORDER BY t.type DESC, t.published_at ASC
-	`, roomSID).Scan(&trackData).Error
+	// Используем GORM для получения информации о треках с плейлистами
+	err := vpp.db.DB.
+		Table("livekit_tracks").
+		Select(`
+			livekit_tracks.id as track_id,
+			livekit_tracks.participant_sid,
+			COALESCE(livekit_participants.name, 'Unknown') as participant_name,
+			livekit_tracks.type,
+			livekit_egress_recordings.playlist_url,
+			livekit_tracks.published_at,
+			COALESCE(livekit_tracks.transcription_duration, 0) as duration
+		`).
+		Joins("LEFT JOIN livekit_participants ON livekit_tracks.participant_sid = livekit_participants.sid").
+		Joins("LEFT JOIN livekit_egress_recordings ON livekit_egress_recordings.track_sid = livekit_tracks.sid").
+		Where("livekit_tracks.room_sid = ?", roomSID).
+		Where("livekit_tracks.type IN ?", []string{"audio", "video"}).
+		Where("livekit_egress_recordings.playlist_url IS NOT NULL AND livekit_egress_recordings.playlist_url != ''").
+		Where("livekit_egress_recordings.status = ?", "ended").
+		Order("livekit_tracks.type DESC, livekit_tracks.published_at ASC").
+		Scan(&trackData).Error
 
 	if err != nil {
 		return nil, err
@@ -356,13 +357,15 @@ func (vpp *VideoPostProcessor) cleanupLocalTracks(tracks []video.TrackInfo) {
 
 // updateMeetingWithPlaylist обновляет запись встречи с URL плейлиста
 func (vpp *VideoPostProcessor) updateMeetingWithPlaylist(roomSID, playlistURL string) error {
-	// Находим meeting_id по room_sid
-	var meetingID uuid.UUID
+	// Находим meeting_id по room_sid используя GORM
+	var room struct {
+		MeetingID *uuid.UUID
+	}
 	err := vpp.db.DB.Table("livekit_rooms").
 		Select("meeting_id").
 		Where("sid = ?", roomSID).
 		Where("meeting_id IS NOT NULL").
-		First(&meetingID).Error
+		First(&room).Error
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -372,28 +375,33 @@ func (vpp *VideoPostProcessor) updateMeetingWithPlaylist(roomSID, playlistURL st
 		return err
 	}
 
-	// Обновляем meeting с URL плейлиста
-	result := vpp.db.DB.Exec(`
-		UPDATE meetings
-		SET
-			video_playlist_url = ?,
-			updated_at = NOW()
-		WHERE id = ?
-	`, playlistURL, meetingID)
+	if room.MeetingID == nil {
+		log.Printf("⚠️ No meeting ID found for room %s", roomSID)
+		return nil
+	}
+
+	meetingID := *room.MeetingID
+
+	// Обновляем meeting с URL плейлиста используя GORM
+	result := vpp.db.DB.Table("meetings").
+		Where("id = ?", meetingID).
+		Updates(map[string]interface{}{
+			"video_playlist_url": playlistURL,
+			"updated_at":         time.Now(),
+		})
 
 	if result.Error != nil {
 		return result.Error
 	}
 
-	// Также обновляем livekit_egress_recordings для room_composite
-	result = vpp.db.DB.Exec(`
-		UPDATE livekit_egress_recordings
-		SET
-			playlist_url = ?,
-			updated_at = NOW()
-		WHERE room_sid = ?
-			AND type = 'room_composite'
-	`, playlistURL, roomSID)
+	// Также обновляем livekit_egress_recordings для room_composite используя GORM
+	result = vpp.db.DB.Table("livekit_egress_recordings").
+		Where("room_sid = ?", roomSID).
+		Where("type = ?", "room_composite").
+		Updates(map[string]interface{}{
+			"playlist_url": playlistURL,
+			"updated_at":   time.Now(),
+		})
 
 	if result.Error != nil {
 		return result.Error
@@ -482,15 +490,13 @@ func (vpp *VideoPostProcessor) saveSpeakerTimeline(roomSID string, timeline *aud
 		return err
 	}
 
-	// Обновляем meeting с временной линией спикеров
-	// Используем JSONB тип для эффективного хранения
-	result := vpp.db.DB.Exec(`
-		UPDATE meetings
-		SET
-			speaker_timeline = ?::jsonb,
-			updated_at = NOW()
-		WHERE id = ?
-	`, string(timelineJSON), meetingID)
+	// Обновляем meeting с временной линией спикеров используя GORM
+	result := vpp.db.DB.Table("meetings").
+		Where("id = ?", meetingID).
+		Updates(map[string]interface{}{
+			"speaker_timeline": string(timelineJSON),
+			"updated_at":       time.Now(),
+		})
 
 	if result.Error != nil {
 		// Если колонка не существует, логируем предупреждение
@@ -516,19 +522,19 @@ func (vpp *VideoPostProcessor) generateMeetingSummary(roomSID string) error {
 
 	ctx := context.Background()
 
-	// Получаем информацию о встрече и транскрипции
+	// Получаем информацию о встрече и транскрипции используя GORM
 	type MeetingInfo struct {
 		MeetingID    uuid.UUID
 		MeetingTitle string
 	}
 
 	var meetingInfo MeetingInfo
-	err := vpp.db.DB.Raw(`
-		SELECT m.id as meeting_id, m.title as meeting_title
-		FROM livekit_rooms r
-		JOIN meetings m ON r.meeting_id = m.id
-		WHERE r.sid = ? AND r.meeting_id IS NOT NULL
-	`, roomSID).Scan(&meetingInfo).Error
+	err := vpp.db.DB.Table("livekit_rooms r").
+		Select("m.id as meeting_id, m.title as meeting_title").
+		Joins("JOIN meetings m ON r.meeting_id = m.id").
+		Where("r.sid = ?", roomSID).
+		Where("r.meeting_id IS NOT NULL").
+		Scan(&meetingInfo).Error
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -538,24 +544,21 @@ func (vpp *VideoPostProcessor) generateMeetingSummary(roomSID string) error {
 		return fmt.Errorf("failed to get meeting info: %w", err)
 	}
 
-	// Получаем транскрипции всех треков
+	// Получаем транскрипции всех треков используя GORM
 	type TranscriptionData struct {
 		ParticipantName string
 		Segments        string // JSON
 	}
 
 	var transcriptions []TranscriptionData
-	err = vpp.db.DB.Raw(`
-		SELECT
-			COALESCE(p.name, 'Unknown') as participant_name,
-			t.transcription_segments as segments
-		FROM livekit_tracks t
-		LEFT JOIN livekit_participants p ON t.participant_sid = p.sid
-		WHERE t.room_sid = ?
-			AND t.type = 'audio'
-			AND t.transcription_segments IS NOT NULL
-		ORDER BY t.published_at ASC
-	`, roomSID).Scan(&transcriptions).Error
+	err = vpp.db.DB.Table("livekit_tracks t").
+		Select("COALESCE(p.name, 'Unknown') as participant_name, t.transcription_segments as segments").
+		Joins("LEFT JOIN livekit_participants p ON t.participant_sid = p.sid").
+		Where("t.room_sid = ?", roomSID).
+		Where("t.type = ?", "audio").
+		Where("t.transcription_segments IS NOT NULL").
+		Order("t.published_at ASC").
+		Scan(&transcriptions).Error
 
 	if err != nil {
 		return fmt.Errorf("failed to get transcriptions: %w", err)
@@ -645,15 +648,20 @@ func (vpp *VideoPostProcessor) saveSummariesToDatabase(meetingID uuid.UUID, summ
 		summaryRU = &summaryRUStr
 	}
 
-	// Обновляем встречу
-	result := vpp.db.DB.Exec(`
-		UPDATE meetings
-		SET
-			summary_en = ?::jsonb,
-			summary_ru = ?::jsonb,
-			updated_at = NOW()
-		WHERE id = ?
-	`, summaryEN, summaryRU, meetingID)
+	// Обновляем встречу используя GORM
+	updates := map[string]interface{}{
+		"updated_at": time.Now(),
+	}
+	if summaryEN != nil {
+		updates["summary_en"] = *summaryEN
+	}
+	if summaryRU != nil {
+		updates["summary_ru"] = *summaryRU
+	}
+
+	result := vpp.db.DB.Table("meetings").
+		Where("id = ?", meetingID).
+		Updates(updates)
 
 	if result.Error != nil {
 		// Если колонки не существуют, логируем предупреждение
