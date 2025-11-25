@@ -394,25 +394,6 @@ func (r *LiveKitRepository) GetWebhookEvents(eventType, roomSID string, limit, o
 // Egress Operations
 // ============================================================================
 
-// UpdateEgressStatus updates the status of an egress recording
-func (r *LiveKitRepository) UpdateEgressStatus(egressID string, status string) error {
-	// Try to find egress in livekit_egress table
-	var egress LiveKitEgress
-	err := r.db.DB.Where("egress_id = ?", egressID).First(&egress).Error
-
-	if err == nil {
-		// Found in livekit_egress table, update it
-		egress.Status = status
-		if err := r.db.DB.Save(&egress).Error; err != nil {
-			return fmt.Errorf("failed to update egress status in livekit_egress: %w", err)
-		}
-		return nil
-	}
-
-	// Not found in livekit_egress, just skip (not critical)
-	return nil
-}
-
 // GetRoomsByName retrieves all rooms by name (meeting ID)
 func (r *LiveKitRepository) GetRoomsByName(roomName string) ([]*models.Room, error) {
 	var rooms []*models.Room
