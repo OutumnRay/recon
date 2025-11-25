@@ -20,6 +20,7 @@ import {
   LuCopy,
   LuCheck,
   LuList,
+  LuX,
 } from 'react-icons/lu';
 import {
   listMyMeetings,
@@ -30,6 +31,7 @@ import {
   isMeetingNow,
   isMeetingPast,
   deleteMeeting,
+  cancelMeeting,
 } from '../services/meetings';
 import type {
   MeetingWithDetails,
@@ -75,6 +77,10 @@ export const Meetings: React.FC = () => {
   // Copy link state
   const [copiedMeetingId, setCopiedMeetingId] = useState<string | null>(null);
 
+  // Current user state for permission checks
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+
   // View mode: list, details, create, or edit
   const [viewMode, setViewMode] = useState<'list' | 'details' | 'create' | 'edit'>('list');
   const statusSliderRef = useRef<HTMLDivElement>(null);
@@ -91,6 +97,20 @@ export const Meetings: React.FC = () => {
     { value: 'completed', label: t('meetings.status.completed'), icon: <LuCheck /> },
     { value: 'cancelled', label: t('meetings.status.cancelled'), icon: <LuTrash2 /> },
   ];
+
+  // Load current user data for permission checks
+  useEffect(() => {
+    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setCurrentUserId(user.id);
+        setCurrentUserRole(user.role);
+      } catch (err) {
+        console.error('Failed to parse user data:', err);
+      }
+    }
+  }, []);
 
   // Fetch meetings when filters or page changes
   useEffect(() => {
@@ -247,6 +267,39 @@ export const Meetings: React.FC = () => {
       fetchMeetings();
     } catch (err) {
       alert(err instanceof Error ? err.message : t('meetings.errors.deleteFailed'));
+    }
+  };
+
+  /**
+   * Check if current user can cancel a meeting
+   * - Admins can cancel any meeting
+   * - Organization admins can cancel any meeting
+   * - Meeting creators can cancel their own meetings
+   * - Meeting must not already be cancelled
+   */
+  const canCancelMeeting = (meeting: MeetingWithDetails): boolean => {
+    if (meeting.status === 'cancelled') return false;
+    if (currentUserRole === 'admin') return true;
+    if (currentUserRole === 'organization_admin') return true;
+    if (currentUserId === meeting.created_by) return true;
+    return false;
+  };
+
+  /**
+   * Cancel a meeting from the list view
+   */
+  const handleCancelMeetingFromList = async (meeting: MeetingWithDetails, event: React.MouseEvent) => {
+    event.stopPropagation();
+
+    if (!window.confirm(t('meetings.confirmCancel', { title: meeting.title }))) {
+      return;
+    }
+
+    try {
+      await cancelMeeting(meeting.id);
+      fetchMeetings();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t('meetings.errors.cancelFailed'));
     }
   };
 
@@ -587,6 +640,15 @@ export const Meetings: React.FC = () => {
                         title={t('meetings.card.viewRecordings')}
                       >
                         <LuFilm />
+                      </button>
+                    )}
+                    {canCancelMeeting(meeting) && (
+                      <button
+                        className="meeting-row-action-btn meeting-row-action-danger"
+                        onClick={(e) => handleCancelMeetingFromList(meeting, e)}
+                        title={t('meetings.card.cancelMeeting')}
+                      >
+                        <LuX />
                       </button>
                     )}
                   </div>

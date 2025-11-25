@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/config_service.dart';
+import '../services/storage_service.dart';
 import '../models/meeting.dart';
 import '../widgets/error_display.dart';
 import 'meeting_detail_screen.dart';
@@ -33,6 +34,8 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   String? _copiedMeetingId;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String? _currentUserId;
+  String? _currentUserRole;
 
   @override
   bool get wantKeepAlive => true;
@@ -47,7 +50,100 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   void initState() {
     super.initState();
     _meetingsService = MeetingsService(widget.apiClient);
+    _loadCurrentUser();
     _loadMeetings();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final storageService = StorageService();
+      final userData = await storageService.getUserData();
+      setState(() {
+        _currentUserId = userData['userId'];
+        _currentUserRole = userData['role'];
+      });
+    } catch (e) {
+      // Ignore error, user data will remain null
+    }
+  }
+
+  bool _canCancelMeeting(MeetingWithDetails meeting) {
+    if (meeting.status == 'cancelled') return false;
+
+    // Admin can cancel any meeting
+    if (_currentUserRole == 'admin') return true;
+
+    // Organization admin can cancel any meeting in their organization
+    if (_currentUserRole == 'organization_admin') return true;
+
+    // Meeting creator can cancel their own meeting
+    if (_currentUserId == meeting.createdBy) return true;
+
+    return false;
+  }
+
+  Future<void> _cancelMeetingFromList(MeetingWithDetails meeting) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.cancelMeetingTitle),
+        content: Text(l10n.cancelMeetingConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+            ),
+            child: Text(l10n.confirm),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _meetingsService.cancelMeeting(meeting.id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.meetingCancelledSuccess),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Reload meetings
+      _loadMeetings();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.failedToCancelMeeting}: ${e.message}'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.error}: $e'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   Future<void> _loadMeetings() async {
@@ -476,6 +572,15 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                         ],
                       ),
                     ),
+                    // Cancel button for admin/creator
+                    if (_canCancelMeeting(meeting))
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                        onPressed: () => _cancelMeetingFromList(meeting),
+                        tooltip: l10n.cancelMeetingTitle,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
                   ],
                 ),
 

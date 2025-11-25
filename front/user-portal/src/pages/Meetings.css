@@ -209,6 +209,16 @@
   transform: translateY(0);
 }
 
+.meeting-row-action-danger {
+  color: #dc2626;
+}
+
+.meeting-row-action-danger:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
 .meeting-row-cta {
   border: none;
   background: linear-gradient(90deg, #34d399, #10b981);

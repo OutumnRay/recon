@@ -328,6 +328,7 @@
       "createFailed": "Failed to create meeting",
       "updateFailed": "Failed to update meeting",
       "deleteFailed": "Failed to delete meeting",
+      "cancelFailed": "Failed to cancel meeting",
       "titleRequired": "Title is required",
       "dateRequired": "Scheduled date and time is required",
       "durationInvalid": "Duration must be greater than 0",
@@ -364,8 +365,10 @@
       "anonymousLinkDescription": "Share this link with guests to join without authentication",
       "copyLink": "Copy Link",
       "linkCopied": "Link copied!",
-      "copyFailed": "Failed to copy"
-    }
+      "copyFailed": "Failed to copy",
+      "cancelMeeting": "Cancel Meeting"
+    },
+    "confirmCancel": "Are you sure you want to cancel the meeting \"{{title}}\"?"
   },
   "meetingRecordings": {
     "loading": "Loading recordings...",

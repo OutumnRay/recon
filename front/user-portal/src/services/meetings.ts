@@ -138,6 +138,19 @@ export const deleteMeeting = async (meetingId: string): Promise<{ message: strin
 };
 
 /**
+ * Cancel a meeting (change status to cancelled)
+ */
+export const cancelMeeting = async (meetingId: string): Promise<MeetingWithDetails> => {
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ status: 'cancelled' }),
+  });
+
+  return handleResponse<MeetingWithDetails>(response);
+};
+
+/**
  * Get LiveKit token for joining a meeting
  */
 export const getMeetingToken = async (meetingId: string): Promise<MeetingTokenResponse> => {
