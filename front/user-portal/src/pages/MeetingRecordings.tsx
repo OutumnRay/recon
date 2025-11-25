@@ -648,6 +648,8 @@ export default function MeetingRecordings() {
                     const memo = locale === 'ru-RU' ? roomTranscripts?.memoRu : roomTranscripts?.memo;
                     const fallbackMemo = roomTranscripts?.memo;
                     const displayMemo = memo || fallbackMemo;
+                    const summaryStatus = roomTranscripts?.summaryStatus;
+                    const summaryError = roomTranscripts?.summaryError;
 
                     return (
                       <div className="accordion-item">
@@ -665,6 +667,25 @@ export default function MeetingRecordings() {
                                 <div className="loading-spinner"></div>
                                 <p>{t('common.loading')}</p>
                               </div>
+                            ) : summaryStatus === 'processing' || generatingSummary ? (
+                              <div className="loading-state">
+                                <div className="loading-spinner"></div>
+                                <p>{t('meetingRecordings.generatingSummary')}</p>
+                              </div>
+                            ) : summaryStatus === 'failed' ? (
+                              <div className="memo-empty-state">
+                                <p className="error-message" style={{ color: '#d32f2f' }}>{t('meetingRecordings.summaryFailed')}</p>
+                                {summaryError && (
+                                  <p className="error-details" style={{ fontSize: '0.875rem', color: '#666' }}>{summaryError}</p>
+                                )}
+                                <button
+                                  className="generate-summary-button"
+                                  onClick={generateSummary}
+                                  disabled={generatingSummary}
+                                >
+                                  {t('meetingRecordings.retrySummary')}
+                                </button>
+                              </div>
                             ) : displayMemo ? (
                               <div className="memo-content">
                                 {displayMemo.split('\n').map((line, idx) => (
@@ -677,9 +698,9 @@ export default function MeetingRecordings() {
                                 <button
                                   className="generate-summary-button"
                                   onClick={generateSummary}
-                                  disabled={generatingSummary}
+                                  disabled={generatingSummary || summaryStatus === 'processing'}
                                 >
-                                  {generatingSummary ? t('meetingRecordings.generatingSummary') : t('meetingRecordings.createSummary')}
+                                  {generatingSummary || summaryStatus === 'processing' ? t('meetingRecordings.generatingSummary') : t('meetingRecordings.createSummary')}
                                 </button>
                               </div>
                             )}

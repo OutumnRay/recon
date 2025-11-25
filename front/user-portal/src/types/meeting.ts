@@ -257,4 +257,6 @@ export interface RoomTranscripts {
   tracks: TrackTranscript[];
   memo?: string;
   memoRu?: string;
+  summaryStatus?: string; // Summary generation status: pending, processing, completed, failed
+  summaryError?: string; // Error message if summary generation failed
 }

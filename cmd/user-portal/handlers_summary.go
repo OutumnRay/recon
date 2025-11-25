@@ -85,10 +85,27 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 
 	roomSID := room.SID
 
+	// Set summary status to processing
+	if err := up.db.DB.Model(&models.Room{}).
+		Where("sid = ?", roomSID).
+		Updates(map[string]interface{}{
+			"summary_status": "processing",
+			"summary_error":  "",
+		}).Error; err != nil {
+		up.logger.Errorf("Failed to update summary status: %v", err)
+	}
+
 	// Start summary generation in background
 	go func() {
 		if err := up.generateSummaryForRoom(roomSID, meetingID, meeting.Title); err != nil {
 			up.logger.Errorf("Failed to generate summary for meeting %s: %v", meetingID, err)
+			// Set status to failed with error message
+			up.db.DB.Model(&models.Room{}).
+				Where("sid = ?", roomSID).
+				Updates(map[string]interface{}{
+					"summary_status": "failed",
+					"summary_error":  err.Error(),
+				})
 		}
 	}()
 
@@ -97,6 +114,7 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Summary generation started",
+		"status":  "processing",
 	})
 }
 
@@ -209,9 +227,14 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 		return fmt.Errorf("failed to marshal summaries: %w", err)
 	}
 
+	// Save summaries and update status to completed
 	if err := up.db.DB.Model(&models.Room{}).
 		Where("sid = ?", roomSID).
-		Update("summaries", summariesJSON).Error; err != nil {
+		Updates(map[string]interface{}{
+			"summaries":      summariesJSON,
+			"summary_status": "completed",
+			"summary_error":  "",
+		}).Error; err != nil {
 		return fmt.Errorf("failed to save summaries: %w", err)
 	}
 

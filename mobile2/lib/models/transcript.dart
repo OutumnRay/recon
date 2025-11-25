@@ -108,12 +108,16 @@ class RoomTranscripts {
   final List<TrackTranscript> tracks;
   final String? memo;       // English memo
   final String? memoRu;     // Russian memo
+  final String? summaryStatus;  // Summary generation status: pending, processing, completed, failed
+  final String? summaryError;   // Error message if summary generation failed
 
   RoomTranscripts({
     required this.roomSid,
     required this.tracks,
     this.memo,
     this.memoRu,
+    this.summaryStatus,
+    this.summaryError,
   });
 
   factory RoomTranscripts.fromJson(Map<String, dynamic> json) {
@@ -125,6 +129,8 @@ class RoomTranscripts {
           [],
       memo: json['memo'] as String?,
       memoRu: json['memo_ru'] as String?,
+      summaryStatus: json['summary_status'] as String?,
+      summaryError: json['summary_error'] as String?,
     );
   }
 
@@ -134,6 +140,8 @@ class RoomTranscripts {
       'tracks': tracks.map((t) => t.toJson()).toList(),
       'memo': memo,
       'memo_ru': memoRu,
+      'summary_status': summaryStatus,
+      'summary_error': summaryError,
     };
   }
 
