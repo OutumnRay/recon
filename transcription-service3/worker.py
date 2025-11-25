@@ -6,6 +6,7 @@ import os
 import tempfile
 import pika
 from minio import Minio
+from minio.credentials import StaticProvider
 from config import Config
 from transcriber import TranscriptionWorker
 
@@ -60,10 +61,13 @@ class TranscriptionConsumer:
                 # Local MinIO or HTTP - use port 9000
                 minio_endpoint = f"{minio_endpoint}:9000"
 
+        # Initialize MinIO client with credentials (new API in minio 8.x)
         self.minio_client = Minio(
-            minio_endpoint,
-            access_key=Config.MINIO_ACCESS_KEY,
-            secret_key=Config.MINIO_SECRET_KEY,
+            endpoint=minio_endpoint,
+            credentials=StaticProvider(
+                access_key=Config.MINIO_ACCESS_KEY,
+                secret_key=Config.MINIO_SECRET_KEY
+            ),
             secure=Config.MINIO_SECURE
         )
         print(f"MinIO client initialized for uploads (endpoint: {minio_endpoint}, secure: {Config.MINIO_SECURE})")
