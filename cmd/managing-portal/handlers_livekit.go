@@ -597,27 +597,29 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 	mp.logger.Infof("📊 Track Summary: SID=%s | Source=%s | Type=%s | Room=%s | Participant=%s | MimeType=%s",
 		track.SID, track.Source, track.Type, roomName, participantSID, track.MimeType)
 
-	// Получаем настройки записи напрямую из базы по room name (meeting ID)
+	// Получаем настройки записи из базы используя room.MeetingID
 	var needsTranscription bool
 	var needsAudioRecord bool
 	var needsVideoRecord bool
-	if roomName != "" {
-		if meetingID, err := uuid.Parse(roomName); err == nil {
-			meeting, err := mp.meetingRepo.GetMeetingByID(meetingID)
-			if err == nil {
-				needsTranscription = meeting.NeedsTranscription
-				needsAudioRecord = meeting.NeedsRecord    // needs_record includes both audio and video
-				needsVideoRecord = meeting.NeedsRecord    // needs_record includes both audio and video
-				mp.logger.Infof("📝 Meeting %s: NeedsTranscription=%v, NeedsRecord=%v",
-					meetingID, needsTranscription, meeting.NeedsRecord)
-			} else {
-				mp.logger.Infof("📝 Room name '%s' is not a meeting ID or meeting not found: %v", roomName, err)
-			}
+
+	// Получаем комнату из БД чтобы узнать MeetingID
+	room, err := mp.liveKitRepo.GetRoomBySID(track.RoomSID)
+	if err != nil {
+		mp.logger.Errorf("Failed to get room %s from database: %v", track.RoomSID, err)
+	} else if room.MeetingID != nil {
+		// Используем room.MeetingID вместо парсинга room.Name
+		meeting, err := mp.meetingRepo.GetMeetingByID(*room.MeetingID)
+		if err == nil {
+			needsTranscription = meeting.NeedsTranscription
+			needsAudioRecord = meeting.NeedsRecord    // needs_record includes both audio and video
+			needsVideoRecord = meeting.NeedsRecord    // needs_record includes both audio and video
+			mp.logger.Infof("📝 Meeting %s (from room.MeetingID): NeedsTranscription=%v, NeedsRecord=%v",
+				*room.MeetingID, needsTranscription, meeting.NeedsRecord)
 		} else {
-			mp.logger.Infof("📝 Room name '%s' is not a valid meeting UUID", roomName)
+			mp.logger.Errorf("Failed to get meeting %s from database: %v", *room.MeetingID, err)
 		}
 	} else {
-		mp.logger.Infof("📝 Room name is empty, cannot check transcription settings")
+		mp.logger.Infof("📝 Room %s has no linked meeting (MeetingID is null)", track.RoomSID)
 	}
 
 	// Start per-track egress recording for all audio/video tracks when recording is required
@@ -647,10 +649,10 @@ func (mp *ManagingPortal) handleTrackPublished(req models.WebhookRequest) error 
 				videoTrackID = track.SID
 			}
 
-			// Parse meeting ID from room name
+			// Используем room.MeetingID вместо парсинга room name
 			var meetingUUID *uuid.UUID
-			if parsedMeetingID, err := uuid.Parse(roomName); err == nil {
-				meetingUUID = &parsedMeetingID
+			if room != nil && room.MeetingID != nil {
+				meetingUUID = room.MeetingID
 			}
 
 			// Start egress asynchronously to avoid webhook timeout - egress can take long time to respond

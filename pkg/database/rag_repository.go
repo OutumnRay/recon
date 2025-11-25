@@ -45,6 +45,9 @@ func (db *DB) CreateDocumentChunk(chunk *models.DocumentChunk) error {
 }
 
 // SearchSimilarChunks performs semantic search using vector similarity
+// ВАЖНО: Этот метод использует сырой SQL для pgvector операций (<=> оператор),
+// так как GORM не поддерживает векторные операторы PostgreSQL напрямую.
+// Это исключение из правила "только GORM" оправдано спецификой pgvector.
 func (db *DB) SearchSimilarChunks(queryEmbedding []float32, topK int, threshold float64) ([]models.RAGSearchResult, error) {
 	if topK <= 0 {
 		topK = 5
@@ -56,6 +59,8 @@ func (db *DB) SearchSimilarChunks(queryEmbedding []float32, topK int, threshold 
 	embedding := pq.Array(queryEmbedding)
 
 	var results []models.RAGSearchResult
+	// Используем сырой SQL для pgvector векторного поиска
+	// Оператор <=> (cosine distance) специфичен для pgvector и не поддерживается GORM
 	err := db.DB.Raw(`
 		SELECT
 			dc.id as chunk_id,
@@ -63,14 +68,14 @@ func (db *DB) SearchSimilarChunks(queryEmbedding []float32, topK int, threshold 
 			uf.original_name as file_name,
 			dc.chunk_text,
 			dc.chunk_index,
-			1 - (dc.embedding <=> ?::vector) as similarity,
+			1 - (dc.embedding <=> $1::vector) as similarity,
 			uf.uploaded_at
 		FROM document_chunks dc
 		INNER JOIN uploaded_files uf ON dc.file_id = uf.id
-		WHERE 1 - (dc.embedding <=> ?::vector) >= ?
-		ORDER BY dc.embedding <=> ?::vector
-		LIMIT ?
-	`, embedding, embedding, threshold, embedding, topK).Scan(&results).Error
+		WHERE 1 - (dc.embedding <=> $1::vector) >= $2
+		ORDER BY dc.embedding <=> $1::vector
+		LIMIT $3
+	`, embedding, threshold, topK).Scan(&results).Error
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to search similar chunks: %w", err)
