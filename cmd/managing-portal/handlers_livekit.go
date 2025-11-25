@@ -1394,7 +1394,44 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 			}
 		} else {
 			// Not a track egress, might be room composite egress
-			mp.logger.Infof("ℹ️ Egress %s is not associated with a track (error: %v) - might be room composite", egressID, err)
+			mp.logger.Infof("ℹ️ Egress %s is not associated with a track (error: %v) - checking if it's a room composite egress", egressID, err)
+
+			// Check if this is a room composite egress
+			var room models.Room
+			err := mp.db.DB.Where("egress_id = ?", egressID).First(&room).Error
+			if err == nil {
+				mp.logger.Infof("✅ Found room with composite egress: SID=%s, Name=%s, EgressID=%s", room.SID, room.Name, egressID)
+
+				// Composite video is ready - construct the playlist URL
+				// Format: https://storage.recontext.online/recontext/{meetingId}_{roomSid}/composite/composite.m3u8
+				storageURL := "https://api.storage.recontext.online"
+				bucket := "recontext"
+				playlistURL := fmt.Sprintf("%s/%s/%s_%s/composite/composite.m3u8", storageURL, bucket, room.Name, room.SID)
+
+				mp.logger.Infof("🎬 Composite video completed for room %s", room.SID)
+				mp.logger.Infof("📌 Playlist URL: %s", playlistURL)
+				mp.logger.Infof("📌 File Path from LiveKit: %s", filePath)
+
+				// If the room is associated with a meeting, update the meeting's video_playlist_url
+				if room.MeetingID != nil {
+					meeting, err := mp.meetingRepo.GetMeetingByID(*room.MeetingID)
+					if err == nil {
+						mp.logger.Infof("📝 Updating meeting %s with composite video URL", meeting.ID)
+						meeting.VideoPlaylistURL = &playlistURL
+						if err := mp.meetingRepo.UpdateMeeting(meeting); err != nil {
+							mp.logger.Errorf("❌ Failed to update meeting video_playlist_url: %v", err)
+						} else {
+							mp.logger.Infof("✅ Meeting %s video_playlist_url updated successfully", meeting.ID)
+						}
+					} else {
+						mp.logger.Errorf("❌ Failed to get meeting for room %s: %v", room.SID, err)
+					}
+				} else {
+					mp.logger.Infof("ℹ️ Room %s is not associated with a meeting, skipping meeting update", room.SID)
+				}
+			} else {
+				mp.logger.Infof("ℹ️ Egress %s is not a room composite egress (error: %v)", egressID, err)
+			}
 		}
 		} else {
 			mp.logger.Infof("⚠️ Skipping transcription - RabbitMQ publisher still not available after reconnection attempt")
