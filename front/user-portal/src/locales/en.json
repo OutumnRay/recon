@@ -402,6 +402,7 @@
     "toggleTracks": "Show participant tracks",
     "tracksLabel": "Participant tracks",
     "roomRecordingLabel": "Room recording",
+    "noCompositeRecording": "Room composite recording is not available for this session",
     "playRecording": "Play recording",
     "nowPlaying": "Now playing",
     "noTracks": "No individual tracks available",
@@ -427,7 +428,11 @@
     "status": {
       "scheduled": "Scheduled",
       "in_progress": "In Progress",
+      "pending": "Pending",
+      "active": "Active",
+      "finishing": "Finishing",
       "completed": "Completed",
+      "failed": "Failed",
       "cancelled": "Cancelled",
       "finished": "Finished",
       "recording": "Recording"

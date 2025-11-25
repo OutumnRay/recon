@@ -404,6 +404,7 @@
     "toggleTracks": "Показывать треки участников",
     "tracksLabel": "Треки участников",
     "roomRecordingLabel": "Общая запись",
+    "noCompositeRecording": "Общая запись комнаты недоступна для этой сессии",
     "playRecording": "Слушать запись",
     "nowPlaying": "Сейчас воспроизводится",
     "noTracks": "Нет индивидуальных треков",
@@ -429,7 +430,11 @@
     "status": {
       "scheduled": "Запланирована",
       "in_progress": "Идет",
+      "pending": "Ожидается",
+      "active": "Активна",
+      "finishing": "Завершение",
       "completed": "Завершена",
+      "failed": "Ошибка",
       "cancelled": "Отменена",
       "finished": "Завершена",
       "recording": "Запись"
