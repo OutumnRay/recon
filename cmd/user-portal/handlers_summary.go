@@ -19,7 +19,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param id path string true "Meeting ID"
-// @Success 202 {object} models.SuccessResponse
+// @Success 202 {object} map[string]interface{} "Summary generation started successfully"
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
