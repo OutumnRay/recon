@@ -17,7 +17,7 @@ class Config:
     RABBITMQ_RESULT_QUEUE = os.getenv('RABBITMQ_RESULT_QUEUE', 'transcription_results')
 
     # Whisper Configuration
-    WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'medium')
+    WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'large')
     WHISPER_DEVICE = os.getenv('WHISPER_DEVICE', 'cuda')  # cpu or cuda
     WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'float16')  # int8, float16, float32
 
