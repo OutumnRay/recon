@@ -451,6 +451,10 @@
   "viewCompositeVideo": "View Composite Video",
   "processingVideo": "Processing...",
   "processingVideoDescription": "Merging video tracks and creating composite video",
+  "recordingInProgress": "Recording in progress",
+  "recordingInProgressDescription": "Composite video will be available after recording ends",
+  "compositeVideoNotAvailable": "Composite video not available",
+  "viewIndividualTracks": "View individual participant tracks instead",
   "nowSpeaking": "Now Speaking",
   "speaker": "Speaker",
   "participant": "Participant"

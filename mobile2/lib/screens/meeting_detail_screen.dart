@@ -673,6 +673,53 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   ),
                 ),
               ),
+            ] else if (recording.status == 'recording' || recording.status == 'started') ...[
+              // Recording in progress
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF991B1B).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF991B1B).withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 16,
+                      height: 16,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF991B1B),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.fiber_manual_record, color: Colors.white, size: 12),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.recordingInProgress,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF991B1B),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l10n.recordingInProgressDescription,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ] else if (recording.status == 'ended' && recording.tracks.where((t) => t.status == 'ended').length == recording.tracks.length) ...[
               // All tracks are ended, video is being processed
               Container(
@@ -720,35 +767,83 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                 ),
               ),
             ] else ...[
-              // Fallback: View individual tracks
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RecordingPlayerScreen(
-                          recording: recording,
-                          initialTabIndex: 0,
+              // Composite video not available - show beautiful placeholder
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.surfaceMuted,
+                      AppColors.surface,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.video_library_outlined,
+                        size: 32,
+                        color: AppColors.primary500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.compositeVideoNotAvailable,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.viewIndividualTracks,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RecordingPlayerScreen(
+                              recording: recording,
+                              initialTabIndex: 0,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.arrow_forward, size: 16),
+                      label: Text(l10n.viewSession),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary50,
+                        foregroundColor: AppColors.primary600,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: AppColors.primary200),
                         ),
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_forward, size: 16),
-                  label: Text(l10n.viewSession),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary50,
-                    foregroundColor: AppColors.primary600,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(color: AppColors.primary200),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],

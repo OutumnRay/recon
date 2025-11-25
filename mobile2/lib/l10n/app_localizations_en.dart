@@ -968,6 +968,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Merging video tracks and creating composite video';
 
   @override
+  String get recordingInProgress => 'Recording in progress';
+
+  @override
+  String get recordingInProgressDescription =>
+      'Composite video will be available after recording ends';
+
+  @override
+  String get compositeVideoNotAvailable => 'Composite video not available';
+
+  @override
+  String get viewIndividualTracks =>
+      'View individual participant tracks instead';
+
+  @override
   String get nowSpeaking => 'Now Speaking';
 
   @override

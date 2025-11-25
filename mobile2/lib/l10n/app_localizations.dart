@@ -1940,6 +1940,30 @@ abstract class AppLocalizations {
   /// **'Merging video tracks and creating composite video'**
   String get processingVideoDescription;
 
+  /// No description provided for @recordingInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording in progress'**
+  String get recordingInProgress;
+
+  /// No description provided for @recordingInProgressDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Composite video will be available after recording ends'**
+  String get recordingInProgressDescription;
+
+  /// No description provided for @compositeVideoNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Composite video not available'**
+  String get compositeVideoNotAvailable;
+
+  /// No description provided for @viewIndividualTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'View individual participant tracks instead'**
+  String get viewIndividualTracks;
+
   /// No description provided for @nowSpeaking.
   ///
   /// In en, this message translates to:

@@ -349,34 +349,46 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
     }
 
     if (_transcripts == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.failedToLoadTranscript,
-              style: const TextStyle(fontSize: 16),
+      return RefreshIndicator(
+        onRefresh: _loadTranscripts,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height - 200,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.failedToLoadTranscript,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadTranscripts,
+                    child: Text(l10n.retry),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadTranscripts,
-              child: Text(l10n.retry),
-            ),
-          ],
+          ),
         ),
       );
     }
 
-    return TranscriptViewer(
-      transcripts: _transcripts!,
-      onSeekToTime: (double time) async {
-        await _player.seekTo((time * 1000).toInt());
-        await _player.start();
-        // Switch back to player tab
-        _tabController.animateTo(0);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadTranscripts,
+      child: TranscriptViewer(
+        transcripts: _transcripts!,
+        onSeekToTime: (double time) async {
+          await _player.seekTo((time * 1000).toInt());
+          await _player.start();
+          // Switch back to player tab
+          _tabController.animateTo(0);
+        },
+      ),
     );
   }
 
@@ -388,29 +400,41 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
     }
 
     if (_transcripts == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.failedToLoadMemo,
-              style: const TextStyle(fontSize: 16),
+      return RefreshIndicator(
+        onRefresh: _loadTranscripts,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height - 200,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.failedToLoadMemo,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadTranscripts,
+                    child: Text(l10n.retry),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadTranscripts,
-              child: Text(l10n.retry),
-            ),
-          ],
+          ),
         ),
       );
     }
 
-    return MemoViewer(
-      transcripts: _transcripts!,
-      languageCode: localeService.locale.languageCode,
+    return RefreshIndicator(
+      onRefresh: _loadTranscripts,
+      child: MemoViewer(
+        transcripts: _transcripts!,
+        languageCode: localeService.locale.languageCode,
+      ),
     );
   }
 

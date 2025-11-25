@@ -968,6 +968,19 @@ class AppLocalizationsRu extends AppLocalizations {
       'Объединение видео дорожек и создание составного видео';
 
   @override
+  String get recordingInProgress => 'Идет запись';
+
+  @override
+  String get recordingInProgressDescription =>
+      'Составное видео будет доступно после завершения записи';
+
+  @override
+  String get compositeVideoNotAvailable => 'Составное видео недоступно';
+
+  @override
+  String get viewIndividualTracks => 'Просмотрите отдельные дорожки участников';
+
+  @override
   String get nowSpeaking => 'Сейчас говорит';
 
   @override

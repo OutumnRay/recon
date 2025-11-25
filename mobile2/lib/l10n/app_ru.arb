@@ -360,6 +360,10 @@
   "viewCompositeVideo": "Просмотр составного видео",
   "processingVideo": "Обработка...",
   "processingVideoDescription": "Объединение видео дорожек и создание составного видео",
+  "recordingInProgress": "Идет запись",
+  "recordingInProgressDescription": "Составное видео будет доступно после завершения записи",
+  "compositeVideoNotAvailable": "Составное видео недоступно",
+  "viewIndividualTracks": "Просмотрите отдельные дорожки участников",
   "nowSpeaking": "Сейчас говорит",
   "speaker": "Докладчик",
   "participant": "Участник"
