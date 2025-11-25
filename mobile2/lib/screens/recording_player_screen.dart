@@ -703,9 +703,22 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
                     IconButton(
                       onPressed: () {
                         // Prioritize video track, fallback to audio
-                        final trackToPlay = hasVideo
-                            ? tracks.firstWhere((t) => t.type == 'video')
-                            : tracks.firstWhere((t) => t.type == 'audio');
+                        TrackRecording? trackToPlay;
+                        if (hasVideo) {
+                          trackToPlay = tracks.firstWhere(
+                            (t) => t.type == 'video',
+                            orElse: () => tracks.first,
+                          );
+                        } else if (hasAudio) {
+                          trackToPlay = tracks.firstWhere(
+                            (t) => t.type == 'audio',
+                            orElse: () => tracks.first,
+                          );
+                        } else {
+                          trackToPlay = tracks.isNotEmpty ? tracks.first : null;
+                        }
+
+                        if (trackToPlay == null) return;
 
                         Navigator.push(
                           context,
