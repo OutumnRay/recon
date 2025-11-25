@@ -108,58 +108,49 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 
 	ctx := context.Background()
 
-	// Get transcriptions for all audio tracks
-	type TranscriptionData struct {
+	// Get transcriptions from transcription_phrases table
+	type TranscriptionPhrase struct {
 		ParticipantName string
-		Segments        string // JSON
+		StartTime       float64
+		EndTime         float64
+		Text            string
 	}
 
-	var transcriptions []TranscriptionData
+	var phrases []TranscriptionPhrase
 	err := up.db.DB.Raw(`
 		SELECT
 			COALESCE(p.name, 'Unknown') as participant_name,
-			t.transcription_segments as segments
-		FROM livekit_tracks t
+			tp.absolute_start_time as start_time,
+			tp.absolute_end_time as end_time,
+			tp.text
+		FROM transcription_phrases tp
+		INNER JOIN livekit_tracks t ON tp.track_id = t.id
 		LEFT JOIN livekit_participants p ON t.participant_sid = p.sid
 		WHERE t.room_sid = ?
 			AND t.type = 'audio'
-			AND t.transcription_segments IS NOT NULL
-		ORDER BY t.published_at ASC
-	`, roomSID).Scan(&transcriptions).Error
+		ORDER BY tp.absolute_start_time ASC
+	`, roomSID).Scan(&phrases).Error
 
 	if err != nil {
 		return fmt.Errorf("failed to get transcriptions: %w", err)
 	}
 
-	if len(transcriptions) == 0 {
+	if len(phrases) == 0 {
 		return fmt.Errorf("no transcriptions found for room %s", roomSID)
 	}
 
-	up.logger.Infof("   Found %d transcription(s) to process", len(transcriptions))
+	up.logger.Infof("   Found %d transcription phrase(s) to process", len(phrases))
 
 	// Collect all transcript segments
 	var allSegments []summary.TranscriptSegment
 
-	for _, trans := range transcriptions {
-		var segments []struct {
-			Start float64 `json:"start"`
-			End   float64 `json:"end"`
-			Text  string  `json:"text"`
-		}
-
-		if err := json.Unmarshal([]byte(trans.Segments), &segments); err != nil {
-			up.logger.Infof("Failed to parse segments for %s: %v", trans.ParticipantName, err)
-			continue
-		}
-
-		for _, seg := range segments {
-			allSegments = append(allSegments, summary.TranscriptSegment{
-				ParticipantName: trans.ParticipantName,
-				StartTime:       seg.Start,
-				EndTime:         seg.End,
-				Text:            seg.Text,
-			})
-		}
+	for _, phrase := range phrases {
+		allSegments = append(allSegments, summary.TranscriptSegment{
+			ParticipantName: phrase.ParticipantName,
+			StartTime:       phrase.StartTime,
+			EndTime:         phrase.EndTime,
+			Text:            phrase.Text,
+		})
 	}
 
 	if len(allSegments) == 0 {
