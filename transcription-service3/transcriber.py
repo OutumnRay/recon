@@ -85,6 +85,36 @@ class TranscriptionWorker:
         )
         print(f"MinIO client initialized successfully (endpoint: {minio_endpoint}, secure: {Config.MINIO_SECURE})")
 
+        # Test MinIO connectivity
+        self.test_minio_connection()
+
+    def test_minio_connection(self) -> bool:
+        """
+        Test MinIO connection by attempting to list buckets.
+
+        Returns:
+            True if connection successful, raises exception otherwise
+
+        Raises:
+            RuntimeError: If connection fails
+        """
+        try:
+            print("Testing MinIO connection...")
+            buckets = self.minio_client.list_buckets()
+            bucket_names = [b.name for b in buckets]
+            print(f"✅ MinIO connection successful. Available buckets: {bucket_names}")
+            return True
+        except Exception as e:
+            error_msg = str(e)
+            print(f"⚠️  MinIO connection test failed: {error_msg}")
+            if 'connection' in error_msg.lower() or 'resolve' in error_msg.lower():
+                print(f"❌ Cannot connect to MinIO endpoint. Check network and endpoint configuration.")
+            elif 'access' in error_msg.lower() or 'denied' in error_msg.lower():
+                print(f"❌ Access denied. Check MinIO credentials (access key and secret key).")
+            # Don't raise - allow service to start but warn about connection issues
+            # The actual download will fail with better error messages
+            return False
+
     def parse_minio_url(self, url: str) -> tuple[str, str]:
         """
         Parse MinIO URL to extract bucket and object key.
@@ -121,6 +151,9 @@ class TranscriptionWorker:
 
         Returns:
             Path to downloaded temporary file
+
+        Raises:
+            RuntimeError: If download fails (connection, auth, or file not found)
         """
         print(f"📥 Downloading from MinIO: {bucket}/{object_key}")
 
@@ -139,13 +172,35 @@ class TranscriptionWorker:
                 object_name=object_key,
                 file_path=temp_path
             )
-            print(f"✅ Downloaded to: {temp_path}")
+
+            # Verify file was downloaded and has content
+            if not os.path.exists(temp_path):
+                raise RuntimeError(f"Downloaded file not found at {temp_path}")
+
+            file_size = os.path.getsize(temp_path)
+            if file_size == 0:
+                raise RuntimeError(f"Downloaded file is empty: {bucket}/{object_key}")
+
+            print(f"✅ Downloaded to: {temp_path} (size: {file_size} bytes)")
             return temp_path
+
         except Exception as e:
             # Clean up temp file on error
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-            raise RuntimeError(f"Failed to download from MinIO: {e}")
+
+            # Provide more specific error messages
+            error_msg = str(e)
+            if 'NoSuchKey' in error_msg or 'not found' in error_msg.lower():
+                raise RuntimeError(f"File not found in MinIO: {bucket}/{object_key}")
+            elif 'AccessDenied' in error_msg or 'access denied' in error_msg.lower():
+                raise RuntimeError(f"Access denied to MinIO object: {bucket}/{object_key}. Check credentials.")
+            elif 'NoSuchBucket' in error_msg:
+                raise RuntimeError(f"MinIO bucket not found: {bucket}")
+            elif 'connection' in error_msg.lower() or 'resolve' in error_msg.lower():
+                raise RuntimeError(f"Cannot connect to MinIO. Check endpoint configuration. Error: {error_msg}")
+            else:
+                raise RuntimeError(f"Failed to download from MinIO ({bucket}/{object_key}): {error_msg}")
 
     def download_m3u8_and_combine_from_minio(self, m3u8_url: str) -> str:
         """
