@@ -150,7 +150,7 @@ func (ec *EgressClient) StartTrackEgress(ctx context.Context, roomName, trackID 
 		TrackId:  trackID,
 		Output: &livekit.TrackEgressRequest_File{
 			File: &livekit.DirectFileOutput{
-				Filepath: fmt.Sprintf("{room_name}/{track_id}"),
+				Filepath: "{room_name}/{track_id}",
 				Output: &livekit.DirectFileOutput_S3{
 					S3: &livekit.S3Upload{
 						Endpoint:       ec.config.S3Config.Endpoint,

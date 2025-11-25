@@ -71,7 +71,7 @@ func (s *FCMService) SendNotification(ctx context.Context, tokens []string, titl
 	}
 
 	// Send the message
-	response, err := s.client.SendMulticast(ctx, message)
+	response, err := s.client.SendEachForMulticast(ctx, message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send FCM message: %w", err)
 	}

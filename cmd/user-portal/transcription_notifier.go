@@ -18,14 +18,13 @@ import (
 
 // TranscriptionNotifier handles notifications when transcriptions are completed
 type TranscriptionNotifier struct {
-	up           *UserPortal
-	fcmService   *fcm.FCMService
-	llmClient    *llm.Client
-	conn         *amqp.Connection
-	channel      *amqp.Channel
-	stopChan     chan bool
-	rabbitmqURL  string
-	reconnecting bool
+	up          *UserPortal
+	fcmService  *fcm.FCMService
+	llmClient   *llm.Client
+	conn        *amqp.Connection
+	channel     *amqp.Channel
+	stopChan    chan bool
+	rabbitmqURL string
 }
 
 // TranscriptionCompletedMessage represents the message format from transcription service

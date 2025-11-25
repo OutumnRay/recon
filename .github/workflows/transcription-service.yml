@@ -1,4 +1,5 @@
 name: Build and Publish Transcription Service
+runs-on: self-hosted
 
 on:
   push:

@@ -87,14 +87,11 @@ func (w *SummarizationWorker) processLoop() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if w.isActive {
-				w.logger.Debug("Summarization worker is running (waiting for RabbitMQ integration)")
-			} else {
-				return
-			}
+	for range ticker.C {
+		if w.isActive {
+			w.logger.Debug("Summarization worker is running (waiting for RabbitMQ integration)")
+		} else {
+			return
 		}
 	}
 }

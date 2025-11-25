@@ -291,7 +291,7 @@ func (r *LiveKitRepository) GetTrackBySID(sid string) (*models.Track, error) {
 	}
 
 	// Unmarshal AudioFeatures from JSON
-	if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
+	if len(track.AudioFeaturesJSON) > 0 {
 		err = json.Unmarshal(track.AudioFeaturesJSON, &track.AudioFeatures)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal audio features: %w", err)
@@ -312,7 +312,7 @@ func (r *LiveKitRepository) ListTracksByParticipant(participantSID string) ([]*m
 
 	// Unmarshal AudioFeatures for each track
 	for _, track := range tracks {
-		if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
+		if len(track.AudioFeaturesJSON) > 0 {
 			err = json.Unmarshal(track.AudioFeaturesJSON, &track.AudioFeatures)
 			if err != nil {
 				return nil, fmt.Errorf("failed to unmarshal audio features: %w", err)
@@ -334,7 +334,7 @@ func (r *LiveKitRepository) ListTracksByRoom(roomSID string) ([]*models.Track, e
 
 	// Unmarshal AudioFeatures for each track
 	for _, track := range tracks {
-		if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
+		if len(track.AudioFeaturesJSON) > 0 {
 			err = json.Unmarshal(track.AudioFeaturesJSON, &track.AudioFeatures)
 			if err != nil {
 				return nil, fmt.Errorf("failed to unmarshal audio features: %w", err)
@@ -445,7 +445,7 @@ func (r *LiveKitRepository) GetTracksByRoomSID(roomSID string) ([]*models.Track,
 
 	// Unmarshal AudioFeatures for each track
 	for _, track := range tracks {
-		if track.AudioFeaturesJSON != nil && len(track.AudioFeaturesJSON) > 0 {
+		if len(track.AudioFeaturesJSON) > 0 {
 			err = json.Unmarshal(track.AudioFeaturesJSON, &track.AudioFeatures)
 			if err != nil {
 				return nil, fmt.Errorf("failed to unmarshal audio features: %w", err)

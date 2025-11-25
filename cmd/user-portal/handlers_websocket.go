@@ -39,7 +39,6 @@ type WSClient struct {
 	Send      chan WSMessage
 	MeetingID string
 	Portal    *UserPortal
-	mu        sync.Mutex
 }
 
 // WSHub manages all WebSocket connections
