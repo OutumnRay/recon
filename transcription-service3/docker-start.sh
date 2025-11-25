@@ -74,7 +74,7 @@ case "$ACTION" in
         fi
 
         # Start services
-        docker-compose -f "$COMPOSE_FILE" up -d
+        docker compose -f "$COMPOSE_FILE" up -d
 
         echo -e "${GREEN}✓ Service started!${NC}"
         echo ""
@@ -84,24 +84,24 @@ case "$ACTION" in
 
     stop)
         echo -e "${YELLOW}Stopping transcription service...${NC}"
-        docker-compose -f "$COMPOSE_FILE" down
+        docker compose -f "$COMPOSE_FILE" down
         echo -e "${GREEN}✓ Service stopped${NC}"
         ;;
 
     restart)
         echo -e "${YELLOW}Restarting transcription service...${NC}"
-        docker-compose -f "$COMPOSE_FILE" restart "$SERVICE_NAME"
+        docker compose -f "$COMPOSE_FILE" restart "$SERVICE_NAME"
         echo -e "${GREEN}✓ Service restarted${NC}"
         ;;
 
     logs)
         echo -e "${GREEN}Showing logs (Ctrl+C to exit)...${NC}"
-        docker-compose -f "$COMPOSE_FILE" logs -f "$SERVICE_NAME"
+        docker compose -f "$COMPOSE_FILE" logs -f "$SERVICE_NAME"
         ;;
 
     status)
         echo -e "${GREEN}Service Status:${NC}"
-        docker-compose -f "$COMPOSE_FILE" ps
+        docker compose -f "$COMPOSE_FILE" ps
         echo ""
 
         # Check if container is running
