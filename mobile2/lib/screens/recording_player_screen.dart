@@ -648,15 +648,18 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
                     // Play button
                     IconButton(
                       onPressed: () {
-                        // Navigate to the first track of this participant
-                        final firstTrack = tracks.first;
+                        // Prioritize video track, fallback to audio
+                        final trackToPlay = hasVideo
+                            ? tracks.firstWhere((t) => t.type == 'video')
+                            : tracks.firstWhere((t) => t.type == 'audio');
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => RecordingPlayerScreen(
                               recording: widget.recording,
                               isTrack: true,
-                              track: firstTrack,
+                              track: trackToPlay,
                             ),
                           ),
                         );
