@@ -78,6 +78,9 @@ dependencies:
   # JSON serialization
   json_annotation: ^4.9.0
 
+  # WebSocket support for real-time notifications
+  web_socket_channel: ^3.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

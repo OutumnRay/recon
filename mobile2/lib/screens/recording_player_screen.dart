@@ -11,6 +11,7 @@ import '../services/config_service.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
 import '../services/locale_service.dart';
+import '../services/notification_service.dart' as ns;
 import '../widgets/transcript_viewer.dart';
 import '../widgets/memo_viewer.dart';
 import '../l10n/app_localizations.dart';
@@ -59,6 +60,8 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   double _dragPosition = 0.0;
   Timer? _positionTimer;
   int _lastKnownPosition = 0;
+  ns.NotificationService? _notificationService;
+  void Function()? _notificationUnsubscribe;
 
   @override
   void initState() {
@@ -70,6 +73,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
     );
     _initializePlayer();
     _loadTranscripts();
+    _initializeNotifications();
 
     // Start timer to update UI periodically (needed for smooth progress bar)
     _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
@@ -82,6 +86,69 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
         }
       }
     });
+  }
+
+  Future<void> _initializeNotifications() async {
+    if (widget.meetingId == null) {
+      return;
+    }
+
+    try {
+      final configService = ConfigService();
+      final baseUrl = await configService.getApiUrl();
+      final storageService = StorageService();
+      final token = await storageService.getToken();
+
+      _notificationService = ns.NotificationService(
+        baseUrl: baseUrl,
+        getToken: () => token ?? '',
+      );
+
+      _notificationUnsubscribe = _notificationService!.subscribe(_handleNotification);
+      await _notificationService!.connect();
+
+      Logger.logInfo('Connected to notification service for meeting',
+        data: {'meetingId': widget.meetingId});
+    } catch (e) {
+      Logger.logError('Failed to connect to notification service', error: e);
+    }
+  }
+
+  void _handleNotification(ns.Notification notification) {
+    // Filter by meeting ID
+    if (notification.meetingId != null &&
+        notification.meetingId != widget.meetingId) {
+      return;
+    }
+
+    Logger.logInfo('Received notification', data: {
+      'type': notification.type.toString(),
+      'meetingId': notification.meetingId,
+    });
+
+    // Handle summary updates
+    if (notification.type == ns.NotificationEventType.summaryStarted ||
+        notification.type == ns.NotificationEventType.summaryCompleted ||
+        notification.type == ns.NotificationEventType.summaryFailed) {
+      if (mounted) {
+        _loadTranscripts();
+      }
+    }
+
+    // Handle transcription updates
+    if (notification.type == ns.NotificationEventType.transcriptionCompleted ||
+        notification.type == ns.NotificationEventType.transcriptionFailed) {
+      if (mounted) {
+        _loadTranscripts();
+      }
+    }
+
+    // Handle recording updates (might need to reload player)
+    if (notification.type == ns.NotificationEventType.recordingCompleted ||
+        notification.type == ns.NotificationEventType.compositeVideoCompleted) {
+      Logger.logInfo('Recording/composite video completed, consider reloading');
+      // Could add logic to reload the player if needed
+    }
   }
 
   Future<void> _loadTranscripts() async {
@@ -247,6 +314,8 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   @override
   void dispose() {
     _positionTimer?.cancel();
+    _notificationUnsubscribe?.call();
+    _notificationService?.disconnect();
     _player.release();
     _tabController.dispose();
     super.dispose();
