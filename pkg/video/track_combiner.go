@@ -69,6 +69,46 @@ func NewTrackCombiner(config TrackCombinerConfig) (*TrackCombiner, error) {
 	}, nil
 }
 
+// NewTrackCombinerFromEnv создает TrackCombiner из переменных окружения
+func NewTrackCombinerFromEnv() (*TrackCombiner, error) {
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	if endpoint == "" {
+		return nil, fmt.Errorf("MINIO_ENDPOINT not set")
+	}
+
+	accessKey := os.Getenv("MINIO_ACCESS_KEY")
+	if accessKey == "" {
+		return nil, fmt.Errorf("MINIO_ACCESS_KEY not set")
+	}
+
+	secretKey := os.Getenv("MINIO_SECRET_KEY")
+	if secretKey == "" {
+		return nil, fmt.Errorf("MINIO_SECRET_KEY not set")
+	}
+
+	bucket := os.Getenv("MINIO_BUCKET")
+	if bucket == "" {
+		bucket = "recontext"
+	}
+
+	// Определяем использование SSL
+	useSSL := false
+	if os.Getenv("MINIO_USE_SSL") == "true" {
+		useSSL = true
+	}
+
+	config := TrackCombinerConfig{
+		Endpoint:        endpoint,
+		AccessKeyID:     accessKey,
+		SecretAccessKey: secretKey,
+		BucketName:      bucket,
+		UseSSL:          useSSL,
+		WorkDir:         os.Getenv("TRACK_COMBINER_WORK_DIR"),
+	}
+
+	return NewTrackCombiner(config)
+}
+
 // CombineTracksByRoom скачивает и объединяет все треки для указанной комнаты
 func (tc *TrackCombiner) CombineTracksByRoom(ctx context.Context, meetingID, roomSID string) ([]CombinedTrack, error) {
 	// Формируем префикс для поиска файлов

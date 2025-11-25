@@ -24,6 +24,7 @@ type VideoPostProcessor struct {
 	db                  *database.DB
 	videoProcessor      *video.VideoProcessor
 	storageUploader     *video.StorageUploader
+	trackCombiner       *video.TrackCombiner
 	workDir             string
 	notificationService *notifications.NotificationService
 }
@@ -40,6 +41,13 @@ func NewVideoPostProcessor(db *database.DB, notificationService *notifications.N
 	storageUploader, err := video.NewStorageUploaderFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage uploader: %w", err)
+	}
+
+	// Создаем TrackCombiner для объединения HLS треков
+	trackCombiner, err := video.NewTrackCombinerFromEnv()
+	if err != nil {
+		log.Printf("⚠️ Failed to create track combiner: %v", err)
+		trackCombiner = nil // Продолжаем работу без TrackCombiner
 	}
 
 	// Проверяем/создаем бакет
@@ -62,6 +70,7 @@ func NewVideoPostProcessor(db *database.DB, notificationService *notifications.N
 		db:                  db,
 		videoProcessor:      videoProcessor,
 		storageUploader:     storageUploader,
+		trackCombiner:       trackCombiner,
 		workDir:             workDir,
 		notificationService: notificationService,
 	}, nil
@@ -95,6 +104,13 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 			"processing",
 			notifications.EventCompositeVideoStarted,
 		))
+	}
+
+	// 0. Объединяем HLS треки в MP4 файлы (если TrackCombiner доступен)
+	if vpp.trackCombiner != nil && meetingID != nil {
+		if err := vpp.combineHLSTracks(ctx, meetingID.String(), roomSID); err != nil {
+			log.Printf("⚠️ Failed to combine HLS tracks: %v (continuing with existing tracks)", err)
+		}
 	}
 
 	// 1. Проверяем, что все треки транскрибированы
@@ -674,5 +690,151 @@ func (vpp *VideoPostProcessor) saveSummariesToDatabase(meetingID uuid.UUID, summ
 	}
 
 	log.Printf("✅ Summaries saved for meeting %s", meetingID)
+	return nil
+}
+
+// combineHLSTracks объединяет HLS сегменты треков в единые MP4 файлы
+func (vpp *VideoPostProcessor) combineHLSTracks(ctx context.Context, meetingID, roomSID string) error {
+	log.Print("\n" + "==============================================")
+	log.Printf("🎬 Combining HLS tracks for meeting %s, room %s", meetingID, roomSID)
+	log.Print("==============================================")
+
+	// Объединяем все треки комнаты
+	tracks, err := vpp.trackCombiner.CombineTracksByRoom(ctx, meetingID, roomSID)
+	if err != nil {
+		return fmt.Errorf("failed to combine tracks: %w", err)
+	}
+
+	if len(tracks) == 0 {
+		log.Printf("⚠️ No HLS tracks found to combine")
+		return nil
+	}
+
+	log.Printf("📊 Processing %d HLS tracks", len(tracks))
+
+	// Обрабатываем каждый трек
+	successCount := 0
+	for i, track := range tracks {
+		if track.Error != nil {
+			log.Printf("%d. ❌ Track %s: %v", i+1, track.TrackID, track.Error)
+			continue
+		}
+
+		log.Printf("%d. ✅ Track %s:", i+1, track.TrackID)
+		log.Printf("   Type: %s", track.Type)
+		log.Printf("   Size: %.2f MB", float64(track.Size)/(1024*1024))
+		log.Printf("   Duration: %.2f seconds", track.Duration)
+		log.Printf("   Local path: %s", track.LocalPath)
+
+		// Загружаем объединенный трек обратно в MinIO
+		url, err := vpp.trackCombiner.UploadCombinedTrack(ctx, &track, meetingID, roomSID)
+		if err != nil {
+			log.Printf("   ⚠️ Upload failed: %v", err)
+			continue
+		}
+
+		log.Printf("   📤 Uploaded to: %s", url)
+
+		// Обновляем запись в базе данных
+		if err := vpp.updateTrackWithCombinedURL(track.TrackID, roomSID, url, track.Duration); err != nil {
+			log.Printf("   ⚠️ Failed to update database: %v", err)
+		} else {
+			log.Printf("   💾 Database updated")
+		}
+
+		// Очищаем временные файлы трека
+		if err := vpp.trackCombiner.Cleanup(track.TrackID); err != nil {
+			log.Printf("   ⚠️ Cleanup failed: %v", err)
+		}
+
+		successCount++
+	}
+
+	log.Printf("\n✅ Combined %d/%d tracks successfully", successCount, len(tracks))
+	return nil
+}
+
+// updateTrackWithCombinedURL обновляет запись трека с URL объединенного файла
+func (vpp *VideoPostProcessor) updateTrackWithCombinedURL(trackID, roomSID, url string, duration float64) error {
+	// Обновляем или создаем запись в livekit_egress_recordings
+	var existingRecording struct {
+		ID string
+	}
+
+	err := vpp.db.DB.Table("livekit_egress_recordings").
+		Select("id").
+		Where("track_sid = ?", trackID).
+		Where("room_sid = ?", roomSID).
+		First(&existingRecording).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return fmt.Errorf("failed to check existing recording: %w", err)
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		// Создаем новую запись
+		log.Printf("   💾 Creating new egress_recordings entry for track %s", trackID)
+
+		// Получаем meeting_id из room
+		var room struct {
+			MeetingID *uuid.UUID
+		}
+		if err := vpp.db.DB.Table("livekit_rooms").
+			Select("meeting_id").
+			Where("sid = ?", roomSID).
+			First(&room).Error; err != nil {
+			return fmt.Errorf("failed to get room: %w", err)
+		}
+
+		now := time.Now()
+		recording := map[string]interface{}{
+			"id":           uuid.New().String(),
+			"egress_id":    "EG_" + uuid.New().String()[:12],
+			"room_sid":     roomSID,
+			"room_name":    roomSID,
+			"meeting_id":   room.MeetingID,
+			"track_sid":    trackID,
+			"type":         "track_composite",
+			"status":       "ended",
+			"playlist_url": url,
+			"audio_only":   false,
+			"started_at":   now,
+			"ended_at":     now,
+			"created_at":   now,
+			"updated_at":   now,
+		}
+
+		if err := vpp.db.DB.Table("livekit_egress_recordings").Create(recording).Error; err != nil {
+			return fmt.Errorf("failed to create recording: %w", err)
+		}
+	} else {
+		// Обновляем существующую запись
+		log.Printf("   📝 Updating existing egress_recordings entry for track %s", trackID)
+
+		updates := map[string]interface{}{
+			"playlist_url": url,
+			"status":       "ended",
+			"updated_at":   time.Now(),
+		}
+
+		if err := vpp.db.DB.Table("livekit_egress_recordings").
+			Where("track_sid = ?", trackID).
+			Where("room_sid = ?", roomSID).
+			Updates(updates).Error; err != nil {
+			return fmt.Errorf("failed to update recording: %w", err)
+		}
+	}
+
+	// Также обновляем livekit_tracks с продолжительностью
+	if duration > 0 {
+		vpp.db.DB.Table("livekit_tracks").
+			Where("sid = ?", trackID).
+			Where("room_sid = ?", roomSID).
+			Updates(map[string]interface{}{
+				"transcription_duration": duration,
+				"updated_at":             time.Now(),
+			})
+	}
+
 	return nil
 }
