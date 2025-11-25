@@ -1001,13 +1001,15 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 	// Get the room to find the meeting ID
 	mp.logger.Infof("📋 Looking up room to find associated meeting...")
 	var dbRoom models.Room
+	var meeting *models.Meeting
+
 	if err := mp.db.DB.Where("sid = ?", roomSID).First(&dbRoom).Error; err != nil {
 		mp.logger.Errorf("❌ Failed to find room by SID: %v", err)
 	} else if dbRoom.MeetingID != nil {
 		mp.logger.Infof("📅 Room is associated with meeting: %s", *dbRoom.MeetingID)
 
 		// Update meeting status and recording flags
-		meeting, err := mp.meetingRepo.GetMeetingByID(*dbRoom.MeetingID)
+		meeting, err = mp.meetingRepo.GetMeetingByID(*dbRoom.MeetingID)
 		if err != nil {
 			mp.logger.Errorf("❌ Failed to get meeting %s: %v", *dbRoom.MeetingID, err)
 		} else {
@@ -1035,6 +1037,35 @@ func (mp *ManagingPortal) handleRoomFinished(req models.WebhookRequest) error {
 		}
 	} else {
 		mp.logger.Infof("ℹ️ Room is not associated with any meeting")
+	}
+
+	// Start composite video generation if recording is enabled
+	if dbRoom.MeetingID != nil && meeting != nil && meeting.NeedsRecord {
+		mp.logger.Infof("🎬 Starting composite video generation for room %s", roomSID)
+
+		// Check if room has any video tracks
+		hasVideo := false
+		for _, track := range tracks {
+			if track.Type == "video" {
+				hasVideo = true
+				break
+			}
+		}
+
+		// Start composite egress asynchronously
+		go func(roomName string, roomSID string, audioOnly bool, meetingID uuid.UUID) {
+			egressID, err := mp.startRoomCompositeEgress(roomName, roomSID, audioOnly)
+			if err != nil {
+				mp.logger.Errorf("❌ Failed to start composite video generation: %v", err)
+			} else if egressID != "" {
+				mp.logger.Infof("✅ Composite video generation started with egress ID: %s", egressID)
+
+				// Update room with composite egress ID using direct DB update
+				if err := mp.db.DB.Model(&models.Room{}).Where("sid = ?", roomSID).Update("egress_id", egressID).Error; err != nil {
+					mp.logger.Errorf("❌ Failed to save composite egress ID: %v", err)
+				}
+			}
+		}(dbRoom.Name, roomSID, !hasVideo, *dbRoom.MeetingID)
 	}
 
 	mp.logger.Infof("✅ room_finished event processed successfully")
