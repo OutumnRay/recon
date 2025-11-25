@@ -225,7 +225,6 @@ func (db *DB) RunMigrations() error {
 		&models.Track{},
 		&models.WebhookEventLog{},
 		&models.EgressRecording{},
-		&LiveKitEgress{},
 		&MeetingSubject{},
 		&Meeting{},
 		&MeetingParticipant{},

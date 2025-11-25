@@ -66,7 +66,6 @@ type ManagingPortal struct {
 	departmentRepo    *database.DepartmentRepository // Department repository
 	meetingRepo       *database.MeetingRepository    // Meeting repository
 	liveKitRepo       *database.LiveKitRepository    // LiveKit repository
-	egressRepo        *database.EgressRepository     // LiveKit Egress repository
 	taskRepo          *database.TaskRepository       // Task repository
 	mailer            *email.Mailer                  // Email service
 	egressClient      *livekit.EgressClient          // LiveKit Egress client
@@ -112,7 +111,6 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 	departmentRepo := database.NewDepartmentRepository(db)
 	meetingRepo := database.NewMeetingRepository(db)
 	liveKitRepo := database.NewLiveKitRepository(db)
-	egressRepo := database.NewEgressRepository(db)
 	taskRepo := database.NewTaskRepository(db.DB)
 
 	// Initialize email mailer
@@ -158,7 +156,6 @@ func NewManagingPortal(cfg *config.Config, log *logger.Logger) (*ManagingPortal,
 		departmentRepo:    departmentRepo,
 		meetingRepo:       meetingRepo,
 		liveKitRepo:       liveKitRepo,
-		egressRepo:        egressRepo,
 		taskRepo:          taskRepo,
 		mailer:            mailer,
 		egressClient:      egressClient,
@@ -811,27 +808,6 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/livekit/webhook-events", chainMiddleware(
 		http.HandlerFunc(mp.listWebhookEventsHandler),
-		authMiddleware,
-	))
-
-	// LiveKit Egress endpoints (authenticated)
-	mux.Handle("/api/v1/livekit/egress/room/start", chainMiddleware(
-		http.HandlerFunc(mp.startRoomRecordingHandler),
-		authMiddleware,
-	))
-
-	mux.Handle("/api/v1/livekit/egress/track/start", chainMiddleware(
-		http.HandlerFunc(mp.startTrackRecordingHandler),
-		authMiddleware,
-	))
-
-	mux.Handle("/api/v1/livekit/egress/stop", chainMiddleware(
-		http.HandlerFunc(mp.stopRoomRecordingHandler),
-		authMiddleware,
-	))
-
-	mux.Handle("/api/v1/livekit/egress", chainMiddleware(
-		http.HandlerFunc(mp.listEgressHandler),
 		authMiddleware,
 	))
 

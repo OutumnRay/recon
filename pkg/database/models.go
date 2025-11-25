@@ -566,47 +566,6 @@ type PasswordResetToken struct {
 	User User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-// LiveKitEgress - запись (egress) сессии LiveKit на диск или в облако
-type LiveKitEgress struct {
-	// ID - уникальный идентификатор записи (EgressID от LiveKit)
-	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
-	// RoomSID - идентификатор комнаты LiveKit, которая записывается
-	RoomSID string `gorm:"type:varchar(255);not null;index" json:"room_sid"`
-	// RoomName - название комнаты LiveKit
-	RoomName string `gorm:"type:varchar(255);not null;index" json:"room_name"`
-	// Type - тип записи (room_composite, track_composite, track)
-	Type string `gorm:"type:varchar(50);not null" json:"type"`
-	// Status - статус записи (pending, active, finishing, complete, failed)
-	Status string `gorm:"type:varchar(50);not null;index" json:"status"`
-	// TrackID - ID трека для записи (для типа track)
-	TrackID *string `gorm:"type:varchar(255)" json:"track_id,omitempty"`
-	// AudioTrackID - ID аудио-трека для записи (для типа track_composite)
-	AudioTrackID *string `gorm:"type:varchar(255)" json:"audio_track_id,omitempty"`
-	// VideoTrackID - ID видео-трека для записи (для типа track_composite)
-	VideoTrackID *string `gorm:"type:varchar(255)" json:"video_track_id,omitempty"`
-	// FilePath - путь к файлу записи (S3 или локальный путь)
-	FilePath *string `gorm:"type:text" json:"file_path,omitempty"`
-	// FileSize - размер файла записи в байтах
-	FileSize *int64 `gorm:"type:bigint" json:"file_size,omitempty"`
-	// Duration - длительность записи в секундах
-	Duration *int64 `gorm:"type:bigint" json:"duration,omitempty"`
-	// Error - сообщение об ошибке, если запись не удалась
-	Error *string `gorm:"type:text" json:"error,omitempty"`
-	// StartedAt - время начала записи
-	StartedAt *time.Time `gorm:"type:timestamp" json:"started_at,omitempty"`
-	// EndedAt - время завершения записи
-	EndedAt *time.Time `gorm:"type:timestamp" json:"ended_at,omitempty"`
-	// CreatedAt - время создания записи о записи
-	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
-	// UpdatedAt - время последнего обновления записи о записи
-	UpdatedAt time.Time `gorm:"not null;default:now()" json:"updated_at"`
-
-	// Relations
-	// Room - комната LiveKit, которая записывается
-	Room LiveKitRoom `gorm:"foreignKey:RoomSID;references:Sid;constraint:OnDelete:CASCADE" json:"-"`
-}
-
-// TableName overrides for consistency
 // TemporaryUser - временный анонимный пользователь для встречи
 type TemporaryUser struct {
 	// ID - уникальный идентификатор временного пользователя
@@ -638,7 +597,6 @@ func (LiveKitRoom) TableName() string         { return "livekit_rooms" }
 func (LiveKitParticipant) TableName() string  { return "livekit_participants" }
 func (LiveKitTrack) TableName() string        { return "livekit_tracks" }
 func (LiveKitWebhookEvent) TableName() string { return "livekit_webhook_events" }
-func (LiveKitEgress) TableName() string       { return "livekit_egress" }
 func (MeetingSubject) TableName() string      { return "meeting_subjects" }
 func (Meeting) TableName() string             { return "meetings" }
 func (MeetingParticipant) TableName() string  { return "meeting_participants" }
