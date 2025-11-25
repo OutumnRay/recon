@@ -133,8 +133,12 @@ class TranscriptionWorker:
         temp_file.close()
 
         try:
-            # Download object from MinIO
-            self.minio_client.fget_object(bucket, object_key, temp_path)
+            # Download object from MinIO (new API in minio 8.x)
+            self.minio_client.fget_object(
+                bucket_name=bucket,
+                object_name=object_key,
+                file_path=temp_path
+            )
             print(f"✅ Downloaded to: {temp_path}")
             return temp_path
         except Exception as e:
@@ -200,9 +204,13 @@ class TranscriptionWorker:
                 for i, segment_key in enumerate(segments):
                     print(f"📥 Downloading segment {i+1}/{len(segments)}: {segment_key}")
 
-                    # Download segment from MinIO
+                    # Download segment from MinIO (new API in minio 8.x)
                     segment_path = os.path.join(temp_dir, f"segment_{i:04d}.ts")
-                    self.minio_client.fget_object(bucket, segment_key, segment_path)
+                    self.minio_client.fget_object(
+                        bucket_name=bucket,
+                        object_name=segment_key,
+                        file_path=segment_path
+                    )
 
                     segment_files.append(segment_path)
                     print(f"✅ Downloaded segment {i+1}/{len(segments)}")

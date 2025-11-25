@@ -208,12 +208,12 @@ class TranscriptionConsumer:
             temp_file.close()
 
             try:
-                # Upload to MinIO
+                # Upload to MinIO (new API in minio 8.x)
                 print(f"📤 Uploading transcription JSON to MinIO: {bucket}/{json_object_key}")
                 self.minio_client.fput_object(
-                    bucket,
-                    json_object_key,
-                    temp_file.name,
+                    bucket_name=bucket,
+                    object_name=json_object_key,
+                    file_path=temp_file.name,
                     content_type='application/json'
                 )
 
