@@ -446,7 +446,13 @@ class TranscriptionWorker:
             Path to downloaded temporary file
         """
         # Check if this is a MinIO storage URL
-        is_minio_url = 'storage.recontext.online' in audio_url or Config.MINIO_ENDPOINT in audio_url
+        # Match: api.storage.recontext.online, minio:9000, localhost:9000, or configured endpoint
+        is_minio_url = (
+            'storage.recontext.online' in audio_url or
+            Config.MINIO_ENDPOINT in audio_url or
+            'minio:' in audio_url or  # Docker internal hostname
+            'minio/' in audio_url     # Alternative format
+        )
 
         # Check if this is an m3u8 playlist
         if audio_url.endswith('.m3u8') or 'playlist.m3u8' in audio_url:
