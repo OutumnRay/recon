@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"Recontext.online/pkg/auth"
+	"Recontext.online/pkg/notifications"
 )
 
 var upgrader = websocket.Upgrader{
@@ -331,4 +332,156 @@ func (up *UserPortal) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Start pumps in goroutines
 	go client.WritePump()
 	go client.ReadPump()
+}
+
+// NotificationClient represents a WebSocket client for user notifications
+type NotificationClient struct {
+	ID             string
+	UserID         uuid.UUID
+	Conn           *websocket.Conn
+	Send           chan *notifications.Notification
+	Portal         *UserPortal
+	Subscriber     *notifications.Subscriber
+}
+
+// handleNotificationsWebSocket handles WebSocket connections for real-time notifications
+// @Summary WebSocket endpoint for real-time notifications
+// @Description Establishes WebSocket connection for receiving real-time updates about meetings, recordings, transcriptions, etc.
+// @Tags notifications
+// @Accept json
+// @Produce json
+// @Success 101 {string} string "Switching Protocols"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 500 {string} string "Internal Server Error"
+// @Security BearerAuth
+// @Router /api/v1/notifications/ws [get]
+func (up *UserPortal) handleNotificationsWebSocket(w http.ResponseWriter, r *http.Request) {
+	// Extract user claims from context
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.logger.Error("User claims not found in context")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Upgrade HTTP connection to WebSocket
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		up.logger.Errorf("Failed to upgrade connection: %v", err)
+		return
+	}
+
+	// Subscribe to notifications
+	subscriber := up.notificationService.Subscribe(claims.UserID, notifications.SubscriptionFilters{
+		// Subscribe to all events by default - client can filter
+	})
+
+	// Create notification client
+	client := &NotificationClient{
+		ID:         uuid.New().String(),
+		UserID:     claims.UserID,
+		Conn:       conn,
+		Send:       make(chan *notifications.Notification, 256),
+		Portal:     up,
+		Subscriber: subscriber,
+	}
+
+	up.logger.Infof("Notification WebSocket client connected: user=%s", claims.UserID)
+
+	// Send welcome message
+	welcomeNotification := &notifications.Notification{
+		ID:        uuid.New().String(),
+		Type:      "system.connected",
+		Timestamp: time.Now(),
+		Message:   "Connected to notification service",
+	}
+	client.Send <- welcomeNotification
+
+	// Start pumps
+	go client.writeNotificationPump()
+	go client.readNotificationPump()
+
+	// Forward notifications from service to client
+	go client.forwardNotifications()
+}
+
+// writeNotificationPump writes notifications to the WebSocket connection
+func (nc *NotificationClient) writeNotificationPump() {
+	ticker := time.NewTicker(54 * time.Second)
+	defer func() {
+		ticker.Stop()
+		nc.Conn.Close()
+	}()
+
+	for {
+		select {
+		case notification, ok := <-nc.Send:
+			nc.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if !ok {
+				nc.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			err := nc.Conn.WriteJSON(notification)
+			if err != nil {
+				return
+			}
+
+		case <-ticker.C:
+			nc.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := nc.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}
+
+// readNotificationPump reads messages from the WebSocket connection
+func (nc *NotificationClient) readNotificationPump() {
+	defer func() {
+		nc.Portal.notificationService.Unsubscribe(nc.Subscriber.ID)
+		nc.Conn.Close()
+	}()
+
+	nc.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	nc.Conn.SetPongHandler(func(string) error {
+		nc.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
+	for {
+		var msg map[string]interface{}
+		err := nc.Conn.ReadJSON(&msg)
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				nc.Portal.logger.Errorf("WebSocket error: %v", err)
+			}
+			break
+		}
+
+		// Handle ping/pong and subscription updates
+		if msgType, ok := msg["type"].(string); ok {
+			if msgType == "ping" {
+				pong := &notifications.Notification{
+					ID:        uuid.New().String(),
+					Type:      "system.pong",
+					Timestamp: time.Now(),
+				}
+				nc.Send <- pong
+			}
+		}
+	}
+}
+
+// forwardNotifications forwards notifications from the service to the WebSocket client
+func (nc *NotificationClient) forwardNotifications() {
+	for notification := range nc.Subscriber.Channel {
+		select {
+		case nc.Send <- notification:
+			// Successfully forwarded
+		default:
+			// Client is slow, drop notification
+			nc.Portal.logger.Error("Dropped notification for slow client: user=" + nc.UserID.String())
+		}
+	}
 }

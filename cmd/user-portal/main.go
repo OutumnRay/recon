@@ -25,6 +25,7 @@ import (
 	"Recontext.online/pkg/llm"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
+	"Recontext.online/pkg/notifications"
 	"Recontext.online/pkg/rabbitmq"
 
 	_ "Recontext.online/cmd/user-portal/docs" // Import generated docs
@@ -59,22 +60,23 @@ type UserPortal struct {
 	config                   *config.Config
 	logger                   *logger.Logger
 	jwtManager               *auth.JWTManager
-	db                       *database.DB                   // Database connection
-	userRepo                 *database.UserRepository       // User repository
-	departmentRepo           *database.DepartmentRepository // Department repository
-	meetingRepo              *database.MeetingRepository    // Meeting repository
-	liveKitRepo              *database.LiveKitRepository    // LiveKit repository
-	fcmDeviceRepo            *database.FCMDeviceRepository  // FCM device repository
-	taskRepo                 *database.TaskRepository       // Task repository
-	recordings               map[string]*models.Recording   // In-memory recordings store
-	prometheusMetrics        *metrics.ServiceMetrics        // Prometheus metrics
-	embeddingsClient         *embeddings.EmbeddingsClient   // Embeddings client for RAG
-	emailService             EmailServiceInterface          // Email service for sending emails
-	wsHub                    *WSHub                         // WebSocket hub for real-time communication
-	rabbitMQPublisher        *rabbitmq.Publisher            // RabbitMQ publisher for transcription tasks
-	transcriptionScheduler   *TranscriptionScheduler        // Automatic transcription scheduler
-	fcmService               *fcm.FCMService                // FCM service for push notifications
-	transcriptionNotifier    *TranscriptionNotifier         // Notifier for transcription completion events
+	db                       *database.DB                      // Database connection
+	userRepo                 *database.UserRepository          // User repository
+	departmentRepo           *database.DepartmentRepository    // Department repository
+	meetingRepo              *database.MeetingRepository       // Meeting repository
+	liveKitRepo              *database.LiveKitRepository       // LiveKit repository
+	fcmDeviceRepo            *database.FCMDeviceRepository     // FCM device repository
+	taskRepo                 *database.TaskRepository          // Task repository
+	recordings               map[string]*models.Recording      // In-memory recordings store
+	prometheusMetrics        *metrics.ServiceMetrics           // Prometheus metrics
+	embeddingsClient         *embeddings.EmbeddingsClient      // Embeddings client for RAG
+	emailService             EmailServiceInterface             // Email service for sending emails
+	wsHub                    *WSHub                            // WebSocket hub for real-time communication
+	rabbitMQPublisher        *rabbitmq.Publisher               // RabbitMQ publisher for transcription tasks
+	transcriptionScheduler   *TranscriptionScheduler           // Automatic transcription scheduler
+	fcmService               *fcm.FCMService                   // FCM service for push notifications
+	transcriptionNotifier    *TranscriptionNotifier            // Notifier for transcription completion events
+	notificationService      *notifications.NotificationService // Real-time notification service
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -165,24 +167,29 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		log.Info("FCM_CREDENTIALS_PATH not set, push notifications disabled")
 	}
 
+	// Initialize notification service for real-time updates
+	notificationService := notifications.NewNotificationService()
+	log.Info("Real-time notification service initialized")
+
 	return &UserPortal{
-		config:            cfg,
-		logger:            log,
-		jwtManager:        jwtManager,
-		db:                db,
-		userRepo:          userRepo,
-		departmentRepo:    departmentRepo,
-		meetingRepo:       meetingRepo,
-		liveKitRepo:       liveKitRepo,
-		fcmDeviceRepo:     fcmDeviceRepo,
-		taskRepo:          taskRepo,
-		recordings:        make(map[string]*models.Recording),
-		prometheusMetrics: metrics.NewServiceMetrics("user_portal"),
-		embeddingsClient:  embeddingsClient,
-		emailService:      mailer,
-		wsHub:             wsHub,
-		rabbitMQPublisher: rabbitMQPublisher,
-		fcmService:        fcmService,
+		config:              cfg,
+		logger:              log,
+		jwtManager:          jwtManager,
+		db:                  db,
+		userRepo:            userRepo,
+		departmentRepo:      departmentRepo,
+		meetingRepo:         meetingRepo,
+		liveKitRepo:         liveKitRepo,
+		fcmDeviceRepo:       fcmDeviceRepo,
+		taskRepo:            taskRepo,
+		recordings:          make(map[string]*models.Recording),
+		prometheusMetrics:   metrics.NewServiceMetrics("user_portal"),
+		embeddingsClient:    embeddingsClient,
+		emailService:        mailer,
+		wsHub:               wsHub,
+		rabbitMQPublisher:   rabbitMQPublisher,
+		fcmService:          fcmService,
+		notificationService: notificationService,
 	}, nil
 }
 
@@ -1113,6 +1120,12 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/fcm/unregister", chainMiddleware(
 		http.HandlerFunc(up.unregisterFCMDeviceHandler),
+		authMiddleware,
+	))
+
+	// Real-time notifications WebSocket endpoint
+	mux.Handle("/api/v1/notifications/ws", chainMiddleware(
+		http.HandlerFunc(up.handleNotificationsWebSocket),
 		authMiddleware,
 	))
 

@@ -9,6 +9,7 @@ import (
 
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
+	"Recontext.online/pkg/notifications"
 	"Recontext.online/pkg/summary"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -95,6 +96,14 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 		up.logger.Errorf("Failed to update summary status: %v", err)
 	}
 
+	// Send real-time notification: summary started
+	up.notificationService.Notify(notifications.NewSummaryStatusNotification(
+		meetingID,
+		"processing",
+		notifications.EventSummaryStarted,
+		"",
+	))
+
 	// Start summary generation in background
 	go func() {
 		if err := up.generateSummaryForRoom(roomSID, meetingID, meeting.Title); err != nil {
@@ -106,6 +115,14 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 					"summary_status": "failed",
 					"summary_error":  err.Error(),
 				})
+
+			// Send real-time notification: summary failed
+			up.notificationService.Notify(notifications.NewSummaryStatusNotification(
+				meetingID,
+				"failed",
+				notifications.EventSummaryFailed,
+				err.Error(),
+			))
 		}
 	}()
 
@@ -237,6 +254,14 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 		}).Error; err != nil {
 		return fmt.Errorf("failed to save summaries: %w", err)
 	}
+
+	// Send real-time notification: summary completed
+	up.notificationService.Notify(notifications.NewSummaryStatusNotification(
+		meetingID,
+		"completed",
+		notifications.EventSummaryCompleted,
+		"",
+	))
 
 	up.logger.Infof("✅ Summary generation completed for meeting %s", meetingID)
 	return nil
