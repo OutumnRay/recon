@@ -366,12 +366,12 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 	query := r.db.DB.Model(&Meeting{})
 
 	if req.Status != nil {
-		// Permanent meetings should ALWAYS be shown regardless of status filter
-		query = query.Where("(status = ? OR is_permanent = ?)", *req.Status, true)
+		// Filter by exact status - cancelled meetings only shown when explicitly requested
+		query = query.Where("status = ?", *req.Status)
 	} else if req.ExcludeCancelled {
-		// Exclude cancelled meetings unless specifically requested
-		// But always include permanent meetings regardless
-		query = query.Where("(status != ? OR is_permanent = ?)", "cancelled", true)
+		// Exclude cancelled meetings by default (including permanent meetings)
+		// Cancelled meetings should ONLY appear in "Cancelled" tab
+		query = query.Where("status != ?", "cancelled")
 	}
 
 	if req.Type != nil {

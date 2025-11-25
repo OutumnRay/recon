@@ -137,9 +137,10 @@ export const Meetings: React.FC = () => {
 
       // Apply client-side filtering for special cases
       if (statusFilter === 'permanent') {
-        // permanent - only permanent (not cancelled)
+        // permanent - only permanent meetings
+        // Backend already excludes cancelled meetings by default
         filteredItems = filteredItems.filter(
-          m => (m.is_permanent || m.recurrence === 'permanent') && m.status !== 'cancelled'
+          m => (m.is_permanent || m.recurrence === 'permanent')
         );
       } else if (statusFilter === 'in_progress') {
         // go - only if there are active participants

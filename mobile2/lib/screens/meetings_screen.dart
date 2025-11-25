@@ -224,10 +224,10 @@ class _MeetingsScreenState extends State<MeetingsScreen>
         filtered = filtered.where((m) => m.activeParticipantsCount > 0).toList();
         break;
       case 'permanent':
-        // Filter to only permanent meetings (not cancelled)
+        // Filter to only permanent meetings
+        // Backend already excludes cancelled meetings by default
         filtered = filtered.where((m) =>
-          (m.isPermanent || m.recurrence == 'permanent') &&
-          m.status != 'cancelled'
+          (m.isPermanent || m.recurrence == 'permanent')
         ).toList();
         break;
       case 'completed':
