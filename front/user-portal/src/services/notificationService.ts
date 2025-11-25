@@ -38,13 +38,18 @@ export type NotificationHandler = (notification: Notification) => void;
 export class NotificationService {
   private ws: WebSocket | null = null;
   private handlers: Set<NotificationHandler> = new Set();
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private reconnectTimeout: number | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
   private baseReconnectDelay = 1000; // 1 second
   private isIntentionallyClosed = false;
+  private baseUrl: string;
+  private getToken: () => string | null;
 
-  constructor(private baseUrl: string, private getToken: () => string | null) {}
+  constructor(baseUrl: string, getToken: () => string | null) {
+    this.baseUrl = baseUrl;
+    this.getToken = getToken;
+  }
 
   /**
    * Connect to the WebSocket endpoint
@@ -231,7 +236,7 @@ export function useNotificationService(
 
   // Subscribe to notifications if handler provided
   if (handler) {
-    const unsubscribe = service.subscribe(handler);
+    service.subscribe(handler);
     // Note: In a real React hook, this should be wrapped in useEffect with cleanup
     return service;
   }
