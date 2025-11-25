@@ -1,5 +1,4 @@
 name: Build and Publish Transcription Service
-runs-on: self-hosted
 
 on:
   push:
@@ -17,7 +16,7 @@ env:
 
 jobs:
   build-and-push-transcription-service:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted   # ✔️ Перенесено сюда
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
