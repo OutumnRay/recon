@@ -681,6 +681,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabRecordings => 'Recordings';
 
   @override
+  String get tabTasks => 'Tasks';
+
+  @override
   String get recordings => 'Recordings';
 
   @override

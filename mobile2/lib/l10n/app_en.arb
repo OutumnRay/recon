@@ -305,6 +305,7 @@
 
   "tabInfo": "Info",
   "tabRecordings": "Recordings",
+  "tabTasks": "Tasks",
   "recordings": "Recordings",
   "noRecordingsFound": "No recordings found",
   "recordingsHint": "Recordings will appear here after the meeting ends",

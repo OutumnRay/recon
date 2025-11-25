@@ -1400,6 +1400,12 @@ abstract class AppLocalizations {
   /// **'Recordings'**
   String get tabRecordings;
 
+  /// No description provided for @tabTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks'**
+  String get tabTasks;
+
   /// No description provided for @recordings.
   ///
   /// In en, this message translates to:

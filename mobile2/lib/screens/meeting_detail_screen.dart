@@ -12,7 +12,7 @@ import '../services/config_service.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/error_display.dart';
-import '../widgets/task_card.dart';
+import '../widgets/expandable_task_card.dart';
 import '../theme/app_colors.dart';
 import 'video_call_screen.dart';
 import 'recording_player_screen.dart';
@@ -328,7 +328,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           tabs: [
             Tab(text: l10n.tabInfo),
             Tab(text: l10n.tabRecordings),
-            const Tab(text: 'Tasks'),
+            Tab(text: l10n.tabTasks),
           ],
         ),
       ),
@@ -1706,18 +1706,29 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           );
         }
 
+        // Sort tasks: incomplete first, completed last
+        final sortedTasks = List<Task>.from(tasks);
+        sortedTasks.sort((a, b) {
+          if (a.status == TaskStatus.completed && b.status != TaskStatus.completed) {
+            return 1; // Move completed to bottom
+          } else if (a.status != TaskStatus.completed && b.status == TaskStatus.completed) {
+            return -1; // Keep incomplete at top
+          }
+          return 0; // Keep original order within same status
+        });
+
         return RefreshIndicator(
           onRefresh: () async {
             setState(() {}); // Trigger rebuild to reload tasks
           },
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: tasks.length,
+            itemCount: sortedTasks.length,
             itemBuilder: (context, index) {
-              final task = tasks[index];
-              return TaskCard(
+              final task = sortedTasks[index];
+              return ExpandableTaskCard(
                 task: task,
-                onTap: () => _showTaskDetails(task),
+                onStatusToggle: (isCompleted) => _toggleTaskStatus(task, isCompleted),
               );
             },
           ),
@@ -1740,6 +1751,51 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
       return await taskService.getMeetingTasks(_meeting!.id);
     } catch (e) {
       throw Exception('Failed to load tasks: $e');
+    }
+  }
+
+  Future<void> _toggleTaskStatus(Task task, bool isCompleted) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      final apiUrl = await _configService.getApiUrl();
+      final authService = AuthService(_apiClient);
+      final taskService = TaskService(
+        baseUrl: apiUrl.replaceAll('/api/v1', ''),
+        authService: authService,
+      );
+
+      // Update task status
+      final newStatus = isCompleted ? TaskStatus.completed : TaskStatus.pending;
+      await taskService.updateTaskStatus(task.id, newStatus);
+
+      // Refresh the tasks list
+      setState(() {});
+
+      if (!mounted) return;
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isCompleted
+                ? 'Task marked as completed'
+                : 'Task marked as incomplete',
+          ),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.error}: Failed to update task'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 

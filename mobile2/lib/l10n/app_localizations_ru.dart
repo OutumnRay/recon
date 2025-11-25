@@ -682,6 +682,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tabRecordings => 'Записи';
 
   @override
+  String get tabTasks => 'Задачи';
+
+  @override
   String get recordings => 'Записи';
 
   @override

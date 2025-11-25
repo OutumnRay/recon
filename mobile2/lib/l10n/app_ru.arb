@@ -254,6 +254,7 @@
 
   "tabInfo": "Информация",
   "tabRecordings": "Записи",
+  "tabTasks": "Задачи",
   "recordings": "Записи",
   "noRecordingsFound": "Записи не найдены",
   "recordingsHint": "Записи появятся здесь после завершения встречи",
