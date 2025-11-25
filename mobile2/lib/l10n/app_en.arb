@@ -455,6 +455,8 @@
   "recordingInProgressDescription": "Composite video will be available after recording ends",
   "compositeVideoNotAvailable": "Composite video not available",
   "viewIndividualTracks": "View individual participant tracks instead",
+  "viewIndividualTracksDescription": "Separate audio and video tracks are available for each participant",
+  "availableParticipantTracks": "Available Participant Tracks",
   "nowSpeaking": "Now Speaking",
   "speaker": "Speaker",
   "participant": "Participant"

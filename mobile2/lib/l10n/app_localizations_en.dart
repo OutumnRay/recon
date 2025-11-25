@@ -982,6 +982,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'View individual participant tracks instead';
 
   @override
+  String get viewIndividualTracksDescription =>
+      'Separate audio and video tracks are available for each participant';
+
+  @override
+  String get availableParticipantTracks => 'Available Participant Tracks';
+
+  @override
   String get nowSpeaking => 'Now Speaking';
 
   @override

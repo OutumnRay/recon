@@ -364,6 +364,8 @@
   "recordingInProgressDescription": "Составное видео будет доступно после завершения записи",
   "compositeVideoNotAvailable": "Составное видео недоступно",
   "viewIndividualTracks": "Просмотрите отдельные дорожки участников",
+  "viewIndividualTracksDescription": "Доступны отдельные аудио и видео дорожки для каждого участника",
+  "availableParticipantTracks": "Доступные дорожки участников",
   "nowSpeaking": "Сейчас говорит",
   "speaker": "Докладчик",
   "participant": "Участник"

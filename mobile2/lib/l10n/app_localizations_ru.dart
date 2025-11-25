@@ -981,6 +981,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get viewIndividualTracks => 'Просмотрите отдельные дорожки участников';
 
   @override
+  String get viewIndividualTracksDescription =>
+      'Доступны отдельные аудио и видео дорожки для каждого участника';
+
+  @override
+  String get availableParticipantTracks => 'Доступные дорожки участников';
+
+  @override
   String get nowSpeaking => 'Сейчас говорит';
 
   @override

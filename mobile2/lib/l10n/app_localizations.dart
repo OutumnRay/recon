@@ -1964,6 +1964,18 @@ abstract class AppLocalizations {
   /// **'View individual participant tracks instead'**
   String get viewIndividualTracks;
 
+  /// No description provided for @viewIndividualTracksDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate audio and video tracks are available for each participant'**
+  String get viewIndividualTracksDescription;
+
+  /// No description provided for @availableParticipantTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Participant Tracks'**
+  String get availableParticipantTracks;
+
   /// No description provided for @nowSpeaking.
   ///
   /// In en, this message translates to:

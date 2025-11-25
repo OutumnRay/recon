@@ -271,6 +271,17 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   }
 
   Widget _buildPlayerView(AppLocalizations l10n) {
+    // Check if composite video is available
+    final hasCompositeVideo = !widget.isTrack &&
+                               widget.recording.playlistUrl != null &&
+                               widget.recording.playlistUrl!.isNotEmpty;
+    final hasIndividualTracks = !widget.isTrack && widget.recording.tracks.isNotEmpty;
+
+    // If no composite video but has individual tracks, show placeholder
+    final shouldShowPlaceholder = !widget.isTrack &&
+                                   !hasCompositeVideo &&
+                                   hasIndividualTracks;
+
     return Container(
       color: Colors.black,
       child: Column(
@@ -285,16 +296,18 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
                   )
                 : _error != null
                     ? _buildErrorWidget()
-                    : _isAudioOnly
-                        ? _buildAudioOnlyWidget()
-                        : FijkView(
-                            player: _player,
-                            color: Colors.black,
-                            fit: FijkFit.contain,
-                            panelBuilder: (FijkPlayer player, FijkData data, BuildContext context, Size viewSize, Rect texturePos) {
-                              return _buildCustomPanel(player, data, context, viewSize, texturePos);
-                            },
-                          ),
+                    : shouldShowPlaceholder
+                        ? _buildCompositeVideoPlaceholder(l10n)
+                        : _isAudioOnly
+                            ? _buildAudioOnlyWidget()
+                            : FijkView(
+                                player: _player,
+                                color: Colors.black,
+                                fit: FijkFit.contain,
+                                panelBuilder: (FijkPlayer player, FijkData data, BuildContext context, Size viewSize, Rect texturePos) {
+                                  return _buildCustomPanel(player, data, context, viewSize, texturePos);
+                                },
+                              ),
           ),
           // Info section
           Container(
@@ -434,6 +447,222 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
       child: MemoViewer(
         transcripts: _transcripts!,
         languageCode: localeService.locale.languageCode,
+      ),
+    );
+  }
+
+  Widget _buildCompositeVideoPlaceholder(AppLocalizations l10n) {
+    // Group tracks by participant
+    final participantTracks = <String, List<TrackRecording>>{};
+    for (final track in widget.recording.tracks) {
+      final key = track.participant?.displayName ?? track.participantId;
+      participantTracks.putIfAbsent(key, () => []).add(track);
+    }
+
+    return Container(
+      color: Colors.black,
+      padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.video_library_outlined,
+                size: 56,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Title
+            Text(
+              l10n.compositeVideoNotAvailable,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+
+            // Description
+            Text(
+              l10n.viewIndividualTracksDescription,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+
+            // Individual tracks list
+            Text(
+              l10n.availableParticipantTracks,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Participant tracks
+            ...participantTracks.entries.map((entry) {
+              final participantName = entry.key;
+              final tracks = entry.value;
+              final hasVideo = tracks.any((t) => t.type == 'video');
+              final hasAudio = tracks.any((t) => t.type == 'audio');
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Avatar
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                      child: Text(
+                        participantName.isNotEmpty
+                            ? participantName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Participant info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            participantName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              if (hasVideo)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.videocam,
+                                        size: 14,
+                                        color: Color(0xFF93C5FD),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Video',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF93C5FD),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (hasVideo && hasAudio) const SizedBox(width: 6),
+                              if (hasAudio)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.mic,
+                                        size: 14,
+                                        color: Color(0xFF93C5FD),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Audio',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF93C5FD),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Play button
+                    IconButton(
+                      onPressed: () {
+                        // Navigate to the first track of this participant
+                        final firstTrack = tracks.first;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RecordingPlayerScreen(
+                              recording: widget.recording,
+                              isTrack: true,
+                              track: firstTrack,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.play_circle_filled,
+                        color: Color(0xFF2563EB),
+                        size: 36,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
