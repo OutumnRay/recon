@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  transcription-service3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: recontext-transcription-service3:latest
+    container_name: transcription-service3
+    restart: unless-stopped
+
+    # GPU support - uncomment the section below if using NVIDIA GPU
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    environment:
+      # RabbitMQ Configuration
+      - RABBITMQ_HOST=${RABBITMQ_HOST:-rabbitmq}
+      - RABBITMQ_PORT=${RABBITMQ_PORT:-5672}
+      - RABBITMQ_USER=${RABBITMQ_USER:-guest}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-guest}
+      - RABBITMQ_QUEUE=${RABBITMQ_QUEUE:-transcription_queue}
+      - RABBITMQ_RESULT_QUEUE=${RABBITMQ_RESULT_QUEUE:-transcription_results}
+
+      # Whisper Configuration
+      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
+
+      # Storage Configuration
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio:9000}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_SECURE=${MINIO_SECURE:-false}
+
+    volumes:
+      # Mount for model cache to avoid re-downloading
+      - whisper-models:/root/.cache/huggingface
+      # Optional: mount for logs
+      - ./logs:/app/logs
+
+    networks:
+      - recontext-network
+
+    depends_on:
+      - rabbitmq
+      - minio
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # RabbitMQ message broker (can be removed if using external RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: transcription-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - recontext-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # MinIO object storage (can be removed if using external MinIO/S3)
+  minio:
+    image: minio/minio:latest
+    container_name: transcription-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # API port
+      - "9001:9001"   # Console UI
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - recontext-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  whisper-models:
+    driver: local
+  rabbitmq-data:
+    driver: local
+  minio-data:
+    driver: local
+
+networks:
+  recontext-network:
+    driver: bridge
