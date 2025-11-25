@@ -273,7 +273,7 @@ func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string) ([]video.Tra
 
 	var trackData []TrackData
 
-	// Получаем информацию о треках с плейлистами из egress_recordings
+	// Получаем информацию о треках с плейлистами из livekit_egress_recordings
 	err := vpp.db.DB.Raw(`
 		SELECT
 			t.id as track_id,
@@ -285,7 +285,7 @@ func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string) ([]video.Tra
 			COALESCE(t.transcription_duration, 0) as duration
 		FROM livekit_tracks t
 		LEFT JOIN livekit_participants p ON t.participant_sid = p.sid
-		LEFT JOIN egress_recordings er ON er.track_sid = t.sid
+		LEFT JOIN livekit_egress_recordings er ON er.track_sid = t.sid
 		WHERE t.room_sid = ?
 			AND t.type IN ('audio', 'video')
 			AND er.playlist_url IS NOT NULL
@@ -385,9 +385,9 @@ func (vpp *VideoPostProcessor) updateMeetingWithPlaylist(roomSID, playlistURL st
 		return result.Error
 	}
 
-	// Также обновляем egress_recordings для room_composite
+	// Также обновляем livekit_egress_recordings для room_composite
 	result = vpp.db.DB.Exec(`
-		UPDATE egress_recordings
+		UPDATE livekit_egress_recordings
 		SET
 			playlist_url = ?,
 			updated_at = NOW()
