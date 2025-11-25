@@ -80,13 +80,14 @@ export const Meetings: React.FC = () => {
   const statusSliderRef = useRef<HTMLDivElement>(null);
 
   const statusOptions: Array<{
-    value: MeetingStatus | '';
+    value: MeetingStatus | 'permanent' | '';
     label: string;
     icon: React.ReactNode;
   }> = [
     { value: '', label: t('meetings.filters.allStatuses'), icon: <LuList /> },
     { value: 'scheduled', label: t('meetings.status.scheduled'), icon: <LuCalendar /> },
     { value: 'in_progress', label: t('meetings.status.in_progress'), icon: <LuPlay /> },
+    { value: 'permanent', label: t('meetings.filters.permanent'), icon: <LuRotateCcw /> },
     { value: 'completed', label: t('meetings.status.completed'), icon: <LuCheck /> },
     { value: 'cancelled', label: t('meetings.status.cancelled'), icon: <LuTrash2 /> },
   ];
@@ -100,14 +101,40 @@ export const Meetings: React.FC = () => {
     try {
       setLoading(true);
 
+      // Map filter to backend status parameter
+      let apiStatus: MeetingStatus | undefined = undefined;
+      if (statusFilter && statusFilter !== 'permanent') {
+        apiStatus = statusFilter as MeetingStatus;
+      }
+
       const response = await listMyMeetings({
         page,
         page_size: pageSize,
-        status: statusFilter || undefined,
+        status: apiStatus,
       });
 
-      setMeetings(response.items || []);
-      setTotal(response.total || 0);
+      let filteredItems = response.items || [];
+
+      // Apply client-side filtering for special cases
+      if (statusFilter === 'permanent') {
+        // permanent - only permanent (not cancelled)
+        filteredItems = filteredItems.filter(
+          m => (m.is_permanent || m.recurrence === 'permanent') && m.status !== 'cancelled'
+        );
+      } else if (statusFilter === 'in_progress') {
+        // go - only if there are active participants
+        filteredItems = filteredItems.filter(
+          m => m.active_participants_count > 0
+        );
+      } else if (statusFilter === 'completed') {
+        // completed - all non-permanent completed (not cancelled)
+        filteredItems = filteredItems.filter(
+          m => m.status === 'completed' && !m.is_permanent && m.recurrence !== 'permanent'
+        );
+      }
+
+      setMeetings(filteredItems);
+      setTotal(filteredItems.length);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('meetings.errors.loadFailed'));
@@ -117,9 +144,9 @@ export const Meetings: React.FC = () => {
     }
   };
 
-  const handleStatusSelect = (value: MeetingStatus | '') => {
+  const handleStatusSelect = (value: MeetingStatus | 'permanent' | '') => {
     const nextValue = statusFilter === value ? '' : value;
-    setStatusFilter(nextValue);
+    setStatusFilter(nextValue as MeetingStatus | '');
     setPage(1);
   };
 

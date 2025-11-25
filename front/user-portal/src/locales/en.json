@@ -236,7 +236,8 @@
       "resetFilters": "Reset Filters",
       "allStatuses": "All Statuses",
       "allTypes": "All Types",
-      "allSubjects": "All Subjects"
+      "allSubjects": "All Subjects",
+      "permanent": "Permanent"
     },
     "status": {
       "scheduled": "Scheduled",

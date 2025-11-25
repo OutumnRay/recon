@@ -236,7 +236,8 @@
       "resetFilters": "Сбросить фильтры",
       "allStatuses": "Все статусы",
       "allTypes": "Все типы",
-      "allSubjects": "Все предметы"
+      "allSubjects": "Все предметы",
+      "permanent": "Постоянные"
     },
     "status": {
       "scheduled": "Запланирована",

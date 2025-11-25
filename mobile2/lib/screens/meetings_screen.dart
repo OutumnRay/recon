@@ -57,10 +57,30 @@ class _MeetingsScreenState extends State<MeetingsScreen>
     });
 
     try {
+      // Map filter to backend status parameter
+      String? statusParam;
+      switch (_filter) {
+        case 'all':
+          // Backend will exclude cancelled by default
+          statusParam = null;
+          break;
+        case 'scheduled':
+        case 'in_progress':
+        case 'completed':
+        case 'cancelled':
+          statusParam = _filter;
+          break;
+        case 'permanent':
+          // For permanent, we'll get all and filter client-side
+          statusParam = null;
+          break;
+      }
+
       final meetings = await _meetingsService.getMeetings(
-        status: _filter == 'all' ? null : _filter,
-        pageSize: 50,
+        status: statusParam,
+        pageSize: 100,
       );
+
       if (mounted) {
         setState(() {
           _meetings = meetings;
@@ -101,31 +121,26 @@ class _MeetingsScreenState extends State<MeetingsScreen>
 
     var filtered = _meetings!;
 
-    // Apply tab filter logic
+    // Apply additional client-side filtering for special cases
     switch (_filter) {
-      case 'all':
-        // all - except cancelled
-        filtered = filtered.where((m) => m.status != 'cancelled').toList();
-        break;
-      case 'scheduled':
-        // plan - planned (not cancelled)
-        filtered = filtered.where((m) => m.status == 'scheduled' && m.status != 'cancelled').toList();
-        break;
       case 'in_progress':
-        // go - only if there are members (active participants)
-        filtered = filtered.where((m) => m.status == 'in_progress' && m.activeParticipantsCount > 0).toList();
+        // Filter to only show meetings with active participants
+        filtered = filtered.where((m) => m.activeParticipantsCount > 0).toList();
         break;
       case 'permanent':
-        // permanent - only permanent (not cancelled)
-        filtered = filtered.where((m) => (m.isPermanent || m.recurrence == 'permanent') && m.status != 'cancelled').toList();
+        // Filter to only permanent meetings (not cancelled)
+        filtered = filtered.where((m) =>
+          (m.isPermanent || m.recurrence == 'permanent') &&
+          m.status != 'cancelled'
+        ).toList();
         break;
       case 'completed':
-        // completed - all non-permanent completed (not cancelled)
-        filtered = filtered.where((m) => m.status == 'completed' && !m.isPermanent && m.recurrence != 'permanent' && m.status != 'cancelled').toList();
-        break;
-      case 'cancelled':
-        // canceled - only canceled (even permanent)
-        filtered = filtered.where((m) => m.status == 'cancelled').toList();
+        // Filter to only non-permanent completed meetings
+        filtered = filtered.where((m) =>
+          m.status == 'completed' &&
+          !m.isPermanent &&
+          m.recurrence != 'permanent'
+        ).toList();
         break;
     }
 
