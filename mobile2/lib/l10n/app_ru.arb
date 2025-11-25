@@ -67,7 +67,10 @@
   "filterAll": "Все",
   "filterScheduled": "План",
   "filterInProgress": "Идут",
+  "filterPermanent": "Постоянные",
   "filterCompleted": "Завершенные",
+  "filterCancelled": "Отмененные",
+  "searchMeetings": "Поиск встреч...",
 
   "selectParticipants": "Выбрать участников",
   "selectDepartments": "Выбрать отделы",

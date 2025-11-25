@@ -446,11 +446,29 @@ abstract class AppLocalizations {
   /// **'In Progress'**
   String get filterInProgress;
 
+  /// No description provided for @filterPermanent.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent'**
+  String get filterPermanent;
+
   /// No description provided for @filterCompleted.
   ///
   /// In en, this message translates to:
   /// **'Completed'**
   String get filterCompleted;
+
+  /// No description provided for @filterCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get filterCancelled;
+
+  /// No description provided for @searchMeetings.
+  ///
+  /// In en, this message translates to:
+  /// **'Search meetings...'**
+  String get searchMeetings;
 
   /// No description provided for @selectParticipants.
   ///

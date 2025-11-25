@@ -70,7 +70,10 @@
   "filterAll": "All",
   "filterScheduled": "Scheduled",
   "filterInProgress": "In Progress",
+  "filterPermanent": "Permanent",
   "filterCompleted": "Completed",
+  "filterCancelled": "Cancelled",
+  "searchMeetings": "Search meetings...",
 
   "selectParticipants": "Select Participants",
   "selectDepartments": "Select Departments",

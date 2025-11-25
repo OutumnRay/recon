@@ -26,13 +26,22 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   late final MeetingsService _meetingsService;
 
   List<MeetingWithDetails>? _meetings;
+  List<MeetingWithDetails>? _filteredMeetings;
   bool _isLoading = true;
   String? _error;
   String _filter = 'all';
   String? _copiedMeetingId;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -55,6 +64,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
       if (mounted) {
         setState(() {
           _meetings = meetings;
+          _applyFilters();
           _isLoading = false;
         });
       }
@@ -81,6 +91,62 @@ class _MeetingsScreenState extends State<MeetingsScreen>
         });
       }
     }
+  }
+
+  void _applyFilters() {
+    if (_meetings == null) {
+      _filteredMeetings = null;
+      return;
+    }
+
+    var filtered = _meetings!;
+
+    // Apply tab filter logic
+    switch (_filter) {
+      case 'all':
+        // all - except cancelled
+        filtered = filtered.where((m) => m.status != 'cancelled').toList();
+        break;
+      case 'scheduled':
+        // plan - planned (not cancelled)
+        filtered = filtered.where((m) => m.status == 'scheduled' && m.status != 'cancelled').toList();
+        break;
+      case 'in_progress':
+        // go - only if there are members (active participants)
+        filtered = filtered.where((m) => m.status == 'in_progress' && m.activeParticipantsCount > 0).toList();
+        break;
+      case 'permanent':
+        // permanent - only permanent (not cancelled)
+        filtered = filtered.where((m) => (m.isPermanent || m.recurrence == 'permanent') && m.status != 'cancelled').toList();
+        break;
+      case 'completed':
+        // completed - all non-permanent completed (not cancelled)
+        filtered = filtered.where((m) => m.status == 'completed' && !m.isPermanent && m.recurrence != 'permanent' && m.status != 'cancelled').toList();
+        break;
+      case 'cancelled':
+        // canceled - only canceled (even permanent)
+        filtered = filtered.where((m) => m.status == 'cancelled').toList();
+        break;
+    }
+
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered.where((meeting) {
+        return meeting.title.toLowerCase().contains(query) ||
+            (meeting.subjectName?.toLowerCase().contains(query) ?? false) ||
+            (meeting.additionalNotes?.toLowerCase().contains(query) ?? false);
+      }).toList();
+    }
+
+    _filteredMeetings = filtered;
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _applyFilters();
+    });
   }
 
   String _formatDateTime(DateTime dateTime) {
@@ -223,10 +289,41 @@ class _MeetingsScreenState extends State<MeetingsScreen>
           onRefresh: _loadMeetings,
           child: CustomScrollView(
             slivers: [
+              // Search bar
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: l10n.searchMeetings,
+                      prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                              onPressed: () {
+                                _searchController.clear();
+                                _onSearchChanged('');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: AppColors.surfaceMuted.withValues(alpha: 0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    ),
+                  ),
+                ),
+              ),
+
               // Status filter pills
               SliverToBoxAdapter(
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -237,7 +334,11 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                         const SizedBox(width: 8),
                         _buildFilterPill(l10n.filterInProgress, 'in_progress'),
                         const SizedBox(width: 8),
+                        _buildFilterPill(l10n.filterPermanent, 'permanent'),
+                        const SizedBox(width: 8),
                         _buildFilterPill(l10n.filterCompleted, 'completed'),
+                        const SizedBox(width: 8),
+                        _buildFilterPill(l10n.filterCancelled, 'cancelled'),
                       ],
                     ),
                   ),
@@ -253,7 +354,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                 SliverFillRemaining(
                   child: FullScreenError(error: _error!, onRetry: _loadMeetings),
                 )
-              else if (_meetings == null || _meetings!.isEmpty)
+              else if (_filteredMeetings == null || _filteredMeetings!.isEmpty)
                 SliverFillRemaining(
                   child: _EmptyState(onCreateMeeting: _openCreateMeeting, l10n: l10n),
                 )
@@ -264,10 +365,10 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        final meeting = _meetings![index];
+                        final meeting = _filteredMeetings![index];
                         return _buildMeetingCard(meeting, context);
                       },
-                      childCount: _meetings!.length,
+                      childCount: _filteredMeetings!.length,
                     ),
                   ),
                 ),

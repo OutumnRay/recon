@@ -184,7 +184,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterInProgress => 'In Progress';
 
   @override
+  String get filterPermanent => 'Permanent';
+
+  @override
   String get filterCompleted => 'Completed';
+
+  @override
+  String get filterCancelled => 'Cancelled';
+
+  @override
+  String get searchMeetings => 'Search meetings...';
 
   @override
   String get selectParticipants => 'Select Participants';

@@ -185,7 +185,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get filterInProgress => 'Идут';
 
   @override
+  String get filterPermanent => 'Постоянные';
+
+  @override
   String get filterCompleted => 'Завершенные';
+
+  @override
+  String get filterCancelled => 'Отмененные';
+
+  @override
+  String get searchMeetings => 'Поиск встреч...';
 
   @override
   String get selectParticipants => 'Выбрать участников';
