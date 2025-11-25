@@ -132,7 +132,17 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
         playlistUrl = widget.recording.playlistUrl ?? '';
       }
 
+      // If no composite video but has individual tracks, don't initialize player
+      // The placeholder will be shown instead
       if (playlistUrl.isEmpty) {
+        if (!widget.isTrack && widget.recording.tracks.isNotEmpty) {
+          // This is expected - composite video not available, show placeholder
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+        // No tracks available at all
         throw Exception('No playlist URL available');
       }
 
