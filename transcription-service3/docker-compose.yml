@@ -34,9 +34,3 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_SECURE=${MINIO_SECURE:-false}
-
-    volumes:
-      # Mount for model cache to avoid re-downloading
-      - whisper-models:/root/.cache/huggingface
-      # Optional: mount for logs
-      - ./logs:/app/logs
