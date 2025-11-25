@@ -75,6 +75,9 @@ dependencies:
   # Wakelock to keep screen on during video calls
   wakelock_plus: ^1.2.8
 
+  # JSON serialization
+  json_annotation: ^4.9.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

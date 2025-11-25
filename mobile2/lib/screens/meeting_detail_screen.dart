@@ -659,7 +659,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                     );
                   },
                   icon: const Icon(Icons.play_circle_filled, size: 16),
-                  label: Text(l10n.viewCompositeVideo ?? 'View Composite Video'),
+                  label: Text(l10n.viewCompositeVideo),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary500,
                     foregroundColor: Colors.white,
@@ -678,9 +678,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withOpacity(0.1),
+                  color: AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -698,7 +698,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            l10n.processingVideo ?? 'Processing...',
+                            l10n.processingVideo,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -707,7 +707,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            l10n.processingVideoDescription ?? 'Merging video tracks and creating composite video',
+                            l10n.processingVideoDescription,
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
@@ -1872,9 +1872,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1948,9 +1948,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.05),
+                color: Colors.purple.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
               ),
               child: Text(
                 task.sourceSegment!,
@@ -2018,8 +2018,8 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primary500.withOpacity(0.1),
-            AppColors.primary300.withOpacity(0.05),
+            AppColors.primary500.withValues(alpha: 0.1),
+            AppColors.primary300.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -2049,7 +2049,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  l10n.nowSpeaking ?? 'Now Speaking',
+                  l10n.nowSpeaking,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppColors.primary700,
                         fontWeight: FontWeight.bold,
@@ -2065,7 +2065,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.success.withOpacity(0.5),
+                        color: AppColors.success.withValues(alpha: 0.5),
                         blurRadius: 4,
                         spreadRadius: 1,
                       ),
@@ -2132,8 +2132,8 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                                 const SizedBox(width: 4),
                                 Text(
                                   activeSpeaker.role == 'speaker'
-                                      ? l10n.speaker ?? 'Speaker'
-                                      : l10n.participant ?? 'Participant',
+                                      ? l10n.speaker
+                                      : l10n.participant,
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,

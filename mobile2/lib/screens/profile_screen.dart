@@ -425,7 +425,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
-                              value: _selectedLanguage,
+                              initialValue: _selectedLanguage,
                               decoration: InputDecoration(
                                 labelText: l10n.language,
                                 prefixIcon: const Icon(Icons.language_outlined),
@@ -444,7 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
-                              value: _selectedNotifications,
+                              initialValue: _selectedNotifications,
                               decoration: InputDecoration(
                                 labelText: l10n.notificationPreferences,
                                 prefixIcon: const Icon(Icons.notifications_outlined),

@@ -32,7 +32,7 @@ class _ExpandableTaskCardState extends State<ExpandableTaskCard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isCompleted ? AppColors.success.withOpacity(0.3) : AppColors.border,
+          color: isCompleted ? AppColors.success.withValues(alpha: 0.3) : AppColors.border,
         ),
       ),
       child: Column(
@@ -103,7 +103,7 @@ class _ExpandableTaskCardState extends State<ExpandableTaskCard> {
             Container(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               decoration: BoxDecoration(
-                color: AppColors.surfaceMuted.withOpacity(0.3),
+                color: AppColors.surfaceMuted.withValues(alpha: 0.3),
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(12),
                 ),
@@ -137,9 +137,9 @@ class _ExpandableTaskCardState extends State<ExpandableTaskCard> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,9 +259,9 @@ class _ExpandableTaskCardState extends State<ExpandableTaskCard> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.05),
+                          color: Colors.purple.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                          border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,9 +327,9 @@ class _ExpandableTaskCardState extends State<ExpandableTaskCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.1),
+        color: badgeColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: badgeColor.withOpacity(0.3)),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -380,9 +380,9 @@ class _ExpandableTaskCardState extends State<ExpandableTaskCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: chipColor.withOpacity(0.1),
+        color: chipColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: chipColor.withOpacity(0.3)),
+        border: Border.all(color: chipColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

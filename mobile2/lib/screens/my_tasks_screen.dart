@@ -166,9 +166,9 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,9 +218,9 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.05),
+                color: Colors.purple.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
               ),
               child: Text(
                 task.sourceSegment!,
@@ -265,7 +265,7 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
       icon: Icon(icon, size: 18),
       label: Text(label),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? color : color.withOpacity(0.1),
+        backgroundColor: isSelected ? color : color.withValues(alpha: 0.1),
         foregroundColor: isSelected ? Colors.white : color,
         side: BorderSide(color: color),
       ),
