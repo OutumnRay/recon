@@ -637,42 +637,49 @@ class _MeetingsScreenState extends State<MeetingsScreen>
 
                     // View recordings/sessions button with arrow - show for completed/past meetings
                     // This navigates to meeting details where user can view video, audio, transcripts
+                    // On phones: show icon-only button to save space
+                    // On tablets: show full button with label
                     if (isPast || meeting.status == 'completed')
-                      Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary50,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: AppColors.primary200),
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: () => _openMeetingDetails(meeting),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: AppColors.primary600,
-                            shadowColor: Colors.transparent,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            shape: RoundedRectangleBorder(
+                      MediaQuery.of(context).size.width <= 600
+                        ? _buildActionButton(
+                            icon: Icons.video_library,
+                            onPressed: () => _openMeetingDetails(meeting),
+                          )
+                        : Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary50,
                               borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: AppColors.primary200),
                             ),
-                          ),
-                          icon: const Icon(Icons.video_library, size: 18),
-                          label: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                l10n.viewRecordings,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _openMeetingDetails(meeting),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: AppColors.primary600,
+                                shadowColor: Colors.transparent,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.arrow_forward, size: 16),
-                            ],
+                              icon: const Icon(Icons.video_library, size: 18),
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    l10n.viewRecordings,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.arrow_forward, size: 16),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
                     if (isPast || meeting.status == 'completed') const SizedBox(width: 8),
 
                     const Spacer(),
