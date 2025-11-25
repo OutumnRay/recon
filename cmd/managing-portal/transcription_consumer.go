@@ -319,7 +319,7 @@ func triggerVideoPostProcessing(trackID string) {
 	err = db.DB.Table("livekit_tracks").
 		Select("room_sid").
 		Where("id = ?", trackID).
-		First(&roomSID).Error
+		Scan(&roomSID).Error
 
 	if err != nil {
 		log.Printf("⚠️ Failed to get room_sid for track %s: %v", trackID, err)
