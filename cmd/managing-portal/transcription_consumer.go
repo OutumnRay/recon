@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"Recontext.online/internal/models"
 	"Recontext.online/pkg/database"
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -195,17 +197,22 @@ func updateTrackTranscriptionStatus(trackID string, userID string, jsonURL strin
 		}
 	}()
 
-	// Обновляем статус транскрибации в таблице livekit_tracks
-	result := tx.Exec(`
-		UPDATE livekit_tracks
-		SET
-			transcription_status = 'completed',
-			transcription_url = $1,
-			transcription_phrase_count = $2,
-			transcription_duration = $3,
-			updated_at = NOW()
-		WHERE id = $4
-	`, jsonURL, phraseCount, duration, trackID)
+	// Parse trackID as UUID
+	trackUUID, err := uuid.Parse(trackID)
+	if err != nil {
+		log.Printf("❌ Invalid track ID format %s: %v", trackID, err)
+		return
+	}
+
+	// Обновляем статус транскрибации в таблице livekit_tracks using GORM
+	result := tx.Model(&models.Track{}).
+		Where("id = ?", trackUUID).
+		Updates(map[string]interface{}{
+			"transcription_status":      "completed",
+			"transcription_url":         jsonURL,
+			"transcription_phrase_count": phraseCount,
+			"transcription_duration":    duration,
+		})
 
 	if result.Error != nil {
 		tx.Rollback()
@@ -221,8 +228,8 @@ func updateTrackTranscriptionStatus(trackID string, userID string, jsonURL strin
 
 	log.Printf("✅ Track %s updated successfully", trackID)
 
-	// Удаляем старые фразы для этого трека (если есть)
-	deleteResult := tx.Exec(`DELETE FROM transcription_phrases WHERE track_id = $1`, trackID)
+	// Удаляем старые фразы для этого трека (если есть) using GORM
+	deleteResult := tx.Where("track_id = ?", trackUUID).Delete(&models.TranscriptionPhrase{})
 	if deleteResult.Error != nil {
 		tx.Rollback()
 		log.Printf("❌ Failed to delete old phrases for track %s: %v", trackID, deleteResult.Error)
@@ -232,52 +239,71 @@ func updateTrackTranscriptionStatus(trackID string, userID string, jsonURL strin
 		log.Printf("🗑️ Deleted %d old phrases for track %s", deleteResult.RowsAffected, trackID)
 	}
 
-	// Получаем информацию о треке и комнате для расчета абсолютного времени
+	// Получаем информацию о треке и комнате для расчета абсолютного времени using GORM
 	// Get track and room information to calculate absolute time from meeting start
-	var trackPublishedAt time.Time
-	var roomStartedAt time.Time
-	err = tx.Raw(`
-		SELECT
-			t.published_at as track_published_at,
-			r.started_at as room_started_at
-		FROM livekit_tracks t
-		JOIN livekit_rooms r ON t.room_sid = r.sid
-		WHERE t.id = $1
-	`, trackID).Row().Scan(&trackPublishedAt, &roomStartedAt)
-
-	if err != nil {
+	var track models.Track
+	if err := tx.Preload("Room").Where("id = ?", trackUUID).First(&track).Error; err != nil {
 		tx.Rollback()
-		log.Printf("❌ Failed to get track/room times for track %s: %v", trackID, err)
+		log.Printf("❌ Failed to get track/room for track %s: %v", trackID, err)
 		return
 	}
+
+	if track.Room == nil {
+		tx.Rollback()
+		log.Printf("❌ Track %s has no associated room", trackID)
+		return
+	}
+
+	trackPublishedAt := track.PublishedAt
+	roomStartedAt := track.Room.StartedAt
 
 	// Вычисляем смещение трека относительно начала встречи (в секундах)
 	// Calculate track offset from meeting start (in seconds)
 	trackOffsetSeconds := trackPublishedAt.Sub(roomStartedAt).Seconds()
 	log.Printf("📊 Track offset from meeting start: %.2f seconds", trackOffsetSeconds)
 
-	// Сохраняем фразы в таблицу transcription_phrases
+	// Parse userID as UUID
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		tx.Rollback()
+		log.Printf("❌ Invalid user ID format %s: %v", userID, err)
+		return
+	}
+
+	// Сохраняем фразы в таблицу transcription_phrases using GORM
 	if len(phrases) > 0 {
 		log.Printf("💾 Saving %d transcription phrases to database...", len(phrases))
 
 		// Подготавливаем пакетную вставку
+		phrasesToInsert := make([]models.TranscriptionPhrase, len(phrases))
 		for i, phrase := range phrases {
 			// Вычисляем абсолютное время относительно начала встречи
 			// Calculate absolute time from meeting start
 			absoluteStart := trackOffsetSeconds + phrase.Start
 			absoluteEnd := trackOffsetSeconds + phrase.End
 
-			insertResult := tx.Exec(`
-				INSERT INTO transcription_phrases
-				(track_id, user_id, phrase_index, start_time, end_time, absolute_start_time, absolute_end_time, text, confidence, language, created_at, updated_at)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
-			`, trackID, userID, i, phrase.Start, phrase.End, absoluteStart, absoluteEnd, phrase.Text, phrase.Confidence, phrase.Language)
+			confidence := phrase.Confidence
+			language := phrase.Language
 
-			if insertResult.Error != nil {
-				tx.Rollback()
-				log.Printf("❌ Failed to insert phrase %d for track %s: %v", i, trackID, insertResult.Error)
-				return
+			phrasesToInsert[i] = models.TranscriptionPhrase{
+				TrackID:           trackUUID,
+				UserID:            userUUID,
+				PhraseIndex:       i,
+				StartTime:         phrase.Start,
+				EndTime:           phrase.End,
+				AbsoluteStartTime: absoluteStart,
+				AbsoluteEndTime:   absoluteEnd,
+				Text:              phrase.Text,
+				Confidence:        &confidence,
+				Language:          &language,
 			}
+		}
+
+		// Batch insert using GORM
+		if err := tx.Create(&phrasesToInsert).Error; err != nil {
+			tx.Rollback()
+			log.Printf("❌ Failed to insert phrases for track %s: %v", trackID, err)
+			return
 		}
 
 		log.Printf("✅ Saved %d phrases to database", len(phrases))
@@ -315,16 +341,21 @@ func triggerVideoPostProcessing(trackID string) {
 		return
 	}
 
-	var roomSID string
-	err = db.DB.Table("livekit_tracks").
-		Select("room_sid").
-		Where("id = ?", trackID).
-		Scan(&roomSID).Error
-
+	// Parse trackID as UUID
+	trackUUID, err := uuid.Parse(trackID)
 	if err != nil {
+		log.Printf("⚠️ Invalid track ID format %s: %v", trackID, err)
+		return
+	}
+
+	// Get room_sid using GORM
+	var track models.Track
+	if err := db.DB.Select("room_sid").Where("id = ?", trackUUID).First(&track).Error; err != nil {
 		log.Printf("⚠️ Failed to get room_sid for track %s: %v", trackID, err)
 		return
 	}
+
+	roomSID := track.RoomSID
 
 	// Запускаем пост-обработку в горутине, чтобы не блокировать обработку транскрибаций
 	go func() {

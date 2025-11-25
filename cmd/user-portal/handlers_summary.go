@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/summary"
 	"github.com/google/uuid"
@@ -69,14 +70,9 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 		}
 	}
 
-	// Get room SID for this meeting
-	var roomSID string
-	err = up.db.DB.Raw(`
-		SELECT sid
-		FROM livekit_rooms
-		WHERE meeting_id = ?
-		LIMIT 1
-	`, meetingID).Scan(&roomSID).Error
+	// Get room SID for this meeting using GORM
+	var room models.Room
+	err = up.db.DB.Where("meeting_id = ?", meetingID).First(&room).Error
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -86,6 +82,8 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to get room", err.Error())
 		return
 	}
+
+	roomSID := room.SID
 
 	// Start summary generation in background
 	go func() {
@@ -108,30 +106,64 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 
 	ctx := context.Background()
 
-	// Get transcriptions from transcription_phrases table
-	type TranscriptionPhrase struct {
-		ParticipantName string
-		StartTime       float64
-		EndTime         float64
-		Text            string
+	// Get all audio tracks for this room using GORM
+	var tracks []models.Track
+	if err := up.db.DB.Where("room_sid = ? AND type = ?", roomSID, "audio").
+		Find(&tracks).Error; err != nil {
+		return fmt.Errorf("failed to get audio tracks: %w", err)
 	}
 
-	var phrases []TranscriptionPhrase
-	err := up.db.DB.Raw(`
-		SELECT
-			COALESCE(p.name, 'Unknown') as participant_name,
-			tp.absolute_start_time as start_time,
-			tp.absolute_end_time as end_time,
-			tp.text
-		FROM transcription_phrases tp
-		INNER JOIN livekit_tracks t ON tp.track_id = t.id
-		LEFT JOIN livekit_participants p ON t.participant_sid = p.sid
-		WHERE t.room_sid = ?
-			AND t.type = 'audio'
-		ORDER BY tp.absolute_start_time ASC
-	`, roomSID).Scan(&phrases).Error
+	if len(tracks) == 0 {
+		return fmt.Errorf("no audio tracks found for room %s", roomSID)
+	}
 
-	if err != nil {
+	// Get track IDs and participant SIDs
+	trackIDs := make([]uuid.UUID, len(tracks))
+	participantSIDs := make([]string, 0, len(tracks))
+	participantSIDSet := make(map[string]bool)
+	trackToParticipantSID := make(map[uuid.UUID]string)
+
+	for i, track := range tracks {
+		trackIDs[i] = track.ID
+		trackToParticipantSID[track.ID] = track.ParticipantSID
+		if !participantSIDSet[track.ParticipantSID] {
+			participantSIDs = append(participantSIDs, track.ParticipantSID)
+			participantSIDSet[track.ParticipantSID] = true
+		}
+	}
+
+	// Get participants using GORM
+	var participants []models.Participant
+	if err := up.db.DB.Where("sid IN ?", participantSIDs).
+		Find(&participants).Error; err != nil {
+		return fmt.Errorf("failed to get participants: %w", err)
+	}
+
+	// Build participant name map
+	participantNameMap := make(map[string]string)
+	for _, p := range participants {
+		if p.Name != "" {
+			participantNameMap[p.SID] = p.Name
+		} else {
+			participantNameMap[p.SID] = "Unknown"
+		}
+	}
+
+	// Build track to participant name map
+	trackParticipantMap := make(map[uuid.UUID]string)
+	for trackID, participantSID := range trackToParticipantSID {
+		if name, ok := participantNameMap[participantSID]; ok {
+			trackParticipantMap[trackID] = name
+		} else {
+			trackParticipantMap[trackID] = "Unknown"
+		}
+	}
+
+	// Get transcription phrases for these tracks using GORM
+	var phrases []models.TranscriptionPhrase
+	if err := up.db.DB.Where("track_id IN ?", trackIDs).
+		Order("absolute_start_time ASC").
+		Find(&phrases).Error; err != nil {
 		return fmt.Errorf("failed to get transcriptions: %w", err)
 	}
 
@@ -145,10 +177,11 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 	var allSegments []summary.TranscriptSegment
 
 	for _, phrase := range phrases {
+		participantName := trackParticipantMap[phrase.TrackID]
 		allSegments = append(allSegments, summary.TranscriptSegment{
-			ParticipantName: phrase.ParticipantName,
-			StartTime:       phrase.StartTime,
-			EndTime:         phrase.EndTime,
+			ParticipantName: participantName,
+			StartTime:       phrase.AbsoluteStartTime,
+			EndTime:         phrase.AbsoluteEndTime,
 			Text:            phrase.Text,
 		})
 	}
@@ -170,19 +203,15 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 		return fmt.Errorf("failed to generate summaries: %w", err)
 	}
 
-	// Save summaries to database
+	// Save summaries to database using GORM
 	summariesJSON, err := json.Marshal(summaries)
 	if err != nil {
 		return fmt.Errorf("failed to marshal summaries: %w", err)
 	}
 
-	err = up.db.DB.Exec(`
-		UPDATE livekit_rooms
-		SET summaries = ?
-		WHERE sid = ?
-	`, summariesJSON, roomSID).Error
-
-	if err != nil {
+	if err := up.db.DB.Model(&models.Room{}).
+		Where("sid = ?", roomSID).
+		Update("summaries", summariesJSON).Error; err != nil {
 		return fmt.Errorf("failed to save summaries: %w", err)
 	}
 
