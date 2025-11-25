@@ -784,6 +784,8 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   border: Border.all(color: AppColors.border),
                 ),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(16),
