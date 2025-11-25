@@ -429,6 +429,8 @@
     "noTranscription": "No transcription available",
     "transcriptionAvailable": "Transcription available for {{count}} tracks",
     "memoNotAvailable": "Memo is not yet available for this recording",
+    "createSummary": "Create Summary",
+    "generatingSummary": "Generating...",
     "status": {
       "scheduled": "Scheduled",
       "in_progress": "In Progress",

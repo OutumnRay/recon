@@ -101,6 +101,7 @@ export default function MeetingRecordings() {
   const [error, setError] = useState<string | null>(null);
   const [openSection, setOpenSection] = useState<AccordionSection>('video');
   const [transcribingTracks, setTranscribingTracks] = useState<Set<string>>(new Set());
+  const [generatingSummary, setGeneratingSummary] = useState(false);
 
   useEffect(() => {
     if (!meetingId) return;
@@ -225,6 +226,48 @@ export default function MeetingRecordings() {
         return next;
       });
       // TODO: Add error toast notification
+    }
+  };
+
+  const generateSummary = async () => {
+    if (!meetingId || generatingSummary) return;
+
+    try {
+      setGeneratingSummary(true);
+
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`/api/v1/meetings/${meetingId}/generate-summary`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate summary: ${response.statusText}`);
+      }
+
+      console.log(`[Summary] Summary generation started for meeting ${meetingId}`);
+
+      // Wait a bit and reload transcripts to check if summary is available
+      setTimeout(async () => {
+        if (selectedRecording?.room_sid) {
+          try {
+            const transcripts = await getRoomTranscripts(selectedRecording.room_sid);
+            setRoomTranscripts(transcripts);
+          } catch (err) {
+            console.error('Failed to reload transcripts:', err);
+          }
+        }
+      }, 3000);
+
+      // TODO: Add toast notification showing that summary generation has started
+    } catch (err) {
+      console.error('[Summary] Error generating summary:', err);
+      // TODO: Add error toast notification
+    } finally {
+      setGeneratingSummary(false);
     }
   };
 
@@ -629,7 +672,16 @@ export default function MeetingRecordings() {
                                 ))}
                               </div>
                             ) : (
-                              <p className="coming-soon-message">{t('meetingRecordings.memoNotAvailable')}</p>
+                              <div className="memo-empty-state">
+                                <p className="coming-soon-message">{t('meetingRecordings.memoNotAvailable')}</p>
+                                <button
+                                  className="generate-summary-button"
+                                  onClick={generateSummary}
+                                  disabled={generatingSummary}
+                                >
+                                  {generatingSummary ? t('meetingRecordings.generatingSummary') : t('meetingRecordings.createSummary')}
+                                </button>
+                              </div>
                             )}
                           </div>
                         )}

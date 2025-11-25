@@ -431,6 +431,8 @@
     "noTranscription": "Нет расшифровки для отображения",
     "transcriptionAvailable": "Расшифровка доступна для {{count}} треков",
     "memoNotAvailable": "Мемо пока недоступно для этой записи",
+    "createSummary": "Создать резюме",
+    "generatingSummary": "Генерация...",
     "status": {
       "scheduled": "Запланирована",
       "in_progress": "Идет",
