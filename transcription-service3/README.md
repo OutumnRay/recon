@@ -6,6 +6,7 @@ AI-powered transcription service using Faster-Whisper for the Recontext platform
 
 - **GPU-accelerated transcription** using NVIDIA CUDA
 - **Faster-Whisper** for optimized inference
+- **Pre-downloaded Whisper large-v3 model** embedded in Docker image (~3GB)
 - **RabbitMQ integration** for job queue management
 - **MinIO/S3 storage** for audio files and results
 - **Docker support** with NVIDIA GPU runtime
@@ -72,18 +73,24 @@ RABBITMQ_RESULT_QUEUE=transcription_results
 
 ### Whisper Model Settings
 ```env
-WHISPER_MODEL=medium            # Model size: tiny, base, small, medium, large-v2, large-v3
+WHISPER_MODEL=large-v3          # Model size: tiny, base, small, medium, large-v2, large-v3
 WHISPER_DEVICE=cuda             # Device: cuda, cpu
 WHISPER_COMPUTE_TYPE=float16    # Compute type: float16, int8, float32
 ```
+
+**Note:** The Docker image includes pre-downloaded **large-v3** model (~3GB). This means:
+- ✅ No download delay on first run
+- ✅ Faster container startup
+- ✅ Works in air-gapped environments
+- ⚠️ Larger Docker image size (~6GB total)
 
 Available models (size vs accuracy):
 - `tiny` - Fastest, lowest accuracy (~1GB VRAM)
 - `base` - Fast, low accuracy (~1.5GB VRAM)
 - `small` - Balanced (~2GB VRAM)
-- `medium` - Good accuracy (~5GB VRAM) ⭐ Recommended
+- `medium` - Good accuracy (~5GB VRAM)
 - `large-v2` - High accuracy (~10GB VRAM)
-- `large-v3` - Highest accuracy (~10GB VRAM)
+- `large-v3` - Highest accuracy (~10GB VRAM) ⭐ **Pre-downloaded in image**
 
 ### Storage Settings
 ```env
@@ -98,6 +105,8 @@ MINIO_BUCKET=recontext          # Bucket name
 
 ### Build Image
 ```bash
+# Note: This will download ~3GB Whisper large-v3 model during build
+# Build time: ~15-20 minutes depending on internet speed
 docker build -t recontext-transcription-service3:latest .
 ```
 

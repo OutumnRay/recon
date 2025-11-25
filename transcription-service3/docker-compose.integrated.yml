@@ -30,8 +30,8 @@ services:
       - RABBITMQ_QUEUE=${RABBITMQ_QUEUE:-transcription_queue}
       - RABBITMQ_RESULT_QUEUE=${RABBITMQ_RESULT_QUEUE:-transcription_results}
 
-      # Whisper Configuration
-      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
+      # Whisper Configuration (large-v3 is pre-downloaded in image)
+      - WHISPER_MODEL=${WHISPER_MODEL:-large-v3}
       - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
       - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
 

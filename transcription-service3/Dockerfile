@@ -28,6 +28,13 @@ COPY . .
 # Create directory for downloaded models
 RUN mkdir -p /root/.cache/huggingface
 
+# Pre-download Whisper large-v3 model to embed it in the image
+# This ensures the model is available immediately when container starts
+RUN python -c "from faster_whisper import WhisperModel; \
+    print('Downloading Whisper large-v3 model...'); \
+    model = WhisperModel('large-v3', device='cpu', compute_type='int8'); \
+    print('Model downloaded successfully!')"
+
 # Expose port if needed (for health checks or API)
 # EXPOSE 8000
 
