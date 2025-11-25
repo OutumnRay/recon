@@ -5,6 +5,7 @@ import { getMeeting, getMeetingRecordings, getRoomTranscripts } from '../service
 import type { Meeting, RoomRecording, RoomTranscripts } from '../types/meeting';
 import HLSPlayer from '../components/HLSPlayer';
 import { LuFilm, LuMic, LuClock3 } from 'react-icons/lu';
+import { getNotificationService, type Notification } from '../services/notificationService';
 import './MeetingRecordings.css';
 
 type SelectedRecording = {
@@ -196,6 +197,93 @@ export default function MeetingRecordings() {
 
     fetchTranscripts();
   }, [selectedRecording?.room_sid]);
+
+  // Connect to WebSocket for real-time notifications
+  useEffect(() => {
+    if (!meetingId) return;
+
+    const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+    const baseUrl = window.location.origin;
+
+    const notificationService = getNotificationService(baseUrl, getToken);
+
+    // Handle notifications
+    const handleNotification = async (notification: Notification) => {
+      console.log('[MeetingRecordings] 📨 Received notification:', notification);
+
+      // Only process notifications for this meeting
+      if (notification.meeting_id && notification.meeting_id !== meetingId) {
+        return;
+      }
+
+      // Handle summary status updates
+      if (notification.type === 'summary.started' ||
+          notification.type === 'summary.completed' ||
+          notification.type === 'summary.failed') {
+        console.log('[MeetingRecordings] Summary status changed:', notification.changed_fields?.status);
+
+        // Reload transcripts to get updated summary status
+        if (selectedRecording?.room_sid) {
+          try {
+            const transcripts = await getRoomTranscripts(selectedRecording.room_sid);
+            setRoomTranscripts(transcripts);
+            console.log('[MeetingRecordings] ✅ Transcripts reloaded after summary update');
+          } catch (err) {
+            console.error('[MeetingRecordings] Failed to reload transcripts:', err);
+          }
+        }
+
+        // Clear generating flag if we were manually triggering
+        if (notification.type === 'summary.completed' || notification.type === 'summary.failed') {
+          setGeneratingSummary(false);
+        }
+      }
+
+      // Handle transcription status updates
+      if (notification.type === 'transcription.completed' ||
+          notification.type === 'transcription.failed') {
+        console.log('[MeetingRecordings] Transcription status changed');
+
+        // Reload transcripts to get updated transcription
+        if (selectedRecording?.room_sid) {
+          try {
+            const transcripts = await getRoomTranscripts(selectedRecording.room_sid);
+            setRoomTranscripts(transcripts);
+            console.log('[MeetingRecordings] ✅ Transcripts reloaded after transcription update');
+          } catch (err) {
+            console.error('[MeetingRecordings] Failed to reload transcripts:', err);
+          }
+        }
+      }
+
+      // Handle recording/composite video updates
+      if (notification.type === 'recording.completed' ||
+          notification.type === 'composite_video.completed') {
+        console.log('[MeetingRecordings] Recording updated, reloading...');
+
+        // Reload recordings to get updated data
+        try {
+          const recordingsData = await getMeetingRecordings(meetingId);
+          setRoomRecordings(recordingsData);
+          console.log('[MeetingRecordings] ✅ Recordings reloaded');
+        } catch (err) {
+          console.error('[MeetingRecordings] Failed to reload recordings:', err);
+        }
+      }
+    };
+
+    // Subscribe to notifications
+    const unsubscribe = notificationService.subscribe(handleNotification);
+
+    // Connect to WebSocket
+    notificationService.connect();
+
+    // Cleanup on unmount
+    return () => {
+      unsubscribe();
+      // Note: We don't disconnect the service here as it's shared across the app
+    };
+  }, [meetingId, selectedRecording?.room_sid]);
 
   const forceTranscription = async (trackId: string) => {
     if (transcribingTracks.has(trackId)) return;
