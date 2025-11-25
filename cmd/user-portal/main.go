@@ -1047,6 +1047,12 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				return
 			}
 
+			// Check if this is a generate-summary request
+			if strings.HasSuffix(r.URL.Path, "/generate-summary") && r.Method == http.MethodPost {
+				up.generateMeetingSummaryHandler(w, r)
+				return
+			}
+
 			switch r.Method {
 			case http.MethodGet:
 				up.getMeetingHandler(w, r)
@@ -1060,6 +1066,10 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		}),
 		authMiddleware,
 	))
+
+	// Generate meeting summary endpoint (match pattern /api/v1/meetings/{id}/generate-summary)
+	// Note: This will match before the generic /api/v1/meetings/{id} handler
+	// We need to check the path more carefully in the handler
 
 	// Meeting subjects endpoint
 	mux.Handle("/api/v1/meeting-subjects", chainMiddleware(

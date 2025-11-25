@@ -459,5 +459,9 @@
   "availableParticipantTracks": "Available Participant Tracks",
   "nowSpeaking": "Now Speaking",
   "speaker": "Speaker",
-  "participant": "Participant"
+  "participant": "Participant",
+  "createSummary": "Create Summary",
+  "generatingSummary": "Generating...",
+  "summaryGenerationStarted": "Summary generation started. This may take a few minutes.",
+  "failedToGenerateSummary": "Failed to generate summary"
 }

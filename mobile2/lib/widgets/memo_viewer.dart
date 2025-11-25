@@ -6,11 +6,13 @@ import '../l10n/app_localizations.dart';
 class MemoViewer extends StatelessWidget {
   final RoomTranscripts transcripts;
   final String languageCode;
+  final VoidCallback? onGenerateSummary;
 
   const MemoViewer({
     super.key,
     required this.transcripts,
     required this.languageCode,
+    this.onGenerateSummary,
   });
 
   void _copyToClipboard(BuildContext context, String text) {
@@ -59,6 +61,17 @@ class MemoViewer extends StatelessWidget {
                   color: Colors.grey[500],
                 ),
               ),
+              if (onGenerateSummary != null) ...[
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: onGenerateSummary,
+                  icon: const Icon(Icons.auto_awesome),
+                  label: Text(l10n.createSummary),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

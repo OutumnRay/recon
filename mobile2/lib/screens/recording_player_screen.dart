@@ -20,6 +20,7 @@ class RecordingPlayerScreen extends StatefulWidget {
   final bool isTrack;
   final TrackRecording? track;
   final int initialTabIndex;
+  final String? meetingId;
 
   const RecordingPlayerScreen({
     super.key,
@@ -27,6 +28,7 @@ class RecordingPlayerScreen extends StatefulWidget {
     this.isTrack = false,
     this.track,
     this.initialTabIndex = 0,
+    this.meetingId,
   });
 
   static Widget routeBuilder(BuildContext context, Object? arguments) {
@@ -36,6 +38,7 @@ class RecordingPlayerScreen extends StatefulWidget {
       isTrack: args['isTrack'] as bool? ?? false,
       track: args['track'] as TrackRecording?,
       initialTabIndex: args['initialTabIndex'] as int? ?? 0,
+      meetingId: args['meetingId'] as String?,
     );
   }
 
@@ -113,6 +116,56 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
         setState(() {
           _isLoadingTranscripts = false;
         });
+      }
+    }
+  }
+
+  Future<void> _generateSummary() async {
+    if (widget.meetingId == null) {
+      Logger.logWarning('Cannot generate summary: meetingId is null');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.failedToGenerateSummary),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final configService = ConfigService();
+      final baseUrl = await configService.getApiUrl();
+      final apiClient = ApiClient(baseUrl: baseUrl, navigatorKey: navigatorKey);
+      final meetingsService = MeetingsService(apiClient);
+
+      Logger.logInfo('Generating summary for meeting', data: {'meetingId': widget.meetingId});
+
+      // Call the API to generate summary
+      await meetingsService.generateMeetingSummary(widget.meetingId!);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.summaryGenerationStarted),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Reload transcripts after a short delay to get the updated summary
+        await Future.delayed(const Duration(seconds: 2));
+        await _loadTranscripts();
+      }
+    } catch (e) {
+      Logger.logError('Failed to generate summary', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.failedToGenerateSummary),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -457,6 +510,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
       child: MemoViewer(
         transcripts: _transcripts!,
         languageCode: localeService.locale.languageCode,
+        onGenerateSummary: widget.meetingId != null ? _generateSummary : null,
       ),
     );
   }

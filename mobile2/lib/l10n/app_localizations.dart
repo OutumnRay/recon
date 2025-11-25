@@ -1993,6 +1993,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Participant'**
   String get participant;
+
+  /// No description provided for @createSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Summary'**
+  String get createSummary;
+
+  /// No description provided for @generatingSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating...'**
+  String get generatingSummary;
+
+  /// No description provided for @summaryGenerationStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary generation started. This may take a few minutes.'**
+  String get summaryGenerationStarted;
+
+  /// No description provided for @failedToGenerateSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to generate summary'**
+  String get failedToGenerateSummary;
 }
 
 class _AppLocalizationsDelegate

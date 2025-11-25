@@ -368,5 +368,9 @@
   "availableParticipantTracks": "Доступные дорожки участников",
   "nowSpeaking": "Сейчас говорит",
   "speaker": "Докладчик",
-  "participant": "Участник"
+  "participant": "Участник",
+  "createSummary": "Создать резюме",
+  "generatingSummary": "Генерация...",
+  "summaryGenerationStarted": "Генерация резюме началась. Это может занять несколько минут.",
+  "failedToGenerateSummary": "Не удалось создать резюме"
 }

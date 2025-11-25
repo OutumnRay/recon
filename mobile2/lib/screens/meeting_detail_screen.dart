@@ -654,6 +654,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                         builder: (context) => RecordingPlayerScreen(
                           recording: recording,
                           initialTabIndex: 0,
+                          meetingId: widget.meetingId,
                         ),
                       ),
                     );
@@ -861,6 +862,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                         builder: (context) => RecordingPlayerScreen(
                           recording: recording,
                           initialTabIndex: 0,
+                          meetingId: widget.meetingId,
                         ),
                       ),
                     );
@@ -886,6 +888,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                         builder: (context) => RecordingPlayerScreen(
                           recording: recording,
                           initialTabIndex: 1,
+                          meetingId: widget.meetingId,
                         ),
                       ),
                     );
@@ -911,6 +914,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                         builder: (context) => RecordingPlayerScreen(
                           recording: recording,
                           initialTabIndex: 2,
+                          meetingId: widget.meetingId,
                         ),
                       ),
                     );

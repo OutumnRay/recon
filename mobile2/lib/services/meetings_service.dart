@@ -323,6 +323,27 @@ class MeetingsService {
       rethrow;
     }
   }
+
+  /// Generate summary for a meeting
+  Future<void> generateMeetingSummary(String meetingId) async {
+    try {
+      Logger.logInfo('Generating summary for meeting', data: {'meetingId': meetingId});
+
+      final response = await _apiClient.post(
+        '/api/v1/meetings/$meetingId/generate-summary',
+        {},
+      );
+
+      if (response.statusCode == 202) {
+        Logger.logSuccess('Summary generation started');
+      } else {
+        throw _apiClient.handleError(response);
+      }
+    } catch (e) {
+      Logger.logError('Failed to generate summary', error: e);
+      rethrow;
+    }
+  }
 }
 
 class LiveKitToken {

@@ -996,4 +996,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get participant => 'Participant';
+
+  @override
+  String get createSummary => 'Create Summary';
+
+  @override
+  String get generatingSummary => 'Generating...';
+
+  @override
+  String get summaryGenerationStarted =>
+      'Summary generation started. This may take a few minutes.';
+
+  @override
+  String get failedToGenerateSummary => 'Failed to generate summary';
 }

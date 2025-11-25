@@ -995,4 +995,17 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get participant => 'Участник';
+
+  @override
+  String get createSummary => 'Создать резюме';
+
+  @override
+  String get generatingSummary => 'Генерация...';
+
+  @override
+  String get summaryGenerationStarted =>
+      'Генерация резюме началась. Это может занять несколько минут.';
+
+  @override
+  String get failedToGenerateSummary => 'Не удалось создать резюме';
 }
