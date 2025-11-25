@@ -10,9 +10,13 @@ import (
 
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/database"
+	"Recontext.online/pkg/notifications"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+// Global notification service for video post-processing
+var globalNotificationService *notifications.NotificationService
 
 // TranscriptionResult represents the result message from transcription service
 type TranscriptionResult struct {
@@ -361,7 +365,7 @@ func triggerVideoPostProcessing(trackID string) {
 	go func() {
 		log.Printf("🎬 Triggering video post-processing check for room: %s", roomSID)
 
-		postProcessor, err := NewVideoPostProcessor(db)
+		postProcessor, err := NewVideoPostProcessor(db, globalNotificationService)
 		if err != nil {
 			log.Printf("❌ Failed to create video post-processor: %v", err)
 			return

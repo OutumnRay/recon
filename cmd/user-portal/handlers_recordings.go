@@ -207,10 +207,11 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 			roomRec.EndedAt = &endedAt
 		}
 
-		// Add room composite recording URL if exists
-		if room.EgressID != "" {
-			roomRec.PlaylistURL = "/api/v1/recordings/" + room.EgressID + "/playlist"
-			up.logger.Infof("📹 [RECORDINGS] Room has composite recording: %s", room.EgressID)
+		// Add composite video URL if exists (created by VideoPostProcessor)
+		// VideoPostProcessor assembles composite video from individual tracks after transcription
+		if meeting.VideoPlaylistURL != nil && *meeting.VideoPlaylistURL != "" {
+			roomRec.PlaylistURL = *meeting.VideoPlaylistURL
+			up.logger.Infof("📹 [RECORDINGS] Room has composite video: %s", *meeting.VideoPlaylistURL)
 		}
 
 		// Get tracks for this room

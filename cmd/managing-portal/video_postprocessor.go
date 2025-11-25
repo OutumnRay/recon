@@ -12,6 +12,7 @@ import (
 
 	"Recontext.online/pkg/audio"
 	"Recontext.online/pkg/database"
+	"Recontext.online/pkg/notifications"
 	"Recontext.online/pkg/summary"
 	"Recontext.online/pkg/video"
 	"github.com/google/uuid"
@@ -20,14 +21,15 @@ import (
 
 // VideoPostProcessor обрабатывает видео после завершения транскрибации
 type VideoPostProcessor struct {
-	db              *database.DB
-	videoProcessor  *video.VideoProcessor
-	storageUploader *video.StorageUploader
-	workDir         string
+	db                  *database.DB
+	videoProcessor      *video.VideoProcessor
+	storageUploader     *video.StorageUploader
+	workDir             string
+	notificationService *notifications.NotificationService
 }
 
 // NewVideoPostProcessor создает новый пост-процессор видео
-func NewVideoPostProcessor(db *database.DB) (*VideoPostProcessor, error) {
+func NewVideoPostProcessor(db *database.DB, notificationService *notifications.NotificationService) (*VideoPostProcessor, error) {
 	// Создаем процессор видео
 	videoProcessor, err := video.NewVideoProcessor(video.DefaultMergeConfig())
 	if err != nil {
@@ -57,10 +59,11 @@ func NewVideoPostProcessor(db *database.DB) (*VideoPostProcessor, error) {
 	}
 
 	return &VideoPostProcessor{
-		db:              db,
-		videoProcessor:  videoProcessor,
-		storageUploader: storageUploader,
-		workDir:         workDir,
+		db:                  db,
+		videoProcessor:      videoProcessor,
+		storageUploader:     storageUploader,
+		workDir:             workDir,
+		notificationService: notificationService,
 	}, nil
 }
 
@@ -72,9 +75,41 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	ctx := context.Background()
 
+	// Get meeting ID from room (room name is meeting ID)
+	var room database.LiveKitRoom
+	if err := vpp.db.DB.Where("sid = ?", roomSID).First(&room).Error; err != nil {
+		return fmt.Errorf("failed to find room: %w", err)
+	}
+
+	var meetingID *uuid.UUID
+	if room.Name != "" {
+		if parsedID, err := uuid.Parse(room.Name); err == nil {
+			meetingID = &parsedID
+		}
+	}
+
+	// Send notification: composite video processing started
+	if vpp.notificationService != nil && meetingID != nil {
+		vpp.notificationService.Notify(notifications.NewCompositeVideoStatusNotification(
+			roomSID,
+			meetingID,
+			"processing",
+			notifications.EventCompositeVideoStarted,
+		))
+	}
+
 	// 1. Проверяем, что все треки транскрибированы
 	allTranscribed, err := vpp.checkAllTracksTranscribed(roomSID)
 	if err != nil {
+		// Send failure notification
+		if vpp.notificationService != nil && meetingID != nil {
+			vpp.notificationService.Notify(notifications.NewCompositeVideoStatusNotification(
+				roomSID,
+				meetingID,
+				"failed",
+				notifications.EventCompositeVideoFailed,
+			))
+		}
 		return fmt.Errorf("failed to check transcription status: %w", err)
 	}
 
@@ -175,7 +210,28 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	// 9. Обновляем базу данных с URL плейлиста
 	if err := vpp.updateMeetingWithPlaylist(roomSID, playlistURL); err != nil {
+		// Send failure notification
+		if vpp.notificationService != nil && meetingID != nil {
+			vpp.notificationService.Notify(notifications.NewCompositeVideoStatusNotification(
+				roomSID,
+				meetingID,
+				"failed",
+				notifications.EventCompositeVideoFailed,
+			))
+		}
 		return fmt.Errorf("failed to update database: %w", err)
+	}
+
+	// Send success notification with playlist URL
+	if vpp.notificationService != nil && meetingID != nil {
+		notification := notifications.NewCompositeVideoStatusNotification(
+			roomSID,
+			meetingID,
+			"completed",
+			notifications.EventCompositeVideoCompleted,
+		)
+		notification.ChangedFields["video_playlist_url"] = playlistURL
+		vpp.notificationService.Notify(notification)
 	}
 
 	log.Print("==============================================")

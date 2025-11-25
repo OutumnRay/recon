@@ -23,6 +23,7 @@ import (
 	"Recontext.online/pkg/livekit"
 	"Recontext.online/pkg/logger"
 	"Recontext.online/pkg/metrics"
+	"Recontext.online/pkg/notifications"
 	"Recontext.online/pkg/prometheus"
 	"Recontext.online/pkg/rabbitmq"
 
@@ -925,6 +926,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize portal: %v", err)
 	}
+
+	// Initialize global notification service for transcription consumer
+	globalNotificationService = notifications.NewNotificationService()
 
 	// Start transcription result consumer in background
 	go func() {
