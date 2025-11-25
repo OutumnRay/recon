@@ -6,6 +6,7 @@ from typing import List, Dict, Optional
 import requests
 import torch
 from minio import Minio
+from minio.credentials import StaticProvider
 from faster_whisper import WhisperModel
 from config import Config
 
@@ -73,10 +74,13 @@ class TranscriptionWorker:
                 # Local MinIO or HTTP - use port 9000
                 minio_endpoint = f"{minio_endpoint}:9000"
 
+        # Initialize MinIO client with credentials (new API in minio 8.x)
         self.minio_client = Minio(
-            minio_endpoint,
-            access_key=Config.MINIO_ACCESS_KEY,
-            secret_key=Config.MINIO_SECRET_KEY,
+            endpoint=minio_endpoint,
+            credentials=StaticProvider(
+                access_key=Config.MINIO_ACCESS_KEY,
+                secret_key=Config.MINIO_SECRET_KEY
+            ),
             secure=Config.MINIO_SECURE
         )
         print(f"MinIO client initialized successfully (endpoint: {minio_endpoint}, secure: {Config.MINIO_SECURE})")
