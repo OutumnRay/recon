@@ -70,7 +70,7 @@ export const Meetings: React.FC = () => {
   const [total, setTotal] = useState(0);
 
   // Filter state
-  const [statusFilter, setStatusFilter] = useState<MeetingStatus | ''>('');
+  const [statusFilter, setStatusFilter] = useState<MeetingStatus | 'permanent' | ''>('');
   // Selected meeting for details view
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithDetails | null>(null);
 
@@ -166,7 +166,7 @@ export const Meetings: React.FC = () => {
 
   const handleStatusSelect = (value: MeetingStatus | 'permanent' | '') => {
     const nextValue = statusFilter === value ? '' : value;
-    setStatusFilter(nextValue as MeetingStatus | '');
+    setStatusFilter(nextValue);
     setPage(1);
   };
 
