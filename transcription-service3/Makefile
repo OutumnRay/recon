@@ -103,3 +103,19 @@ install: ## Install Python dependencies locally
 # Quick commands
 start: up ## Alias for 'up'
 stop: down ## Alias for 'down'
+
+# Docker start script commands
+docker-start: ## Quick start using docker-start.sh (integrated mode)
+	./docker-start.sh integrated start
+
+docker-start-standalone: ## Quick start using docker-start.sh (standalone mode)
+	./docker-start.sh standalone start
+
+docker-stop: ## Quick stop using docker-start.sh
+	./docker-start.sh integrated stop
+
+docker-logs: ## View logs using docker-start.sh
+	./docker-start.sh integrated logs
+
+docker-status: ## View status using docker-start.sh
+	./docker-start.sh integrated status

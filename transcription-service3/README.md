@@ -25,23 +25,61 @@ AI-powered transcription service using Faster-Whisper for the Recontext platform
 
 ## Quick Start
 
-### 1. Using Standalone Docker Compose (with included RabbitMQ and MinIO)
+### Simple Start (Recommended)
+
+```bash
+cd transcription-service3
+
+# Start with existing infrastructure (integrated mode)
+./docker-start.sh integrated start
+
+# Or start standalone (includes RabbitMQ and MinIO)
+./docker-start.sh standalone start
+
+# View logs
+./docker-start.sh integrated logs
+
+# Stop service
+./docker-start.sh integrated stop
+```
+
+**All docker-start.sh commands:**
+```bash
+./docker-start.sh [mode] [action]
+
+# Modes: integrated (default) | standalone
+# Actions: start | stop | restart | logs | status | shell
+
+# Examples:
+./docker-start.sh                    # Start integrated mode
+./docker-start.sh standalone         # Start standalone mode
+./docker-start.sh integrated logs    # Show logs
+./docker-start.sh integrated status  # Show status
+./docker-start.sh integrated shell   # Open bash in container
+```
+
+### Using Docker Compose Directly
+
+#### Standalone Mode (with included RabbitMQ and MinIO)
 
 ```bash
 # Copy environment file
 cp .env.example .env
 
-# Edit .env with your configuration
+# Edit .env with your configuration (optional)
 nano .env
 
-# Build and start services
+# Start services
 docker-compose up -d
 
 # View logs
 docker-compose logs -f transcription-service3
+
+# Stop services
+docker-compose down
 ```
 
-### 2. Using Integrated Mode (with existing Recontext infrastructure)
+#### Integrated Mode (with existing Recontext infrastructure)
 
 ```bash
 # Copy environment file
@@ -50,11 +88,29 @@ cp .env.example .env
 # Edit .env to point to existing services
 nano .env
 
-# Build and start only the transcription service
+# Start only the transcription service
 docker-compose -f docker-compose.integrated.yml up -d
 
 # View logs
 docker-compose -f docker-compose.integrated.yml logs -f
+
+# Stop service
+docker-compose -f docker-compose.integrated.yml down
+```
+
+### Using Make Commands
+
+```bash
+# Standalone mode
+make up              # Start all services
+make logs            # View logs
+make down            # Stop services
+make restart         # Restart service
+
+# Integrated mode
+make up-integrated   # Start transcription service only
+make logs-integrated # View logs
+make down-integrated # Stop service
 ```
 
 ## Configuration
