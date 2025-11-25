@@ -490,11 +490,18 @@ class _MeetingsScreenState extends State<MeetingsScreen>
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'meetings_fab',
         onPressed: _openCreateMeeting,
-        backgroundColor: AppColors.primary500,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.green,
         icon: const Icon(Icons.add_rounded),
         label: Text(l10n.newMeeting),
         elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(
+            color: Colors.green,
+            width: 2,
+          ),
+        ),
       ),
     );
   }

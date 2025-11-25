@@ -65,6 +65,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   void _onItemTapped(int index) {
+    // Log page navigation to console
+    final pageNames = ['Meetings', 'Search', 'Documents', 'Settings'];
+    debugPrint('📱 Navigating to: ${pageNames[index]}');
+
     setState(() {
       _selectedIndex = index;
     });
