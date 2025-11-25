@@ -115,18 +115,22 @@ class NotificationService {
 
     _isIntentionallyClosed = false;
 
-    // Build WebSocket URL
-    final protocol = baseUrl.startsWith('https') ? 'wss' : 'ws';
-    final wsUrl = '$protocol://${baseUrl.replaceAll(RegExp(r'^https?://'), '')}/api/v1/notifications/ws';
+    // Build WebSocket URL by parsing baseUrl to preserve host and port
+    final uri = Uri.parse(baseUrl);
+    final protocol = uri.scheme == 'https' ? 'wss' : 'ws';
+    final wsUri = Uri(
+      scheme: protocol,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: '/api/v1/notifications/ws',
+    );
 
-    debugPrint('[NotificationService] Connecting to: $wsUrl');
+    debugPrint('[NotificationService] Connecting to: $wsUri');
 
     try {
       // Note: Authorization header doesn't work with WebSocket in browsers
       // The server should handle auth through a separate mechanism or query params
-      _channel = WebSocketChannel.connect(
-        Uri.parse(wsUrl),
-      );
+      _channel = WebSocketChannel.connect(wsUri);
 
       debugPrint('[NotificationService] ✅ Connected to notification service');
       _reconnectAttempts = 0;
