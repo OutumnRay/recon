@@ -825,6 +825,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                             builder: (context) => RecordingPlayerScreen(
                               recording: recording,
                               initialTabIndex: 0,
+                              meetingId: widget.meetingId,
                             ),
                           ),
                         );

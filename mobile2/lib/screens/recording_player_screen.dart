@@ -361,9 +361,10 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
                     ? _buildErrorWidget()
                     : shouldShowPlaceholder
                         ? _buildCompositeVideoPlaceholder(l10n)
-                        : _isAudioOnly
-                            ? _buildAudioOnlyWidget()
-                            : FijkView(
+                        : Stack(
+                            children: [
+                              // Always show FijkView for both audio and video
+                              FijkView(
                                 player: _player,
                                 color: Colors.black,
                                 fit: FijkFit.contain,
@@ -371,6 +372,39 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
                                   return _buildCustomPanel(player, data, context, viewSize, texturePos);
                                 },
                               ),
+                              // Overlay audio-only indicator when it's audio
+                              if (_isAudioOnly)
+                                Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 120,
+                                        height: 120,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF7C3AED).withValues(alpha: 0.2),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.audiotrack,
+                                          size: 64,
+                                          color: Color(0xFF7C3AED),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      Text(
+                                        l10n.audioOnlyRecording,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
           ),
           // Info section
           Container(
@@ -727,6 +761,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
                               recording: widget.recording,
                               isTrack: true,
                               track: trackToPlay,
+                              meetingId: widget.meetingId,
                             ),
                           ),
                         );
@@ -747,46 +782,6 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
     );
   }
 
-  Widget _buildAudioOnlyWidget() {
-    final l10n = AppLocalizations.of(context)!;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: const Color(0xFF7C3AED).withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.audiotrack,
-              size: 64,
-              color: Color(0xFF7C3AED),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.audioOnlyRecording,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.playRecording,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildErrorWidget() {
     final l10n = AppLocalizations.of(context)!;
