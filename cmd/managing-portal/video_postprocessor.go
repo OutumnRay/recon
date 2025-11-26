@@ -481,45 +481,8 @@ func (vpp *VideoPostProcessor) cleanupLocalTracks(tracks []video.TrackInfo) {
 
 // updateMeetingWithPlaylist обновляет запись встречи с URL плейлиста
 func (vpp *VideoPostProcessor) updateMeetingWithPlaylist(roomSID, playlistURL string) error {
-	// Находим meeting_id по room_sid используя GORM
-	var room struct {
-		MeetingID *uuid.UUID
-	}
-	err := vpp.db.DB.Table("livekit_rooms").
-		Select("meeting_id").
-		Where("sid = ?", roomSID).
-		Where("meeting_id IS NOT NULL").
-		First(&room).Error
-
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			log.Printf("⚠️ No meeting found for room %s", roomSID)
-			return nil
-		}
-		return err
-	}
-
-	if room.MeetingID == nil {
-		log.Printf("⚠️ No meeting ID found for room %s", roomSID)
-		return nil
-	}
-
-	meetingID := *room.MeetingID
-
-	// Обновляем meeting с URL плейлиста используя GORM
-	result := vpp.db.DB.Table("meetings").
-		Where("id = ?", meetingID).
-		Updates(map[string]interface{}{
-			"video_playlist_url": playlistURL,
-			"updated_at":         time.Now(),
-		})
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	// Также обновляем livekit_egress_recordings для room_composite используя GORM
-	result = vpp.db.DB.Table("livekit_egress_recordings").
+	// Обновляем livekit_egress_recordings для room_composite используя GORM
+	result := vpp.db.DB.Table("livekit_egress_recordings").
 		Where("room_sid = ?", roomSID).
 		Where("type = ?", "room_composite").
 		Updates(map[string]interface{}{
@@ -528,10 +491,10 @@ func (vpp *VideoPostProcessor) updateMeetingWithPlaylist(roomSID, playlistURL st
 		})
 
 	if result.Error != nil {
-		return result.Error
+		return fmt.Errorf("failed to update egress recording: %w", result.Error)
 	}
 
-	log.Printf("✅ Database updated with playlist URL for meeting %s", meetingID)
+	log.Printf("✅ Database updated with composite playlist URL for room %s", roomSID)
 	return nil
 }
 
@@ -681,56 +644,43 @@ func (vpp *VideoPostProcessor) generateMeetingSummary(roomSID string) error {
 		return fmt.Errorf("failed to get meeting info: %w", err)
 	}
 
-	// Получаем транскрипции всех треков используя GORM
-	type TranscriptionData struct {
-		ParticipantName string
-		Segments        string // JSON
+	// Получаем транскрипции из таблицы transcription_phrases
+	type TranscriptionPhrase struct {
+		ParticipantName   string
+		AbsoluteStartTime float64
+		AbsoluteEndTime   float64
+		Text              string
 	}
 
-	var transcriptions []TranscriptionData
-	err = vpp.db.DB.Table("livekit_tracks t").
-		Select("COALESCE(p.name, 'Unknown') as participant_name, t.transcription_segments as segments").
+	var phrases []TranscriptionPhrase
+	err = vpp.db.DB.Table("transcription_phrases tp").
+		Select("COALESCE(p.name, 'Unknown') as participant_name, tp.absolute_start_time, tp.absolute_end_time, tp.text").
+		Joins("LEFT JOIN livekit_tracks t ON tp.track_id = t.id").
 		Joins("LEFT JOIN livekit_participants p ON t.participant_sid = p.sid").
 		Where("t.room_sid = ?", roomSID).
-		Where("t.type = ?", "audio").
-		Where("t.transcription_segments IS NOT NULL").
-		Order("t.published_at ASC").
-		Scan(&transcriptions).Error
+		Order("tp.absolute_start_time ASC, tp.phrase_index ASC").
+		Scan(&phrases).Error
 
 	if err != nil {
 		return fmt.Errorf("failed to get transcriptions: %w", err)
 	}
 
-	if len(transcriptions) == 0 {
+	if len(phrases) == 0 {
 		log.Printf("⚠️ No transcriptions found for room %s", roomSID)
 		return nil
 	}
 
-	log.Printf("   Found %d transcription(s) to process", len(transcriptions))
+	log.Printf("   Found %d transcription phrase(s) to process", len(phrases))
 
 	// Собираем все сегменты транскрипции
 	var allSegments []summary.TranscriptSegment
-
-	for _, trans := range transcriptions {
-		var segments []struct {
-			Start float64 `json:"start"`
-			End   float64 `json:"end"`
-			Text  string  `json:"text"`
-		}
-
-		if err := json.Unmarshal([]byte(trans.Segments), &segments); err != nil {
-			log.Printf("⚠️ Failed to parse segments for %s: %v", trans.ParticipantName, err)
-			continue
-		}
-
-		for _, seg := range segments {
-			allSegments = append(allSegments, summary.TranscriptSegment{
-				ParticipantName: trans.ParticipantName,
-				StartTime:       seg.Start,
-				EndTime:         seg.End,
-				Text:            seg.Text,
-			})
-		}
+	for _, phrase := range phrases {
+		allSegments = append(allSegments, summary.TranscriptSegment{
+			ParticipantName: phrase.ParticipantName,
+			StartTime:       phrase.AbsoluteStartTime,
+			EndTime:         phrase.AbsoluteEndTime,
+			Text:            phrase.Text,
+		})
 	}
 
 	if len(allSegments) == 0 {
