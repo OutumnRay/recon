@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 import 'storage_service.dart';
 import 'config_service.dart';
 import '../utils/logger.dart';
@@ -134,10 +136,16 @@ class NotificationWebSocketService {
 
       Logger.logInfo('Connecting to WebSocket: $wsUrl');
 
-      _channel = WebSocketChannel.connect(
-        Uri.parse(wsUrl),
-        protocols: ['Authorization', token],
+      // Подключаемся с авторизационным заголовком через IOWebSocketChannel
+      final uri = Uri.parse(wsUrl);
+      final socket = await WebSocket.connect(
+        uri.toString(),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
       );
+
+      _channel = IOWebSocketChannel(socket);
 
       // Слушаем входящие сообщения
       _channel!.stream.listen(
@@ -145,12 +153,6 @@ class NotificationWebSocketService {
         onError: _handleError,
         onDone: _handleDone,
       );
-
-      // Отправляем авторизационный токен в первом сообщении
-      _channel!.sink.add(jsonEncode({
-        'type': 'auth',
-        'token': token,
-      }));
 
       _isConnected = true;
       _reconnectAttempts = 0;

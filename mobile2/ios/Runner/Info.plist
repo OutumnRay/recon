@@ -24,6 +24,8 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCalendarsFullAccessUsageDescription</key>
@@ -38,8 +40,6 @@
 	<string>Microphone access is required for audio in video calls</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-    <key>ITSAppUsesNonExemptEncryption</key>
-    <false/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
