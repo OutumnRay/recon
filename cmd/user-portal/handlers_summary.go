@@ -170,17 +170,17 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 
 	// Get participants with user information using JOIN
 	type ParticipantWithUser struct {
-		ParticipantSID string
+		ParticipantSID  string
 		ParticipantName string
-		UserID         *uuid.UUID
-		UserFirstName  *string
-		UserLastName   *string
+		Identity        string
+		UserFirstName   *string
+		UserLastName    *string
 	}
 
 	var participantsWithUsers []ParticipantWithUser
 	err := up.db.DB.Table("livekit_participants").
-		Select("livekit_participants.sid as participant_sid, livekit_participants.name as participant_name, livekit_participants.user_id, users.first_name as user_first_name, users.last_name as user_last_name").
-		Joins("LEFT JOIN users ON livekit_participants.user_id = users.id").
+		Select("livekit_participants.sid as participant_sid, livekit_participants.name as participant_name, livekit_participants.identity, users.first_name as user_first_name, users.last_name as user_last_name").
+		Joins("LEFT JOIN users ON livekit_participants.identity = users.id::text").
 		Where("livekit_participants.sid IN ?", participantSIDs).
 		Scan(&participantsWithUsers).Error
 
