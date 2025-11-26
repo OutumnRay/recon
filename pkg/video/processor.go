@@ -598,9 +598,12 @@ func (vp *VideoProcessor) ConvertToHLSWithCustomNames(inputPath, outputDir, play
 		"-c:v", "libx264",
 		"-c:a", "aac",
 		"-b:a", "128k",
-		"-hls_time", "10",     // Длина каждого сегмента: 10 секунд
-		"-hls_list_size", "0", // Включить все сегменты в плейлист
+		"-hls_time", "10",                  // Длина каждого сегмента: 10 секунд
+		"-hls_list_size", "0",              // Включить все сегменты в плейлист
 		"-hls_segment_filename", segmentPattern,
+		"-hls_playlist_type", "event",      // Добавляем #EXT-X-PLAYLIST-TYPE:EVENT
+		"-hls_flags", "program_date_time",  // Добавляем #EXT-X-PROGRAM-DATE-TIME для каждого сегмента
+		"-hls_version", "4",                // Используем версию 4 как в track плейлистах
 		"-f", "hls",
 		playlistFile,
 	}
