@@ -14,8 +14,13 @@ import '../widgets/error_display.dart';
 
 class CreateMeetingScreen extends StatefulWidget {
   final ApiClient apiClient;
+  final String? meetingId; // Если передан - режим редактирования
 
-  const CreateMeetingScreen({super.key, required this.apiClient});
+  const CreateMeetingScreen({
+    super.key,
+    required this.apiClient,
+    this.meetingId,
+  });
 
   @override
   State<CreateMeetingScreen> createState() => _CreateMeetingScreenState();
@@ -50,6 +55,9 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   bool _isLoading = false;
   bool _isLoadingData = true;
   String? _error;
+  MeetingWithDetails? _existingMeeting; // Для режима редактирования
+
+  bool get _isEditMode => widget.meetingId != null;
 
   @override
   void initState() {
@@ -58,9 +66,11 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     _usersService = UsersService(widget.apiClient);
     _loadInitialData();
 
-    // Set initial time
-    final now = DateTime.now();
-    _scheduledTime = TimeOfDay(hour: now.hour + 1, minute: 0);
+    // Set initial time only for new meetings
+    if (!_isEditMode) {
+      final now = DateTime.now();
+      _scheduledTime = TimeOfDay(hour: now.hour + 1, minute: 0);
+    }
   }
 
   @override
@@ -82,29 +92,43 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       final userData = await storageService.getUserData();
       _currentUserId = userData['userId'];
 
-      final results = await Future.wait([
+      final futures = <Future>[
         _meetingsService.getMeetingSubjects(),
         _usersService.getUsers(),
         _usersService.getDepartments(),
-      ]);
+      ];
+
+      // В режиме редактирования загружаем данные встречи
+      if (_isEditMode) {
+        futures.add(_meetingsService.getMeeting(widget.meetingId!));
+      }
+
+      final results = await Future.wait(futures);
 
       if (mounted) {
         setState(() {
           _subjects = results[0] as List<MeetingSubject>;
           _users = results[1] as List<UserListItem>;
           _departments = results[2] as List<Department>;
+
+          // Если редактируем - заполняем поля данными существующей встречи
+          if (_isEditMode && results.length > 3) {
+            _existingMeeting = results[3] as MeetingWithDetails;
+            _populateFormWithMeetingData(_existingMeeting!);
+          } else {
+            // Set default subject if available (только для новых встреч)
+            if (_subjects != null && _subjects!.isNotEmpty) {
+              _subjectId = _subjects!.first.id;
+            }
+
+            // Автоматически добавляем текущего пользователя как участника
+            if (_currentUserId != null) {
+              _selectedParticipantIds.add(_currentUserId!);
+              Logger.logInfo('Current user automatically added as participant: $_currentUserId');
+            }
+          }
+
           _isLoadingData = false;
-
-          // Set default subject if available
-          if (_subjects != null && _subjects!.isNotEmpty) {
-            _subjectId = _subjects!.first.id;
-          }
-
-          // Автоматически добавляем текущего пользователя как участника
-          if (_currentUserId != null) {
-            _selectedParticipantIds.add(_currentUserId!);
-            Logger.logInfo('Current user automatically added as participant: $_currentUserId');
-          }
         });
       }
     } catch (e) {
@@ -117,6 +141,38 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         });
       }
     }
+  }
+
+  /// Заполняет форму данными существующей встречи для редактирования
+  void _populateFormWithMeetingData(MeetingWithDetails meeting) {
+    _titleController.text = meeting.title;
+    _notesController.text = meeting.additionalNotes ?? '';
+    _scheduledDate = meeting.scheduledAt;
+    _scheduledTime = TimeOfDay(
+      hour: meeting.scheduledAt.hour,
+      minute: meeting.scheduledAt.minute,
+    );
+    _duration = meeting.duration;
+    _type = meeting.type;
+    _subjectId = meeting.subjectId;
+    _recurrence = meeting.recurrence;
+    _needsRecord = meeting.needsRecord;
+    _needsTranscription = meeting.needsTranscription;
+    _allowAnonymous = meeting.allowAnonymous;
+
+    // Заполняем участников
+    _selectedParticipantIds = meeting.participants
+        .map((p) => p.userId)
+        .toSet();
+
+    // Заполняем департаменты
+    _selectedDepartmentIds = meeting.departments.toSet();
+
+    // Находим спикера среди участников
+    final speaker = meeting.participants.where((p) => p.role == 'speaker').firstOrNull;
+    _selectedSpeakerId = speaker?.userId;
+
+    Logger.logInfo('Form populated with meeting data: ${meeting.id}');
   }
 
   Future<void> _selectDate() async {
@@ -356,7 +412,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     }
   }
 
-  Future<void> _createMeeting() async {
+  Future<void> _saveMeeting() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -370,7 +426,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
 
     try {
       // Log all field values before creating the request
-      Logger.logInfo('Creating meeting with the following data:');
+      Logger.logInfo('${_isEditMode ? 'Updating' : 'Creating'} meeting with the following data:');
       Logger.logInfo('  title: ${_titleController.text}');
       Logger.logInfo('  scheduledDate: $_scheduledDate');
       Logger.logInfo('  scheduledTime: $_scheduledTime');
@@ -397,45 +453,78 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
 
       Logger.logInfo('Combined scheduledAt: $scheduledAt');
 
-      final request = CreateMeetingRequest(
-        title: _titleController.text,
-        scheduledAt: scheduledAt,
-        duration: _duration,
-        recurrence: _recurrence,
-        type: _type,
-        subjectId: _subjectId,
-        needsRecord: _needsRecord,
-        needsTranscription: _needsTranscription,
-        allowAnonymous: _allowAnonymous,
-        additionalNotes:
-            _notesController.text.isEmpty ? null : _notesController.text,
-        participantIds: _selectedParticipantIds.toList(),
-        departmentIds: _selectedDepartmentIds.toList(),
-        speakerId: _selectedSpeakerId,
-      );
+      if (_isEditMode) {
+        // Режим редактирования - обновляем существующую встречу
+        final updates = <String, dynamic>{
+          'title': _titleController.text,
+          'scheduled_at': scheduledAt.toUtc().toIso8601String(),
+          'duration': _duration,
+          'recurrence': _recurrence,
+          'type': _type,
+          'subject_id': _subjectId,
+          'needs_record': _needsRecord,
+          'needs_transcription': _needsTranscription,
+          'allow_anonymous': _allowAnonymous,
+          'additional_notes': _notesController.text.isEmpty ? null : _notesController.text,
+          'participant_ids': _selectedParticipantIds.toList(),
+          'department_ids': _selectedDepartmentIds.toList(),
+          'speaker_id': _selectedSpeakerId,
+        };
 
-      Logger.logInfo('Request object created successfully');
-      Logger.logInfo('Request JSON: ${jsonEncode(request.toJson())}');
+        Logger.logInfo('Update data: ${jsonEncode(updates)}');
 
-      await _meetingsService.createMeeting(request);
+        await _meetingsService.updateMeeting(widget.meetingId!, updates);
 
-      Logger.logInfo('Meeting created successfully');
+        Logger.logInfo('Meeting updated successfully');
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.meetingCreatedSuccess)),
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.meetingUpdatedSuccess)),
+          );
+          Navigator.pop(context, true); // Return true to indicate success
+        }
+      } else {
+        // Режим создания - создаём новую встречу
+        final request = CreateMeetingRequest(
+          title: _titleController.text,
+          scheduledAt: scheduledAt,
+          duration: _duration,
+          recurrence: _recurrence,
+          type: _type,
+          subjectId: _subjectId,
+          needsRecord: _needsRecord,
+          needsTranscription: _needsTranscription,
+          allowAnonymous: _allowAnonymous,
+          additionalNotes:
+              _notesController.text.isEmpty ? null : _notesController.text,
+          participantIds: _selectedParticipantIds.toList(),
+          departmentIds: _selectedDepartmentIds.toList(),
+          speakerId: _selectedSpeakerId,
         );
-        Navigator.pop(context, true); // Return true to indicate success
+
+        Logger.logInfo('Request object created successfully');
+        Logger.logInfo('Request JSON: ${jsonEncode(request.toJson())}');
+
+        await _meetingsService.createMeeting(request);
+
+        Logger.logInfo('Meeting created successfully');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.meetingCreatedSuccess)),
+          );
+          Navigator.pop(context, true); // Return true to indicate success
+        }
       }
     } on ApiException catch (e, stackTrace) {
-      Logger.logError('API Exception while creating meeting', error: e, stackTrace: stackTrace);
+      Logger.logError('API Exception while ${_isEditMode ? 'updating' : 'creating'} meeting', error: e, stackTrace: stackTrace);
       debugPrint('API Exception: ${e.message}');
       debugPrint('Status Code: ${e.statusCode}');
       debugPrint('Stack trace: $stackTrace');
 
       if (mounted) {
         setState(() {
-          _error = '${l10n.meetingCreatedError}: ${e.message}';
+          _error = '${_isEditMode ? l10n.meetingUpdatedError : l10n.meetingCreatedError}: ${e.message}';
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -443,7 +532,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         );
       }
     } catch (e, stackTrace) {
-      Logger.logError('Unexpected error while creating meeting', error: e, stackTrace: stackTrace);
+      Logger.logError('Unexpected error while ${_isEditMode ? 'updating' : 'creating'} meeting', error: e, stackTrace: stackTrace);
       debugPrint('Error type: ${e.runtimeType}');
       debugPrint('Error: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -468,7 +557,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       return Scaffold(
         backgroundColor: AppColors.surface,
         appBar: AppBar(
-          title: Text(l10n.createMeeting),
+          title: Text(_isEditMode ? l10n.editMeeting : l10n.createMeeting),
           backgroundColor: Colors.white,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
@@ -484,7 +573,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       return Scaffold(
         backgroundColor: AppColors.surface,
         appBar: AppBar(
-          title: Text(l10n.createMeeting),
+          title: Text(_isEditMode ? l10n.editMeeting : l10n.createMeeting),
           backgroundColor: Colors.white,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
@@ -501,7 +590,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(l10n.createMeeting),
+        title: Text(_isEditMode ? l10n.editMeeting : l10n.createMeeting),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
@@ -739,10 +828,10 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                         ],
                       ),
                       child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _createMeeting,
+                        onPressed: _isLoading ? null : _saveMeeting,
                         icon: const Icon(Icons.check_circle_rounded),
                         label: Text(
-                          l10n.createMeeting,
+                          _isEditMode ? l10n.saveChanges : l10n.createMeeting,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

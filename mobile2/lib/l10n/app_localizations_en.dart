@@ -296,7 +296,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meetingUpdatedSuccess => 'Meeting updated successfully';
 
   @override
+  String get meetingUpdatedError => 'Failed to update meeting';
+
+  @override
   String get meetingDeletedSuccess => 'Meeting deleted successfully';
+
+  @override
+  String get saveChanges => 'Save Changes';
+
+  @override
+  String get editMeeting => 'Edit Meeting';
 
   @override
   String get meetingCancelledSuccess => 'Meeting cancelled successfully';

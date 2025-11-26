@@ -297,7 +297,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get meetingUpdatedSuccess => 'Встреча успешно обновлена';
 
   @override
+  String get meetingUpdatedError => 'Не удалось обновить встречу';
+
+  @override
   String get meetingDeletedSuccess => 'Встреча успешно удалена';
+
+  @override
+  String get saveChanges => 'Сохранить изменения';
+
+  @override
+  String get editMeeting => 'Редактировать встречу';
 
   @override
   String get meetingCancelledSuccess => 'Встреча успешно отменена';

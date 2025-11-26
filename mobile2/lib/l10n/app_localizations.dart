@@ -662,11 +662,29 @@ abstract class AppLocalizations {
   /// **'Meeting updated successfully'**
   String get meetingUpdatedSuccess;
 
+  /// No description provided for @meetingUpdatedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update meeting'**
+  String get meetingUpdatedError;
+
   /// No description provided for @meetingDeletedSuccess.
   ///
   /// In en, this message translates to:
   /// **'Meeting deleted successfully'**
   String get meetingDeletedSuccess;
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get saveChanges;
+
+  /// No description provided for @editMeeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Meeting'**
+  String get editMeeting;
 
   /// No description provided for @meetingCancelledSuccess.
   ///

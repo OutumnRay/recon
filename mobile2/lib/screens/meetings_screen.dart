@@ -379,14 +379,19 @@ class _MeetingsScreenState extends State<MeetingsScreen>
   }
 
   Future<void> _editMeeting(MeetingWithDetails meeting) async {
-    // Navigate to meeting details where user can edit
-    await Navigator.push(
+    // Navigate to edit meeting screen
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MeetingDetailScreen(meetingId: meeting.id),
+        builder: (context) => CreateMeetingScreen(
+          apiClient: widget.apiClient,
+          meetingId: meeting.id,
+        ),
       ),
     );
-    _loadMeetings();
+    if (result == true) {
+      _loadMeetings();
+    }
   }
 
   Future<void> _joinMeeting(MeetingWithDetails meeting) async {
