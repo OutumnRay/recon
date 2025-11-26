@@ -42,12 +42,20 @@ type SummaryGenerator struct {
 
 // NewSummaryGenerator создает новый генератор сводок
 func NewSummaryGenerator() (*SummaryGenerator, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
+	// Проверяем LLM_API_KEY (приоритет) или OPENAI_API_KEY (обратная совместимость)
+	apiKey := os.Getenv("LLM_API_KEY")
 	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY not set")
+		apiKey = os.Getenv("OPENAI_API_KEY")
+	}
+	if apiKey == "" {
+		return nil, fmt.Errorf("LLM_API_KEY or OPENAI_API_KEY not set")
 	}
 
-	model := os.Getenv("OPENAI_MODEL")
+	// Проверяем LLM_MODEL (приоритет) или OPENAI_MODEL (обратная совместимость)
+	model := os.Getenv("LLM_MODEL")
+	if model == "" {
+		model = os.Getenv("OPENAI_MODEL")
+	}
 	if model == "" {
 		model = "gpt-4o-mini" // По умолчанию используем gpt-4o-mini для экономии
 	}
