@@ -257,7 +257,8 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			if isTrack {
 				line = fmt.Sprintf("/api/v1/recordings/track/%s/segment/%s", trackSID, filename)
 			} else {
-				line = fmt.Sprintf("/api/v1/recordings/%s/segment/%s", egressID, filename)
+				// For composite video, use room SID (not egress_id)
+				line = fmt.Sprintf("/api/v1/recordings/%s/segment/%s", roomSID, filename)
 			}
 			// Add token to segment URL if it was provided
 			if token != "" {
