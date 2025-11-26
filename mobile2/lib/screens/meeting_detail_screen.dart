@@ -553,30 +553,40 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                       ),
       ),
       floatingActionButton: canJoin
-          ? Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF667eea).withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+          ? TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF667eea).withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: FloatingActionButton.extended(
+                      onPressed: _joinMeeting,
+                      icon: const Icon(Icons.video_call_rounded),
+                      label: Text(l10n.joinMeeting),
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
-                ],
-              ),
-              child: FloatingActionButton.extended(
-                onPressed: _joinMeeting,
-                icon: const Icon(Icons.video_call_rounded),
-                label: Text(l10n.joinMeeting),
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                foregroundColor: Colors.white,
-              ),
+                );
+              },
             )
           : null,
     );

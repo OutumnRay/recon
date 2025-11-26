@@ -378,6 +378,17 @@ class _MeetingsScreenState extends State<MeetingsScreen>
     }
   }
 
+  Future<void> _editMeeting(MeetingWithDetails meeting) async {
+    // Navigate to meeting details where user can edit
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MeetingDetailScreen(meetingId: meeting.id),
+      ),
+    );
+    _loadMeetings();
+  }
+
   Future<void> _joinMeeting(MeetingWithDetails meeting) async {
     final l10n = AppLocalizations.of(context)!;
 
@@ -555,30 +566,40 @@ class _MeetingsScreenState extends State<MeetingsScreen>
           ),
         ),
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF11998e).withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+      floatingActionButton: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.elasticOut,
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: value,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF11998e).withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton.extended(
+                onPressed: _openCreateMeeting,
+                icon: const Icon(Icons.add_rounded),
+                label: Text(l10n.newMeeting),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                foregroundColor: Colors.white,
+              ),
             ),
-          ],
-        ),
-        child: FloatingActionButton.extended(
-          onPressed: _openCreateMeeting,
-          icon: const Icon(Icons.add_rounded),
-          label: Text(l10n.newMeeting),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          foregroundColor: Colors.white,
-        ),
+          );
+        },
       ),
     );
   }
@@ -619,7 +640,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title row with chips and status
+                // Title row with chips and menu
                 Row(
                   children: [
                     Expanded(
@@ -656,14 +677,40 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                         ],
                       ),
                     ),
-                    // Cancel button for admin/creator
+                    // Menu button for admin/creator
                     if (_canCancelMeeting(meeting))
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-                        onPressed: () => _cancelMeetingFromList(meeting),
-                        tooltip: l10n.cancelMeetingTitle,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _editMeeting(meeting);
+                          } else if (value == 'cancel') {
+                            _cancelMeetingFromList(meeting);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.edit_outlined, color: AppColors.primary600),
+                                const SizedBox(width: 12),
+                                Text(l10n.edit),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'cancel',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.delete_outline, color: AppColors.danger),
+                                const SizedBox(width: 12),
+                                Text(l10n.cancelMeetingTitle),
+                              ],
+                            ),
+                          ),
+                        ],
+                        icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                        offset: const Offset(0, 40),
                       ),
                   ],
                 ),
