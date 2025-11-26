@@ -401,7 +401,8 @@
     "selectPrompt": "Select a recording to play",
     "participantFallback": "Participant {{id}}",
     "errors": {
-      "loadFailed": "Failed to load recordings"
+      "loadFailed": "Failed to load recordings",
+      "deleteFailed": "Failed to delete recording"
     },
     "toggleTracks": "Show participant tracks",
     "tracksLabel": "Participant tracks",
@@ -442,7 +443,10 @@
       "cancelled": "Cancelled",
       "finished": "Finished",
       "recording": "Recording"
-    }
+    },
+    "confirmDeleteRecording": "Are you sure you want to delete this recording? This action cannot be undone.",
+    "deleteRecording": "Delete recording",
+    "deleting": "Deleting..."
   },
   "mediaSettings": {
     "title": "Video & audio settings",

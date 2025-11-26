@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getMeeting, getMeetingRecordings, getRoomTranscripts } from '../services/meetings';
 import type { Meeting, RoomRecording, RoomTranscripts } from '../types/meeting';
 import HLSPlayer from '../components/HLSPlayer';
-import { LuFilm, LuClock3 } from 'react-icons/lu';
+import { LuFilm, LuClock3, LuTrash2 } from 'react-icons/lu';
 import { getNotificationService, type Notification } from '../services/notificationService';
 import './MeetingRecordings.css';
 
@@ -103,6 +103,7 @@ export default function MeetingRecordings() {
   const [openSection, setOpenSection] = useState<AccordionSection>('video');
   const [transcribingTracks, setTranscribingTracks] = useState<Set<string>>(new Set());
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [deletingRecording, setDeletingRecording] = useState<string | null>(null);
 
   useEffect(() => {
     if (!meetingId) return;
@@ -318,13 +319,15 @@ export default function MeetingRecordings() {
   };
 
   const generateSummary = async () => {
-    if (!meetingId || generatingSummary) return;
+    if (!meetingId || generatingSummary || !selectedRecording?.room_sid) return;
 
     try {
       setGeneratingSummary(true);
 
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await fetch(`/api/v1/meetings/${meetingId}/generate-summary`, {
+      // Pass room_sid to generate summary for specific room (like mobile app does)
+      const url = `/api/v1/meetings/${meetingId}/generate-summary?room_sid=${encodeURIComponent(selectedRecording.room_sid)}`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -336,26 +339,59 @@ export default function MeetingRecordings() {
         throw new Error(`Failed to generate summary: ${response.statusText}`);
       }
 
-      console.log(`[Summary] Summary generation started for meeting ${meetingId}`);
+      console.log(`[Summary] Summary generation started for meeting ${meetingId}, room ${selectedRecording.room_sid}`);
 
-      // Wait a bit and reload transcripts to check if summary is available
-      setTimeout(async () => {
-        if (selectedRecording?.room_sid) {
-          try {
-            const transcripts = await getRoomTranscripts(selectedRecording.room_sid);
-            setRoomTranscripts(transcripts);
-          } catch (err) {
-            console.error('Failed to reload transcripts:', err);
-          }
-        }
-      }, 3000);
-
-      // TODO: Add toast notification showing that summary generation has started
+      // Summary update will come via WebSocket notification
+      // No need for setTimeout - WebSocket handler will reload transcripts
     } catch (err) {
       console.error('[Summary] Error generating summary:', err);
-      // TODO: Add error toast notification
-    } finally {
       setGeneratingSummary(false);
+    }
+  };
+
+  const deleteRecording = async (roomSid: string) => {
+    if (!meetingId || deletingRecording) return;
+
+    // Show confirmation dialog
+    if (!window.confirm(t('meetingRecordings.confirmDeleteRecording'))) {
+      return;
+    }
+
+    try {
+      setDeletingRecording(roomSid);
+
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`/api/v1/meetings/${meetingId}/recordings/${roomSid}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete recording: ${response.statusText}`);
+      }
+
+      console.log(`[Recording] Recording deleted: ${roomSid}`);
+
+      // Remove the deleted recording from state
+      setRoomRecordings(prev => prev.filter(r => r.room_sid !== roomSid));
+
+      // If the deleted recording was selected, clear selection or select another
+      if (selectedRecording?.room_sid === roomSid) {
+        const remaining = roomRecordings.filter(r => r.room_sid !== roomSid);
+        if (remaining.length > 0) {
+          selectRoomRecording(remaining[0]);
+        } else {
+          setSelectedRecording(null);
+          setRoomTranscripts(null);
+        }
+      }
+    } catch (err) {
+      console.error('[Recording] Error deleting recording:', err);
+      alert(t('meetingRecordings.errors.deleteFailed'));
+    } finally {
+      setDeletingRecording(null);
     }
   };
 
@@ -844,6 +880,21 @@ export default function MeetingRecordings() {
                           <span className={`session-status ${room.status}`}>{t(`meetingRecordings.status.${room.status}`) || room.status}</span>
                         </div>
                       </div>
+                      <button
+                        className="session-delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteRecording(room.room_sid);
+                        }}
+                        disabled={deletingRecording === room.room_sid}
+                        title={t('meetingRecordings.deleteRecording')}
+                      >
+                        {deletingRecording === room.room_sid ? (
+                          <span className="delete-spinner" />
+                        ) : (
+                          <LuTrash2 size={16} />
+                        )}
+                      </button>
                     </div>
                   </div>
                 );

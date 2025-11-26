@@ -403,7 +403,8 @@
     "selectPrompt": "Выберите запись для воспроизведения",
     "participantFallback": "Участник {{id}}",
     "errors": {
-      "loadFailed": "Не удалось загрузить записи"
+      "loadFailed": "Не удалось загрузить записи",
+      "deleteFailed": "Не удалось удалить запись"
     },
     "toggleTracks": "Показывать треки участников",
     "tracksLabel": "Треки участников",
@@ -444,7 +445,10 @@
       "cancelled": "Отменена",
       "finished": "Завершена",
       "recording": "Запись"
-    }
+    },
+    "confirmDeleteRecording": "Вы уверены, что хотите удалить эту запись? Это действие нельзя отменить.",
+    "deleteRecording": "Удалить запись",
+    "deleting": "Удаление..."
   },
   "mediaSettings": {
     "title": "Настройки видео и аудио",
