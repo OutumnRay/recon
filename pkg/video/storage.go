@@ -49,13 +49,39 @@ func NewStorageUploader(config StorageConfig) (*StorageUploader, error) {
 
 // NewStorageUploaderFromEnv создает загрузчик из переменных окружения
 func NewStorageUploaderFromEnv() (*StorageUploader, error) {
+	// Проверяем MINIO_* переменные в первую очередь, затем S3_*
+	endpoint := getEnv("MINIO_ENDPOINT", "")
+	if endpoint == "" {
+		endpoint = getEnv("S3_ENDPOINT", "localhost:9000")
+	}
+
+	accessKey := getEnv("MINIO_ACCESS_KEY", "")
+	if accessKey == "" {
+		accessKey = getEnv("S3_ACCESS_KEY", "minioadmin")
+	}
+
+	secretKey := getEnv("MINIO_SECRET_KEY", "")
+	if secretKey == "" {
+		secretKey = getEnv("S3_SECRET_KEY", "minioadmin")
+	}
+
+	bucket := getEnv("MINIO_BUCKET", "")
+	if bucket == "" {
+		bucket = getEnv("S3_BUCKET", "recordings")
+	}
+
+	useSSL := getEnv("MINIO_USE_SSL", "")
+	if useSSL == "" {
+		useSSL = getEnv("S3_USE_SSL", "false")
+	}
+
 	config := StorageConfig{
-		Endpoint:       getEnv("S3_ENDPOINT", "localhost:9000"),
-		AccessKey:      getEnv("S3_ACCESS_KEY", "minioadmin"),
-		SecretKey:      getEnv("S3_SECRET_KEY", "minioadmin"),
-		Bucket:         getEnv("S3_BUCKET", "recordings"),
+		Endpoint:       endpoint,
+		AccessKey:      accessKey,
+		SecretKey:      secretKey,
+		Bucket:         bucket,
 		Region:         getEnv("S3_REGION", "us-east-1"),
-		UseSSL:         getEnv("S3_USE_SSL", "false") == "true",
+		UseSSL:         useSSL == "true",
 		ForcePathStyle: getEnv("S3_FORCE_PATH_STYLE", "true") == "true",
 	}
 

@@ -371,14 +371,23 @@ func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string, meetingID *u
 			participantName = "Unknown"
 		}
 
-		// Определяем расширение файла по типу трека
+		// Определяем тип трека и расширение файла
+		// Если тип не указан в БД, определяем по префиксу SID:
+		// TR_AM* - аудио треки (Audio Microphone)
+		// TR_VC* - видео треки (Video Camera)
 		var fileExt string
 		trackType := strings.ToLower(t.Type)
 
-		if trackType == "audio" {
+		if trackType == "" || trackType == "audio" || strings.HasPrefix(t.SID, "TR_AM") {
+			// Аудио трек - используем .webm (Opus codec)
 			fileExt = ".webm"
+			trackType = "audio"
 		} else {
+			// Видео трек - используем .mp4 (H.264 + AAC)
 			fileExt = ".mp4"
+			if trackType == "" {
+				trackType = "video"
+			}
 		}
 
 		// Формируем относительный путь к файлу в MinIO
