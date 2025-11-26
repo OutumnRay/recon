@@ -261,11 +261,24 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 		return fmt.Errorf("failed to marshal summaries: %w", err)
 	}
 
+	// Extract full summary text for memo fields
+	var memoEN, memoRU string
+	if summaries.English != nil {
+		memoEN = summaries.English.FullSummary
+	}
+	if summaries.Russian != nil {
+		memoRU = summaries.Russian.FullSummary
+	}
+
+	up.logger.Infof("📝 Saving summaries - EN length: %d, RU length: %d", len(memoEN), len(memoRU))
+
 	// Save summaries and update status to completed
 	if err := up.db.DB.Model(&models.Room{}).
 		Where("sid = ?", roomSID).
 		Updates(map[string]interface{}{
 			"summaries":      summariesJSON,
+			"memo":           memoEN,
+			"memo_ru":        memoRU,
 			"summary_status": "completed",
 			"summary_error":  "",
 		}).Error; err != nil {

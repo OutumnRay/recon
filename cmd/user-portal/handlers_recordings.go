@@ -338,10 +338,12 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 
 // RoomTranscriptsResponse представляет ответ с транскрипциями для комнаты
 type RoomTranscriptsResponse struct {
-	RoomSID      string                        `json:"room_sid"`
-	Tracks       []TrackTranscriptInfo         `json:"tracks"`
-	Memo         string                        `json:"memo,omitempty"`
-	MemoRu       string                        `json:"memoRu,omitempty"`
+	RoomSID       string                `json:"room_sid"`
+	Tracks        []TrackTranscriptInfo `json:"tracks"`
+	Memo          string                `json:"memo,omitempty"`
+	MemoRu        string                `json:"memo_ru,omitempty"`
+	SummaryStatus string                `json:"summary_status,omitempty"` // pending, processing, completed, failed
+	SummaryError  string                `json:"summary_error,omitempty"`
 }
 
 // TrackTranscriptInfo представляет транскрипцию трека
@@ -478,11 +480,16 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 
 	// Build response
 	response := RoomTranscriptsResponse{
-		RoomSID: roomSID,
-		Tracks:  []TrackTranscriptInfo{},
-		Memo:    room.Memo,
-		MemoRu:  room.MemoRu,
+		RoomSID:       roomSID,
+		Tracks:        []TrackTranscriptInfo{},
+		Memo:          room.Memo,
+		MemoRu:        room.MemoRu,
+		SummaryStatus: room.SummaryStatus,
+		SummaryError:  room.SummaryError,
 	}
+
+	up.logger.Infof("📝 [TRANSCRIPTS] Room %s summary status: %s, memo length: %d, memo_ru length: %d",
+		roomSID, room.SummaryStatus, len(room.Memo), len(room.MemoRu))
 
 	for trackID, phrases := range transcriptionsMap {
 		if track, exists := trackMap[trackID]; exists {
