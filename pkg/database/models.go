@@ -480,6 +480,10 @@ type Meeting struct {
 	AllowAnonymous bool `gorm:"column:allow_anonymous;not null;default:false" json:"allow_anonymous"`
 	// AdditionalNotes - дополнительные заметки о встрече
 	AdditionalNotes string `gorm:"column:additional_notes;type:text" json:"additional_notes"`
+	// SummaryEN - автоматически сгенерированная сводка встречи на английском (JSON)
+	SummaryEN *string `gorm:"column:summary_en;type:jsonb" json:"summary_en,omitempty"`
+	// SummaryRU - автоматически сгенерированная сводка встречи на русском (JSON)
+	SummaryRU *string `gorm:"column:summary_ru;type:jsonb" json:"summary_ru,omitempty"`
 	// LiveKitRoomID - ID комнаты LiveKit для онлайн-встречи
 	LiveKitRoomID *uuid.UUID `gorm:"column:livekit_room_id;type:uuid" json:"livekit_room_id"`
 	// CreatedBy - ID пользователя, который создал встречу
