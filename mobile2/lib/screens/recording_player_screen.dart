@@ -234,6 +234,15 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
       // The API proxy will handle MinIO access and rewrite segment URLs with token
       await _player.setDataSource(fullUrl, autoPlay: false);
 
+      // Wait a bit for player to prepare
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      Logger.logInfo('Player state after initialization', data: {
+        'state': _player.state.toString(),
+        'duration': _player.value.duration.inMilliseconds,
+        'currentPos': _player.currentPos.inMilliseconds,
+      });
+
       setState(() {
         _isLoading = false;
       });
@@ -499,8 +508,17 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
       child: TranscriptViewer(
         transcripts: _transcripts!,
         onSeekToTime: (double time) async {
-          await _player.seekTo((time * 1000).toInt());
-          await _player.start();
+          // Check if player is in a valid state before seeking
+          if (_player.state != FijkState.error && _player.state != FijkState.idle) {
+            try {
+              await _player.seekTo((time * 1000).toInt());
+              if (_player.state != FijkState.started) {
+                await _player.start();
+              }
+            } catch (e) {
+              Logger.logError('Failed to seek to time', error: e);
+            }
+          }
           // Switch back to player tab
           _tabController.animateTo(0);
         },
@@ -839,7 +857,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
             onTap: () {
               if (player.state == FijkState.started) {
                 player.pause();
-              } else {
+              } else if (player.state != FijkState.error && player.state != FijkState.idle) {
                 player.start();
               }
             },
@@ -922,7 +940,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
                             onPressed: () {
                               if (player.state == FijkState.started) {
                                 player.pause();
-                              } else {
+                              } else if (player.state != FijkState.error && player.state != FijkState.idle) {
                                 player.start();
                               }
                             },
