@@ -527,8 +527,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                 ],
             ],
           ),
-          // Show participant tracks if available
-          if (recording.tracks.isNotEmpty) ...[
+          // Show participant tracks only if composite video is not available
+          if (recording.tracks.isNotEmpty &&
+              (recording.playlistUrl == null || recording.playlistUrl!.isEmpty)) ...[
             const SizedBox(height: 16),
             // Group tracks by participant
             ...() {

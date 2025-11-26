@@ -118,12 +118,20 @@ class NotificationService {
     // Build WebSocket URL by parsing baseUrl to preserve host and port
     final uri = Uri.parse(baseUrl);
     final protocol = uri.scheme == 'https' ? 'wss' : 'ws';
-    final wsUri = Uri(
-      scheme: protocol,
-      host: uri.host,
-      port: uri.hasPort ? uri.port : null,
-      path: '/api/v1/notifications/ws',
-    );
+
+    // Build URI without explicit port if not present (will use default 80/443)
+    final wsUri = uri.hasPort && uri.port != 0
+        ? Uri(
+            scheme: protocol,
+            host: uri.host,
+            port: uri.port,
+            path: '/api/v1/notifications/ws',
+          )
+        : Uri(
+            scheme: protocol,
+            host: uri.host,
+            path: '/api/v1/notifications/ws',
+          );
 
     debugPrint('[NotificationService] Connecting to: $wsUri');
 
