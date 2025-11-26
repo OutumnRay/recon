@@ -826,19 +826,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
               ),
               const SizedBox(width: 4),
               // Session menu button
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: PopupMenuButton<String>(
+              PopupMenuButton<String>(
                   onSelected: (value) {
                     if (value == 'delete') {
                       _deleteRecording(recording);
@@ -885,7 +873,6 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                     ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 12),

@@ -692,12 +692,26 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                             _cancelMeetingFromList(meeting);
                           }
                         },
+                        offset: const Offset(0, 40),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        color: Colors.white,
+                        elevation: 8,
+                        shadowColor: Colors.black.withValues(alpha: 0.15),
                         itemBuilder: (context) => [
                           PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
-                                const Icon(Icons.edit_outlined, color: AppColors.primary600),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary600.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(Icons.edit_outlined, color: AppColors.primary600, size: 16),
+                                ),
                                 const SizedBox(width: 12),
                                 Text(l10n.edit),
                               ],
@@ -707,7 +721,14 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                             value: 'cancel',
                             child: Row(
                               children: [
-                                const Icon(Icons.delete_outline, color: AppColors.danger),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.danger.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 16),
+                                ),
                                 const SizedBox(width: 12),
                                 Text(l10n.cancelMeetingTitle),
                               ],
@@ -715,7 +736,6 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                           ),
                         ],
                         icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
-                        offset: const Offset(0, 40),
                       ),
                   ],
                 ),
