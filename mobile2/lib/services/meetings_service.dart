@@ -114,7 +114,7 @@ class MeetingsService {
     }
   }
 
-  /// Delete a meeting
+  /// Delete a meeting (cancel it - soft delete)
   Future<void> deleteMeeting(String meetingId) async {
     try {
       final response = await _apiClient.delete('/api/v1/meetings/$meetingId');
@@ -123,6 +123,47 @@ class MeetingsService {
         throw _apiClient.handleError(response);
       }
     } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Permanently delete a cancelled meeting
+  Future<void> hardDeleteMeeting(String meetingId) async {
+    try {
+      Logger.logInfo('Permanently deleting meeting', data: {'meetingId': meetingId});
+
+      final response = await _apiClient.delete('/api/v1/meetings/$meetingId/hard-delete');
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _apiClient.handleError(response);
+      }
+
+      Logger.logSuccess('Meeting permanently deleted');
+    } catch (e) {
+      Logger.logError('Failed to permanently delete meeting', error: e);
+      rethrow;
+    }
+  }
+
+  /// Delete a recording (session) with files
+  Future<void> deleteRecording(String meetingId, String roomSid) async {
+    try {
+      Logger.logInfo('Deleting recording', data: {
+        'meetingId': meetingId,
+        'roomSid': roomSid,
+      });
+
+      final response = await _apiClient.delete(
+        '/api/v1/meetings/$meetingId/recordings/$roomSid',
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _apiClient.handleError(response);
+      }
+
+      Logger.logSuccess('Recording deleted');
+    } catch (e) {
+      Logger.logError('Failed to delete recording', error: e);
       rethrow;
     }
   }

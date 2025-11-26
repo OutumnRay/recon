@@ -814,12 +814,55 @@ func (r *MeetingRepository) UpdateMeeting(meeting *models.Meeting) error {
 	return nil
 }
 
-// DeleteMeeting deletes a meeting
+// DeleteMeeting soft deletes a meeting by setting status to cancelled
 func (r *MeetingRepository) DeleteMeeting(id uuid.UUID) error {
-	result := r.db.DB.Where("id = ?", id).Delete(&Meeting{})
+	result := r.db.DB.Model(&Meeting{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"status":     "cancelled",
+		"updated_at": time.Now(),
+	})
 
 	if result.Error != nil {
-		return fmt.Errorf("failed to delete meeting: %w", result.Error)
+		return fmt.Errorf("failed to cancel meeting: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("meeting not found")
+	}
+
+	return nil
+}
+
+// HardDeleteMeeting permanently deletes a cancelled meeting from the database
+// This operation is irreversible and should only be used for cancelled meetings
+func (r *MeetingRepository) HardDeleteMeeting(id uuid.UUID) error {
+	// First check if meeting exists and is cancelled
+	var meeting Meeting
+	if err := r.db.DB.Where("id = ?", id).First(&meeting).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fmt.Errorf("meeting not found")
+		}
+		return fmt.Errorf("failed to check meeting: %w", err)
+	}
+
+	if meeting.Status != "cancelled" {
+		return fmt.Errorf("can only permanently delete cancelled meetings")
+	}
+
+	// Delete related records first (due to foreign key constraints)
+	// Delete meeting participants
+	if err := r.db.DB.Where("meeting_id = ?", id).Delete(&MeetingParticipant{}).Error; err != nil {
+		return fmt.Errorf("failed to delete meeting participants: %w", err)
+	}
+
+	// Delete meeting departments
+	if err := r.db.DB.Where("meeting_id = ?", id).Delete(&MeetingDepartment{}).Error; err != nil {
+		return fmt.Errorf("failed to delete meeting departments: %w", err)
+	}
+
+	// Finally delete the meeting itself
+	result := r.db.DB.Unscoped().Where("id = ?", id).Delete(&Meeting{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to permanently delete meeting: %w", result.Error)
 	}
 
 	if result.RowsAffected == 0 {

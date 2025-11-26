@@ -1060,6 +1060,18 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				return
 			}
 
+			// Check if this is a hard-delete request
+			if strings.HasSuffix(r.URL.Path, "/hard-delete") && r.Method == http.MethodDelete {
+				up.hardDeleteMeetingHandler(w, r)
+				return
+			}
+
+			// Check if this is a recording delete request: /api/v1/meetings/{id}/recordings/{roomSid}
+			if strings.Contains(r.URL.Path, "/recordings/") && r.Method == http.MethodDelete {
+				up.deleteRecordingHandler(w, r)
+				return
+			}
+
 			switch r.Method {
 			case http.MethodGet:
 				up.getMeetingHandler(w, r)

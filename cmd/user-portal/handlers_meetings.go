@@ -657,6 +657,164 @@ func (up *UserPortal) deleteMeetingHandler(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+// HardDeleteMeeting godoc
+// @Summary Безвозвратно удалить отменённую встречу
+// @Description Безвозвратно удалить отменённую встречу из базы данных (только для отменённых встреч, только создатель или админ)
+// @Tags Meetings
+// @Produce json
+// @Param id path string true "Идентификатор встречи"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/meetings/{id}/hard-delete [delete]
+func (up *UserPortal) hardDeleteMeetingHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	// Extract meeting ID from path
+	meetingID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1/meetings/"), "/hard-delete")
+
+	parsedID, err := uuid.Parse(meetingID)
+	if err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid meeting ID", err.Error())
+		return
+	}
+
+	// Get existing meeting to check ownership and status
+	meeting, err := up.meetingRepo.GetMeetingByID(parsedID)
+	if err != nil {
+		up.respondWithError(w, http.StatusNotFound, "Meeting not found", err.Error())
+		return
+	}
+
+	// Check if user is creator or admin
+	if claims.Role != models.RoleAdmin && meeting.CreatedBy != claims.UserID {
+		up.respondWithError(w, http.StatusForbidden, "Access denied", "Only meeting creator or admin can permanently delete meetings")
+		return
+	}
+
+	// Hard delete the meeting (will fail if not cancelled)
+	if err := up.meetingRepo.HardDeleteMeeting(parsedID); err != nil {
+		if strings.Contains(err.Error(), "can only permanently delete cancelled meetings") {
+			up.respondWithError(w, http.StatusBadRequest, "Cannot delete non-cancelled meeting", "Meeting must be cancelled before permanent deletion")
+			return
+		}
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to permanently delete meeting", err.Error())
+		return
+	}
+
+	up.logger.Infof("Meeting permanently deleted: %s by user %s", meetingID, claims.Username)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":    "Meeting permanently deleted successfully",
+		"meeting_id": meetingID,
+	})
+}
+
+// DeleteRecording godoc
+// @Summary Удалить запись встречи
+// @Description Удалить запись (сессию) встречи с файлами из MinIO (только создатель встречи или админ)
+// @Tags Meetings
+// @Produce json
+// @Param id path string true "Идентификатор встречи"
+// @Param roomSid path string true "SID записи (комнаты)"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/meetings/{id}/recordings/{roomSid} [delete]
+func (up *UserPortal) deleteRecordingHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	// Extract meeting ID and room SID from path
+	// Path format: /api/v1/meetings/{id}/recordings/{roomSid}
+	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/meetings/"), "/")
+	if len(pathParts) < 3 {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid path", "Expected /api/v1/meetings/{id}/recordings/{roomSid}")
+		return
+	}
+
+	meetingID := pathParts[0]
+	roomSID := pathParts[2]
+
+	parsedMeetingID, err := uuid.Parse(meetingID)
+	if err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid meeting ID", err.Error())
+		return
+	}
+
+	// Get existing meeting to check ownership
+	meeting, err := up.meetingRepo.GetMeetingByID(parsedMeetingID)
+	if err != nil {
+		up.respondWithError(w, http.StatusNotFound, "Meeting not found", err.Error())
+		return
+	}
+
+	// Check if user is creator or admin
+	if claims.Role != models.RoleAdmin && meeting.CreatedBy != claims.UserID {
+		up.respondWithError(w, http.StatusForbidden, "Access denied", "Only meeting creator or admin can delete recordings")
+		return
+	}
+
+	// Get room to find meetingID for file path
+	room, err := up.liveKitRepo.GetRoomBySID(roomSID)
+	if err != nil {
+		up.respondWithError(w, http.StatusNotFound, "Recording not found", err.Error())
+		return
+	}
+
+	// Verify room belongs to the meeting
+	if room.MeetingID == nil || *room.MeetingID != parsedMeetingID {
+		up.respondWithError(w, http.StatusForbidden, "Recording does not belong to this meeting", "")
+		return
+	}
+
+	// Delete files from MinIO (path format: meetingID_roomSID/)
+	minioClient, err := NewMinIOClient()
+	if err != nil {
+		up.logger.Errorf("Failed to create MinIO client: %v", err)
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to delete recording files", err.Error())
+		return
+	}
+
+	recordingPath := meetingID + "_" + roomSID
+	deletedCount, err := minioClient.DeleteDirectory(r.Context(), recordingPath)
+	if err != nil {
+		up.logger.Errorf("Failed to delete recording files from MinIO: %v", err)
+		// Continue with database deletion even if file deletion fails
+	} else {
+		up.logger.Infof("Deleted %d files from MinIO for recording %s", deletedCount, roomSID)
+	}
+
+	// Delete room from database
+	if err := up.liveKitRepo.DeleteRoom(roomSID); err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to delete recording from database", err.Error())
+		return
+	}
+
+	up.logger.Infof("Recording deleted: %s (meeting %s) by user %s, files deleted: %d", roomSID, meetingID, claims.Username, deletedCount)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":       "Recording deleted successfully",
+		"meeting_id":    meetingID,
+		"room_sid":      roomSID,
+		"files_deleted": strconv.Itoa(deletedCount),
+	})
+}
+
 // ListMeetingSubjects godoc
 // @Summary Список тем встреч
 // @Description Получить постраничный список активных тем встреч

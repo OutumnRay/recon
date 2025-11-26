@@ -436,3 +436,29 @@ func (r *LiveKitRepository) GetTracksByRoomSID(roomSID string) ([]*models.Track,
 
 	return tracks, nil
 }
+
+// DeleteRoom permanently deletes a room and all related data from database
+// Does NOT delete files from MinIO - use DeleteRoomWithFiles for that
+func (r *LiveKitRepository) DeleteRoom(roomSID string) error {
+	// Delete participants first (foreign key constraint)
+	if err := r.db.DB.Where("room_sid = ?", roomSID).Delete(&models.Participant{}).Error; err != nil {
+		return fmt.Errorf("failed to delete participants: %w", err)
+	}
+
+	// Delete tracks
+	if err := r.db.DB.Where("room_sid = ?", roomSID).Delete(&models.Track{}).Error; err != nil {
+		return fmt.Errorf("failed to delete tracks: %w", err)
+	}
+
+	// Delete the room itself
+	result := r.db.DB.Where("sid = ?", roomSID).Delete(&models.Room{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete room: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("room not found")
+	}
+
+	return nil
+}

@@ -523,3 +523,42 @@ func (up *UserPortal) checkRecordingAccess(roomSIDOrEgressID string, userID uuid
 	up.logger.Errorf("User %s has no access to room %s", userID.String(), room.SID)
 	return false
 }
+
+// DeleteDirectory удаляет всю директорию (все объекты с указанным префиксом) из MinIO
+func (mc *MinIOClient) DeleteDirectory(ctx context.Context, prefix string) (int, error) {
+	// Ensure prefix ends with / for directory matching
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
+	}
+
+	// List all objects with the prefix
+	objectsCh := mc.client.ListObjects(ctx, mc.bucket, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+
+	deletedCount := 0
+	var lastErr error
+
+	// Delete each object
+	for object := range objectsCh {
+		if object.Err != nil {
+			lastErr = object.Err
+			continue
+		}
+
+		err := mc.client.RemoveObject(ctx, mc.bucket, object.Key, minio.RemoveObjectOptions{})
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		deletedCount++
+	}
+
+	if lastErr != nil && deletedCount == 0 {
+		return 0, fmt.Errorf("failed to delete directory: %w", lastErr)
+	}
+
+	return deletedCount, nil
+}

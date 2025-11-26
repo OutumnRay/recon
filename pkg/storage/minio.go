@@ -228,6 +228,51 @@ func (mc *MinIOClient) DeleteFile(ctx context.Context, remotePath string) error 
 	return nil
 }
 
+// DeleteDirectory удаляет всю директорию (все объекты с указанным префиксом) из MinIO
+func (mc *MinIOClient) DeleteDirectory(ctx context.Context, remotePrefix string) (int, error) {
+	log.Printf("🗑️  Deleting directory from MinIO: %s", remotePrefix)
+
+	// Ensure prefix ends with / for directory matching
+	if !strings.HasSuffix(remotePrefix, "/") {
+		remotePrefix += "/"
+	}
+
+	// List all objects with the prefix
+	objectsCh := mc.client.ListObjects(ctx, mc.bucket, minio.ListObjectsOptions{
+		Prefix:    remotePrefix,
+		Recursive: true,
+	})
+
+	deletedCount := 0
+	var lastErr error
+
+	// Delete each object
+	for object := range objectsCh {
+		if object.Err != nil {
+			log.Printf("⚠️ Error listing object: %v", object.Err)
+			lastErr = object.Err
+			continue
+		}
+
+		log.Printf("   Deleting: %s", object.Key)
+		err := mc.client.RemoveObject(ctx, mc.bucket, object.Key, minio.RemoveObjectOptions{})
+		if err != nil {
+			log.Printf("⚠️ Failed to delete %s: %v", object.Key, err)
+			lastErr = err
+			continue
+		}
+
+		deletedCount++
+	}
+
+	if lastErr != nil && deletedCount == 0 {
+		return 0, fmt.Errorf("failed to delete directory: %w", lastErr)
+	}
+
+	log.Printf("✅ Deleted %d files from MinIO", deletedCount)
+	return deletedCount, nil
+}
+
 // GetPublicURL возвращает публичный URL для объекта
 func (mc *MinIOClient) GetPublicURL(objectKey string) string {
 	protocol := "http"
