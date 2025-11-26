@@ -229,6 +229,16 @@ func (su *StorageUploader) DownloadFile(ctx context.Context, remotePath, localPa
 	return nil
 }
 
+// GetClient возвращает MinIO клиент для прямого доступа
+func (su *StorageUploader) GetClient() *minio.Client {
+	return su.client
+}
+
+// GetBucket возвращает имя бакета
+func (su *StorageUploader) GetBucket() string {
+	return su.config.Bucket
+}
+
 // getContentType определяет MIME тип файла по расширению
 func getContentType(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))

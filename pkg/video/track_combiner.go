@@ -323,14 +323,32 @@ func (tc *TrackCombiner) combineTrack(ctx context.Context, trackID string, files
 	return result
 }
 
-// combineWithFFmpeg объединяет HLS сегменты в MP4 используя ffmpeg
+// combineWithFFmpeg объединяет HLS сегменты (.ts файлы) в файл используя ffmpeg
 func (tc *TrackCombiner) combineWithFFmpeg(playlistPath, outputPath string) error {
-	cmd := exec.Command("ffmpeg",
-		"-i", playlistPath,
-		"-c", "copy", // Копируем потоки без перекодирования
-		"-y",         // Перезаписываем выходной файл
-		outputPath,
-	)
+	// Определяем целевой формат по расширению выходного файла
+	isWebM := strings.HasSuffix(outputPath, ".webm")
+
+	var cmd *exec.Cmd
+	if isWebM {
+		// Для WebM (аудио треки): конвертируем в Opus
+		// Входные .ts файлы могут содержать AAC или Opus, ffmpeg сам определит
+		cmd = exec.Command("ffmpeg",
+			"-i", playlistPath,
+			"-c:a", "libopus",    // Конвертируем аудио в Opus
+			"-b:a", "128k",       // Битрейт аудио
+			"-vn",                // Без видео (только аудио)
+			"-y",                 // Перезаписываем выходной файл
+			outputPath,
+		)
+	} else {
+		// Для MP4 (видео треки): копируем потоки H.264 + AAC из .ts файлов
+		cmd = exec.Command("ffmpeg",
+			"-i", playlistPath,
+			"-c", "copy",  // Копируем потоки без перекодирования
+			"-y",          // Перезаписываем выходной файл
+			outputPath,
+		)
+	}
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

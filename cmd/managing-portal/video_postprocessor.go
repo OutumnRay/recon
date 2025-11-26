@@ -16,6 +16,7 @@ import (
 	"Recontext.online/pkg/summary"
 	"Recontext.online/pkg/video"
 	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 	"gorm.io/gorm"
 )
 
@@ -221,11 +222,14 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	log.Printf("✅ Uploaded %d files to S3", len(uploadedURLs))
 
-	// 8. Находим URL плейлиста composite.m3u8
+	// 8. Находим URL плейлиста composite.m3u8 и извлекаем относительный путь
 	playlistURL := ""
 	for _, url := range uploadedURLs {
 		if filepath.Base(url) == "composite.m3u8" {
-			playlistURL = url
+			// Извлекаем только относительный путь без хоста
+			// Из: http://192.168.5.153:9000/recontext/meetingID_roomSID/composite.m3u8
+			// В: meetingID_roomSID/composite.m3u8
+			playlistURL = extractRelativePath(url)
 			break
 		}
 	}
@@ -234,7 +238,7 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 		return fmt.Errorf("composite.m3u8 URL not found in uploaded files")
 	}
 
-	log.Printf("📍 Composite playlist URL: %s", playlistURL)
+	log.Printf("📍 Composite playlist relative path: %s", playlistURL)
 
 	// 9. Обновляем базу данных с URL плейлиста
 	if err := vpp.updateMeetingWithPlaylist(roomSID, playlistURL); err != nil {
@@ -260,6 +264,13 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 		)
 		notification.ChangedFields["video_playlist_url"] = playlistURL
 		vpp.notificationService.Notify(notification)
+	}
+
+	// 10. Удаляем индивидуальные треки из MinIO после успешного создания композитного видео
+	if meetingID != nil {
+		if err := vpp.deleteIndividualTracks(ctx, meetingID.String(), roomSID); err != nil {
+			log.Printf("⚠️ Failed to delete individual tracks: %v (continuing)", err)
+		}
 	}
 
 	log.Print("==============================================")
@@ -761,11 +772,14 @@ func (vpp *VideoPostProcessor) combineHLSTracks(ctx context.Context, meetingID, 
 
 		log.Printf("   📤 Uploaded to: %s", url)
 
+		// Извлекаем относительный путь для сохранения в базу
+		relativePath := extractRelativePath(url)
+
 		// Обновляем запись в базе данных
-		if err := vpp.updateTrackWithCombinedURL(track.TrackID, roomSID, url, track.Duration); err != nil {
+		if err := vpp.updateTrackWithCombinedURL(track.TrackID, roomSID, relativePath, track.Duration); err != nil {
 			log.Printf("   ⚠️ Failed to update database: %v", err)
 		} else {
-			log.Printf("   💾 Database updated")
+			log.Printf("   💾 Database updated (path: %s)", relativePath)
 		}
 
 		// Очищаем временные файлы трека
@@ -863,4 +877,92 @@ func (vpp *VideoPostProcessor) updateTrackWithCombinedURL(trackID, roomSID, url 
 	}
 
 	return nil
+}
+
+// deleteIndividualTracks удаляет индивидуальные треки участников из MinIO после создания композитного видео
+func (vpp *VideoPostProcessor) deleteIndividualTracks(ctx context.Context, meetingID, roomSID string) error {
+	log.Printf("🗑️  Deleting individual tracks for meeting %s, room %s", meetingID, roomSID)
+
+	// Получаем список всех треков из базы данных
+	var tracks []struct {
+		TrackID string
+		Type    string
+	}
+
+	err := vpp.db.DB.Table("livekit_tracks").
+		Select("sid as track_id, type").
+		Where("room_sid = ?", roomSID).
+		Where("type IN ?", []string{"audio", "video"}).
+		Scan(&tracks).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to get tracks from database: %w", err)
+	}
+
+	if len(tracks) == 0 {
+		log.Printf("ℹ️  No tracks found to delete")
+		return nil
+	}
+
+	log.Printf("📋 Found %d tracks to delete", len(tracks))
+
+	// Получаем доступ к MinIO клиенту через storageUploader
+	minioClient := vpp.storageUploader.GetClient()
+	bucketName := vpp.storageUploader.GetBucket()
+
+	// Префикс для всех файлов треков
+	tracksPrefix := fmt.Sprintf("%s_%s/tracks/", meetingID, roomSID)
+
+	// Перебираем все объекты в папке tracks/
+	objectCh := minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    tracksPrefix,
+		Recursive: true,
+	})
+
+	deletedCount := 0
+	for object := range objectCh {
+		if object.Err != nil {
+			log.Printf("⚠️  Error listing object: %v", object.Err)
+			continue
+		}
+
+		// Удаляем все файлы треков (.ts, .m3u8, .mp4, .webm)
+		ext := filepath.Ext(object.Key)
+		if ext == ".ts" || ext == ".m3u8" || ext == ".mp4" || ext == ".webm" {
+			err := vpp.storageUploader.DeleteFile(ctx, object.Key)
+			if err != nil {
+				log.Printf("⚠️  Failed to delete %s: %v", object.Key, err)
+				continue
+			}
+			deletedCount++
+			if deletedCount%10 == 0 {
+				log.Printf("   Deleted %d files...", deletedCount)
+			}
+		}
+	}
+
+	log.Printf("✅ Deleted %d track files from MinIO", deletedCount)
+	return nil
+}
+
+// extractRelativePath извлекает относительный путь из полного URL MinIO
+// Из: http://192.168.5.153:9000/recontext/meetingID_roomSID/composite.m3u8
+// В: meetingID_roomSID/composite.m3u8
+func extractRelativePath(fullURL string) string {
+	// Убираем протокол и хост
+	// Ищем "/recontext/" и берем все что после него
+	bucketPrefix := "/recontext/"
+	if idx := strings.Index(fullURL, bucketPrefix); idx != -1 {
+		return fullURL[idx+len(bucketPrefix):]
+	}
+
+	// Если не нашли /recontext/, пробуем другой формат
+	// Возможно URL уже в виде meetingID_roomSID/file.m3u8
+	parts := strings.Split(fullURL, "/")
+	if len(parts) >= 2 {
+		// Берем последние 2 части: meetingID_roomSID/composite.m3u8
+		return strings.Join(parts[len(parts)-2:], "/")
+	}
+
+	return fullURL
 }

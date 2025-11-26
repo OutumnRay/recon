@@ -142,7 +142,7 @@ recontext/
 - Обновляет таблицу `meetings`:
   ```sql
   UPDATE meetings
-  SET video_playlist_url = 'http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/composite.m3u8',
+  SET video_playlist_url = '{meetingID}_{roomSID}/composite.m3u8',
       updated_at = NOW()
   WHERE id = {meetingID}
   ```
@@ -150,26 +150,67 @@ recontext/
 - Обновляет таблицу `livekit_egress_recordings`:
   ```sql
   UPDATE livekit_egress_recordings
-  SET playlist_url = 'http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/composite.m3u8',
+  SET playlist_url = '{meetingID}_{roomSID}/composite.m3u8',
       updated_at = NOW()
   WHERE room_sid = {roomSID}
     AND type = 'room_composite'
   ```
 
 **Поля в базе данных:**
-- `meetings.video_playlist_url` - URL на composite.m3u8
-- `livekit_egress_recordings.playlist_url` - URL на composite.m3u8 (для room_composite)
-- `livekit_egress_recordings.playlist_url` - URL на MP4 (для track_composite)
+- `meetings.video_playlist_url` - относительный путь к composite.m3u8 (например: `meetingID_roomSID/composite.m3u8`)
+- `livekit_egress_recordings.playlist_url` - относительный путь к composite.m3u8 (для room_composite)
+- `livekit_egress_recordings.playlist_url` - относительный путь к файлу трека (для track_composite, например: `meetingID_roomSID/tracks/TR_xxx.mp4`)
+
+**Примечание:** В базе данных хранятся только относительные пути без хоста и протокола. Полный URL формируется на фронтенде с использованием настроек MinIO (например: `http://192.168.5.153:9000/recontext/{путь из БД}`)
+
+### 10. Удаление индивидуальных треков (Шаг 10)
+**Файл:** `cmd/managing-portal/video_postprocessor.go` → `deleteIndividualTracks()`
+
+**Действия:**
+- Получает список всех треков из базы данных для данной комнаты
+- Перебирает все файлы в папке `{meetingID}_{roomSID}/tracks/` в MinIO
+- Удаляет все файлы треков участников:
+  - `.ts` - сегменты HLS
+  - `.m3u8` - плейлисты HLS
+  - `.mp4` - скомбинированные видео треки
+  - `.webm` - скомбинированные аудио треки
+- Логирует прогресс удаления (каждые 10 файлов)
+
+**Результат после удаления:**
+```
+recontext/
+  └── {meetingID}_{roomSID}/
+      ├── composite.m3u8            # Плейлист композитного видео
+      ├── composite_00001.ts        # Сегмент 1
+      ├── composite_00002.ts        # Сегмент 2
+      ├── composite_00003.ts        # Сегмент 3
+      └── ...
+      # Папка tracks/ и все её содержимое удалены
+```
+
+**Примечание:** Удаление происходит только после успешного создания композитного видео и завершения транскрибации. Если удаление не удалось, процесс продолжается, и ошибка только логируется.
 
 ## Формат URL
 
 ### Публичные URL (для доступа извне Docker)
+
+**После завершения обработки (треки удалены):**
 ```
 http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/composite.m3u8
 http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/composite_00001.ts
+http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/composite_00002.ts
+...
+```
+
+**Во время обработки (до удаления треков):**
+```
 http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_VCxxxxx.mp4   # Видео
 http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_AMxxxxx.webm  # Аудио
+http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_VCxxxxx.m3u8  # HLS плейлист
+http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_VCxxxxx_00001.ts  # HLS сегмент
 ```
+
+**Примечание:** Индивидуальные треки участников (папка `tracks/`) удаляются после успешного создания композитного видео.
 
 ### Внутренние URL (внутри Docker сети)
 ```
@@ -261,13 +302,20 @@ docker-compose -f docker-compose-mac.yml logs managing-portal --tail=100 -f
 🎬 Combining HLS tracks for meeting {meetingID}, room {roomSID}
 📊 Processing 2 HLS tracks
 ✅ Track TR_xxxxx: audio, 1.07 MB, 65.71 seconds
-📤 Uploaded to: http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_xxxxx.mp4
+📤 Uploaded to: http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_xxxxx.webm
+💾 Database updated (path: {meetingID}_{roomSID}/tracks/TR_xxxxx.webm)
 ✅ Combined 2/2 tracks successfully
 
 ✅ Video merged successfully: /tmp/merged_{uuid}.mp4
 🎬 Converting video to HLS format with custom names
 ✅ HLS conversion completed: /tmp/hls_{uuid}/composite.m3u8
 ✅ Uploaded X files to S3
-📍 Composite playlist URL: http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/composite.m3u8
+📍 Composite playlist relative path: {meetingID}_{roomSID}/composite.m3u8
 ✅ Database updated with playlist URL for meeting {meetingID}
+
+🗑️  Deleting individual tracks for meeting {meetingID}, room {roomSID}
+📋 Found 2 tracks to delete
+   Deleted 10 files...
+   Deleted 20 files...
+✅ Deleted 25 track files from MinIO
 ```
