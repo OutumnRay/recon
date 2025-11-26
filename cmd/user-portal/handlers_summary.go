@@ -270,10 +270,13 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 		memoRU = summaries.Russian.FullSummary
 	}
 
-	up.logger.Infof("📝 Saving summaries - EN length: %d, RU length: %d", len(memoEN), len(memoRU))
+	up.logger.Infof("📝 Saving summaries to room %s:", roomSID)
+	up.logger.Infof("   memo (EN): %d chars", len(memoEN))
+	up.logger.Infof("   memo_ru (RU): %d chars", len(memoRU))
+	up.logger.Infof("   summaries JSON: %d bytes", len(summariesJSON))
 
 	// Save summaries and update status to completed
-	if err := up.db.DB.Model(&models.Room{}).
+	result := up.db.DB.Model(&models.Room{}).
 		Where("sid = ?", roomSID).
 		Updates(map[string]interface{}{
 			"summaries":      summariesJSON,
@@ -281,8 +284,22 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 			"memo_ru":        memoRU,
 			"summary_status": "completed",
 			"summary_error":  "",
-		}).Error; err != nil {
-		return fmt.Errorf("failed to save summaries: %w", err)
+		})
+
+	if result.Error != nil {
+		up.logger.Errorf("❌ Failed to save summaries to room %s: %v", roomSID, result.Error)
+		return fmt.Errorf("failed to save summaries: %w", result.Error)
+	}
+
+	up.logger.Infof("✅ Summaries saved to livekit_rooms - rows affected: %d", result.RowsAffected)
+
+	// Verify the save was successful
+	var room models.Room
+	if err := up.db.DB.Where("sid = ?", roomSID).First(&room).Error; err != nil {
+		up.logger.Infof("⚠️ Could not verify save: %v", err)
+	} else {
+		up.logger.Infof("📋 Verification - memo: %d chars, memo_ru: %d chars, status: %s",
+			len(room.Memo), len(room.MemoRu), room.SummaryStatus)
 	}
 
 	// Send real-time notification: summary completed
@@ -293,6 +310,6 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 		"",
 	))
 
-	up.logger.Infof("✅ Summary generation completed for meeting %s", meetingID)
+	up.logger.Infof("✅ Summary generation completed for meeting %s (room %s)", meetingID, roomSID)
 	return nil
 }
