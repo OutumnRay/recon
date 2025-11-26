@@ -14,15 +14,18 @@ import (
 
 // TrackCombiner объединяет HLS сегменты треков из MinIO/S3 в единые MP4 файлы
 type TrackCombiner struct {
-	minioClient *minio.Client
-	bucketName  string
-	workDir     string
+	minioClient    *minio.Client
+	bucketName     string
+	workDir        string
+	publicEndpoint string // Публичный endpoint для формирования URL
+	useSSL         bool   // Использовать HTTPS для публичных URL
 }
 
 // TrackCombinerConfig конфигурация для TrackCombiner
 type TrackCombinerConfig struct {
 	// MinIO/S3 настройки
-	Endpoint        string
+	Endpoint        string // Внутренний endpoint для подключения (например, minio:9000)
+	PublicEndpoint  string // Публичный endpoint для формирования URL (например, api.storage.recontext.online)
 	AccessKeyID     string
 	SecretAccessKey string
 	BucketName      string
@@ -62,10 +65,18 @@ func NewTrackCombiner(config TrackCombinerConfig) (*TrackCombiner, error) {
 		return nil, fmt.Errorf("failed to create work directory: %w", err)
 	}
 
+	// Определяем публичный endpoint
+	publicEndpoint := config.PublicEndpoint
+	if publicEndpoint == "" {
+		publicEndpoint = config.Endpoint
+	}
+
 	return &TrackCombiner{
-		minioClient: minioClient,
-		bucketName:  config.BucketName,
-		workDir:     workDir,
+		minioClient:    minioClient,
+		bucketName:     config.BucketName,
+		workDir:        workDir,
+		publicEndpoint: publicEndpoint,
+		useSSL:         config.UseSSL,
 	}, nil
 }
 
@@ -97,8 +108,12 @@ func NewTrackCombinerFromEnv() (*TrackCombiner, error) {
 		useSSL = true
 	}
 
+	// Публичный endpoint для формирования URL (если не указан, используется внутренний)
+	publicEndpoint := os.Getenv("MINIO_PUBLIC_ENDPOINT")
+
 	config := TrackCombinerConfig{
 		Endpoint:        endpoint,
+		PublicEndpoint:  publicEndpoint,
 		AccessKeyID:     accessKey,
 		SecretAccessKey: secretKey,
 		BucketName:      bucket,
@@ -376,14 +391,17 @@ func (tc *TrackCombiner) UploadCombinedTrack(ctx context.Context, track *Combine
 		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
 
-	// Формируем URL для доступа к файлу
-	// Возвращаем публичный URL
-	publicURL := fmt.Sprintf("https://%s/%s/%s", tc.minioClient.EndpointURL().Host, tc.bucketName, objectName)
+	// Формируем публичный URL для доступа к файлу
+	protocol := "http"
+	if tc.useSSL {
+		protocol = "https"
+	}
+	publicURL := fmt.Sprintf("%s://%s/%s/%s", protocol, tc.publicEndpoint, tc.bucketName, objectName)
 
 	// Логируем размер загруженного файла
 	_ = info.Size
 
-	// Если нужен presigned URL (для приватных buckets), используем:
+	// Примечание: Если нужен presigned URL (для приватных buckets), можно использовать:
 	// url, err := tc.minioClient.PresignedGetObject(ctx, tc.bucketName, objectName, 7*24*time.Hour, nil)
 	// if err != nil {
 	//     return "", fmt.Errorf("failed to generate URL: %w", err)

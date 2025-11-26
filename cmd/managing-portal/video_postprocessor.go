@@ -432,17 +432,30 @@ func isURL(s string) bool {
 	return len(s) > 7 && (s[:7] == "http://" || (len(s) > 8 && s[:8] == "https://"))
 }
 
-// extractRemotePath извлекает удаленный путь из URL S3
+// extractRemotePath извлекает удаленный путь из URL S3/MinIO
 func extractRemotePath(url string) string {
-	// Простое извлечение пути после bucket/
-	// Например: http://localhost:9000/recordings/meetings/xyz/track.mp4 -> meetings/xyz/track.mp4
+	// Удаляем протокол и хост
+	// Например: http://localhost:9000/bucket/path/to/file.mp4 -> bucket/path/to/file.mp4
+	//          http://192.168.5.153:9000/recontext/meetingID_roomSID/tracks/TR_xxx.mp4 -> recontext/meetingID_roomSID/tracks/TR_xxx.mp4
 
-	// Ищем "meetings/" в URL
+	// Ищем "meetings/" в URL (старый формат)
 	idx := strings.Index(url, "/meetings/")
 	if idx != -1 {
 		return url[idx+1:] // +1 чтобы убрать начальный /
 	}
 
+	// Ищем bucket name в URL (новый формат с meetingID_roomSID)
+	// Формат: http://host:port/bucket/path
+	parts := strings.SplitN(url, "/", 4)
+	if len(parts) >= 4 {
+		// parts[0] = "http:" или "https:"
+		// parts[1] = ""
+		// parts[2] = "host:port"
+		// parts[3] = "bucket/path/to/file"
+		return parts[3]
+	}
+
+	// Fallback: возвращаем имя файла
 	return filepath.Base(url)
 }
 

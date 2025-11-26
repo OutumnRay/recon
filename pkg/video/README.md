@@ -88,11 +88,12 @@ log.Printf("Track combined: %s (%s, %.2f MB, %.2f sec)",
 
 ```go
 type TrackCombinerConfig struct {
-    Endpoint        string // MinIO/S3 endpoint
+    Endpoint        string // MinIO/S3 endpoint для подключения (например, minio:9000)
+    PublicEndpoint  string // Публичный endpoint для формирования URL (например, api.storage.recontext.online)
     AccessKeyID     string // Access key
     SecretAccessKey string // Secret key
     BucketName      string // Bucket name
-    UseSSL          bool   // Использовать HTTPS
+    UseSSL          bool   // Использовать HTTPS для публичных URL
     WorkDir         string // Рабочая директория (опционально)
 }
 ```
