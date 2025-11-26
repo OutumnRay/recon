@@ -377,18 +377,25 @@ class MeetingsService {
     }
   }
 
-  /// Generate summary for a meeting
-  Future<void> generateMeetingSummary(String meetingId) async {
+  /// Generate summary for a meeting room (session)
+  /// [roomSid] - specific room SID to generate summary for
+  Future<void> generateMeetingSummary(String meetingId, {String? roomSid}) async {
     try {
-      Logger.logInfo('Generating summary for meeting', data: {'meetingId': meetingId});
+      Logger.logInfo('Generating summary for meeting', data: {
+        'meetingId': meetingId,
+        'roomSid': roomSid,
+      });
 
-      final response = await _apiClient.post(
-        '/api/v1/meetings/$meetingId/generate-summary',
-        {},
-      );
+      // Build URL with optional room_sid parameter
+      String url = '/api/v1/meetings/$meetingId/generate-summary';
+      if (roomSid != null && roomSid.isNotEmpty) {
+        url = '$url?room_sid=${Uri.encodeComponent(roomSid)}';
+      }
+
+      final response = await _apiClient.post(url, {});
 
       if (response.statusCode == 202) {
-        Logger.logSuccess('Summary generation started');
+        Logger.logSuccess('Summary generation started for room: ${roomSid ?? "default"}');
       } else {
         throw _apiClient.handleError(response);
       }

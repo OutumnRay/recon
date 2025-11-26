@@ -163,10 +163,15 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
       final apiClient = ApiClient(baseUrl: baseUrl, navigatorKey: navigatorKey);
       final meetingsService = MeetingsService(apiClient);
 
-      Logger.logInfo('Generating summary for meeting', data: {'meetingId': widget.meetingId});
+      // Pass roomSid to generate summary for the specific room being viewed
+      final roomSid = widget.recording.roomSid;
+      Logger.logInfo('Generating summary for meeting', data: {
+        'meetingId': widget.meetingId,
+        'roomSid': roomSid,
+      });
 
-      // Call the API to generate summary
-      await meetingsService.generateMeetingSummary(widget.meetingId!);
+      // Call the API to generate summary with roomSid
+      await meetingsService.generateMeetingSummary(widget.meetingId!, roomSid: roomSid);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

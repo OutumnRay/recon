@@ -44,6 +44,10 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// Get room_sid from query parameter (optional - if not provided, use first room)
+	roomSIDParam := r.URL.Query().Get("room_sid")
+	up.logger.Infof("📝 [SUMMARY] Generate summary request: meetingID=%s, room_sid param=%s", meetingID, roomSIDParam)
+
 	// Get meeting and verify ownership
 	meeting, err := up.meetingRepo.GetMeetingWithDetails(meetingID)
 	if err != nil {
@@ -71,9 +75,17 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 		}
 	}
 
-	// Get room SID for this meeting using GORM
+	// Get room - either by room_sid or first room for meeting
 	var room models.Room
-	err = up.db.DB.Where("meeting_id = ?", meetingID).First(&room).Error
+	if roomSIDParam != "" {
+		// Use specific room_sid provided by client
+		err = up.db.DB.Where("sid = ? AND meeting_id = ?", roomSIDParam, meetingID).First(&room).Error
+		up.logger.Infof("📝 [SUMMARY] Looking for specific room: sid=%s, meetingID=%s", roomSIDParam, meetingID)
+	} else {
+		// Fallback to first room (for backwards compatibility)
+		err = up.db.DB.Where("meeting_id = ?", meetingID).First(&room).Error
+		up.logger.Infof("📝 [SUMMARY] No room_sid provided, using first room for meetingID=%s", meetingID)
+	}
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -85,6 +97,7 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 	}
 
 	roomSID := room.SID
+	up.logger.Infof("📝 [SUMMARY] Using room: %s for summary generation", roomSID)
 
 	// Set summary status to processing
 	if err := up.db.DB.Model(&models.Room{}).
