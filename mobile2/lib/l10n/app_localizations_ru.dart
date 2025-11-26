@@ -322,10 +322,10 @@ class AppLocalizationsRu extends AppLocalizations {
       'Вы уверены, что хотите отменить эту встречу? Это действие нельзя отменить.';
 
   @override
-  String get summaryReady => 'Summary готово!';
+  String get summaryReady => 'Резюме готово!';
 
   @override
-  String get summaryError => 'Ошибка генерации summary';
+  String get summaryError => 'Ошибка генерации резюме';
 
   @override
   String get transcriptionReady => 'Транскрипция готова!';
@@ -824,7 +824,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get viewSessionDetails =>
-      'Просмотр деталей сессии, треков, транскрипции и саммари';
+      'Просмотр деталей сессии, треков, транскрипции и резюме';
 
   @override
   String onlineCount(int count) {
@@ -906,7 +906,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tabTranscript => 'Транскрипция';
 
   @override
-  String get tabMemo => 'Саммари';
+  String get tabMemo => 'Резюме';
 
   @override
   String get noTranscriptAvailable => 'Транскрипция недоступна';
@@ -916,25 +916,25 @@ class AppLocalizationsRu extends AppLocalizations {
       'Транскрипция для этой записи еще не создана.';
 
   @override
-  String get noMemoAvailable => 'Саммари недоступно';
+  String get noMemoAvailable => 'Резюме недоступно';
 
   @override
-  String get memoNotGenerated => 'AI-саммари для этой записи еще не создано.';
+  String get memoNotGenerated => 'AI-резюме для этой записи еще не создано.';
 
   @override
-  String get aiSummary => 'AI Саммари';
+  String get aiSummary => 'AI Резюме';
 
   @override
-  String get copyMemo => 'Копировать саммари';
+  String get copyMemo => 'Копировать резюме';
 
   @override
-  String get memoCopied => 'Саммари скопировано в буфер обмена';
+  String get memoCopied => 'Резюме скопировано в буфер обмена';
 
   @override
   String get failedToLoadTranscript => 'Не удалось загрузить транскрипцию';
 
   @override
-  String get failedToLoadMemo => 'Не удалось загрузить саммари';
+  String get failedToLoadMemo => 'Не удалось загрузить резюме';
 
   @override
   String get myProfile => 'Мой профиль';

@@ -355,9 +355,18 @@ class MeetingsService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        // Логируем raw JSON для отладки резюме
+        Logger.logInfo('📝 Raw transcripts response:');
+        Logger.logInfo('   memo: ${data['memo']}');
+        Logger.logInfo('   memo_ru: ${data['memo_ru']}');
+        Logger.logInfo('   summary_status: ${data['summary_status']}');
+        Logger.logInfo('   summary_error: ${data['summary_error']}');
+
         final transcripts = RoomTranscripts.fromJson(data as Map<String, dynamic>);
 
         Logger.logSuccess('Found ${transcripts.totalPhrases} phrase(s) across ${transcripts.tracks.length} track(s)');
+        Logger.logInfo('📝 Parsed transcripts - memo: ${transcripts.memo?.length ?? 0} chars, memoRu: ${transcripts.memoRu?.length ?? 0} chars');
         return transcripts;
       } else {
         throw _apiClient.handleError(response);
