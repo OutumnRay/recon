@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
@@ -11,9 +12,11 @@ import '../services/meetings_service.dart';
 import '../services/config_service.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
+import '../services/notification_websocket_service.dart';
 import '../widgets/error_display.dart';
 import '../widgets/expandable_task_card.dart';
 import '../theme/app_colors.dart';
+import '../utils/logger.dart';
 import 'video_call_screen.dart';
 import 'recording_player_screen.dart';
 
@@ -42,17 +45,100 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
   String? _error;
   bool _isParticipantsExpanded = false;
 
+  // WebSocket подписка для real-time обновлений
+  StreamSubscription<NotificationMessage>? _notificationSubscription;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _initService();
+    _subscribeToNotifications();
   }
 
   @override
   void dispose() {
+    _notificationSubscription?.cancel();
     _tabController.dispose();
     super.dispose();
+  }
+
+  /// Подписка на WebSocket уведомления
+  void _subscribeToNotifications() {
+    // Подключаемся к WebSocket если ещё не подключены
+    notificationWebSocketService.connect();
+
+    // Слушаем уведомления
+    _notificationSubscription = notificationWebSocketService.notifications.listen((notification) {
+      // Проверяем, что уведомление относится к текущей встрече
+      if (notification.meetingId != widget.meetingId) return;
+
+      Logger.logInfo('Received notification for meeting: ${notification.type}');
+
+      switch (notification.type) {
+        case NotificationEventType.summaryCompleted:
+          Logger.logSuccess('Summary completed, reloading meeting data...');
+          _loadMeeting();
+          _showSnackBar('Summary готово!', isSuccess: true);
+          break;
+
+        case NotificationEventType.summaryFailed:
+          final errorMsg = notification.changedFields?['error'] as String? ?? 'Unknown error';
+          Logger.logError('Summary failed: $errorMsg');
+          _showSnackBar('Ошибка генерации summary: $errorMsg', isSuccess: false);
+          break;
+
+        case NotificationEventType.summaryStarted:
+        case NotificationEventType.summaryProgress:
+          Logger.logInfo('Summary in progress...');
+          break;
+
+        case NotificationEventType.transcriptionCompleted:
+          Logger.logSuccess('Transcription completed, reloading meeting data...');
+          _loadMeeting();
+          _showSnackBar('Транскрипция готова!', isSuccess: true);
+          break;
+
+        case NotificationEventType.transcriptionFailed:
+          final errorMsg = notification.changedFields?['error'] as String? ?? 'Unknown error';
+          Logger.logError('Transcription failed: $errorMsg');
+          _showSnackBar('Ошибка транскрипции: $errorMsg', isSuccess: false);
+          break;
+
+        case NotificationEventType.recordingCompleted:
+          Logger.logSuccess('Recording completed, reloading meeting data...');
+          _loadMeeting();
+          _showSnackBar('Запись готова!', isSuccess: true);
+          break;
+
+        case NotificationEventType.compositeVideoCompleted:
+          Logger.logSuccess('Composite video completed, reloading meeting data...');
+          _loadMeeting();
+          _showSnackBar('Видео готово!', isSuccess: true);
+          break;
+
+        case NotificationEventType.meetingUpdated:
+          Logger.logInfo('Meeting updated, reloading...');
+          _loadMeeting();
+          break;
+
+        default:
+          Logger.logInfo('Unhandled notification type: ${notification.type}');
+      }
+    });
+  }
+
+  /// Показ SnackBar с сообщением
+  void _showSnackBar(String message, {bool isSuccess = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isSuccess ? AppColors.success : AppColors.danger,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   Future<void> _initService() async {
