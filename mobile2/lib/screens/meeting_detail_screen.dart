@@ -825,54 +825,51 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                 ),
               ),
               const SizedBox(width: 4),
-              // Session menu button
+              // Session menu button (no shadow on button icon)
               PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'delete') {
-                      _deleteRecording(recording);
-                    }
-                  },
-                  offset: const Offset(0, 40),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  color: Colors.white,
-                  elevation: 8,
-                  shadowColor: Colors.black.withValues(alpha: 0.15),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppColors.danger.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 16),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            l10n.deleteRecording,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.more_horiz,
-                      size: 20,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                onSelected: (value) {
+                  if (value == 'delete') {
+                    _deleteRecording(recording);
+                  }
+                },
+                offset: const Offset(0, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                color: Colors.white,
+                elevation: 8,
+                shadowColor: Colors.black.withValues(alpha: 0.15),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.danger.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 16),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          l10n.deleteRecording,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                icon: Icon(
+                  Icons.more_horiz,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
