@@ -112,12 +112,14 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 	var meetingID string
 	var isTrack bool
 
+	var roomSIDForAccess string
+
 	// Check if this is a track request
 	if pathParts[0] == "track" && len(pathParts) >= 3 {
 		isTrack = true
 		trackSID = pathParts[1]
 
-		// Find track by SID to get egress_id for access check and meeting_id for MinIO path
+		// Find track by SID to get room info
 		var track models.Track
 		err := up.db.DB.Where("sid = ?", trackSID).First(&track).Error
 		if err != nil {
@@ -125,7 +127,6 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			up.respondWithError(w, http.StatusNotFound, "Track not found", err.Error())
 			return
 		}
-		egressID = track.EgressID
 
 		// Get room to find meeting ID from room.MeetingID
 		var room models.Room
@@ -141,12 +142,16 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		meetingID = room.MeetingID.String()
+		roomSIDForAccess = room.SID
+		egressID = room.EgressID
 	} else {
+		// For composite video, egressID is actually room SID
+		roomSIDForAccess = pathParts[0]
 		egressID = pathParts[0]
 	}
 
-	// Check access permissions
-	if !up.checkRecordingAccess(egressID, claims.UserID) {
+	// Check access permissions using room SID
+	if !up.checkRecordingAccess(roomSIDForAccess, claims.UserID) {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}
