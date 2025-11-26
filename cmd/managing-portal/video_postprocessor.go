@@ -135,7 +135,7 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 	}
 
 	// 2. Получаем информацию о треках
-	tracks, err := vpp.getTrackInfoForMerge(roomSID)
+	tracks, err := vpp.getTrackInfoForMerge(roomSID, meetingID)
 	if err != nil {
 		return fmt.Errorf("failed to get track info: %w", err)
 	}
@@ -300,24 +300,24 @@ func (vpp *VideoPostProcessor) checkAllTracksTranscribed(roomSID string) (bool, 
 }
 
 // getTrackInfoForMerge получает информацию о треках для объединения
-func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string) ([]video.TrackInfo, error) {
+func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string, meetingID *uuid.UUID) ([]video.TrackInfo, error) {
 	// Упрощенная структура для чтения треков
 	type LivekitTrack struct {
-		ID                     string
-		SID                    string
-		ParticipantSID         string `gorm:"column:participant_sid"`
-		RoomSID                string `gorm:"column:room_sid"`
-		Type                   string
-		Source                 string
-		PublishedAt            time.Time `gorm:"column:published_at"`
-		TranscriptionDuration  float64   `gorm:"column:transcription_duration"`
+		ID                    string
+		SID                   string
+		ParticipantSID        string `gorm:"column:participant_sid"`
+		RoomSID               string `gorm:"column:room_sid"`
+		Type                  string
+		Source                string
+		PublishedAt           time.Time `gorm:"column:published_at"`
+		TranscriptionDuration float64   `gorm:"column:transcription_duration"`
 	}
 
 	// 1. Получаем все треки для комнаты
 	var tracks []LivekitTrack
 	err := vpp.db.DB.Table("livekit_tracks").
 		Where("room_sid = ?", roomSID).
-		Where("source IN ?", []string{"CAMERA", "MICROPHONE"}).
+		Where("source IN ?", []string{"CAMERA", "MICROPHONE", "SCREEN"}).
 		Order("type DESC, published_at ASC").
 		Find(&tracks).Error
 
@@ -331,39 +331,7 @@ func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string) ([]video.Tra
 		return []video.TrackInfo{}, nil
 	}
 
-	// 2. Получаем информацию об egress recordings для этих треков
-	trackSIDs := make([]string, len(tracks))
-	for i, t := range tracks {
-		trackSIDs[i] = t.SID
-	}
-
-	type EgressRecording struct {
-		TrackSID    string `gorm:"column:track_sid"`
-		PlaylistURL string `gorm:"column:playlist_url"`
-		Status      string
-	}
-
-	var recordings []EgressRecording
-	err = vpp.db.DB.Table("livekit_egress_recordings").
-		Where("track_sid IN ?", trackSIDs).
-		Where("status = ?", "ended").
-		Where("playlist_url IS NOT NULL").
-		Where("playlist_url != ?", "").
-		Find(&recordings).Error
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to get egress recordings: %w", err)
-	}
-
-	log.Printf("📊 Found %d egress recordings", len(recordings))
-
-	// Создаем map для быстрого поиска playlist_url по track_sid
-	playlistMap := make(map[string]string)
-	for _, rec := range recordings {
-		playlistMap[rec.TrackSID] = rec.PlaylistURL
-	}
-
-	// 3. Получаем имена участников
+	// 2. Получаем имена участников
 	participantSIDs := make([]string, 0, len(tracks))
 	for _, t := range tracks {
 		participantSIDs = append(participantSIDs, t.ParticipantSID)
@@ -390,48 +358,63 @@ func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string) ([]video.Tra
 		nameMap[p.SID] = p.Name
 	}
 
-	// 4. Собираем результат
+	// 3. Проверяем наличие meetingID
+	if meetingID == nil {
+		return nil, fmt.Errorf("meeting ID is required to build track file paths")
+	}
+
+	// 4. Собираем результат - формируем пути к файлам треков напрямую
 	result := make([]video.TrackInfo, 0)
 	for _, t := range tracks {
-		// Проверяем, есть ли playlist_url для этого трека
-		playlistURL, hasPlaylist := playlistMap[t.SID]
-		if !hasPlaylist || playlistURL == "" {
-			log.Printf("⚠️ Track %s (%s) has no playlist_url, skipping", t.ID, t.Type)
-			continue
-		}
-
 		participantName := nameMap[t.ParticipantSID]
 		if participantName == "" {
 			participantName = "Unknown"
 		}
 
+		// Определяем расширение файла по типу трека
+		var fileExt string
+		trackType := strings.ToLower(t.Type)
+
+		if trackType == "audio" {
+			fileExt = ".webm"
+		} else {
+			fileExt = ".mp4"
+		}
+
+		// Формируем относительный путь к файлу в MinIO
+		// Формат: {meetingID}_{roomSID}/tracks/{trackSID}.mp4 или .webm
+		filePath := fmt.Sprintf("%s_%s/tracks/%s%s", meetingID.String(), roomSID, t.SID, fileExt)
+
+		log.Printf("📋 Track %s (%s): file path = %s", t.SID, trackType, filePath)
+
 		result = append(result, video.TrackInfo{
 			ParticipantID:   t.ParticipantSID,
 			ParticipantName: participantName,
 			TrackID:         t.ID,
-			Type:            t.Type,
-			FilePath:        playlistURL,
+			Type:            trackType,
+			FilePath:        filePath,
 			StartTime:       t.PublishedAt,
 			Duration:        t.TranscriptionDuration,
 		})
 	}
 
-	log.Printf("📊 Returning %d tracks with playlist URLs", len(result))
+	log.Printf("📊 Returning %d tracks with direct file paths", len(result))
 
 	return result, nil
 }
 
 // downloadTracks скачивает треки из S3 в локальную файловую систему
 func (vpp *VideoPostProcessor) downloadTracks(ctx context.Context, tracks []video.TrackInfo) ([]video.TrackInfo, error) {
-	log.Printf("📥 Downloading %d tracks from S3...", len(tracks))
+	log.Printf("📥 Downloading %d tracks from MinIO...", len(tracks))
 
-	localTracks := make([]video.TrackInfo, len(tracks))
+	localTracks := make([]video.TrackInfo, 0, len(tracks))
+	var downloadErrors []string
 
-	for i, track := range tracks {
+	for _, track := range tracks {
 		// Проверяем, является ли путь уже абсолютным локальным путем
 		if filepath.IsAbs(track.FilePath) {
 			// Это уже скачанный локальный файл
-			localTracks[i] = track
+			localTracks = append(localTracks, track)
 			continue
 		}
 
@@ -446,24 +429,35 @@ func (vpp *VideoPostProcessor) downloadTracks(ctx context.Context, tracks []vide
 		// Скачиваем файл из MinIO
 		localPath := filepath.Join(vpp.workDir, fmt.Sprintf("track_%s%s", track.TrackID, ext))
 
-		// FilePath теперь содержит относительный путь в MinIO (например: meetingID_roomSID/tracks/TR_xxx.mp4)
-		// Если это URL, извлекаем путь, иначе используем как есть
+		// FilePath содержит относительный путь в MinIO (например: meetingID_roomSID/tracks/TR_xxx.mp4)
 		remotePath := track.FilePath
-		if isURL(track.FilePath) {
-			remotePath = extractRemotePath(track.FilePath)
-		}
 
-		log.Printf("   📥 Downloading %s from MinIO...", remotePath)
+		log.Printf("   📥 Downloading track %s (%s) from MinIO: %s", track.TrackID, track.Type, remotePath)
 
 		if err := vpp.storageUploader.DownloadFile(ctx, remotePath, localPath); err != nil {
-			return nil, fmt.Errorf("failed to download track %s from %s: %w", track.TrackID, remotePath, err)
+			errMsg := fmt.Sprintf("failed to download track %s (%s) from %s: %v", track.TrackID, track.Type, remotePath, err)
+			log.Printf("   ❌ %s", errMsg)
+			downloadErrors = append(downloadErrors, errMsg)
+			continue // Пропускаем проблемный трек и продолжаем
 		}
 
 		track.FilePath = localPath
-		localTracks[i] = track
-		log.Printf("   ✅ Downloaded: %s", filepath.Base(localPath))
+		localTracks = append(localTracks, track)
+		log.Printf("   ✅ Downloaded: %s (%s, %s)", filepath.Base(localPath), track.Type, track.TrackID)
 	}
 
+	if len(downloadErrors) > 0 {
+		log.Printf("⚠️ Failed to download %d out of %d tracks:", len(downloadErrors), len(tracks))
+		for _, errMsg := range downloadErrors {
+			log.Printf("   - %s", errMsg)
+		}
+	}
+
+	if len(localTracks) == 0 {
+		return nil, fmt.Errorf("no tracks were successfully downloaded (attempted %d tracks, all failed)", len(tracks))
+	}
+
+	log.Printf("✅ Successfully downloaded %d out of %d tracks", len(localTracks), len(tracks))
 	return localTracks, nil
 }
 
