@@ -22,8 +22,8 @@ type SpeechSegment struct {
 
 // SpeakerTimeline представляет временную линию активных спикеров
 type SpeakerTimeline struct {
-	Segments      []SpeechSegment `json:"segments"`
-	ActiveSpeaker map[float64]string `json:"active_speaker"` // Время -> ParticipantID
+	Segments      []SpeechSegment    `json:"segments"`
+	ActiveSpeaker map[string]string  `json:"active_speaker"` // Время (строка) -> ParticipantID
 }
 
 // AudioAnalyzer анализирует аудио треки для определения активных спикеров
@@ -66,7 +66,7 @@ func (aa *AudioAnalyzer) AnalyzeAudioTracks(tracks []TrackAudioInfo) (*SpeakerTi
 
 	timeline := &SpeakerTimeline{
 		Segments:      []SpeechSegment{},
-		ActiveSpeaker: make(map[float64]string),
+		ActiveSpeaker: make(map[string]string),
 	}
 
 	// Анализируем каждый трек
@@ -172,10 +172,10 @@ func (aa *AudioAnalyzer) parseSilenceDetectOutput(output, participantID string) 
 
 // buildActiveSpeakerTimeline строит временную линию с защитой от мерцания
 // Применяет правило: смена спикера только если новый спикер говорит минимум 2 секунды
-func (aa *AudioAnalyzer) buildActiveSpeakerTimeline(segments []SpeechSegment) map[float64]string {
+func (aa *AudioAnalyzer) buildActiveSpeakerTimeline(segments []SpeechSegment) map[string]string {
 	const MIN_SPEAKER_DURATION = 2.0 // Минимальная длительность для смены спикера (секунды)
 
-	timeline := make(map[float64]string)
+	timeline := make(map[string]string)
 
 	if len(segments) == 0 {
 		return timeline
@@ -221,7 +221,8 @@ func (aa *AudioAnalyzer) buildActiveSpeakerTimeline(segments []SpeechSegment) ma
 		if currentSpeaker == "" {
 			// Первый спикер
 			currentSpeaker = candidateSpeaker
-			timeline[segment.StartTime] = currentSpeaker
+			timeKey := strconv.FormatFloat(segment.StartTime, 'f', 2, 64)
+			timeline[timeKey] = currentSpeaker
 			lastChangeTime = segment.StartTime
 		} else if candidateSpeaker != currentSpeaker {
 			// Потенциальная смена спикера
@@ -234,7 +235,8 @@ func (aa *AudioAnalyzer) buildActiveSpeakerTimeline(segments []SpeechSegment) ma
 
 				if candidateDuration >= MIN_SPEAKER_DURATION * 0.7 { // 70% от минимальной длительности
 					currentSpeaker = candidateSpeaker
-					timeline[segment.StartTime] = currentSpeaker
+					timeKey := strconv.FormatFloat(segment.StartTime, 'f', 2, 64)
+					timeline[timeKey] = currentSpeaker
 					lastChangeTime = segment.StartTime
 
 					log.Printf("   Speaker change at %.2fs: %s", segment.StartTime, currentSpeaker)

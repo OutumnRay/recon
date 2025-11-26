@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,7 +27,7 @@ type TrackInfo struct {
 
 // SpeakerTimeline представляет временную линию активных спикеров
 type SpeakerTimeline struct {
-	ActiveSpeaker map[float64]string `json:"active_speaker"` // Время -> ParticipantID
+	ActiveSpeaker map[string]string `json:"active_speaker"` // Время (строка) -> ParticipantID
 }
 
 // MergeConfig конфигурация для объединения видео
@@ -249,8 +250,16 @@ func (vp *VideoProcessor) MergeTracksPiPWithSpeakerSwitch(tracks []TrackInfo, sp
 func (vp *VideoProcessor) createSpeakerSegments(videoTracks, audioTracks []TrackInfo, timeline *SpeakerTimeline, videoByParticipant map[string]TrackInfo) ([]string, error) {
 	// Получаем отсортированные точки смены спикера
 	var timePoints []float64
+	timeStrings := make([]string, 0, len(timeline.ActiveSpeaker))
+
 	for t := range timeline.ActiveSpeaker {
-		timePoints = append(timePoints, t)
+		timeVal, err := strconv.ParseFloat(t, 64)
+		if err != nil {
+			log.Printf("⚠️ Failed to parse time string '%s': %v", t, err)
+			continue
+		}
+		timePoints = append(timePoints, timeVal)
+		timeStrings = append(timeStrings, t)
 	}
 	sort.Float64s(timePoints)
 
@@ -265,7 +274,8 @@ func (vp *VideoProcessor) createSpeakerSegments(videoTracks, audioTracks []Track
 
 	// Для каждой смены спикера создаем сегмент
 	for i, startTime := range timePoints {
-		speakerID := timeline.ActiveSpeaker[startTime]
+		timeKey := strconv.FormatFloat(startTime, 'f', 2, 64)
+		speakerID := timeline.ActiveSpeaker[timeKey]
 
 		// Определяем длительность сегмента
 		var duration float64
