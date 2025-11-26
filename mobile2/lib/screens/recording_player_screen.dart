@@ -106,6 +106,13 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
 
       final transcripts = await meetingsService.getRoomTranscripts(widget.recording.roomSid);
 
+      // Логируем данные резюме для отладки
+      Logger.logInfo('📝 Transcripts loaded for room ${widget.recording.roomSid}:');
+      Logger.logInfo('   summaryStatus: ${transcripts.summaryStatus}');
+      Logger.logInfo('   memo: ${transcripts.memo ?? "null"} (${transcripts.memo?.length ?? 0} chars)');
+      Logger.logInfo('   memoRu: ${transcripts.memoRu ?? "null"} (${transcripts.memoRu?.length ?? 0} chars)');
+      Logger.logInfo('   hasMemo: ${transcripts.hasMemo}');
+
       if (mounted) {
         setState(() {
           _transcripts = transcripts;
