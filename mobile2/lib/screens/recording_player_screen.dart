@@ -12,6 +12,7 @@ import '../services/api_client.dart';
 import '../services/storage_service.dart';
 import '../services/meetings_service.dart';
 import '../services/locale_service.dart';
+import '../services/notification_websocket_service.dart';
 import '../widgets/transcript_viewer.dart';
 import '../widgets/memo_viewer.dart';
 import '../l10n/app_localizations.dart';
@@ -60,6 +61,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   double _dragPosition = 0.0;
   Timer? _positionTimer;
   int _lastKnownPosition = 0;
+  StreamSubscription<NotificationMessage>? _notificationSubscription;
 
   @override
   void initState() {
@@ -75,6 +77,9 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
     // Перезагружаем транскрипции при переключении на вкладку Резюме или Транскрипция
     _tabController.addListener(_onTabChanged);
 
+    // Подписываемся на WebSocket уведомления о резюме
+    _subscribeToSummaryNotifications();
+
     // Start timer to update UI periodically (needed for smooth progress bar)
     _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (mounted && !_isDragging) {
@@ -84,6 +89,50 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
             _lastKnownPosition = currentPos;
           });
         }
+      }
+    });
+  }
+
+  /// Подписка на WebSocket уведомления о статусе резюме
+  void _subscribeToSummaryNotifications() {
+    _notificationSubscription = notificationWebSocketService.notifications.listen((notification) {
+      // Проверяем, что уведомление относится к нашей комнате
+      final roomSid = widget.recording.roomSid;
+      final notificationRoomId = notification.entityId;
+      final notificationMeetingId = notification.meetingId;
+
+      Logger.logInfo('📩 Received notification: ${notification.type}, entityId: $notificationRoomId, meetingId: $notificationMeetingId, our room: $roomSid');
+
+      // Проверяем соответствие по room_sid или meeting_id
+      final isOurRoom = notificationRoomId == roomSid || notificationMeetingId == widget.meetingId;
+
+      if (!isOurRoom) {
+        Logger.logInfo('📩 Notification not for our room, ignoring');
+        return;
+      }
+
+      // Обрабатываем события резюме
+      if (notification.type == NotificationEventType.summaryCompleted) {
+        Logger.logInfo('📩 Summary completed for our room, reloading transcripts...');
+        _loadTranscripts();
+      } else if (notification.type == NotificationEventType.summaryStarted) {
+        Logger.logInfo('📩 Summary generation started for our room');
+        // Обновляем статус на processing
+        if (mounted && _transcripts != null) {
+          setState(() {
+            _transcripts = RoomTranscripts(
+              roomSid: _transcripts!.roomSid,
+              tracks: _transcripts!.tracks,
+              memo: _transcripts!.memo,
+              memoRu: _transcripts!.memoRu,
+              summaryStatus: 'processing',
+              summaryError: null,
+            );
+          });
+        }
+      } else if (notification.type == NotificationEventType.summaryFailed) {
+        Logger.logInfo('📩 Summary generation failed for our room');
+        _loadTranscripts(); // Перезагружаем чтобы получить ошибку
       }
     });
   }
@@ -318,6 +367,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   @override
   void dispose() {
     _positionTimer?.cancel();
+    _notificationSubscription?.cancel();
     _player.release();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();

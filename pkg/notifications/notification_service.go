@@ -251,15 +251,17 @@ func NewTranscriptionStatusNotification(trackID string, meetingID *uuid.UUID, st
 }
 
 // NewSummaryStatusNotification creates a notification for summary generation status change
-func NewSummaryStatusNotification(meetingID uuid.UUID, status string, eventType EventType, errorMsg string) *Notification {
+// roomSID - идентификатор комнаты для которой генерируется резюме
+func NewSummaryStatusNotification(meetingID uuid.UUID, roomSID string, status string, eventType EventType, errorMsg string) *Notification {
 	notification := &Notification{
 		ID:         uuid.New().String(),
 		Type:       eventType,
 		EntityType: "summary",
-		EntityID:   meetingID.String(),
+		EntityID:   roomSID, // Используем roomSID как EntityID для идентификации конкретной комнаты
 		MeetingID:  &meetingID,
 		ChangedFields: map[string]interface{}{
-			"status": status,
+			"status":   status,
+			"room_sid": roomSID,
 		},
 		Timestamp: time.Now(),
 		Message:   "Summary generation status: " + status,

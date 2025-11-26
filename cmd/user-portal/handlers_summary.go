@@ -112,6 +112,7 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 	// Send real-time notification: summary started
 	up.notificationService.Notify(notifications.NewSummaryStatusNotification(
 		meetingID,
+		roomSID,
 		"processing",
 		notifications.EventSummaryStarted,
 		"",
@@ -132,6 +133,7 @@ func (up *UserPortal) generateMeetingSummaryHandler(w http.ResponseWriter, r *ht
 			// Send real-time notification: summary failed
 			up.notificationService.Notify(notifications.NewSummaryStatusNotification(
 				meetingID,
+				roomSID,
 				"failed",
 				notifications.EventSummaryFailed,
 				err.Error(),
@@ -318,6 +320,7 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 	// Send real-time notification: summary completed
 	up.notificationService.Notify(notifications.NewSummaryStatusNotification(
 		meetingID,
+		roomSID,
 		"completed",
 		notifications.EventSummaryCompleted,
 		"",
