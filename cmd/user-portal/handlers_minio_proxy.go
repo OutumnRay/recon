@@ -231,6 +231,9 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 
 	up.logger.Infof("📹 [PLAYLIST] Successfully fetched from MinIO")
 
+	// Get token from query parameter (if provided) to propagate to segment URLs
+	token := r.URL.Query().Get("token")
+
 	// Read and rewrite playlist URLs
 	scanner := bufio.NewScanner(object)
 	var modifiedPlaylist strings.Builder
@@ -250,6 +253,10 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 				line = fmt.Sprintf("/api/v1/recordings/track/%s/segment/%s", trackSID, filename)
 			} else {
 				line = fmt.Sprintf("/api/v1/recordings/%s/segment/%s", egressID, filename)
+			}
+			// Add token to segment URL if it was provided
+			if token != "" {
+				line = fmt.Sprintf("%s?token=%s", line, token)
 			}
 		}
 
@@ -457,34 +464,33 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// checkRecordingAccess checks if user has access to a recording
-func (up *UserPortal) checkRecordingAccess(egressID string, userID uuid.UUID) bool {
-	// Find the track associated with this egress
-	// Note: Only tracks have egress_id, rooms do not
-	var track models.Track
-	err := up.db.DB.Where("egress_id = ?", egressID).First(&track).Error
-	if err != nil {
-		// Track not found, access denied
-		return false
-	}
-
-	// Found track, get its room
+// checkRecordingAccess checks if user has access to a recording by room or egress ID
+func (up *UserPortal) checkRecordingAccess(roomSIDOrEgressID string, userID uuid.UUID) bool {
 	var room models.Room
-	err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
+
+	// Try to find room by SID first (for composite video)
+	err := up.db.DB.Where("sid = ?", roomSIDOrEgressID).First(&room).Error
 	if err != nil {
-		// Room not found, access denied
-		return false
+		// If not found by SID, try by egress_id (for legacy compatibility)
+		err = up.db.DB.Where("egress_id = ?", roomSIDOrEgressID).First(&room).Error
+		if err != nil {
+			// Room not found, access denied
+			up.logger.Errorf("Room not found for identifier %s: %v", roomSIDOrEgressID, err)
+			return false
+		}
 	}
 
 	// Check meeting access
 	if room.MeetingID == nil {
 		// No meeting ID, access denied
+		up.logger.Errorf("Room %s has no meeting ID", room.SID)
 		return false
 	}
 
 	meeting, err := up.meetingRepo.GetMeetingByID(*room.MeetingID)
 	if err != nil {
 		// Meeting not found, access denied
+		up.logger.Errorf("Meeting not found for room %s: %v", room.SID, err)
 		return false
 	}
 
@@ -497,6 +503,7 @@ func (up *UserPortal) checkRecordingAccess(egressID string, userID uuid.UUID) bo
 	participants, err := up.meetingRepo.GetMeetingParticipants(*room.MeetingID)
 	if err != nil {
 		// Failed to get participants, access denied
+		up.logger.Errorf("Failed to get participants for meeting %s: %v", room.MeetingID.String(), err)
 		return false
 	}
 
@@ -507,5 +514,6 @@ func (up *UserPortal) checkRecordingAccess(egressID string, userID uuid.UUID) bo
 	}
 
 	// User is neither creator nor participant, access denied
+	up.logger.Errorf("User %s has no access to room %s", userID.String(), room.SID)
 	return false
 }

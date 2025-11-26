@@ -9,6 +9,7 @@ import '../utils/logger.dart';
 import '../utils/date_utils.dart';
 import '../services/config_service.dart';
 import '../services/api_client.dart';
+import '../services/storage_service.dart';
 import '../services/meetings_service.dart';
 import '../services/locale_service.dart';
 import '../widgets/transcript_viewer.dart';
@@ -202,23 +203,35 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
 
       Logger.logInfo('Initializing media player', data: {'url': playlistUrl});
 
-      // Get API base URL for authenticated proxy access
+      // Get API base URL and auth token for authenticated proxy access
       final configService = ConfigService();
       final baseUrl = await configService.getApiUrl();
 
-      // Build full URL using API proxy (authenticated access)
+      // Get auth token from storage
+      final storageService = StorageService();
+      final token = await storageService.getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Authentication token not available');
+      }
+
+      // Build full URL using API proxy with auth token in query parameter
       // playlistUrl should be API proxy path like "/api/v1/recordings/{room_sid}/playlist"
       // or "/api/v1/recordings/track/{track_sid}/playlist"
-      final fullUrl = playlistUrl.startsWith('http')
-          ? playlistUrl
-          : '$baseUrl$playlistUrl';
+      String fullUrl;
+      if (playlistUrl.startsWith('http')) {
+        fullUrl = playlistUrl;
+      } else {
+        // Add token as query parameter for video player authentication
+        fullUrl = '$baseUrl$playlistUrl?token=$token';
+      }
 
-      Logger.logInfo('Full playlist URL (via API proxy)', data: {'url': fullUrl});
+      Logger.logInfo('Full playlist URL (via API proxy with auth)', data: {'url': fullUrl});
 
       if (!mounted) return;
 
       // Initialize FijkPlayer with authenticated API proxy URL
-      // The API proxy will handle MinIO access and rewrite segment URLs
+      // The API proxy will handle MinIO access and rewrite segment URLs with token
       await _player.setDataSource(fullUrl, autoPlay: false);
 
       setState(() {
