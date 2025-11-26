@@ -101,9 +101,9 @@ type UserInfo struct {
 	// Идентификатор организации, к которой принадлежит пользователь
 	OrganizationID *uuid.UUID    `json:"organization_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// Имя пользователя
-	FirstName    string          `json:"first_name,omitempty" example:"John"`
+	FirstName    string          `json:"first_name" example:"John"`
 	// Фамилия пользователя
-	LastName     string          `json:"last_name,omitempty" example:"Doe"`
+	LastName     string          `json:"last_name" example:"Doe"`
 	// Номер телефона пользователя
 	Phone        string          `json:"phone,omitempty" example:"+1234567890"`
 	// Биография пользователя
