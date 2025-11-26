@@ -191,9 +191,14 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	log.Printf("✅ Video merged successfully: %s", mergedVideoPath)
 
-	// 6. Конвертируем в HLS формат
+	// 6. Конвертируем в HLS формат с кастомными именами файлов
 	hlsDir := filepath.Join(vpp.workDir, fmt.Sprintf("hls_%s", uuid.New().String()))
-	playlistPath, err := vpp.videoProcessor.ConvertToHLS(mergedVideoPath, hlsDir)
+	playlistPath, err := vpp.videoProcessor.ConvertToHLSWithCustomNames(
+		mergedVideoPath,
+		hlsDir,
+		"composite.m3u8",
+		"composite",
+	)
 	if err != nil {
 		return fmt.Errorf("failed to convert to HLS: %w", err)
 	}
@@ -201,8 +206,14 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	log.Printf("✅ HLS conversion completed: %s", playlistPath)
 
-	// 7. Загружаем HLS файлы в S3
-	remotePrefix := fmt.Sprintf("meetings/%s/hls", roomSID)
+	// 7. Загружаем HLS файлы в S3 в формате meetingID_roomSID/
+	var remotePrefix string
+	if meetingID != nil {
+		remotePrefix = fmt.Sprintf("%s_%s", meetingID.String(), roomSID)
+	} else {
+		remotePrefix = fmt.Sprintf("room_%s", roomSID)
+	}
+
 	uploadedURLs, err := vpp.storageUploader.UploadDirectory(ctx, hlsDir, remotePrefix)
 	if err != nil {
 		return fmt.Errorf("failed to upload HLS to S3: %w", err)
@@ -210,18 +221,20 @@ func (vpp *VideoPostProcessor) ProcessMeetingVideo(roomSID string) error {
 
 	log.Printf("✅ Uploaded %d files to S3", len(uploadedURLs))
 
-	// 8. Находим URL плейлиста
+	// 8. Находим URL плейлиста composite.m3u8
 	playlistURL := ""
 	for _, url := range uploadedURLs {
-		if filepath.Base(url) == "playlist.m3u8" {
+		if filepath.Base(url) == "composite.m3u8" {
 			playlistURL = url
 			break
 		}
 	}
 
 	if playlistURL == "" {
-		return fmt.Errorf("playlist URL not found in uploaded files")
+		return fmt.Errorf("composite.m3u8 URL not found in uploaded files")
 	}
+
+	log.Printf("📍 Composite playlist URL: %s", playlistURL)
 
 	// 9. Обновляем базу данных с URL плейлиста
 	if err := vpp.updateMeetingWithPlaylist(roomSID, playlistURL); err != nil {

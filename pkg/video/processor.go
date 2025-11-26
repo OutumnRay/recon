@@ -577,6 +577,47 @@ func (vp *VideoProcessor) ConvertToHLS(inputPath, outputDir string) (string, err
 	return playlistFile, nil
 }
 
+// ConvertToHLSWithCustomNames конвертирует видео в HLS с кастомными именами файлов
+func (vp *VideoProcessor) ConvertToHLSWithCustomNames(inputPath, outputDir, playlistName, segmentPrefix string) (string, error) {
+	log.Printf("🎬 Converting video to HLS format with custom names")
+	log.Printf("   Input: %s", inputPath)
+	log.Printf("   Output dir: %s", outputDir)
+	log.Printf("   Playlist: %s", playlistName)
+	log.Printf("   Segment prefix: %s", segmentPrefix)
+
+	// Создаем директорию если не существует
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	playlistFile := filepath.Join(outputDir, playlistName)
+	segmentPattern := filepath.Join(outputDir, segmentPrefix+"_%05d.ts")
+
+	args := []string{
+		"-i", inputPath,
+		"-c:v", "libx264",
+		"-c:a", "aac",
+		"-b:a", "128k",
+		"-hls_time", "10",     // Длина каждого сегмента: 10 секунд
+		"-hls_list_size", "0", // Включить все сегменты в плейлист
+		"-hls_segment_filename", segmentPattern,
+		"-f", "hls",
+		playlistFile,
+	}
+
+	log.Printf("🎬 Running FFmpeg HLS conversion...")
+	cmd := exec.Command(vp.ffmpegPath, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("ffmpeg HLS conversion failed: %w", err)
+	}
+
+	log.Printf("✅ HLS conversion completed: %s", playlistFile)
+	return playlistFile, nil
+}
+
 // GetVideoDuration получает длительность видео в секундах
 func (vp *VideoProcessor) GetVideoDuration(filePath string) (float64, error) {
 	if vp.ffprobePath == "" {
