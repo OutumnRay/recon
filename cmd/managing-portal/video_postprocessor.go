@@ -587,12 +587,17 @@ func (vpp *VideoPostProcessor) saveSpeakerTimeline(roomSID string, timeline *aud
 	}
 
 	// Находим meeting_id по room_sid
-	var meetingID uuid.UUID
+	type meetingIDRow struct {
+		MeetingID uuid.UUID `gorm:"column:meeting_id"`
+	}
+	var midRow meetingIDRow
 	err = vpp.db.DB.Table("livekit_rooms").
 		Select("meeting_id").
 		Where("sid = ?", roomSID).
 		Where("meeting_id IS NOT NULL").
-		First(&meetingID).Error
+		First(&midRow).Error
+
+	meetingID := midRow.MeetingID
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
