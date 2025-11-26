@@ -223,12 +223,42 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
         fullUrl = playlistUrl;
       } else {
         // Add token as query parameter for video player authentication
-        fullUrl = '$baseUrl$playlistUrl?token=$token';
+        // Encode the token to handle special characters
+        final encodedToken = Uri.encodeComponent(token);
+        fullUrl = '$baseUrl$playlistUrl?token=$encodedToken';
       }
 
-      Logger.logInfo('Full playlist URL (via API proxy with auth)', data: {'url': fullUrl});
+      Logger.logInfo('Full playlist URL (via API proxy with auth)', data: {
+        'url': fullUrl.replaceAll(RegExp(r'token=.*'), 'token=***'),
+        'playlistUrl': playlistUrl,
+      });
 
       if (!mounted) return;
+
+      // Test the URL first by making HTTP request to see what we get
+      try {
+        final apiClient = ApiClient(baseUrl: baseUrl, navigatorKey: navigatorKey);
+        final response = await apiClient.get(playlistUrl);
+
+        Logger.logInfo('Playlist response', data: {
+          'statusCode': response.statusCode,
+          'contentType': response.headers['content-type'],
+          'bodyLength': response.body.length,
+          'firstChars': response.body.substring(0, response.body.length > 100 ? 100 : response.body.length),
+        });
+
+        if (response.statusCode != 200) {
+          throw Exception('Failed to fetch playlist: ${response.statusCode} - ${response.body}');
+        }
+
+        // Check if response is actually a playlist
+        if (!response.body.contains('#EXTM3U') && !response.headers['content-type']!.contains('mpegurl')) {
+          throw Exception('Response is not a valid HLS playlist. Content-Type: ${response.headers['content-type']}');
+        }
+      } catch (e) {
+        Logger.logError('Failed to validate playlist URL', error: e);
+        throw Exception('Playlist validation failed: $e');
+      }
 
       // Initialize FijkPlayer with authenticated API proxy URL
       // The API proxy will handle MinIO access and rewrite segment URLs with token
