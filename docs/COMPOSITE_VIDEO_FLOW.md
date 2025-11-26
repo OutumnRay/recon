@@ -28,9 +28,13 @@
 recontext/
   └── {meetingID}_{roomSID}/
       └── tracks/
-          ├── TR_VCoyexbMM3nSRm.mp4  (видео трек участника 1)
-          └── TR_AMcJtxis6SfUzT.mp4  (аудио трек участника 1)
+          ├── TR_VCoyexbMM3nSRm.mp4   (видео трек участника 1)
+          └── TR_AMcJtxis6SfUzT.webm  (аудио трек участника 1, Opus codec)
 ```
+
+**Форматы треков:**
+- `TR_VC*` - видео треки, сохраняются как `.mp4` (H.264 видео + AAC аудио)
+- `TR_AM*` - аудио треки, сохраняются как `.webm` (Opus аудио)
 
 ### 3. Скачивание треков (Шаг 2-3)
 **Файл:** `cmd/managing-portal/video_postprocessor.go` → `downloadTracks()`
@@ -121,14 +125,14 @@ ffmpeg -i merged.mp4 \
 ```
 recontext/
   └── b5090ccd-2b46-4fea-8879-fbed44a3a09e_RM_sJJ72Y37fFpW/
-      ├── composite.m3u8           # Плейлист композитного видео
-      ├── composite_00001.ts       # Сегмент 1
-      ├── composite_00002.ts       # Сегмент 2
-      ├── composite_00003.ts       # Сегмент 3
+      ├── composite.m3u8            # Плейлист композитного видео
+      ├── composite_00001.ts        # Сегмент 1
+      ├── composite_00002.ts        # Сегмент 2
+      ├── composite_00003.ts        # Сегмент 3
       ├── ...
-      └── tracks/                  # Папка с индивидуальными треками
-          ├── TR_VCoyexbMM3nSRm.mp4
-          └── TR_AMcJtxis6SfUzT.mp4
+      └── tracks/                   # Папка с индивидуальными треками
+          ├── TR_VCoyexbMM3nSRm.mp4   # Видео трек (H.264 + AAC)
+          └── TR_AMcJtxis6SfUzT.webm  # Аудио трек (Opus)
 ```
 
 ### 9. Обновление базы данных (Шаг 9)
@@ -163,7 +167,8 @@ recontext/
 ```
 http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/composite.m3u8
 http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/composite_00001.ts
-http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_xxxxx.mp4
+http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_VCxxxxx.mp4   # Видео
+http://192.168.5.153:9000/recontext/{meetingID}_{roomSID}/tracks/TR_AMxxxxx.webm  # Аудио
 ```
 
 ### Внутренние URL (внутри Docker сети)

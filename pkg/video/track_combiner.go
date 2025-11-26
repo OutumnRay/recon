@@ -275,8 +275,25 @@ func (tc *TrackCombiner) combineTrack(ctx context.Context, trackID string, files
 		}
 	}
 
+	// Определяем тип трека по префиксу и выбираем расширение
+	var outputExt string
+	var trackType string
+	if strings.HasPrefix(trackID, "TR_AM") {
+		// Аудио трек - сохраняем как .webm (содержит Opus аудио)
+		outputExt = ".webm"
+		trackType = "audio"
+	} else if strings.HasPrefix(trackID, "TR_VC") {
+		// Видео трек - сохраняем как .mp4
+		outputExt = ".mp4"
+		trackType = "video"
+	} else {
+		// Неизвестный тип - пытаемся сохранить как .mp4
+		outputExt = ".mp4"
+		trackType = "unknown"
+	}
+
 	// Объединяем сегменты с помощью ffmpeg
-	outputPath := filepath.Join(trackDir, trackID+".mp4")
+	outputPath := filepath.Join(trackDir, trackID+outputExt)
 	if err := tc.combineWithFFmpeg(localPlaylist, outputPath); err != nil {
 		result.Error = fmt.Errorf("failed to combine segments: %w", err)
 		return result
@@ -291,12 +308,16 @@ func (tc *TrackCombiner) combineTrack(ctx context.Context, trackID string, files
 
 	result.LocalPath = outputPath
 	result.Size = info.Size()
+	result.Type = trackType // Используем определенный тип трека
 
-	// Определяем тип и продолжительность
+	// Определяем продолжительность
 	mediaInfo, err := tc.getMediaInfo(outputPath)
 	if err == nil {
 		result.Duration = mediaInfo.Duration
-		result.Type = mediaInfo.Type
+		// Перезаписываем тип только если ffprobe смог его определить
+		if mediaInfo.Type != "" && mediaInfo.Type != "audio" && trackType == "unknown" {
+			result.Type = mediaInfo.Type
+		}
 	}
 
 	return result
@@ -380,12 +401,22 @@ func (tc *TrackCombiner) UploadCombinedTrack(ctx context.Context, track *Combine
 		return "", fmt.Errorf("cannot upload track with error: %w", track.Error)
 	}
 
+	// Определяем расширение и content-type на основе типа трека
+	var fileExt, contentType string
+	if track.Type == "audio" {
+		fileExt = ".webm"
+		contentType = "audio/webm"
+	} else {
+		fileExt = ".mp4"
+		contentType = "video/mp4"
+	}
+
 	// Формируем путь в MinIO
-	objectName := fmt.Sprintf("%s_%s/tracks/%s.mp4", meetingID, roomSID, track.TrackID)
+	objectName := fmt.Sprintf("%s_%s/tracks/%s%s", meetingID, roomSID, track.TrackID, fileExt)
 
 	// Загружаем файл
 	info, err := tc.minioClient.FPutObject(ctx, tc.bucketName, objectName, track.LocalPath, minio.PutObjectOptions{
-		ContentType: "video/mp4",
+		ContentType: contentType,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload file: %w", err)
