@@ -603,7 +603,7 @@ func (vpp *VideoPostProcessor) saveSpeakerTimeline(roomSID string, timeline *aud
 	}
 
 	// Обновляем meeting с временной линией спикеров используя GORM
-	result := vpp.db.DB.Table("meetings").
+	result := vpp.db.DB.Model(&database.Meeting{}).
 		Where("id = ?", meetingID).
 		Updates(map[string]interface{}{
 			"speaker_timeline": string(timelineJSON),
