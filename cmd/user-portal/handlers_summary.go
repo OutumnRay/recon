@@ -141,15 +141,16 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 
 	ctx := context.Background()
 
-	// Get all audio tracks for this room using GORM
+	// Get all transcription phrases for this room
+	// First, get all tracks for this room (not just audio - transcription can exist for any track)
 	var tracks []models.Track
-	if err := up.db.DB.Where("room_sid = ? AND type = ?", roomSID, "audio").
+	if err := up.db.DB.Where("room_sid = ?", roomSID).
 		Find(&tracks).Error; err != nil {
-		return fmt.Errorf("failed to get audio tracks: %w", err)
+		return fmt.Errorf("failed to get tracks: %w", err)
 	}
 
 	if len(tracks) == 0 {
-		return fmt.Errorf("no audio tracks found for room %s", roomSID)
+		return fmt.Errorf("no tracks found for room %s", roomSID)
 	}
 
 	// Get track IDs and participant SIDs
@@ -167,20 +168,36 @@ func (up *UserPortal) generateSummaryForRoom(roomSID string, meetingID uuid.UUID
 		}
 	}
 
-	// Get participants using GORM
-	var participants []models.Participant
-	if err := up.db.DB.Where("sid IN ?", participantSIDs).
-		Find(&participants).Error; err != nil {
-		return fmt.Errorf("failed to get participants: %w", err)
+	// Get participants with user information using JOIN
+	type ParticipantWithUser struct {
+		ParticipantSID string
+		ParticipantName string
+		UserID         *uuid.UUID
+		UserFirstName  *string
+		UserLastName   *string
 	}
 
-	// Build participant name map
+	var participantsWithUsers []ParticipantWithUser
+	err := up.db.DB.Table("livekit_participants").
+		Select("livekit_participants.sid as participant_sid, livekit_participants.name as participant_name, livekit_participants.user_id, users.first_name as user_first_name, users.last_name as user_last_name").
+		Joins("LEFT JOIN users ON livekit_participants.user_id = users.id").
+		Where("livekit_participants.sid IN ?", participantSIDs).
+		Scan(&participantsWithUsers).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to get participants with users: %w", err)
+	}
+
+	// Build participant name map with real names (first_name + last_name)
 	participantNameMap := make(map[string]string)
-	for _, p := range participants {
-		if p.Name != "" {
-			participantNameMap[p.SID] = p.Name
+	for _, p := range participantsWithUsers {
+		// Priority: real name (first_name + last_name) > participant name > "Unknown"
+		if p.UserFirstName != nil && p.UserLastName != nil && *p.UserFirstName != "" && *p.UserLastName != "" {
+			participantNameMap[p.ParticipantSID] = *p.UserFirstName + " " + *p.UserLastName
+		} else if p.ParticipantName != "" {
+			participantNameMap[p.ParticipantSID] = p.ParticipantName
 		} else {
-			participantNameMap[p.SID] = "Unknown"
+			participantNameMap[p.ParticipantSID] = "Unknown"
 		}
 	}
 
