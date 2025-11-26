@@ -322,6 +322,24 @@ class AppLocalizationsRu extends AppLocalizations {
       'Вы уверены, что хотите отменить эту встречу? Это действие нельзя отменить.';
 
   @override
+  String get summaryReady => 'Summary готово!';
+
+  @override
+  String get summaryError => 'Ошибка генерации summary';
+
+  @override
+  String get transcriptionReady => 'Транскрипция готова!';
+
+  @override
+  String get transcriptionError => 'Ошибка транскрипции';
+
+  @override
+  String get recordingReady => 'Запись готова!';
+
+  @override
+  String get videoReady => 'Видео готово!';
+
+  @override
   String get failedToLoadMeetings => 'Не удалось загрузить встречи';
 
   @override

@@ -710,6 +710,42 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to cancel this meeting? This action cannot be undone.'**
   String get cancelMeetingConfirm;
 
+  /// No description provided for @summaryReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary is ready!'**
+  String get summaryReady;
+
+  /// No description provided for @summaryError.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary generation error'**
+  String get summaryError;
+
+  /// No description provided for @transcriptionReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription is ready!'**
+  String get transcriptionReady;
+
+  /// No description provided for @transcriptionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription error'**
+  String get transcriptionError;
+
+  /// No description provided for @recordingReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording is ready!'**
+  String get recordingReady;
+
+  /// No description provided for @videoReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Video is ready!'**
+  String get videoReady;
+
   /// No description provided for @failedToLoadMeetings.
   ///
   /// In en, this message translates to:

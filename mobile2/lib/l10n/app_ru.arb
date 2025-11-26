@@ -121,6 +121,13 @@
   "cancelMeetingTitle": "Отменить встречу",
   "cancelMeetingConfirm": "Вы уверены, что хотите отменить эту встречу? Это действие нельзя отменить.",
 
+  "summaryReady": "Summary готово!",
+  "summaryError": "Ошибка генерации summary",
+  "transcriptionReady": "Транскрипция готова!",
+  "transcriptionError": "Ошибка транскрипции",
+  "recordingReady": "Запись готова!",
+  "videoReady": "Видео готово!",
+
   "failedToLoadMeetings": "Не удалось загрузить встречи",
   "failedToLoadFormData": "Не удалось загрузить данные формы",
   "pleaseEnterTitle": "Введите название",

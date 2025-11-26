@@ -140,6 +140,13 @@
   "cancelMeetingTitle": "Cancel Meeting",
   "cancelMeetingConfirm": "Are you sure you want to cancel this meeting? This action cannot be undone.",
 
+  "summaryReady": "Summary is ready!",
+  "summaryError": "Summary generation error",
+  "transcriptionReady": "Transcription is ready!",
+  "transcriptionError": "Transcription error",
+  "recordingReady": "Recording is ready!",
+  "videoReady": "Video is ready!",
+
   "failedToLoadMeetings": "Failed to load meetings",
   "failedToLoadFormData": "Failed to load form data",
   "pleaseEnterTitle": "Please enter a title",

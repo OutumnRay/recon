@@ -321,6 +321,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to cancel this meeting? This action cannot be undone.';
 
   @override
+  String get summaryReady => 'Summary is ready!';
+
+  @override
+  String get summaryError => 'Summary generation error';
+
+  @override
+  String get transcriptionReady => 'Transcription is ready!';
+
+  @override
+  String get transcriptionError => 'Transcription error';
+
+  @override
+  String get recordingReady => 'Recording is ready!';
+
+  @override
+  String get videoReady => 'Video is ready!';
+
+  @override
   String get failedToLoadMeetings => 'Failed to load meetings';
 
   @override

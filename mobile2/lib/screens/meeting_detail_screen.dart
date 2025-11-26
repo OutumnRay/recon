@@ -72,20 +72,23 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     _notificationSubscription = notificationWebSocketService.notifications.listen((notification) {
       // Проверяем, что уведомление относится к текущей встрече
       if (notification.meetingId != widget.meetingId) return;
+      if (!mounted) return;
 
       Logger.logInfo('Received notification for meeting: ${notification.type}');
+
+      final l10n = AppLocalizations.of(context);
 
       switch (notification.type) {
         case NotificationEventType.summaryCompleted:
           Logger.logSuccess('Summary completed, reloading meeting data...');
           _loadMeeting();
-          _showSnackBar('Summary готово!', isSuccess: true);
+          _showSnackBar(l10n?.summaryReady ?? 'Summary is ready!', isSuccess: true);
           break;
 
         case NotificationEventType.summaryFailed:
           final errorMsg = notification.changedFields?['error'] as String? ?? 'Unknown error';
           Logger.logError('Summary failed: $errorMsg');
-          _showSnackBar('Ошибка генерации summary: $errorMsg', isSuccess: false);
+          _showSnackBar('${l10n?.summaryError ?? 'Summary error'}: $errorMsg', isSuccess: false);
           break;
 
         case NotificationEventType.summaryStarted:
@@ -96,25 +99,25 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
         case NotificationEventType.transcriptionCompleted:
           Logger.logSuccess('Transcription completed, reloading meeting data...');
           _loadMeeting();
-          _showSnackBar('Транскрипция готова!', isSuccess: true);
+          _showSnackBar(l10n?.transcriptionReady ?? 'Transcription is ready!', isSuccess: true);
           break;
 
         case NotificationEventType.transcriptionFailed:
           final errorMsg = notification.changedFields?['error'] as String? ?? 'Unknown error';
           Logger.logError('Transcription failed: $errorMsg');
-          _showSnackBar('Ошибка транскрипции: $errorMsg', isSuccess: false);
+          _showSnackBar('${l10n?.transcriptionError ?? 'Transcription error'}: $errorMsg', isSuccess: false);
           break;
 
         case NotificationEventType.recordingCompleted:
           Logger.logSuccess('Recording completed, reloading meeting data...');
           _loadMeeting();
-          _showSnackBar('Запись готова!', isSuccess: true);
+          _showSnackBar(l10n?.recordingReady ?? 'Recording is ready!', isSuccess: true);
           break;
 
         case NotificationEventType.compositeVideoCompleted:
           Logger.logSuccess('Composite video completed, reloading meeting data...');
           _loadMeeting();
-          _showSnackBar('Видео готово!', isSuccess: true);
+          _showSnackBar(l10n?.videoReady ?? 'Video is ready!', isSuccess: true);
           break;
 
         case NotificationEventType.meetingUpdated:
