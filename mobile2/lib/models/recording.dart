@@ -126,12 +126,7 @@ class TrackRecording {
 
   String get participantName {
     if (participant != null) {
-      if (participant!.username.isNotEmpty) {
-        return participant!.username;
-      }
-      if (participant!.email.isNotEmpty) {
-        return participant!.email;
-      }
+      return participant!.displayName;
     }
     return 'Unknown';
   }

@@ -225,12 +225,7 @@ class MeetingParticipant {
 
   String get displayName {
     if (user != null) {
-      if (user!.username.isNotEmpty) {
-        return user!.username;
-      }
-      if (user!.email.isNotEmpty) {
-        return user!.email;
-      }
+      return user!.displayName;
     }
     return userId;
   }

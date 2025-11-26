@@ -555,32 +555,29 @@ class _MeetingsScreenState extends State<MeetingsScreen>
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
+      floatingActionButton: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
+              color: const Color(0xFF11998e).withValues(alpha: 0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 56,
-            child: _buildGradientOutlineButton(
-              onPressed: _openCreateMeeting,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              icon: Icons.add_rounded,
-              label: l10n.newMeeting,
-            ),
-          ),
+        child: FloatingActionButton.extended(
+          onPressed: _openCreateMeeting,
+          icon: const Icon(Icons.add_rounded),
+          label: Text(l10n.newMeeting),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
         ),
       ),
     );

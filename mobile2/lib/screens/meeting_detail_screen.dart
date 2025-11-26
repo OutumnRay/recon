@@ -553,11 +553,30 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                       ),
       ),
       floatingActionButton: canJoin
-          ? FloatingActionButton.extended(
-              onPressed: _joinMeeting,
-              icon: const Icon(Icons.video_call_rounded),
-              label: Text(l10n.joinMeeting),
-              backgroundColor: AppColors.success,
+          ? Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF667eea).withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton.extended(
+                onPressed: _joinMeeting,
+                icon: const Icon(Icons.video_call_rounded),
+                label: Text(l10n.joinMeeting),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                foregroundColor: Colors.white,
+              ),
             )
           : null,
     );
@@ -2221,9 +2240,9 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   radius: 32,
                   backgroundColor: AppColors.primary100,
                   child: Text(
-                    (activeSpeaker.user?.firstName?.isNotEmpty ?? false)
-                        ? activeSpeaker.user!.firstName![0].toUpperCase()
-                        : activeSpeaker.user?.username[0].toUpperCase() ?? '?',
+                    activeSpeaker.user?.displayName.isNotEmpty == true
+                        ? activeSpeaker.user!.displayName[0].toUpperCase()
+                        : '?',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -2238,9 +2257,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        activeSpeaker.user?.displayName ??
-                            activeSpeaker.user?.username ??
-                            'Unknown',
+                        activeSpeaker.user?.displayName ?? 'Unknown',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary,

@@ -268,10 +268,7 @@ class TaskCard extends StatelessWidget {
   }
 
   String _getUserDisplayName(dynamic user) {
-    if (user.firstName != null && user.firstName!.isNotEmpty) {
-      return '${user.firstName} ${user.lastName ?? ''}'.trim();
-    }
-    return user.username ?? user.email ?? 'Unknown';
+    return user.displayName ?? user.email ?? 'Unknown';
   }
 
   bool _isDueSoon(DateTime dueDate) {
