@@ -603,7 +603,6 @@ func (vp *VideoProcessor) ConvertToHLSWithCustomNames(inputPath, outputDir, play
 		"-hls_segment_filename", segmentPattern,
 		"-hls_playlist_type", "event",      // Добавляем #EXT-X-PLAYLIST-TYPE:EVENT
 		"-hls_flags", "program_date_time",  // Добавляем #EXT-X-PROGRAM-DATE-TIME для каждого сегмента
-		"-hls_version", "4",                // Используем версию 4 как в track плейлистах
 		"-f", "hls",
 		playlistFile,
 	}
