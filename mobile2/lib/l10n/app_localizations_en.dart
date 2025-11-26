@@ -269,6 +269,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
+  String get deleteRecording => 'Delete Recording';
+
+  @override
   String get loading => 'Loading...';
 
   @override

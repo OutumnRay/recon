@@ -270,6 +270,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get confirm => 'Подтвердить';
 
   @override
+  String get deleteRecording => 'Удалить запись';
+
+  @override
   String get loading => 'Загрузка...';
 
   @override

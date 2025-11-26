@@ -119,6 +119,7 @@
   "close": "Close",
   "select": "Select",
   "confirm": "Confirm",
+  "deleteRecording": "Delete Recording",
 
   "loading": "Loading...",
   "error": "Error",

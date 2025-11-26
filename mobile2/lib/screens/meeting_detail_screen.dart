@@ -824,27 +824,67 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              // Delete recording button
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'delete') {
-                    _deleteRecording(recording);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
-                        SizedBox(width: 8),
-                        Text('Delete Recording'),
-                      ],
+              const SizedBox(width: 4),
+              // Session menu button
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _deleteRecording(recording);
+                    }
+                  },
+                  offset: const Offset(0, 40),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  color: Colors.white,
+                  elevation: 8,
+                  shadowColor: Colors.black.withValues(alpha: 0.15),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.danger.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 16),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            l10n.deleteRecording,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.more_horiz,
+                      size: 20,
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                ],
-                icon: const Icon(Icons.more_vert, size: 20),
+                ),
               ),
             ],
           ),
