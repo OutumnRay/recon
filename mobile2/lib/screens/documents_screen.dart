@@ -211,7 +211,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Share ${document.name}'),
+                    content: Text(l10n.shareDocument(document.name)),
                     backgroundColor: AppColors.primary600,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -563,7 +563,7 @@ class _DocumentsScreenState extends State<DocumentsScreen>
           onTap: () {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Open: ${document.name}'),
+                content: Text(l10n.openDocument(document.name)),
                 backgroundColor: AppColors.primary600,
               ),
             );

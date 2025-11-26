@@ -564,6 +564,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Future<void> _switchAudioSource(livekit.MediaDevice device) async {
     if (_room?.localParticipant == null) return;
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final localParticipant = _room!.localParticipant!;
@@ -581,7 +582,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Audio source changed to: ${device.label}'),
+                content: Text(l10n.audioSourceChanged(device.label)),
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -594,7 +595,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to switch audio source: ${e.toString()}'),
+            content: Text(l10n.failedToSwitchAudio),
             duration: const Duration(seconds: 3),
             backgroundColor: Colors.red,
           ),

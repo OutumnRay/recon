@@ -426,7 +426,7 @@ class _SearchScreenState extends State<SearchScreen>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 backgroundColor: AppColors.primary600,
-                content: Text('Open ${result.type}: ${result.title}'),
+                content: Text(l10n.openSearchResult(result.type, result.title)),
               ),
             );
           },

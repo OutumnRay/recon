@@ -1044,4 +1044,85 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get failedToGenerateSummary => 'Не удалось создать резюме';
+
+  @override
+  String get appSlogan => 'Ваши разговоры в новом формате';
+
+  @override
+  String get deleteMeetingPermanentlyTitle => 'Удалить встречу навсегда?';
+
+  @override
+  String get deleteMeetingPermanentlyMessage =>
+      'Это навсегда удалит отмененную встречу и все её данные. Это действие нельзя отменить.';
+
+  @override
+  String get deletePermanently => 'Удалить навсегда';
+
+  @override
+  String get meetingPermanentlyDeleted => 'Встреча удалена навсегда';
+
+  @override
+  String get failedToDeleteMeeting => 'Не удалось удалить встречу';
+
+  @override
+  String get deleteRecordingTitle => 'Удалить запись?';
+
+  @override
+  String get deleteRecordingMessage =>
+      'Это навсегда удалит эту сессию записи и все её файлы (видео, аудио, транскрипты). Это действие нельзя отменить.';
+
+  @override
+  String get recordingDeletedSuccess => 'Запись успешно удалена';
+
+  @override
+  String get failedToDeleteRecording => 'Не удалось удалить запись';
+
+  @override
+  String get noMeetingData => 'Нет данных о встрече';
+
+  @override
+  String errorWithDetails(String details) {
+    return 'Ошибка: $details';
+  }
+
+  @override
+  String audioSourceChanged(String device) {
+    return 'Источник звука изменён на: $device';
+  }
+
+  @override
+  String get failedToSwitchAudio => 'Не удалось переключить источник звука';
+
+  @override
+  String shareDocument(String name) {
+    return 'Поделиться $name';
+  }
+
+  @override
+  String openDocument(String name) {
+    return 'Открыть: $name';
+  }
+
+  @override
+  String get taskStatusUpdated => 'Статус задачи обновлён';
+
+  @override
+  String get failedToUpdateTask => 'Не удалось обновить задачу';
+
+  @override
+  String get myTasks => 'Мои задачи';
+
+  @override
+  String get failedToCopyLink => 'Не удалось скопировать ссылку';
+
+  @override
+  String openSearchResult(String type, String title) {
+    return 'Открыть $type: $title';
+  }
+
+  @override
+  String get somethingWentWrong => 'Что-то пошло не так';
+
+  @override
+  String get errorCopied => 'Ошибка скопирована в буфер обмена';
 }

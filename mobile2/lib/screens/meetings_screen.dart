@@ -346,7 +346,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to copy link: $e'),
+            content: Text(l10n.failedToCopyLink),
             backgroundColor: AppColors.danger,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

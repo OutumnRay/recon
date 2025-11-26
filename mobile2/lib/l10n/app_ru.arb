@@ -385,5 +385,38 @@
   "createSummary": "Создать резюме",
   "generatingSummary": "Генерация...",
   "summaryGenerationStarted": "Генерация резюме началась. Это может занять несколько минут.",
-  "failedToGenerateSummary": "Не удалось создать резюме"
+  "failedToGenerateSummary": "Не удалось создать резюме",
+
+  "appSlogan": "Ваши разговоры в новом формате",
+
+  "deleteMeetingPermanentlyTitle": "Удалить встречу навсегда?",
+  "deleteMeetingPermanentlyMessage": "Это навсегда удалит отмененную встречу и все её данные. Это действие нельзя отменить.",
+  "deletePermanently": "Удалить навсегда",
+  "meetingPermanentlyDeleted": "Встреча удалена навсегда",
+  "failedToDeleteMeeting": "Не удалось удалить встречу",
+
+  "deleteRecordingTitle": "Удалить запись?",
+  "deleteRecordingMessage": "Это навсегда удалит эту сессию записи и все её файлы (видео, аудио, транскрипты). Это действие нельзя отменить.",
+  "recordingDeletedSuccess": "Запись успешно удалена",
+  "failedToDeleteRecording": "Не удалось удалить запись",
+
+  "noMeetingData": "Нет данных о встрече",
+  "errorWithDetails": "Ошибка: {details}",
+
+  "audioSourceChanged": "Источник звука изменён на: {device}",
+  "failedToSwitchAudio": "Не удалось переключить источник звука",
+
+  "shareDocument": "Поделиться {name}",
+  "openDocument": "Открыть: {name}",
+
+  "taskStatusUpdated": "Статус задачи обновлён",
+  "failedToUpdateTask": "Не удалось обновить задачу",
+  "myTasks": "Мои задачи",
+
+  "failedToCopyLink": "Не удалось скопировать ссылку",
+
+  "openSearchResult": "Открыть {type}: {title}",
+
+  "somethingWentWrong": "Что-то пошло не так",
+  "errorCopied": "Ошибка скопирована в буфер обмена"
 }

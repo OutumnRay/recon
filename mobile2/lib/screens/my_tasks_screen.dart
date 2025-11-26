@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../models/task.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
@@ -69,14 +70,15 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
   }
 
   Future<void> _updateTaskStatus(Task task, TaskStatus newStatus) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await _taskService.updateTaskStatus(task.id, newStatus);
       await _loadTasks(); // Reload tasks
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Task status updated'),
+          SnackBar(
+            content: Text(l10n.taskStatusUpdated),
             backgroundColor: Colors.green,
           ),
         );
@@ -85,7 +87,7 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update task: $e'),
+            content: Text(l10n.failedToUpdateTask),
             backgroundColor: Colors.red,
           ),
         );
@@ -276,7 +278,7 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Tasks'),
+        title: Text(AppLocalizations.of(context)!.myTasks),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

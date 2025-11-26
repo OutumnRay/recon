@@ -476,5 +476,76 @@
   "createSummary": "Create Summary",
   "generatingSummary": "Generating...",
   "summaryGenerationStarted": "Summary generation started. This may take a few minutes.",
-  "failedToGenerateSummary": "Failed to generate summary"
+  "failedToGenerateSummary": "Failed to generate summary",
+
+  "appSlogan": "Your conversations, reimagined",
+
+  "deleteMeetingPermanentlyTitle": "Delete Meeting Permanently?",
+  "deleteMeetingPermanentlyMessage": "This will permanently delete the cancelled meeting and all its data. This action cannot be undone.",
+  "deletePermanently": "Delete Permanently",
+  "meetingPermanentlyDeleted": "Meeting permanently deleted",
+  "failedToDeleteMeeting": "Failed to delete meeting",
+
+  "deleteRecordingTitle": "Delete Recording?",
+  "deleteRecordingMessage": "This will permanently delete this recording session and all its files (video, audio, transcripts). This action cannot be undone.",
+  "recordingDeletedSuccess": "Recording deleted successfully",
+  "failedToDeleteRecording": "Failed to delete recording",
+
+  "noMeetingData": "No meeting data",
+  "errorWithDetails": "Error: {details}",
+  "@errorWithDetails": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+
+  "audioSourceChanged": "Audio source changed to: {device}",
+  "@audioSourceChanged": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToSwitchAudio": "Failed to switch audio source",
+
+  "shareDocument": "Share {name}",
+  "@shareDocument": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "openDocument": "Open: {name}",
+  "@openDocument": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+
+  "taskStatusUpdated": "Task status updated",
+  "failedToUpdateTask": "Failed to update task",
+  "myTasks": "My Tasks",
+
+  "failedToCopyLink": "Failed to copy link",
+
+  "openSearchResult": "Open {type}: {title}",
+  "@openSearchResult": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+
+  "somethingWentWrong": "Something went wrong",
+  "errorCopied": "Error copied to clipboard"
 }

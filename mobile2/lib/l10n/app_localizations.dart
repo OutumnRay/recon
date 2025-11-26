@@ -2089,6 +2089,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to generate summary'**
   String get failedToGenerateSummary;
+
+  /// No description provided for @appSlogan.
+  ///
+  /// In en, this message translates to:
+  /// **'Your conversations, reimagined'**
+  String get appSlogan;
+
+  /// No description provided for @deleteMeetingPermanentlyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Meeting Permanently?'**
+  String get deleteMeetingPermanentlyTitle;
+
+  /// No description provided for @deleteMeetingPermanentlyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete the cancelled meeting and all its data. This action cannot be undone.'**
+  String get deleteMeetingPermanentlyMessage;
+
+  /// No description provided for @deletePermanently.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Permanently'**
+  String get deletePermanently;
+
+  /// No description provided for @meetingPermanentlyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting permanently deleted'**
+  String get meetingPermanentlyDeleted;
+
+  /// No description provided for @failedToDeleteMeeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete meeting'**
+  String get failedToDeleteMeeting;
+
+  /// No description provided for @deleteRecordingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Recording?'**
+  String get deleteRecordingTitle;
+
+  /// No description provided for @deleteRecordingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete this recording session and all its files (video, audio, transcripts). This action cannot be undone.'**
+  String get deleteRecordingMessage;
+
+  /// No description provided for @recordingDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording deleted successfully'**
+  String get recordingDeletedSuccess;
+
+  /// No description provided for @failedToDeleteRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete recording'**
+  String get failedToDeleteRecording;
+
+  /// No description provided for @noMeetingData.
+  ///
+  /// In en, this message translates to:
+  /// **'No meeting data'**
+  String get noMeetingData;
+
+  /// No description provided for @errorWithDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {details}'**
+  String errorWithDetails(String details);
+
+  /// No description provided for @audioSourceChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio source changed to: {device}'**
+  String audioSourceChanged(String device);
+
+  /// No description provided for @failedToSwitchAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to switch audio source'**
+  String get failedToSwitchAudio;
+
+  /// No description provided for @shareDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Share {name}'**
+  String shareDocument(String name);
+
+  /// No description provided for @openDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Open: {name}'**
+  String openDocument(String name);
+
+  /// No description provided for @taskStatusUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Task status updated'**
+  String get taskStatusUpdated;
+
+  /// No description provided for @failedToUpdateTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update task'**
+  String get failedToUpdateTask;
+
+  /// No description provided for @myTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'My Tasks'**
+  String get myTasks;
+
+  /// No description provided for @failedToCopyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to copy link'**
+  String get failedToCopyLink;
+
+  /// No description provided for @openSearchResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {type}: {title}'**
+  String openSearchResult(String type, String title);
+
+  /// No description provided for @somethingWentWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get somethingWentWrong;
+
+  /// No description provided for @errorCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Error copied to clipboard'**
+  String get errorCopied;
 }
 
 class _AppLocalizationsDelegate

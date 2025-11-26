@@ -1045,4 +1045,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToGenerateSummary => 'Failed to generate summary';
+
+  @override
+  String get appSlogan => 'Your conversations, reimagined';
+
+  @override
+  String get deleteMeetingPermanentlyTitle => 'Delete Meeting Permanently?';
+
+  @override
+  String get deleteMeetingPermanentlyMessage =>
+      'This will permanently delete the cancelled meeting and all its data. This action cannot be undone.';
+
+  @override
+  String get deletePermanently => 'Delete Permanently';
+
+  @override
+  String get meetingPermanentlyDeleted => 'Meeting permanently deleted';
+
+  @override
+  String get failedToDeleteMeeting => 'Failed to delete meeting';
+
+  @override
+  String get deleteRecordingTitle => 'Delete Recording?';
+
+  @override
+  String get deleteRecordingMessage =>
+      'This will permanently delete this recording session and all its files (video, audio, transcripts). This action cannot be undone.';
+
+  @override
+  String get recordingDeletedSuccess => 'Recording deleted successfully';
+
+  @override
+  String get failedToDeleteRecording => 'Failed to delete recording';
+
+  @override
+  String get noMeetingData => 'No meeting data';
+
+  @override
+  String errorWithDetails(String details) {
+    return 'Error: $details';
+  }
+
+  @override
+  String audioSourceChanged(String device) {
+    return 'Audio source changed to: $device';
+  }
+
+  @override
+  String get failedToSwitchAudio => 'Failed to switch audio source';
+
+  @override
+  String shareDocument(String name) {
+    return 'Share $name';
+  }
+
+  @override
+  String openDocument(String name) {
+    return 'Open: $name';
+  }
+
+  @override
+  String get taskStatusUpdated => 'Task status updated';
+
+  @override
+  String get failedToUpdateTask => 'Failed to update task';
+
+  @override
+  String get myTasks => 'My Tasks';
+
+  @override
+  String get failedToCopyLink => 'Failed to copy link';
+
+  @override
+  String openSearchResult(String type, String title) {
+    return 'Open $type: $title';
+  }
+
+  @override
+  String get somethingWentWrong => 'Something went wrong';
+
+  @override
+  String get errorCopied => 'Error copied to clipboard';
 }

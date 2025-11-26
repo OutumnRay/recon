@@ -4,6 +4,7 @@ import '../services/config_service.dart';
 import '../services/api_client.dart';
 import '../services/fcm_service.dart';
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
 
@@ -114,9 +115,9 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            const Text(
-              'Recontext',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)?.appTitle ?? 'Recontext',
+              style: const TextStyle(
                 fontSize: 38,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF26C6DA),
@@ -125,7 +126,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Your conversations, reimagined',
+              AppLocalizations.of(context)?.appSlogan ?? 'Your conversations, reimagined',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],

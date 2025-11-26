@@ -398,10 +398,8 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Meeting Permanently?'),
-        content: const Text(
-          'This will permanently delete the cancelled meeting and all its data. This action cannot be undone.',
-        ),
+        title: Text(l10n.deleteMeetingPermanentlyTitle),
+        content: Text(l10n.deleteMeetingPermanentlyMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -412,7 +410,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.danger,
             ),
-            child: const Text('Delete Permanently'),
+            child: Text(l10n.deletePermanently),
           ),
         ],
       ),
@@ -442,15 +440,15 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Meeting permanently deleted'),
+        SnackBar(
+          content: Text(l10n.meetingPermanentlyDeleted),
           backgroundColor: AppColors.success,
         ),
       );
 
       // Navigate back to meetings list
       Navigator.of(context).pop();
-    } on ApiException catch (e) {
+    } on ApiException {
       if (!mounted) return;
 
       // Close loading dialog
@@ -458,7 +456,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to delete meeting: ${e.message}'),
+          content: Text(l10n.failedToDeleteMeeting),
           backgroundColor: AppColors.danger,
           duration: const Duration(seconds: 5),
         ),
@@ -471,7 +469,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${l10n.error}: $e'),
+          content: Text(l10n.errorWithDetails(e.toString())),
           backgroundColor: AppColors.danger,
           duration: const Duration(seconds: 5),
         ),
@@ -486,10 +484,8 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Recording?'),
-        content: const Text(
-          'This will permanently delete this recording session and all its files (video, audio, transcripts). This action cannot be undone.',
-        ),
+        title: Text(l10n.deleteRecordingTitle),
+        content: Text(l10n.deleteRecordingMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -500,7 +496,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.danger,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -530,15 +526,15 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Recording deleted successfully'),
+        SnackBar(
+          content: Text(l10n.recordingDeletedSuccess),
           backgroundColor: AppColors.success,
         ),
       );
 
       // Refresh meeting details to update recordings list
       _loadMeeting();
-    } on ApiException catch (e) {
+    } on ApiException {
       if (!mounted) return;
 
       // Close loading dialog
@@ -546,7 +542,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to delete recording: ${e.message}'),
+          content: Text(l10n.failedToDeleteRecording),
           backgroundColor: AppColors.danger,
           duration: const Duration(seconds: 5),
         ),
@@ -559,7 +555,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${l10n.error}: $e'),
+          content: Text(l10n.errorWithDetails(e.toString())),
           backgroundColor: AppColors.danger,
           duration: const Duration(seconds: 5),
         ),
@@ -603,7 +599,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                     children: [
                       const Icon(Icons.delete_forever, color: AppColors.danger),
                       const SizedBox(width: 12),
-                      const Text('Delete Permanently'),
+                      Text(l10n.deletePermanently),
                     ],
                   ),
                 ),

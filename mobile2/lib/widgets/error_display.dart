@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
 
 /// A reusable widget for displaying detailed error messages with copy functionality
 class ErrorDisplay extends StatelessWidget {
@@ -128,11 +129,12 @@ class ErrorDisplay extends StatelessWidget {
   }
 
   void _copyToClipboard(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     Clipboard.setData(ClipboardData(text: error));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Error copied to clipboard'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(l10n.errorCopied),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -166,7 +168,7 @@ class FullScreenError extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              title ?? 'Something went wrong',
+              title ?? AppLocalizations.of(context)!.somethingWentWrong,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: Colors.red.shade900,
                     fontWeight: FontWeight.bold,
