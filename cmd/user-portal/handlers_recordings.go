@@ -214,10 +214,11 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 		// VideoPostProcessor assembles composite video from individual tracks after transcription
 		// Если есть композитное видео, оно лежит в корне: {meetingID}_{roomSID}/composite.m3u8
 		if room.HasCompositeVideo {
-			// Формируем путь к композитному видео
-			compositePlaylistPath := fmt.Sprintf("%s_%s/composite.m3u8", meeting.ID.String(), room.SID)
-			roomRec.PlaylistURL = compositePlaylistPath
-			up.logger.Infof("📹 [RECORDINGS] Room has composite video: %s", compositePlaylistPath)
+			// Return API proxy URL instead of MinIO path (for authenticated access)
+			// API proxy will serve: {meetingID}_{roomSID}/composite.m3u8 from MinIO
+			compositePlaylistURL := fmt.Sprintf("/api/v1/recordings/%s/playlist", room.SID)
+			roomRec.PlaylistURL = compositePlaylistURL
+			up.logger.Infof("📹 [RECORDINGS] Room has composite video: %s", compositePlaylistURL)
 		}
 
 		// Get tracks for this room

@@ -201,19 +201,23 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
 
       Logger.logInfo('Initializing media player', data: {'url': playlistUrl});
 
-      // Build full URL for MinIO
-      // If playlistUrl is relative path (e.g., "meetingID_roomSID/composite.m3u8"),
-      // construct MinIO URL: http://192.168.5.153:9000/recontext/{playlistUrl}
+      // Get API base URL for authenticated proxy access
+      final configService = ConfigService();
+      final baseUrl = await configService.getApiUrl();
+
+      // Build full URL using API proxy (authenticated access)
+      // playlistUrl should be API proxy path like "/api/v1/recordings/{room_sid}/playlist"
+      // or "/api/v1/recordings/track/{track_sid}/playlist"
       final fullUrl = playlistUrl.startsWith('http')
           ? playlistUrl
-          : 'http://192.168.5.153:9000/recontext/$playlistUrl';
+          : '$baseUrl$playlistUrl';
 
-      Logger.logInfo('Full playlist URL', data: {'url': fullUrl});
+      Logger.logInfo('Full playlist URL (via API proxy)', data: {'url': fullUrl});
 
       if (!mounted) return;
 
-      // MinIO doesn't require authentication headers for public buckets
-      // Initialize FijkPlayer (don't autoplay)
+      // Initialize FijkPlayer with authenticated API proxy URL
+      // The API proxy will handle MinIO access and rewrite segment URLs
       await _player.setDataSource(fullUrl, autoPlay: false);
 
       setState(() {

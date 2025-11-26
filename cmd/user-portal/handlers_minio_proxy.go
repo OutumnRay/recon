@@ -185,20 +185,30 @@ func (up *UserPortal) getPlaylistHandler(w http.ResponseWriter, r *http.Request)
 		playlistPath = fmt.Sprintf("%s_%s/tracks/%s.m3u8", meetingID, roomSID, trackSID)
 	} else {
 		// For room composites, get room and use meetingID/roomSID/composite.m3u8
+		// egressID can be either egress_id or room SID (when using /api/v1/recordings/{room_sid}/playlist)
 		var room models.Room
-		err := up.db.DB.Where("egress_id = ?", egressID).First(&room).Error
+
+		// Try to find room by SID first (most common case for composite video)
+		err := up.db.DB.Where("sid = ?", egressID).First(&room).Error
 		if err != nil {
-			up.logger.Errorf("Room not found for egress %s: %v", egressID, err)
-			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
-			return
+			// If not found by SID, try egress_id (legacy compatibility)
+			err = up.db.DB.Where("egress_id = ?", egressID).First(&room).Error
+			if err != nil {
+				up.logger.Errorf("Room not found for identifier %s: %v", egressID, err)
+				up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
+				return
+			}
 		}
+
 		if room.MeetingID == nil {
 			up.logger.Errorf("Room %s has no MeetingID", room.SID)
 			up.respondWithError(w, http.StatusNotFound, "Meeting not found for room", "")
 			return
 		}
 		meetingID = room.MeetingID.String()
-		playlistPath = fmt.Sprintf("%s_%s/composite.m3u8", meetingID, room.SID)
+		roomSID = room.SID
+		egressID = room.EgressID // Update egressID for access check
+		playlistPath = fmt.Sprintf("%s_%s/composite.m3u8", meetingID, roomSID)
 	}
 
 	// Get the playlist file from MinIO
