@@ -145,11 +145,13 @@ func (mp *ManagingPortal) handleRoomStarted(req models.WebhookRequest) error {
 	}
 
 	room := &models.Room{
-		ID:          uuid.New(),
-		Status:      "active",
-		StartedAt:   time.Now(),
-		CreatedAtDB: time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:            uuid.New(),
+		Status:        "active",
+		StartedAt:     time.Now(),
+		CreatedAtDB:   time.Now(),
+		UpdatedAt:     time.Now(),
+		Summaries:     "{}",           // Инициализируем пустым JSON объектом
+		SummaryStatus: "pending",      // Статус генерации сводки
 	}
 
 	// Extract room data
