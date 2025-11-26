@@ -60,15 +60,18 @@ class MeetingsService {
   /// Get a single meeting by ID
   Future<MeetingWithDetails> getMeeting(String meetingId) async {
     try {
+      Logger.logInfo('API: GET /api/v1/meetings/$meetingId');
       final response = await _apiClient.get('/api/v1/meetings/$meetingId');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        Logger.logInfo('API Response: summary_status=${data['summary_status']}, summary_en=${data['summary_en'] != null ? '${(data['summary_en'] as String).length} chars' : 'null'}, summary_ru=${data['summary_ru'] != null ? '${(data['summary_ru'] as String).length} chars' : 'null'}');
         return MeetingWithDetails.fromJson(data);
       } else {
         throw _apiClient.handleError(response);
       }
     } catch (e) {
+      Logger.logError('API Error: GET /api/v1/meetings/$meetingId', error: e);
       rethrow;
     }
   }

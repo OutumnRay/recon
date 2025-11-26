@@ -153,6 +153,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
   }
 
   Future<void> _loadMeeting() async {
+    Logger.logInfo('Loading meeting details for: ${widget.meetingId}');
     setState(() {
       _isLoading = true;
       _error = null;
@@ -160,6 +161,13 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
 
     try {
       final meeting = await _meetingsService.getMeeting(widget.meetingId);
+      Logger.logInfo('Meeting loaded: ${meeting.title}');
+      Logger.logInfo('  summaryStatus: ${meeting.summaryStatus}');
+      Logger.logInfo('  summaryEn: ${meeting.summaryEn != null ? "${meeting.summaryEn!.length} chars" : "null"}');
+      Logger.logInfo('  summaryRu: ${meeting.summaryRu != null ? "${meeting.summaryRu!.length} chars" : "null"}');
+      Logger.logInfo('  hasTranscriptions: ${meeting.hasTranscriptions}');
+      Logger.logInfo('  hasVideo: ${meeting.hasVideo}');
+      Logger.logInfo('  recordingsCount: ${meeting.recordingsCount}');
       if (mounted) {
         setState(() {
           _meeting = meeting;
@@ -167,6 +175,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
         });
       }
     } on ApiException catch (e) {
+      Logger.logError('Failed to load meeting: ${e.message}');
       if (mounted) {
         setState(() {
           _error = e.message;
@@ -174,6 +183,7 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
         });
       }
     } catch (e) {
+      Logger.logError('Unexpected error loading meeting: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
