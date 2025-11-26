@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"Recontext.online/internal/models"
-	"Recontext.online/pkg/rabbitmq"
 	"github.com/google/uuid"
 )
 
@@ -1203,10 +1202,6 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 		mp.logger.Infof("📌 Error: %s", errorStr)
 	}
 
-	// Debug: Check conditions for transcription
-	mp.logger.Infof("🔍 Transcription check: egressID=%v, status=%v (not failed=%v), filePath=%v, rabbitmq=%v",
-		egressID != "", status, status != "failed", filePath != "", mp.rabbitMQPublisher != nil)
-
 	// Обновляем статус завершения записи, путь к файлу и время окончания в таблице EgressRecording
 	if egressID != "" {
 		now := time.Now()
@@ -1232,176 +1227,8 @@ func (mp *ManagingPortal) handleEgressEnded(req models.WebhookRequest) error {
 		}
 	}
 
-	// Send transcription task to RabbitMQ if this is a track recording that completed successfully
-	if egressID != "" && status != "failed" && filePath != "" {
-		// Check if RabbitMQ publisher is available, try to reconnect if not
-		if mp.rabbitMQPublisher == nil {
-			mp.logger.Infof("⚠️ RabbitMQ publisher not initialized, attempting to reconnect...")
-			rabbitMQHost := os.Getenv("RABBITMQ_HOST")
-			if rabbitMQHost == "" {
-				rabbitMQHost = "localhost"
-			}
-			rabbitMQPort := 5672
-			if portStr := os.Getenv("RABBITMQ_PORT"); portStr != "" {
-				if port, err := strconv.Atoi(portStr); err == nil {
-					rabbitMQPort = port
-				}
-			}
-			rabbitMQUser := os.Getenv("RABBITMQ_USER")
-			if rabbitMQUser == "" {
-				rabbitMQUser = "guest"
-			}
-			rabbitMQPassword := os.Getenv("RABBITMQ_PASSWORD")
-			if rabbitMQPassword == "" {
-				rabbitMQPassword = "guest"
-			}
-			rabbitMQQueue := os.Getenv("RABBITMQ_QUEUE")
-			if rabbitMQQueue == "" {
-				rabbitMQQueue = "transcription_queue"
-			}
-
-			publisher, err := rabbitmq.NewPublisher(
-				rabbitMQHost,
-				rabbitMQPort,
-				rabbitMQUser,
-				rabbitMQPassword,
-				rabbitMQQueue,
-			)
-			if err != nil {
-				mp.logger.Errorf("❌ Failed to reconnect to RabbitMQ: %v", err)
-			} else {
-				mp.logger.Infof("✅ Successfully reconnected to RabbitMQ!")
-				mp.rabbitMQPublisher = publisher
-			}
-		}
-
-		if mp.rabbitMQPublisher != nil {
-			mp.logger.Infof("🔍 Checking if egress %s is associated with a track...", egressID)
-		// Check if this egress is associated with a track
-		var track models.Track
-		err := mp.db.DB.Where("egress_id = ?", egressID).First(&track).Error
-		if err == nil {
-			mp.logger.Infof("✅ Found track: SID=%s, Type=%s, Source=%s, MimeType=%s",
-				track.SID, track.Type, track.Source, track.MimeType)
-			isAudioTrack := strings.EqualFold(track.Type, "audio") ||
-				strings.EqualFold(track.Source, "microphone") ||
-				strings.EqualFold(track.Source, "screen_share_audio") ||
-				(track.MimeType != "" && strings.HasPrefix(track.MimeType, "audio/"))
-			mp.logger.Infof("🔍 Is audio track: %v", isAudioTrack)
-			if !isAudioTrack {
-				mp.logger.Infof("ℹ️ Egress %s belongs to non-audio track %s, skipping transcription task", egressID, track.SID)
-			} else {
-				// Found a track with this egress ID - send transcription task
-				mp.logger.Infof("📝 Audio track confirmed! Checking meeting transcription settings...")
-				mp.logger.Infof("📝 Sending transcription task for track %s (egress: %s)", track.SID, egressID)
-
-				// Build audio URL from file path
-				// File path format from LiveKit: "recontext/<egress_id>/..." or just "<egress_id>/..."
-				// For track recordings, LiveKit creates m3u8 playlists
-				storageURL := os.Getenv("MINIO_ENDPOINT")
-				if storageURL == "" {
-					storageURL = "minio:9000"
-				}
-				bucket := os.Getenv("MINIO_BUCKET")
-				if bucket == "" {
-					bucket = "recontext"
-				}
-
-				// Construct URL to m3u8 playlist
-				// LiveKit stores track recordings in: <bucket>/<egress_id>/playlist.m3u8
-				var audioURL string
-				if strings.HasSuffix(filePath, ".m3u8") {
-					// File path already points to playlist
-					audioURL = fmt.Sprintf("http://%s/%s/%s", storageURL, bucket, filePath)
-				} else if strings.Contains(filePath, "/") {
-					// File path is a directory or file path, append playlist.m3u8
-					audioURL = fmt.Sprintf("http://%s/%s/%s/playlist.m3u8", storageURL, bucket, strings.TrimSuffix(filePath, "/"))
-				} else {
-					// File path is just egress ID
-					audioURL = fmt.Sprintf("http://%s/%s/%s/playlist.m3u8", storageURL, bucket, filePath)
-				}
-
-				mp.logger.Infof("📌 Constructed audio URL: %s", audioURL)
-
-				// Get room to find user_id
-				var room models.Room
-				err := mp.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
-				if err != nil {
-					mp.logger.Errorf("❌ Failed to get room for track %s: %v", track.SID, err)
-				} else {
-					mp.logger.Infof("✅ Found room: SID=%s, MeetingID=%v", room.SID, room.MeetingID)
-					// Get meeting to find user_id and check if transcription is enabled
-					if room.MeetingID == nil {
-						mp.logger.Errorf("❌ Room %s has no MeetingID, skipping transcription task", room.SID)
-					} else {
-						var meeting models.Meeting
-						err := mp.db.DB.Where("id = ?", *room.MeetingID).First(&meeting).Error
-						if err != nil {
-							mp.logger.Errorf("❌ Failed to get meeting for room %s (MeetingID: %s): %v", room.SID, room.MeetingID.String(), err)
-						} else if !meeting.NeedsTranscription {
-							mp.logger.Infof("ℹ️ Transcription is disabled for meeting %s (needs_transcription=%v), skipping transcription task",
-								meeting.ID, meeting.NeedsTranscription)
-						} else {
-							mp.logger.Infof("✅ Transcription is ENABLED for meeting %s!", meeting.ID)
-						// Parse track ID as UUID
-						trackUUID, err := uuid.Parse(track.ID.String())
-						if err != nil {
-							mp.logger.Errorf("❌ Invalid track ID format: %v", err)
-						} else {
-							// Log the complete task details before sending
-							mp.logger.Infof("📋 ========================================")
-							mp.logger.Infof("📋 TRANSCRIPTION TASK DETAILS:")
-							mp.logger.Infof("📋 ========================================")
-							mp.logger.Infof("📋 Track ID:       %s", trackUUID.String())
-							mp.logger.Infof("📋 Track SID:      %s", track.SID)
-							mp.logger.Infof("📋 User ID:        %s", meeting.CreatedBy.String())
-							mp.logger.Infof("📋 Audio URL:      %s", audioURL)
-							mp.logger.Infof("📋 Room SID:       %s", room.SID)
-							mp.logger.Infof("📋 Room Name:      %s", room.Name)
-							mp.logger.Infof("📋 Meeting ID:     %s", meeting.ID.String())
-							mp.logger.Infof("📋 Meeting Title:  %s", meeting.Title)
-							mp.logger.Infof("📋 Egress ID:      %s", egressID)
-							mp.logger.Infof("📋 File Path:      %s", filePath)
-							mp.logger.Infof("📋 Language:       auto-detect")
-							mp.logger.Infof("📋 ========================================")
-
-							// Send message to RabbitMQ
-							err := mp.rabbitMQPublisher.PublishTranscriptionTask(
-								trackUUID,
-								meeting.CreatedBy,
-								audioURL,
-								"", // Auto-detect language
-								"", // No auth token needed for MinIO access from transcription service
-							)
-							if err != nil {
-								mp.logger.Errorf("❌ Failed to send transcription task to RabbitMQ: %v", err)
-								mp.logger.Errorf("❌ Task that failed: track_id=%s, user_id=%s, audio_url=%s",
-									trackUUID.String(), meeting.CreatedBy.String(), audioURL)
-							} else {
-								mp.logger.Infof("✅ ========================================")
-								mp.logger.Infof("✅ Transcription task SUCCESSFULLY sent to RabbitMQ!")
-								mp.logger.Infof("✅ Track: %s (SID: %s)", trackUUID.String(), track.SID)
-								mp.logger.Infof("✅ Queue: transcription_queue")
-								mp.logger.Infof("✅ Message format: {track_id, user_id, audio_url}")
-								mp.logger.Infof("✅ ========================================")
-							}
-						}
-						}
-					}
-				}
-			}
-		} else {
-			// Not a track egress - this is expected
-			// Composite video is created by VideoPostProcessor after all tracks are transcribed
-			mp.logger.Infof("ℹ️ Egress %s is not associated with a track - this is expected for screen share or other non-audio tracks", egressID)
-		}
-		} else {
-			mp.logger.Infof("⚠️ Skipping transcription - RabbitMQ publisher still not available after reconnection attempt")
-		}
-	} else {
-		mp.logger.Infof("⚠️ Skipping transcription check - conditions not met: egressID=%v, status=%v, filePath=%v",
-			egressID != "", status, filePath != "")
-	}
+	// NOTE: Transcription tasks are sent from track_unpublished event, not here
+	// This prevents duplicate transcription processing
 
 	mp.logger.Infof("✅ egress_ended event processed successfully")
 	return nil

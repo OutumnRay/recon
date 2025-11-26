@@ -308,6 +308,7 @@ func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string) ([]video.Tra
 		ParticipantSID         string `gorm:"column:participant_sid"`
 		RoomSID                string `gorm:"column:room_sid"`
 		Type                   string
+		Source                 string
 		PublishedAt            time.Time `gorm:"column:published_at"`
 		TranscriptionDuration  float64   `gorm:"column:transcription_duration"`
 	}
@@ -316,7 +317,7 @@ func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string) ([]video.Tra
 	var tracks []LivekitTrack
 	err := vpp.db.DB.Table("livekit_tracks").
 		Where("room_sid = ?", roomSID).
-		Where("type IN ?", []string{"audio", "video"}).
+		Where("source IN ?", []string{"CAMERA", "MICROPHONE"}).
 		Order("type DESC, published_at ASC").
 		Find(&tracks).Error
 
