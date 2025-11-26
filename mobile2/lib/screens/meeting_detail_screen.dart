@@ -290,6 +290,184 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
     }
   }
 
+  Future<void> _hardDeleteMeeting() async {
+    if (_meeting == null) return;
+
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Meeting Permanently?'),
+        content: const Text(
+          'This will permanently delete the cancelled meeting and all its data. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+            ),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    if (!mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF26C6DA),
+        ),
+      ),
+    );
+
+    try {
+      await _meetingsService.hardDeleteMeeting(widget.meetingId);
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Meeting permanently deleted'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Navigate back to meetings list
+      Navigator.of(context).pop();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete meeting: ${e.message}'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.error}: $e'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteRecording(RoomRecording recording) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Recording?'),
+        content: const Text(
+          'This will permanently delete this recording session and all its files (video, audio, transcripts). This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    if (!mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF26C6DA),
+        ),
+      ),
+    );
+
+    try {
+      await _meetingsService.deleteRecording(widget.meetingId, recording.roomSid);
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Recording deleted successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Refresh meeting details to update recordings list
+      _loadMeeting();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete recording: ${e.message}'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.error}: $e'),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -311,8 +489,30 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
+          // Show delete button for cancelled meetings
+          if (_meeting != null && _meeting!.status == 'cancelled')
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'delete') {
+                  _hardDeleteMeeting();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.delete_forever, color: AppColors.danger),
+                      const SizedBox(width: 12),
+                      const Text('Delete Permanently'),
+                    ],
+                  ),
+                ),
+              ],
+              icon: const Icon(Icons.more_vert),
+            )
           // Show cancel button only if meeting is not already cancelled
-          if (_meeting != null && _meeting!.status != 'cancelled')
+          else if (_meeting != null && _meeting!.status != 'cancelled')
             IconButton(
               icon: const Icon(Icons.cancel_outlined),
               tooltip: l10n.cancelMeetingTitle,
@@ -495,6 +695,28 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
                     color: _getRecordingStatusColor(recording.status),
                   ),
                 ),
+              ),
+              const SizedBox(width: 8),
+              // Delete recording button
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'delete') {
+                    _deleteRecording(recording);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                        SizedBox(width: 8),
+                        Text('Delete Recording'),
+                      ],
+                    ),
+                  ),
+                ],
+                icon: const Icon(Icons.more_vert, size: 20),
               ),
             ],
           ),
