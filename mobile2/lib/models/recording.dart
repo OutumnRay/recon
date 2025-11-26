@@ -183,7 +183,7 @@ class ParticipantInfo {
 
   String get displayName {
     String name;
-    if (firstName != null && lastName != null) {
+    if (firstName != null && firstName!.isNotEmpty && lastName != null && lastName!.isNotEmpty) {
       name = '$firstName $lastName';
     } else if (username.isNotEmpty) {
       name = username;
