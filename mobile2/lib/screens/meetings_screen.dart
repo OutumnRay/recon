@@ -775,7 +775,8 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                     // This navigates to meeting details where user can view video, audio, transcripts
                     // On phones: show icon-only button to save space
                     // On tablets: show full button with label
-                    if (isPast || meeting.status == 'completed')
+                    // Only show if meeting has any content (recordings, transcriptions, summary, video)
+                    if ((isPast || meeting.status == 'completed') && meeting.hasAnyContent)
                       MediaQuery.of(context).size.width <= 600
                         ? _buildActionButton(
                             icon: Icons.video_library,
@@ -816,7 +817,7 @@ class _MeetingsScreenState extends State<MeetingsScreen>
                               ),
                             ),
                           ),
-                    if (isPast || meeting.status == 'completed') const SizedBox(width: 8),
+                    if ((isPast || meeting.status == 'completed') && meeting.hasAnyContent) const SizedBox(width: 8),
 
                     const Spacer(),
 

@@ -154,6 +154,12 @@ type MeetingWithDetails struct {
 	AnonymousGuestsCount int `json:"anonymous_guests_count"`
 	// Количество записей встречи (room recordings)
 	RecordingsCount int `json:"recordings_count"`
+	// Статус генерации summary (pending, processing, completed, failed)
+	SummaryStatus string `json:"summary_status,omitempty"`
+	// Есть ли транскрипции для этой встречи
+	HasTranscriptions bool `json:"has_transcriptions"`
+	// Есть ли видео для этой встречи
+	HasVideo bool `json:"has_video"`
 }
 
 // MeetingParticipantInfo представляет информацию об участнике с деталями пользователя

@@ -110,6 +110,10 @@ class MeetingWithDetails extends Meeting {
   final List<String> departments;
   final int activeParticipantsCount;
   final int anonymousGuestsCount;
+  final int recordingsCount;
+  final String? summaryStatus; // pending, processing, completed, failed
+  final bool hasTranscriptions;
+  final bool hasVideo;
 
   MeetingWithDetails({
     required super.id,
@@ -139,7 +143,21 @@ class MeetingWithDetails extends Meeting {
     required this.departments,
     this.activeParticipantsCount = 0,
     this.anonymousGuestsCount = 0,
+    this.recordingsCount = 0,
+    this.summaryStatus,
+    this.hasTranscriptions = false,
+    this.hasVideo = false,
   });
+
+  /// Проверяет, есть ли у встречи какой-либо контент для просмотра
+  /// (записи, транскрипции, видео или summary)
+  bool get hasAnyContent =>
+      recordingsCount > 0 ||
+      hasTranscriptions ||
+      hasVideo ||
+      summaryStatus == 'completed' ||
+      (summaryEn != null && summaryEn!.isNotEmpty) ||
+      (summaryRu != null && summaryRu!.isNotEmpty);
 
   factory MeetingWithDetails.fromJson(Map<String, dynamic> json) {
     return MeetingWithDetails(
@@ -176,6 +194,10 @@ class MeetingWithDetails extends Meeting {
           [],
       activeParticipantsCount: json['active_participants_count'] as int? ?? 0,
       anonymousGuestsCount: json['anonymous_guests_count'] as int? ?? 0,
+      recordingsCount: json['recordings_count'] as int? ?? 0,
+      summaryStatus: json['summary_status'] as String?,
+      hasTranscriptions: json['has_transcriptions'] as bool? ?? false,
+      hasVideo: json['has_video'] as bool? ?? false,
     );
   }
 }

@@ -129,10 +129,18 @@ class NotificationWebSocketService {
       final apiUrl = await configService.getApiUrl();
 
       // Преобразуем HTTP URL в WebSocket URL
-      final wsUrl = apiUrl
+      // apiUrl может быть: https://portal.recontext.online или https://portal.recontext.online/api/v1
+      String baseUrl = apiUrl
           .replaceFirst('https://', 'wss://')
-          .replaceFirst('http://', 'ws://')
-          .replaceFirst(RegExp(r'/api/v\d+$'), '/api/v1/notifications/ws');
+          .replaceFirst('http://', 'ws://');
+
+      // Удаляем /api/v* если есть и добавляем правильный путь
+      baseUrl = baseUrl.replaceFirst(RegExp(r'/api/v\d+/?$'), '');
+      // Удаляем trailing slash если есть
+      if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      }
+      final wsUrl = '$baseUrl/api/v1/notifications/ws';
 
       Logger.logInfo('Connecting to WebSocket: $wsUrl');
 

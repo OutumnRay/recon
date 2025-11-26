@@ -345,8 +345,24 @@ func (r *MeetingRepository) GetMeetingWithDetails(id uuid.UUID) (*models.Meeting
 					details.AnonymousGuestsCount = int(guestCount)
 				}
 			}
+
+			// Get summary status and check for transcriptions from livekit_rooms
+			details.SummaryStatus = room.SummaryStatus
+
+			// Check if there are any transcriptions for this room's tracks
+			var transcriptionCount int64
+			err = r.db.DB.Table("transcription_phrases").
+				Joins("INNER JOIN livekit_tracks ON transcription_phrases.track_id = livekit_tracks.id").
+				Where("livekit_tracks.room_sid = ?", room.SID).
+				Count(&transcriptionCount).Error
+			if err == nil {
+				details.HasTranscriptions = transcriptionCount > 0
+			}
 		}
 	}
+
+	// Check if video is available
+	details.HasVideo = meeting.VideoPlaylistURL != nil && *meeting.VideoPlaylistURL != ""
 
 	return details, nil
 }
@@ -473,6 +489,9 @@ func (r *MeetingRepository) ListMeetings(req models.ListMeetingsRequest) (*model
 
 		// Load recordings counts
 		r.loadRecordingsCounts(meetingsMap, meetingIDs)
+
+		// Load summary status and media availability flags
+		r.loadMeetingMediaInfo(meetingsMap, meetingIDs)
 	}
 
 	// Convert map to slice
@@ -764,6 +783,39 @@ func (r *MeetingRepository) loadRecordingsCounts(meetingsMap map[uuid.UUID]*mode
 		rooms, err := livekitRepo.GetRoomsByName(meetingID.String())
 		if err == nil {
 			meeting.RecordingsCount = len(rooms)
+		}
+	}
+}
+
+// loadMeetingMediaInfo loads summary status, transcription availability, and video availability for meetings
+func (r *MeetingRepository) loadMeetingMediaInfo(meetingsMap map[uuid.UUID]*models.MeetingWithDetails, meetingIDs []uuid.UUID) {
+	livekitRepo := NewLiveKitRepository(r.db)
+
+	for meetingID, meeting := range meetingsMap {
+		// Check if video is available from the meeting itself
+		meeting.HasVideo = meeting.VideoPlaylistURL != nil && *meeting.VideoPlaylistURL != ""
+
+		// Get rooms for this meeting to check summary status and transcriptions
+		rooms, err := livekitRepo.GetRoomsByName(meetingID.String())
+		if err != nil || len(rooms) == 0 {
+			continue
+		}
+
+		// Use the most recent room
+		room := rooms[0]
+
+		// Set summary status from room
+		meeting.SummaryStatus = room.SummaryStatus
+
+		// Check if there are any transcriptions for this room's tracks
+		var transcriptionCount int64
+		err = r.db.DB.Table("transcription_phrases").
+			Joins("INNER JOIN livekit_tracks ON transcription_phrases.track_id = livekit_tracks.id").
+			Where("livekit_tracks.room_sid = ?", room.SID).
+			Limit(1). // We only need to know if at least one exists
+			Count(&transcriptionCount).Error
+		if err == nil {
+			meeting.HasTranscriptions = transcriptionCount > 0
 		}
 	}
 }
