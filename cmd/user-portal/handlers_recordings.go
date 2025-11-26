@@ -31,6 +31,66 @@ type TranscriptionPhrase struct {
 	Speaker *string `json:"speaker,omitempty"` // Идентификатор говорящего (если есть диаризация)
 }
 
+// mergePhrases объединяет фразы одного спикера в блоки по ~100 слов
+// Условия объединения:
+// - Фразы идут подряд от одного спикера
+// - Суммарное количество слов не превышает maxWords
+// - Пауза между фразами не превышает maxPauseSeconds
+func mergePhrases(phrases []TranscriptionPhrase, maxWords int, maxPauseSeconds float64) []TranscriptionPhrase {
+	if len(phrases) == 0 {
+		return phrases
+	}
+
+	if maxWords <= 0 {
+		maxWords = 100 // По умолчанию 100 слов
+	}
+	if maxPauseSeconds <= 0 {
+		maxPauseSeconds = 3.0 // По умолчанию 3 секунды паузы
+	}
+
+	var merged []TranscriptionPhrase
+	currentPhrase := phrases[0]
+	currentWordCount := countWords(currentPhrase.Text)
+
+	for i := 1; i < len(phrases); i++ {
+		nextPhrase := phrases[i]
+		nextWordCount := countWords(nextPhrase.Text)
+		pause := nextPhrase.Start - currentPhrase.End
+
+		// Проверяем, можно ли объединить фразы
+		sameSpeaker := (currentPhrase.Speaker == nil && nextPhrase.Speaker == nil) ||
+			(currentPhrase.Speaker != nil && nextPhrase.Speaker != nil && *currentPhrase.Speaker == *nextPhrase.Speaker)
+		withinWordLimit := currentWordCount+nextWordCount <= maxWords
+		withinPauseLimit := pause <= maxPauseSeconds
+
+		if sameSpeaker && withinWordLimit && withinPauseLimit {
+			// Объединяем фразы
+			currentPhrase.End = nextPhrase.End
+			currentPhrase.Text = currentPhrase.Text + " " + nextPhrase.Text
+			currentWordCount += nextWordCount
+		} else {
+			// Сохраняем текущую фразу и начинаем новую
+			merged = append(merged, currentPhrase)
+			currentPhrase = nextPhrase
+			currentWordCount = nextWordCount
+		}
+	}
+
+	// Добавляем последнюю фразу
+	merged = append(merged, currentPhrase)
+
+	return merged
+}
+
+// countWords подсчитывает количество слов в строке
+func countWords(s string) int {
+	if s == "" {
+		return 0
+	}
+	words := strings.Fields(s)
+	return len(words)
+}
+
 // TrackRecordingInfo представляет информацию о записи трека участника
 type TrackRecordingInfo struct {
 	ID                   string                 `json:"id"`
@@ -437,16 +497,19 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 				trackInfo.Participant = userInfo
 			}
 
-			// Add transcription phrases
-			trackInfo.TranscriptionPhrases = make([]TranscriptionPhrase, len(phrases))
+			// Add transcription phrases - сначала конвертируем, потом объединяем
+			rawPhrases := make([]TranscriptionPhrase, len(phrases))
 			for i, p := range phrases {
-				trackInfo.TranscriptionPhrases[i] = TranscriptionPhrase{
+				rawPhrases[i] = TranscriptionPhrase{
 					Start:   p.StartTime,
 					End:     p.EndTime,
 					Text:    p.Text,
 					Speaker: nil,
 				}
 			}
+
+			// Объединяем фразы в блоки по ~100 слов с паузой не более 3 секунд
+			trackInfo.TranscriptionPhrases = mergePhrases(rawPhrases, 100, 3.0)
 
 			response.Tracks = append(response.Tracks, trackInfo)
 		}
