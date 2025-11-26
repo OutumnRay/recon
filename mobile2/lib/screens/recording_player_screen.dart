@@ -6,7 +6,6 @@ import '../main.dart';
 import '../models/recording.dart';
 import '../models/transcript.dart';
 import '../utils/logger.dart';
-import '../services/storage_service.dart';
 import '../services/config_service.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
@@ -202,30 +201,18 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
 
       Logger.logInfo('Initializing media player', data: {'url': playlistUrl});
 
-      // Get base URL from config service
-      final configService = ConfigService();
-      final baseUrl = await configService.getApiUrl();
-
-      // Build full URL
+      // Build full URL for MinIO
+      // If playlistUrl is relative path (e.g., "meetingID_roomSID/composite.m3u8"),
+      // construct MinIO URL: http://192.168.5.153:9000/recontext/{playlistUrl}
       final fullUrl = playlistUrl.startsWith('http')
           ? playlistUrl
-          : '$baseUrl$playlistUrl';
+          : 'http://192.168.5.153:9000/recontext/$playlistUrl';
 
       Logger.logInfo('Full playlist URL', data: {'url': fullUrl});
 
-      // Get authentication token
-      final storageService = StorageService();
-      final token = await storageService.getToken();
-
       if (!mounted) return;
 
-      // Set headers with authentication
-      // FijkPlayer expects headers as a string in format "key:value\r\nkey:value"
-      if (token != null) {
-        final headersString = 'Authorization:Bearer $token';
-        await _player.setOption(FijkOption.formatCategory, "headers", headersString);
-      }
-
+      // MinIO doesn't require authentication headers for public buckets
       // Initialize FijkPlayer (don't autoplay)
       await _player.setDataSource(fullUrl, autoPlay: false);
 
