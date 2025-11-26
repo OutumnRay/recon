@@ -484,6 +484,10 @@ type Meeting struct {
 	SummaryEN *string `gorm:"column:summary_en;type:jsonb" json:"summary_en,omitempty"`
 	// SummaryRU - автоматически сгенерированная сводка встречи на русском (JSON)
 	SummaryRU *string `gorm:"column:summary_ru;type:jsonb" json:"summary_ru,omitempty"`
+	// VideoPlaylistURL - URL плейлиста композитного видео
+	VideoPlaylistURL *string `gorm:"column:video_playlist_url;type:text" json:"video_playlist_url,omitempty"`
+	// SpeakerTimeline - временная линия активных спикеров (JSON с сегментами речи)
+	SpeakerTimeline *string `gorm:"column:speaker_timeline;type:jsonb" json:"speaker_timeline,omitempty"`
 	// LiveKitRoomID - ID комнаты LiveKit для онлайн-встречи
 	LiveKitRoomID *uuid.UUID `gorm:"column:livekit_room_id;type:uuid" json:"livekit_room_id"`
 	// CreatedBy - ID пользователя, который создал встречу
