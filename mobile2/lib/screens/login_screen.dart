@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/config_service.dart';
 import '../services/locale_service.dart';
 import '../services/fcm_service.dart';
+import '../providers/meetings_provider.dart';
 import '../utils/logger.dart';
 import '../widgets/error_display.dart';
 import '../theme/app_colors.dart';
@@ -107,10 +108,17 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         final localeService =
             Provider.of<LocaleService>(context, listen: false);
+        final meetingsProvider = context.read<MeetingsProvider>();
+
         await localeService.loadUserLocale();
 
+        // Подключаем WebSocket и инициализируем MeetingsProvider для реактивных обновлений
+        await meetingsProvider.connectWebSocket();
+
         await _initializeFCM(apiClient);
-        _navigateToHome(_currentApiUrl);
+        if (mounted) {
+          _navigateToHome(_currentApiUrl);
+        }
       }
     } on ApiException catch (e) {
       if (mounted) {

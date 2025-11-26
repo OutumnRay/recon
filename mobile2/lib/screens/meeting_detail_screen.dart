@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import '../main.dart';
@@ -13,6 +14,7 @@ import '../services/config_service.dart';
 import '../services/task_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_websocket_service.dart';
+import '../providers/meetings_provider.dart';
 import '../widgets/error_display.dart';
 import '../widgets/expandable_task_card.dart';
 import '../theme/app_colors.dart';
@@ -173,6 +175,13 @@ class _MeetingDetailScreenState extends State<MeetingDetailScreen>
           _meeting = meeting;
           _isLoading = false;
         });
+
+        // Синхронизируем с глобальным MeetingsProvider для реактивных обновлений
+        try {
+          context.read<MeetingsProvider>().loadMeeting(widget.meetingId);
+        } catch (_) {
+          // Provider may not be available in some contexts
+        }
       }
     } on ApiException catch (e) {
       Logger.logError('Failed to load meeting: ${e.message}');

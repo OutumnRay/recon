@@ -13,6 +13,7 @@ import '../services/storage_service.dart';
 import '../services/meetings_service.dart';
 import '../services/locale_service.dart';
 import '../services/notification_websocket_service.dart';
+import '../providers/meetings_provider.dart';
 import '../widgets/transcript_viewer.dart';
 import '../widgets/memo_viewer.dart';
 import '../l10n/app_localizations.dart';
@@ -181,6 +182,13 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
           _transcripts = transcripts;
           _isLoadingTranscripts = false;
         });
+
+        // Синхронизируем с глобальным MeetingsProvider для реактивных обновлений
+        try {
+          context.read<MeetingsProvider>().loadTranscripts(widget.recording.roomSid);
+        } catch (_) {
+          // Provider may not be available in some contexts
+        }
       }
     } catch (e) {
       Logger.logError('Failed to load transcripts', error: e);

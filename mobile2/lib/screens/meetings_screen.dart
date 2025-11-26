@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 // Удалён неиспользуемый import intl - форматирование дат выполняется через date_utils.dart
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
@@ -7,6 +8,7 @@ import '../services/config_service.dart';
 import '../services/storage_service.dart';
 import '../models/meeting.dart';
 import '../widgets/error_display.dart';
+import '../providers/meetings_provider.dart';
 import 'meeting_detail_screen.dart';
 import 'create_meeting_screen.dart';
 import 'video_call_screen.dart';
@@ -43,6 +45,13 @@ class _MeetingsScreenState extends State<MeetingsScreen>
 
   @override
   void dispose() {
+    // Отписываемся от MeetingsProvider
+    try {
+      final provider = context.read<MeetingsProvider>();
+      provider.removeListener(_onProviderChanged);
+    } catch (_) {
+      // Context may not be available
+    }
     _searchController.dispose();
     super.dispose();
   }
@@ -53,6 +62,20 @@ class _MeetingsScreenState extends State<MeetingsScreen>
     _meetingsService = MeetingsService(widget.apiClient);
     _loadCurrentUser();
     _loadMeetings();
+
+    // Подписываемся на изменения в MeetingsProvider для реактивных обновлений
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<MeetingsProvider>();
+      provider.addListener(_onProviderChanged);
+    });
+  }
+
+  /// Обработчик изменений в MeetingsProvider
+  void _onProviderChanged() {
+    // Перезагружаем данные при получении уведомлений через WebSocket
+    if (mounted) {
+      _loadMeetings();
+    }
   }
 
   Future<void> _loadCurrentUser() async {

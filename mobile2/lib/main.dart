@@ -9,6 +9,7 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/locale_service.dart';
 import 'services/fcm_service.dart';
+import 'providers/meetings_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
 
@@ -27,8 +28,11 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => LocaleService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LocaleService()),
+        ChangeNotifierProvider(create: (_) => MeetingsProvider()..initialize()),
+      ],
       child: const RecontextApp(),
     ),
   );
