@@ -413,11 +413,12 @@ func (up *UserPortal) getSegmentHandler(w http.ResponseWriter, r *http.Request) 
 		}
 		segmentPath = fmt.Sprintf("%s_%s/tracks/%s", meetingID, room.SID, filename)
 	} else {
-		// For room composites, get room and use meetingID/roomSID/composite_XXXXX.ts
+		// For room composites, egressID is actually room_sid in the URL
+		// Files are stored in: {meetingID}_{roomSID}/composite_XXXXX.ts
 		var room models.Room
-		err := up.db.DB.Where("egress_id = ?", egressID).First(&room).Error
+		err := up.db.DB.Where("sid = ?", egressID).First(&room).Error
 		if err != nil {
-			up.logger.Errorf("Room not found for egress %s: %v", egressID, err)
+			up.logger.Errorf("Room not found for SID %s: %v", egressID, err)
 			up.respondWithError(w, http.StatusNotFound, "Room not found", err.Error())
 			return
 		}
