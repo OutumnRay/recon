@@ -717,9 +717,14 @@ func (vpp *VideoPostProcessor) generateMeetingSummary(roomSID string) error {
 		return fmt.Errorf("failed to generate summaries: %w", err)
 	}
 
-	// Сохраняем сводки в базу данных
+	// Сохраняем сводки в базу данных meetings
 	if err := vpp.saveSummariesToDatabase(meetingInfo.MeetingID, summaries); err != nil {
 		return fmt.Errorf("failed to save summaries: %w", err)
+	}
+
+	// Также сохраняем в livekit_rooms для отображения в мобильном приложении
+	if err := vpp.saveSummariesToRoom(roomSID, summaries); err != nil {
+		log.Printf("⚠️ Failed to save summaries to room: %v", err)
 	}
 
 	log.Print("==============================================")
@@ -778,6 +783,45 @@ func (vpp *VideoPostProcessor) saveSummariesToDatabase(meetingID uuid.UUID, summ
 	}
 
 	log.Printf("✅ Summaries saved for meeting %s", meetingID)
+	return nil
+}
+
+// saveSummariesToRoom сохраняет резюме в таблицу livekit_rooms для отображения в мобильном приложении
+func (vpp *VideoPostProcessor) saveSummariesToRoom(roomSID string, summaries *summary.MeetingSummary) error {
+	// Сериализуем полные сводки в JSON
+	summariesJSON, err := json.Marshal(summaries)
+	if err != nil {
+		return fmt.Errorf("failed to marshal summaries: %w", err)
+	}
+
+	// Извлекаем full_summary для полей memo и memo_ru
+	var memoEN, memoRU string
+	if summaries.English != nil {
+		memoEN = summaries.English.FullSummary
+	}
+	if summaries.Russian != nil {
+		memoRU = summaries.Russian.FullSummary
+	}
+
+	log.Printf("📝 Saving summaries to room %s - EN: %d chars, RU: %d chars", roomSID, len(memoEN), len(memoRU))
+
+	// Обновляем livekit_rooms
+	result := vpp.db.DB.Table("livekit_rooms").
+		Where("sid = ?", roomSID).
+		Updates(map[string]interface{}{
+			"summaries":      string(summariesJSON),
+			"memo":           memoEN,
+			"memo_ru":        memoRU,
+			"summary_status": "completed",
+			"summary_error":  "",
+			"updated_at":     time.Now(),
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	log.Printf("✅ Summaries saved to room %s", roomSID)
 	return nil
 }
 
