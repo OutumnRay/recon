@@ -240,6 +240,7 @@ export interface RoomRecording {
   started_at: string;
   ended_at?: string;
   playlist_url?: string; // Room composite recording (optional)
+  has_composite_video?: boolean; // Whether composite video exists (from VideoPostProcessor)
   audio_only?: boolean; // Whether this is an audio-only recording
   tracks: TrackRecording[];
 }

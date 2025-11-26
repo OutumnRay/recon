@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getMeeting, getMeetingRecordings, getRoomTranscripts } from '../services/meetings';
 import type { Meeting, RoomRecording, RoomTranscripts } from '../types/meeting';
 import HLSPlayer from '../components/HLSPlayer';
-import { LuFilm, LuMic, LuClock3 } from 'react-icons/lu';
+import { LuFilm, LuClock3 } from 'react-icons/lu';
 import { getNotificationService, type Notification } from '../services/notificationService';
 import './MeetingRecordings.css';
 
@@ -367,7 +367,6 @@ export default function MeetingRecordings() {
   const selectedRecordingTitle = selectedRecording
     ? t('meetingRecordings.roomRecordingTitle', { date: formatDateTime(selectedRecording.started_at) })
     : '';
-  const totalTracks = roomRecordings.reduce((sum, room) => sum + (room.tracks?.length || 0), 0);
   const totalDurationMinutes = roomRecordings.reduce((sum, room) => {
     if (room.ended_at) {
       const diff = (new Date(room.ended_at).getTime() - new Date(room.started_at).getTime()) / 60000;
@@ -427,16 +426,6 @@ export default function MeetingRecordings() {
                 <p>{t('meetingRecordings.stats.sessionsLabel')}</p>
                 <strong>{roomRecordings.length}</strong>
                 <span>{t('meetingRecordings.stats.completed')}</span>
-              </div>
-            </div>
-            <div className="highlight-card">
-              <div className="highlight-icon accent-purple">
-                <LuMic />
-              </div>
-              <div>
-                <p>{t('meetingRecordings.stats.tracksLabel')}</p>
-                <strong>{totalTracks}</strong>
-                <span>{t('meetingRecordings.stats.tracksSubtitle')}</span>
               </div>
             </div>
             <div className="highlight-card">
@@ -516,7 +505,8 @@ export default function MeetingRecordings() {
                   {/* Tracks Section */}
                   {(() => {
                     const currentRoom = roomRecordings.find(r => r.room_sid === selectedRecording.room_sid);
-                    if (currentRoom && currentRoom.tracks && currentRoom.tracks.length > 0) {
+                    // Show tracks only if composite video is not available
+                    if (currentRoom && currentRoom.tracks && currentRoom.tracks.length > 0 && !currentRoom.has_composite_video) {
                       return (
                         <div className="accordion-item">
                           <button

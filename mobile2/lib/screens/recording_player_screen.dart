@@ -6,6 +6,7 @@ import '../main.dart';
 import '../models/recording.dart';
 import '../models/transcript.dart';
 import '../utils/logger.dart';
+import '../utils/date_utils.dart';
 import '../services/config_service.dart';
 import '../services/api_client.dart';
 import '../services/meetings_service.dart';
@@ -942,6 +943,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    final locale = Localizations.localeOf(context).toString();
+    return AppDateUtils.formatDate(date, locale: locale);
   }
 }
