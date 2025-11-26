@@ -227,7 +227,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomorrow => 'Tomorrow';
 
   @override
+  String get hours => 'h';
+
+  @override
   String get minutes => 'min';
+
+  @override
+  String get seconds => 's';
 
   @override
   String get required => '*';

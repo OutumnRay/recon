@@ -314,9 +314,9 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
         final minutes = duration.inMinutes.remainder(60);
         final seconds = duration.inSeconds.remainder(60);
         if (hours > 0) {
-          return '${hours}h ${minutes}m ${seconds}s';
+          return '$hours${l10n.hours} $minutes${l10n.minutes} $seconds${l10n.seconds}';
         }
-        return '${minutes}m ${seconds}s';
+        return '$minutes${l10n.minutes} $seconds${l10n.seconds}';
       }
     } else {
       final duration = widget.recording.duration;
@@ -325,9 +325,9 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
         final minutes = duration.inMinutes.remainder(60);
         final seconds = duration.inSeconds.remainder(60);
         if (hours > 0) {
-          return '${hours}h ${minutes}m ${seconds}s';
+          return '$hours${l10n.hours} $minutes${l10n.minutes} $seconds${l10n.seconds}';
         }
-        return '${minutes}m ${seconds}s';
+        return '$minutes${l10n.minutes} $seconds${l10n.seconds}';
       }
     }
     return l10n.unknownError;
@@ -867,7 +867,16 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   }
 
   Widget _buildCustomPanel(FijkPlayer player, FijkData data, BuildContext context, Size viewSize, Rect texturePos) {
-    final duration = player.value.duration.inMilliseconds;
+    // Get duration from metadata if player duration is not available yet
+    Duration? metadataDuration;
+    if (widget.isTrack && widget.track != null) {
+      metadataDuration = widget.track!.duration;
+    } else {
+      metadataDuration = widget.recording.duration;
+    }
+
+    final playerDuration = player.value.duration.inMilliseconds;
+    final duration = playerDuration > 0 ? playerDuration : (metadataDuration?.inMilliseconds ?? 0);
     final position = _lastKnownPosition > 0 ? _lastKnownPosition : player.currentPos.inMilliseconds;
 
     // Use drag position if dragging, otherwise use actual position

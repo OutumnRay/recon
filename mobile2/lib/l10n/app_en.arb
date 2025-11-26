@@ -103,7 +103,9 @@
 
   "today": "Today",
   "tomorrow": "Tomorrow",
+  "hours": "h",
   "minutes": "min",
+  "seconds": "s",
 
   "required": "*",
   "optional": "(optional)",

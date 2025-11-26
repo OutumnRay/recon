@@ -524,11 +524,23 @@ abstract class AppLocalizations {
   /// **'Tomorrow'**
   String get tomorrow;
 
+  /// No description provided for @hours.
+  ///
+  /// In en, this message translates to:
+  /// **'h'**
+  String get hours;
+
   /// No description provided for @minutes.
   ///
   /// In en, this message translates to:
   /// **'min'**
   String get minutes;
+
+  /// No description provided for @seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'s'**
+  String get seconds;
 
   /// No description provided for @required.
   ///

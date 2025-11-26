@@ -84,7 +84,9 @@
 
   "today": "Сегодня",
   "tomorrow": "Завтра",
+  "hours": "ч",
   "minutes": "мин",
+  "seconds": "с",
 
   "required": "*",
   "optional": "(необязательно)",

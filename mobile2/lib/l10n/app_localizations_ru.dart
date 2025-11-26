@@ -228,7 +228,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tomorrow => 'Завтра';
 
   @override
+  String get hours => 'ч';
+
+  @override
   String get minutes => 'мин';
+
+  @override
+  String get seconds => 'с';
 
   @override
   String get required => '*';
