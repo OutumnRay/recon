@@ -487,19 +487,49 @@ class _MeetingsScreenState extends State<MeetingsScreen>
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'meetings_fab',
-        onPressed: _openCreateMeeting,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.green,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(l10n.newMeeting),
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(
-            color: Colors.green,
-            width: 2,
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              // Join Meeting Button
+              Expanded(
+                child: _buildGradientOutlineButton(
+                  onPressed: _showJoinMeetingDialog,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  icon: Icons.video_call_rounded,
+                  label: l10n.joinMeeting,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // New Meeting Button
+              Expanded(
+                child: _buildGradientOutlineButton(
+                  onPressed: _openCreateMeeting,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  icon: Icons.add_rounded,
+                  label: l10n.newMeeting,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -848,6 +878,171 @@ class _MeetingsScreenState extends State<MeetingsScreen>
         color: AppColors.textSecondary,
         onPressed: onPressed,
         padding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  // Beautiful gradient outline button widget
+  Widget _buildGradientOutlineButton({
+    required VoidCallback onPressed,
+    required Gradient gradient,
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.colors.first.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Container(
+        margin: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ShaderMask(
+                    shaderCallback: (bounds) => gradient.createShader(bounds),
+                    child: Icon(
+                      icon,
+                      size: 24,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: ShaderMask(
+                      shaderCallback: (bounds) => gradient.createShader(bounds),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Show dialog to join a meeting by code or link
+  void _showJoinMeetingDialog() {
+    final dialogContext = context;
+    final l10n = AppLocalizations.of(dialogContext)!;
+    final meetingCodeController = TextEditingController();
+
+    showDialog(
+      context: dialogContext,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.video_call_rounded, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Text(l10n.joinMeeting),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter meeting code or paste meeting link',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: meetingCodeController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Meeting code or link',
+                prefixIcon: const Icon(Icons.link_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: AppColors.surfaceMuted,
+              ),
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  Navigator.pop(context);
+                  _joinMeetingByCode(value.trim());
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final code = meetingCodeController.text.trim();
+              if (code.isNotEmpty) {
+                Navigator.pop(context);
+                _joinMeetingByCode(code);
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF667eea),
+            ),
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Join meeting by code or link
+  void _joinMeetingByCode(String code) {
+    // TODO: Implement joining meeting by code/link
+    // For now, just show a message
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Joining meeting: $code'),
+        backgroundColor: AppColors.primary500,
       ),
     );
   }
