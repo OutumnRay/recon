@@ -303,12 +303,12 @@ func (vpp *VideoPostProcessor) checkAllTracksTranscribed(roomSID string) (bool, 
 func (vpp *VideoPostProcessor) getTrackInfoForMerge(roomSID string, meetingID *uuid.UUID) ([]video.TrackInfo, error) {
 	// Упрощенная структура для чтения треков
 	type LivekitTrack struct {
-		ID                    string
-		SID                   string
-		ParticipantSID        string `gorm:"column:participant_sid"`
-		RoomSID               string `gorm:"column:room_sid"`
-		Type                  string
-		Source                string
+		ID                    string    `gorm:"column:id"`
+		SID                   string    `gorm:"column:sid"`
+		ParticipantSID        string    `gorm:"column:participant_sid"`
+		RoomSID               string    `gorm:"column:room_sid"`
+		Type                  string    `gorm:"column:type"`
+		Source                string    `gorm:"column:source"`
 		PublishedAt           time.Time `gorm:"column:published_at"`
 		TranscriptionDuration float64   `gorm:"column:transcription_duration"`
 	}
