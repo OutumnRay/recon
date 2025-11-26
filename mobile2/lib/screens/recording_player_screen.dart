@@ -72,6 +72,9 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
     _initializePlayer();
     _loadTranscripts();
 
+    // Перезагружаем транскрипции при переключении на вкладку Резюме или Транскрипция
+    _tabController.addListener(_onTabChanged);
+
     // Start timer to update UI periodically (needed for smooth progress bar)
     _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (mounted && !_isDragging) {
@@ -83,6 +86,17 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
         }
       }
     });
+  }
+
+  void _onTabChanged() {
+    // Перезагружаем данные при переключении на вкладку Транскрипция (1) или Резюме (2)
+    if (_tabController.indexIsChanging) {
+      return; // Игнорируем во время анимации
+    }
+    if (_tabController.index == 1 || _tabController.index == 2) {
+      Logger.logInfo('Tab changed to ${_tabController.index}, reloading transcripts...');
+      _loadTranscripts();
+    }
   }
 
 
@@ -300,6 +314,7 @@ class _RecordingPlayerScreenState extends State<RecordingPlayerScreen>
   void dispose() {
     _positionTimer?.cancel();
     _player.release();
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }

@@ -35,32 +35,38 @@ class MemoViewer extends StatelessWidget {
 
     // Show processing state
     if (summaryStatus == 'processing') {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(
-                l10n.generatingSummary,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
-                ),
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: 400,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.generatingSummary,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.summaryGenerationStarted,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.summaryGenerationStarted,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -68,102 +74,115 @@ class MemoViewer extends StatelessWidget {
 
     // Show error state
     if (summaryStatus == 'failed') {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red[400],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.failedToGenerateSummary,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.red[700],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (summaryError != null && summaryError.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  summaryError,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: 400,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red[400],
                   ),
-                ),
-              ],
-              if (onGenerateSummary != null) ...[
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: onGenerateSummary,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(l10n.retry),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.failedToGenerateSummary,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.red[700],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
-            ],
+                  if (summaryError != null && summaryError.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      summaryError,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                  if (onGenerateSummary != null) ...[
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: onGenerateSummary,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(l10n.retry),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       );
     }
 
     if (memo == null || memo.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.note_outlined,
-                size: 64,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.noMemoAvailable,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.memoNotGenerated,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
-              ),
-              if (onGenerateSummary != null) ...[
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: summaryStatus == 'processing' ? null : onGenerateSummary,
-                  icon: const Icon(Icons.auto_awesome),
-                  label: Text(l10n.createSummary),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: 400,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.note_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
                   ),
-                ),
-              ],
-            ],
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.noMemoAvailable,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.memoNotGenerated,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                  if (onGenerateSummary != null) ...[
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: summaryStatus == 'processing' ? null : onGenerateSummary,
+                      icon: const Icon(Icons.auto_awesome),
+                      label: Text(l10n.createSummary),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       );
     }
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       child: Card(
         elevation: 2,
