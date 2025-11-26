@@ -241,26 +241,6 @@ func (db *DB) RunMigrations() error {
 	}
 	log.Println("✓ AutoMigrate completed successfully")
 
-	// Add memo column to livekit_rooms if it doesn't exist
-	log.Println("→ Adding memo column to livekit_rooms...")
-	if err := db.DB.Exec(`
-		DO $$
-		BEGIN
-			IF NOT EXISTS (
-				SELECT 1
-				FROM information_schema.columns
-				WHERE table_name = 'livekit_rooms'
-				AND column_name = 'memo'
-			) THEN
-				ALTER TABLE livekit_rooms ADD COLUMN memo TEXT;
-			END IF;
-		END $$;
-	`).Error; err != nil {
-		log.Printf("  → Warning: Could not add memo column: %v", err)
-	} else {
-		log.Println("  → memo column added successfully")
-	}
-
 	// Create indexes that GORM doesn't create automatically
 	log.Println("→ Creating additional indexes...")
 	if err := db.createAdditionalIndexes(); err != nil {

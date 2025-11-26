@@ -67,6 +67,8 @@ type Room struct {
 	SummaryStatus     string         `gorm:"type:varchar(50);default:'pending'" json:"summaryStatus,omitempty" db:"summary_status"`
 	// Summary error message (if failed)
 	SummaryError      string         `gorm:"type:text" json:"summaryError,omitempty" db:"summary_error"`
+	// Флаг наличия композитного видео (composite.m3u8 в корне папки комнаты)
+	HasCompositeVideo bool           `gorm:"type:boolean;default:false;not null;column:has_composite_video" json:"hasCompositeVideo" db:"has_composite_video"`
 	// Время создания записи в БД
 	CreatedAtDB       time.Time      `gorm:"column:created_at;autoCreateTime" json:"-" db:"created_at"`
 	// Время последнего обновления

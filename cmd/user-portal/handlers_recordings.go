@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -46,13 +47,14 @@ type TrackRecordingInfo struct {
 
 // RoomRecordingInfo представляет информацию о записи комнаты с треками
 type RoomRecordingInfo struct {
-	ID          string               `json:"id"`
-	RoomSID     string               `json:"room_sid"`
-	Status      string               `json:"status"`
-	StartedAt   string               `json:"started_at"`
-	EndedAt     *string              `json:"ended_at,omitempty"`
-	PlaylistURL string               `json:"playlist_url,omitempty"` // Only if room has egress recording
-	Tracks      []TrackRecordingInfo `json:"tracks"`
+	ID                string               `json:"id"`
+	RoomSID           string               `json:"room_sid"`
+	Status            string               `json:"status"`
+	StartedAt         string               `json:"started_at"`
+	EndedAt           *string              `json:"ended_at,omitempty"`
+	PlaylistURL       string               `json:"playlist_url,omitempty"`        // Only if room has egress recording
+	HasCompositeVideo bool                 `json:"has_composite_video"`           // Флаг наличия композитного видео (composite.m3u8 в корне)
+	Tracks            []TrackRecordingInfo `json:"tracks"`
 }
 
 // GetMeetingRecordings godoc
@@ -195,11 +197,12 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 			i, room.SID, room.Name, room.EgressID, room.Status)
 
 		roomRec := RoomRecordingInfo{
-			ID:        room.SID,
-			RoomSID:   room.SID,
-			Status:    room.Status,
-			StartedAt: room.StartedAt.Format("2006-01-02T15:04:05Z07:00"),
-			Tracks:    []TrackRecordingInfo{},
+			ID:                room.SID,
+			RoomSID:           room.SID,
+			Status:            room.Status,
+			StartedAt:         room.StartedAt.Format("2006-01-02T15:04:05Z07:00"),
+			HasCompositeVideo: room.HasCompositeVideo,
+			Tracks:            []TrackRecordingInfo{},
 		}
 
 		if room.FinishedAt != nil {
@@ -209,9 +212,12 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 
 		// Add composite video URL if exists (created by VideoPostProcessor)
 		// VideoPostProcessor assembles composite video from individual tracks after transcription
-		if meeting.VideoPlaylistURL != nil && *meeting.VideoPlaylistURL != "" {
-			roomRec.PlaylistURL = *meeting.VideoPlaylistURL
-			up.logger.Infof("📹 [RECORDINGS] Room has composite video: %s", *meeting.VideoPlaylistURL)
+		// Если есть композитное видео, оно лежит в корне: {meetingID}_{roomSID}/composite.m3u8
+		if room.HasCompositeVideo {
+			// Формируем путь к композитному видео
+			compositePlaylistPath := fmt.Sprintf("%s_%s/composite.m3u8", meeting.ID.String(), room.SID)
+			roomRec.PlaylistURL = compositePlaylistPath
+			up.logger.Infof("📹 [RECORDINGS] Room has composite video: %s", compositePlaylistPath)
 		}
 
 		// Get tracks for this room

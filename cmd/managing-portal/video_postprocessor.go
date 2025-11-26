@@ -494,6 +494,18 @@ func (vpp *VideoPostProcessor) updateMeetingWithPlaylist(roomSID, playlistURL st
 		return fmt.Errorf("failed to update egress recording: %w", result.Error)
 	}
 
+	// Обновляем livekit_rooms - устанавливаем флаг has_composite_video = true
+	result = vpp.db.DB.Table("livekit_rooms").
+		Where("sid = ?", roomSID).
+		Updates(map[string]interface{}{
+			"has_composite_video": true,
+			"updated_at":          time.Now(),
+		})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to update room composite video flag: %w", result.Error)
+	}
+
 	log.Printf("✅ Database updated with composite playlist URL for room %s", roomSID)
 	return nil
 }

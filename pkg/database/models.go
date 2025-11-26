@@ -286,6 +286,8 @@ type LiveKitRoom struct {
 	FinishedAt *time.Time `json:"finished_at"`
 	// Memo - сгенерированная заметка/резюме по всем транскрипциям комнаты
 	Memo *string `gorm:"type:text" json:"memo,omitempty"`
+	// HasCompositeVideo - флаг наличия композитного видео (composite.m3u8 в корне папки комнаты)
+	HasCompositeVideo bool `gorm:"type:boolean;default:false;not null" json:"has_composite_video"`
 	// CreatedAt - время создания записи о комнате
 	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
 	// UpdatedAt - время последнего обновления записи о комнате

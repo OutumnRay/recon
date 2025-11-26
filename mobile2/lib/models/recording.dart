@@ -7,6 +7,7 @@ class RoomRecording {
   final DateTime startedAt;
   final DateTime? endedAt;
   final String? playlistUrl;
+  final bool hasCompositeVideo;
   final List<TrackRecording> tracks;
 
   RoomRecording({
@@ -16,6 +17,7 @@ class RoomRecording {
     required this.startedAt,
     this.endedAt,
     this.playlistUrl,
+    this.hasCompositeVideo = false,
     required this.tracks,
   });
 
@@ -29,6 +31,7 @@ class RoomRecording {
           ? AppDateUtils.parseToLocal(json['ended_at'] as String)
           : null,
       playlistUrl: json['playlist_url'] as String?,
+      hasCompositeVideo: json['has_composite_video'] as bool? ?? false,
       tracks: (json['tracks'] as List<dynamic>?)
               ?.map((t) => TrackRecording.fromJson(t as Map<String, dynamic>))
               .toList() ??
@@ -44,6 +47,7 @@ class RoomRecording {
       'started_at': startedAt.toIso8601String(),
       if (endedAt != null) 'ended_at': endedAt!.toIso8601String(),
       if (playlistUrl != null) 'playlist_url': playlistUrl,
+      'has_composite_video': hasCompositeVideo,
       'tracks': tracks.map((t) => t.toJson()).toList(),
     };
   }
