@@ -1,0 +1,28 @@
+# Python Transcription Worker
+# Uses CPU-only PyTorch to keep the image small.
+# For GPU support: replace the torch pip install line with the CUDA wheel.
+FROM python:3.11-slim
+
+# System deps: ffmpeg for audio/video splitting, git for pyannote
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python deps (CPU-only torch for smaller image)
+COPY cmd/transcription-worker/requirements.txt .
+RUN pip install --no-cache-dir \
+    torch torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy Python sources
+COPY cmd/transcription-worker/*.py .
+
+# Temp workdir for task processing
+RUN mkdir -p /tmp/recontext-worker
+
+EXPOSE 8085
+
+CMD ["python", "worker.py"]

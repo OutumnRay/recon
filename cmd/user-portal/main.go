@@ -27,6 +27,7 @@ import (
 	"Recontext.online/pkg/metrics"
 	"Recontext.online/pkg/notifications"
 	"Recontext.online/pkg/rabbitmq"
+	redispkg "Recontext.online/pkg/redis"
 
 	_ "Recontext.online/cmd/user-portal/docs" // Import generated docs
 )
@@ -73,6 +74,7 @@ type UserPortal struct {
 	emailService             EmailServiceInterface             // Email service for sending emails
 	wsHub                    *WSHub                            // WebSocket hub for real-time communication
 	rabbitMQPublisher        *rabbitmq.Publisher               // RabbitMQ publisher for transcription tasks
+	redisPublisher           *redispkg.Publisher               // Redis publisher for Python transcription worker
 	transcriptionScheduler   *TranscriptionScheduler           // Automatic transcription scheduler
 	fcmService               *fcm.FCMService                   // FCM service for push notifications
 	transcriptionNotifier    *TranscriptionNotifier            // Notifier for transcription completion events
@@ -152,6 +154,20 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		log.Info("RabbitMQ publisher initialized successfully")
 	}
 
+	// Initialize Redis publisher for Python transcription worker
+	redisHost := getEnv("REDIS_HOST", "localhost")
+	redisPort := getEnvInt("REDIS_PORT", 6379)
+	redisPassword := getEnv("REDIS_PASSWORD", "")
+	redisQueue := getEnv("REDIS_TASK_QUEUE", "recontext:transcription:queue")
+
+	redisPublisher, redisErr := redispkg.NewPublisher(redisHost, redisPort, redisPassword, 0, redisQueue)
+	if redisErr != nil {
+		log.Error("Failed to initialize Redis publisher: " + redisErr.Error())
+		log.Error("Python transcription worker integration will be unavailable")
+	} else {
+		log.Info("Redis publisher initialized successfully")
+	}
+
 	// Initialize FCM service for push notifications
 	var fcmService *fcm.FCMService
 	fcmCredentialsPath := getEnv("FCM_CREDENTIALS_PATH", "")
@@ -188,6 +204,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		emailService:        mailer,
 		wsHub:               wsHub,
 		rabbitMQPublisher:   rabbitMQPublisher,
+		redisPublisher:      redisPublisher,
 		fcmService:          fcmService,
 		notificationService: notificationService,
 	}, nil

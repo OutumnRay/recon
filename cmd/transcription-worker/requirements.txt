@@ -1,0 +1,22 @@
+# ── Whisper ──────────────────────────────────────────────────────────────────
+openai-whisper>=20231117
+
+# ── Speaker diarization ───────────────────────────────────────────────────────
+pyannote.audio>=3.1.0
+
+# ── PyTorch (CPU build – override to CUDA in the Dockerfile for GPU) ──────────
+torch>=2.1.0
+torchaudio>=2.1.0
+
+# ── Queue & storage ───────────────────────────────────────────────────────────
+redis>=5.0.0
+minio>=7.2.0
+
+# ── Vector DB ─────────────────────────────────────────────────────────────────
+qdrant-client>=1.7.0
+sentence-transformers>=2.6.0
+
+# ── Audio processing ──────────────────────────────────────────────────────────
+numpy>=1.24.0
+noisereduce>=3.0.0
+pydub>=0.25.1

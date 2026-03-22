@@ -107,6 +107,10 @@ services:
       - SMTP_FROM_NAME=Служба поддержки Recontext
       # Portal URL for generating anonymous join links
       - PORTAL_URL=https://portal.recontext.online
+      # Redis for Python transcription worker task queue
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_TASK_QUEUE=recontext:transcription:queue
       # Firebase Cloud Messaging for push notifications
       - FCM_CREDENTIALS_PATH=/app/credentials/recontext-firebase.json
       # LLM Configuration for memo generation (OpenAI-compatible API)
@@ -124,7 +128,74 @@ services:
       - recontext-network
     restart: unless-stopped
 
-  # 3. RabbitMQ - Message Broker
+  # 3. Redis - Task queue for Python transcription worker
+  redis:
+    image: redis:7-alpine
+    container_name: recontext-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    networks:
+      - recontext-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 4. Python Transcription Worker - Whisper + diarization + paragraph chunking
+  transcription-worker-py:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.transcription-worker-py
+    container_name: recontext-transcription-worker-py
+    environment:
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_TASK_QUEUE=recontext:transcription:queue
+      - REDIS_RESULT_QUEUE=recontext:transcription:results
+      # MinIO
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=recontext
+      # Whisper (use 'medium' for better quality, 'base' for speed)
+      - WHISPER_MODEL=base
+      - WHISPER_DEVICE=cpu
+      - WHISPER_LANGUAGE=ru
+      # Diarization (set your HuggingFace token)
+      - HF_TOKEN=${HF_TOKEN:-}
+      - ENABLE_DIARIZATION=true
+      # Qdrant vector DB (optional)
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_ENABLED=false
+      # Audio
+      - ENABLE_AUDIO_ENHANCEMENT=true
+      - MAX_PAUSE_SECONDS=1.5
+      - MAX_PARAGRAPH_CHARS=800
+      # Worker
+      - WORKDIR=/tmp/recontext-worker
+      - LOG_LEVEL=INFO
+      - HEALTH_PORT=8085
+    ports:
+      - "8085:8085"
+    volumes:
+      - /tmp/recontext-worker:/tmp/recontext-worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
+  # 5. RabbitMQ - Message Broker (optional, for Go workers)
   # rabbitmq:
   #   image: rabbitmq:3.12-management-alpine
   #   container_name: recontext-rabbitmq
@@ -152,27 +223,40 @@ services:
 
 
   # 7. MinIO Storage
-  # minio:
-  #   image: minio/minio:latest
-  #   container_name: recontext-minio
-  #   ports:
-  #     - "9000:9000"
-  #     - "9001:9001"
-  #   environment:
-  #     - MINIO_ROOT_USER=minioadmin
-  #     - MINIO_ROOT_PASSWORD=minioadmin
-  #     - MINIO_PROMETHEUS_AUTH_TYPE=public
-  #   command: server /data --console-address ":9001"
-  #   volumes:
-  #     - minio-data:/data
-  #   networks:
-  #     - recontext-network
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-  #     interval: 30s
-  #     timeout: 20s
-  #     retries: 3
+  minio:
+    image: minio/minio:latest
+    container_name: recontext-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_PROMETHEUS_AUTH_TYPE=public
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - recontext-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # 7b. Qdrant - Vector database for semantic search (optional)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: recontext-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - recontext-network
+    restart: unless-stopped
 
   # 8. PostgreSQL Database with pgvector extension
   # postgres:
@@ -249,6 +333,7 @@ networks:
 
 volumes:
   postgres-data:
+  redis-data:
   minio-data:
   rabbitmq-data:
   qdrant-data:

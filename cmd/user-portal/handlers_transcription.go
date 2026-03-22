@@ -114,6 +114,8 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 	bucket := "recontext"
 	audioURL := fmt.Sprintf("%s/%s/%s_%s/tracks/%s.m3u8",
 		storageURL, bucket, meeting.ID.String(), room.SID, track.SID)
+	// MinIO object path (without bucket prefix) for the Python worker
+	minioObjectPath := fmt.Sprintf("%s_%s/tracks/%s.m3u8", meeting.ID.String(), room.SID, track.SID)
 	up.logger.Infof("[Transcription] Track %s audio URL: %s", trackSID, audioURL)
 
 	// Update track status to processing
@@ -146,6 +148,22 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		up.logger.Error("[Transcription] RabbitMQ publisher not available")
 		up.respondWithError(w, http.StatusServiceUnavailable, "Transcription service unavailable", "")
 		return
+	}
+
+	// Publish task to Redis for the Python transcription worker
+	if up.redisPublisher != nil {
+		if err := up.redisPublisher.PublishTranscriptionTask(
+			track.ID,
+			claims.UserID,
+			bucket,
+			minioObjectPath,
+			"conference", // LiveKit meetings are multi-participant
+			"ru",
+		); err != nil {
+			up.logger.Errorf("[Transcription] Failed to publish task to Redis: %v", err)
+		} else {
+			up.logger.Infof("[Transcription] Task also queued in Redis for Python worker: %s", trackSID)
+		}
 	}
 
 	// Return success response
