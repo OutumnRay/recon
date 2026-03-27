@@ -52,7 +52,23 @@ func StartTranscriptionConsumer() {
 	// Получаем параметры подключения к RabbitMQ из переменных окружения
 	rabbitmqURL := os.Getenv("RABBITMQ_URL")
 	if rabbitmqURL == "" {
-		rabbitmqURL = "amqp://recontext:je9rO4k6CQ3M@5.129.227.21:5672/"
+		host := os.Getenv("RABBITMQ_HOST")
+		if host == "" {
+			host = "rabbitmq"
+		}
+		port := os.Getenv("RABBITMQ_PORT")
+		if port == "" {
+			port = "5672"
+		}
+		user := os.Getenv("RABBITMQ_USER")
+		if user == "" {
+			user = "guest"
+		}
+		password := os.Getenv("RABBITMQ_PASSWORD")
+		if password == "" {
+			password = "guest"
+		}
+		rabbitmqURL = fmt.Sprintf("amqp://%s:%s@%s:%s/", user, password, host, port)
 	}
 
 	resultQueue := os.Getenv("RABBITMQ_RESULT_QUEUE")
@@ -78,7 +94,9 @@ func StartTranscriptionConsumer() {
 	}
 
 	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ after 5 attempts: %v", err)
+		log.Printf("WARNING: Failed to connect to RabbitMQ after 5 attempts: %v", err)
+		log.Printf("WARNING: Transcription result consumer disabled. Server will continue without it.")
+		return
 	}
 	defer conn.Close()
 
