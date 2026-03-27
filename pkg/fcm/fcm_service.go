@@ -2,6 +2,7 @@ package fcm
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	firebase "firebase.google.com/go/v4"
@@ -14,26 +15,46 @@ type FCMService struct {
 	client *messaging.Client
 }
 
-// NewFCMService creates a new FCM service
+// NewFCMService creates a new FCM service from a credentials file path
 func NewFCMService(credentialsPath string) (*FCMService, error) {
 	ctx := context.Background()
 
-	// Initialize Firebase app
 	opt := option.WithCredentialsFile(credentialsPath)
 	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Firebase app: %w", err)
 	}
 
-	// Get messaging client
 	client, err := app.Messaging(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get messaging client: %w", err)
 	}
 
-	return &FCMService{
-		client: client,
-	}, nil
+	return &FCMService{client: client}, nil
+}
+
+// NewFCMServiceFromJSON creates a new FCM service from a base64-encoded JSON string.
+// Use this when deploying to environments without persistent file storage (e.g. AppPlatform).
+// Set the FCM_CREDENTIALS_JSON environment variable to the base64-encoded service account JSON.
+func NewFCMServiceFromJSON(credentialsBase64 string) (*FCMService, error) {
+	jsonBytes, err := base64.StdEncoding.DecodeString(credentialsBase64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode FCM credentials (expected base64): %w", err)
+	}
+
+	ctx := context.Background()
+	opt := option.WithCredentialsJSON(jsonBytes)
+	app, err := firebase.NewApp(ctx, nil, opt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Firebase app: %w", err)
+	}
+
+	client, err := app.Messaging(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get messaging client: %w", err)
+	}
+
+	return &FCMService{client: client}, nil
 }
 
 // SendNotification sends a push notification to specific FCM tokens

@@ -4,7 +4,8 @@
       "Bash(docker-compose ps:*)",
       "Bash(docker-compose logs:*)",
       "Bash(docker-compose exec:*)",
-      "Bash(docker-compose up:*)"
+      "Bash(docker-compose up:*)",
+      "Bash(ls -la /c/recontext/recontext/cmd/user-portal/handlers*.go)"
     ],
     "deny": [],
     "ask": []

@@ -168,19 +168,27 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		log.Info("Redis publisher initialized successfully")
 	}
 
-	// Initialize FCM service for push notifications
+	// Initialize FCM service for push notifications.
+	// Priority: FCM_CREDENTIALS_JSON (base64, for AppPlatform/cloud) > FCM_CREDENTIALS_PATH (file, for bare-metal).
 	var fcmService *fcm.FCMService
-	fcmCredentialsPath := getEnv("FCM_CREDENTIALS_PATH", "")
-	if fcmCredentialsPath != "" {
+	if fcmCredentialsJSON := getEnv("FCM_CREDENTIALS_JSON", ""); fcmCredentialsJSON != "" {
+		fcmService, err = fcm.NewFCMServiceFromJSON(fcmCredentialsJSON)
+		if err != nil {
+			log.Error("Failed to initialize FCM service from FCM_CREDENTIALS_JSON: " + err.Error())
+			log.Error("Push notifications will be unavailable")
+		} else {
+			log.Info("FCM service initialized successfully (from FCM_CREDENTIALS_JSON)")
+		}
+	} else if fcmCredentialsPath := getEnv("FCM_CREDENTIALS_PATH", ""); fcmCredentialsPath != "" {
 		fcmService, err = fcm.NewFCMService(fcmCredentialsPath)
 		if err != nil {
 			log.Error("Failed to initialize FCM service: " + err.Error())
 			log.Error("Push notifications will be unavailable")
 		} else {
-			log.Info("FCM service initialized successfully")
+			log.Info("FCM service initialized successfully (from FCM_CREDENTIALS_PATH)")
 		}
 	} else {
-		log.Info("FCM_CREDENTIALS_PATH not set, push notifications disabled")
+		log.Info("FCM_CREDENTIALS_JSON and FCM_CREDENTIALS_PATH not set, push notifications disabled")
 	}
 
 	// Initialize notification service for real-time updates

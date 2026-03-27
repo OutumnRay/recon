@@ -13,10 +13,23 @@ _embedder = None
 def _get_qdrant():
     global _qdrant
     if _qdrant is None:
+        import os
+        # Bypass system proxy for localhost connections
+        for key in ("no_proxy", "NO_PROXY"):
+            existing = os.environ.get(key, "")
+            hosts = {h.strip() for h in existing.split(",") if h.strip()}
+            hosts.update({"localhost", "127.0.0.1", cfg.QDRANT_HOST})
+            os.environ[key] = ",".join(hosts)
+
         from qdrant_client import QdrantClient
         from qdrant_client.models import Distance, VectorParams
 
-        _qdrant = QdrantClient(host=cfg.QDRANT_HOST, port=cfg.QDRANT_PORT, timeout=15)
+        _qdrant = QdrantClient(
+            host=cfg.QDRANT_HOST,
+            port=cfg.QDRANT_PORT,
+            prefer_grpc=False,   # use HTTP REST, not gRPC
+            timeout=30,
+        )
 
         existing = [c.name for c in _qdrant.get_collections().collections]
         if cfg.QDRANT_COLLECTION not in existing:

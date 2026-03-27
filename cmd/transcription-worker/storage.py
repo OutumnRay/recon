@@ -47,6 +47,9 @@ class RedisClient:
                 return None
             _, raw = result
             return json.loads(raw)
+        except redis_lib.exceptions.TimeoutError:
+            # Normal: BRPOP block expired with no message — just loop again
+            return None
         except Exception as exc:
             logger.error("Error reading task from Redis: %s", exc)
             return None

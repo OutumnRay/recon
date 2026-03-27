@@ -34,7 +34,17 @@ Recontext.online/
 │   ├── jitsi-agent/               # Custom Jitsi recording agent
 │   │   └── main.go                # WebRTC recording service
 │   ├── transcription-worker/      # Transcription worker service
-│   │   └── main.go                # Whisper-based transcription with RabbitMQ
+│   │   ├── main.go                # Go HTTP health/status server (port 8082)
+│   │   ├── worker.py              # Python worker: Redis consumer + full pipeline
+│   │   ├── config.py              # All config from environment variables
+│   │   ├── storage.py             # Redis (BRPOP/LPUSH) + MinIO (download/upload) clients
+│   │   ├── transcribation.py      # Whisper transcription + semantic paragraph merging
+│   │   ├── diarization.py         # pyannote speaker diarization + speaker assignment
+│   │   ├── spliter.py             # ffmpeg audio/video track extraction
+│   │   ├── equalizer.py           # Audio noise reduction + normalisation
+│   │   ├── vector_db.py           # Qdrant upsert with sentence-transformers embeddings
+│   │   ├── test_push_task.py      # Local testing helper: push task to Redis
+│   │   └── requirements.txt       # Python dependencies
 │   └── summarization-worker/      # Summarization worker service
 │       └── main.go                # LLM-based summarization with RabbitMQ
 ├── internal/                      # Private application code
@@ -204,6 +214,9 @@ Recontext.online/
   - WebhookRequest/Response for processing LiveKit events
 
 ### Public Packages
+- **pkg/redis/publisher.go**: Redis publisher for Go services
+  - PublishTranscriptionTask — LPUSH task JSON to the Python worker queue
+  - Ping, Close lifecycle methods
 - **pkg/auth/jwt.go**: JWT token management
   - Token generation and verification
   - HMAC SHA256 signing
