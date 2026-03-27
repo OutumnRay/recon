@@ -2,6 +2,15 @@
 
 ## What Has Been Completed
 
+### Локальный запуск (docker compose)
+- ✅ `docker-compose.yml` переработан для запуска любым разработчиком без настройки:
+  - Все сервисы используют внутренние имена Docker-сети (postgres, rabbitmq, minio, redis)
+  - PostgreSQL и RabbitMQ включены и запускаются вместе с проектом
+  - Все секреты и настройки вынесены в переменные окружения с безопасными дефолтами
+  - FCM credentials передаются через `FCM_CREDENTIALS_JSON` env var (не файлом)
+  - `.env.example` содержит полный список переменных с пояснениями
+  - `depends_on` с health check гарантирует правильный порядок старта
+
 ### Initial Setup
 - ✅ Created Go module (`go.mod`) with Go 1.24
 - ✅ Created basic `main.go` with placeholder "Hello World" program
