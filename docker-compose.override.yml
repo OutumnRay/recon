@@ -61,13 +61,9 @@ services:
       minio:
         condition: service_healthy
 
-  # Python worker — единый Redis (standalone container на 6379)
-  # host.docker.internal позволяет контейнеру достучаться до хоста
   transcription-worker-py:
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
-      - REDIS_HOST=host.docker.internal
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
