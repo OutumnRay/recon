@@ -182,15 +182,30 @@ func (db *DB) DeleteUploadedFile(fileID string) error {
 
 // CheckUserHasFilePermission checks if a user has permission to access files
 func (db *DB) CheckUserHasFilePermission(userID uuid.UUID, action string) (bool, error) {
+	_, groupID, err := db.getUserGroupWithPermission(userID, action)
+	if err != nil {
+		return false, err
+	}
+	return groupID != uuid.Nil, nil
+}
+
+// GetUserGroupIDWithPermission returns the group ID of the first group the user belongs to
+// that has the specified file action permission.
+func (db *DB) GetUserGroupIDWithPermission(userID uuid.UUID, action string) (uuid.UUID, error) {
+	_, groupID, err := db.getUserGroupWithPermission(userID, action)
+	return groupID, err
+}
+
+func (db *DB) getUserGroupWithPermission(userID uuid.UUID, action string) ([]Group, uuid.UUID, error) {
 	var groups []Group
 	err := db.DB.Table("groups g").
-		Select("g.permissions").
+		Select("g.id, g.permissions").
 		Joins("INNER JOIN group_memberships gm ON g.id = gm.group_id").
 		Where("gm.user_id = ?", userID).
 		Find(&groups).Error
 
 	if err != nil {
-		return false, fmt.Errorf("failed to check permission: %w", err)
+		return nil, uuid.Nil, fmt.Errorf("failed to check permission: %w", err)
 	}
 
 	for _, group := range groups {
@@ -199,17 +214,16 @@ func (db *DB) CheckUserHasFilePermission(userID uuid.UUID, action string) (bool,
 			continue
 		}
 
-		// Check if user has "files" permission with the required action
 		if filesPerms, ok := permissions["files"].(map[string]interface{}); ok {
 			if actions, ok := filesPerms["actions"].([]interface{}); ok {
 				for _, a := range actions {
 					if a == action {
-						return true, nil
+						return groups, group.ID, nil
 					}
 				}
 			}
 		}
 	}
 
-	return false, nil
+	return groups, uuid.Nil, nil
 }

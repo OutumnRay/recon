@@ -517,8 +517,8 @@ func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	hasPermission, err := up.db.CheckUserHasFilePermission(claims.UserID, "write")
-	if err != nil || !hasPermission {
+	groupID, err := up.db.GetUserGroupIDWithPermission(claims.UserID, "write")
+	if err != nil || groupID == uuid.Nil {
 		up.respondWithError(w, http.StatusForbidden, "You don't have permission to upload files", "Contact administrator to grant file upload access")
 		return
 	}
@@ -550,7 +550,7 @@ func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) 
 		MimeType:     header.Header.Get("Content-Type"),
 		StoragePath:  objectPath,
 		UserID:       claims.UserID,
-		GroupID:      uuid.Must(uuid.Parse("00000000-0000-0000-0000-000000000001")),
+		GroupID:      groupID,
 		Status:       models.StatusPending,
 		UploadedAt:   time.Now(),
 	}
