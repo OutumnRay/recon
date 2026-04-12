@@ -214,6 +214,12 @@ Recontext.online/
   - WebhookRequest/Response for processing LiveKit events
 
 ### Public Packages
+- **pkg/storage/minio.go**: MinIO S3-compatible storage client
+  - `NewMinIOClient`, `NewMinIOClientFromEnv` — создание клиента
+  - `UploadFile(localPath)` — загрузка из файловой системы
+  - `UploadReader(reader, size, remotePath, contentType)` — потоковая загрузка из `io.Reader`
+  - `DownloadFile`, `UploadDirectory`, `DeleteFile`, `DeleteDirectory`
+  - `EnsureBucket`, `GetPublicURL`, `GetRelativePath`
 - **pkg/redis/publisher.go**: Redis publisher for Go services
   - PublishTranscriptionTask — LPUSH task JSON to the Python worker queue
   - Ping, Close lifecycle methods

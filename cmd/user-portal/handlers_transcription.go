@@ -32,7 +32,6 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Extract track SID from path: /api/tracks/{sid}/transcribe
 	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(pathParts) < 3 || pathParts[0] != "api" || pathParts[1] != "tracks" {
 		up.respondWithError(w, http.StatusBadRequest, "Invalid URL format", "Expected /api/tracks/{sid}/transcribe")
@@ -45,7 +44,6 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Find track by SID
 	var track models.Track
 	err := up.db.DB.Where("sid = ?", trackSID).First(&track).Error
 	if err != nil {
@@ -54,7 +52,6 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Get room to find meeting ID
 	var room models.Room
 	err = up.db.DB.Where("sid = ?", track.RoomSID).First(&room).Error
 	if err != nil {
@@ -63,7 +60,6 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Check if user has access to this meeting
 	if room.MeetingID == nil {
 		up.respondWithError(w, http.StatusBadRequest, "Track not associated with a meeting", "")
 		return
@@ -75,7 +71,6 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Check permissions - only meeting creator or participants can transcribe
 	hasAccess := false
 	if meeting.CreatedBy == claims.UserID {
 		hasAccess = true
@@ -96,29 +91,22 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Check if track is already being transcribed
 	if track.TranscriptionStatus == "processing" {
 		up.respondWithError(w, http.StatusConflict, "Track is already being transcribed", "")
 		return
 	}
 
-	// Check if egress_id exists (recording must be finished)
 	if track.EgressID == "" {
 		up.respondWithError(w, http.StatusBadRequest, "Track recording not available", "Track must be recorded before transcription")
 		return
 	}
 
-	// Construct audio URL for MinIO
-	// Format: https://api.storage.recontext.online/recontext/{meeting_id}_{room_sid}/tracks/{track_sid}.m3u8
-	storageURL := "https://api.storage.recontext.online"
 	bucket := "recontext"
-	audioURL := fmt.Sprintf("%s/%s/%s_%s/tracks/%s.m3u8",
-		storageURL, bucket, meeting.ID.String(), room.SID, track.SID)
-	// MinIO object path (without bucket prefix) for the Python worker
+	audioURL := fmt.Sprintf("https://api.storage.recontext.online/%s/%s_%s/tracks/%s.m3u8",
+		bucket, meeting.ID.String(), room.SID, track.SID)
 	minioObjectPath := fmt.Sprintf("%s_%s/tracks/%s.m3u8", meeting.ID.String(), room.SID, track.SID)
 	up.logger.Infof("[Transcription] Track %s audio URL: %s", trackSID, audioURL)
 
-	// Update track status to processing
 	track.TranscriptionStatus = "processing"
 	if err := up.db.DB.Save(&track).Error; err != nil {
 		up.logger.Errorf("[Transcription] Failed to update track status: %v", err)
@@ -126,7 +114,6 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Send task to RabbitMQ
 	if up.rabbitMQPublisher != nil {
 		err := up.rabbitMQPublisher.PublishTranscriptionTask(
 			track.ID,
@@ -150,7 +137,6 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Publish task to Redis for the Python transcription worker
 	if up.redisPublisher != nil {
 		if err := up.redisPublisher.PublishTranscriptionTask(
 			track.ID,
@@ -166,7 +152,6 @@ func (up *UserPortal) forceTranscribeTrackHandler(w http.ResponseWriter, r *http
 		}
 	}
 
-	// Return success response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":   true,

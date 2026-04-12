@@ -28,6 +28,7 @@ import (
 	"Recontext.online/pkg/notifications"
 	"Recontext.online/pkg/rabbitmq"
 	redispkg "Recontext.online/pkg/redis"
+	"Recontext.online/pkg/storage"
 
 	_ "Recontext.online/cmd/user-portal/docs" // Import generated docs
 )
@@ -73,12 +74,13 @@ type UserPortal struct {
 	embeddingsClient         *embeddings.EmbeddingsClient      // Embeddings client for RAG
 	emailService             EmailServiceInterface             // Email service for sending emails
 	wsHub                    *WSHub                            // WebSocket hub for real-time communication
-	rabbitMQPublisher        *rabbitmq.Publisher               // RabbitMQ publisher for transcription tasks
-	redisPublisher           *redispkg.Publisher               // Redis publisher for Python transcription worker
-	transcriptionScheduler   *TranscriptionScheduler           // Automatic transcription scheduler
-	fcmService               *fcm.FCMService                   // FCM service for push notifications
-	transcriptionNotifier    *TranscriptionNotifier            // Notifier for transcription completion events
-	notificationService      *notifications.NotificationService // Real-time notification service
+	rabbitMQPublisher        *rabbitmq.Publisher
+	redisPublisher           *redispkg.Publisher
+	minioClient              *storage.MinIOClient
+	transcriptionScheduler   *TranscriptionScheduler
+	fcmService               *fcm.FCMService
+	transcriptionNotifier    *TranscriptionNotifier
+	notificationService      *notifications.NotificationService
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -154,22 +156,27 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		log.Info("RabbitMQ publisher initialized successfully")
 	}
 
-	// Initialize Redis publisher for Python transcription worker
-	redisHost := getEnv("REDIS_HOST", "localhost")
-	redisPort := getEnvInt("REDIS_PORT", 6379)
-	redisPassword := getEnv("REDIS_PASSWORD", "")
-	redisQueue := getEnv("REDIS_TASK_QUEUE", "recontext:transcription:queue")
-
-	redisPublisher, redisErr := redispkg.NewPublisher(redisHost, redisPort, redisPassword, 0, redisQueue)
+	redisPublisher, redisErr := redispkg.NewPublisher(
+		getEnv("REDIS_HOST", "localhost"),
+		getEnvInt("REDIS_PORT", 6379),
+		getEnv("REDIS_PASSWORD", ""),
+		0,
+		getEnv("REDIS_TASK_QUEUE", "recontext:transcription:queue"),
+	)
 	if redisErr != nil {
 		log.Error("Failed to initialize Redis publisher: " + redisErr.Error())
-		log.Error("Python transcription worker integration will be unavailable")
 	} else {
 		log.Info("Redis publisher initialized successfully")
 	}
 
-	// Initialize FCM service for push notifications.
-	// Priority: FCM_CREDENTIALS_JSON (base64, for AppPlatform/cloud) > FCM_CREDENTIALS_PATH (file, for bare-metal).
+	minioClient, minioErr := storage.NewMinIOClientFromEnv()
+	if minioErr != nil {
+		log.Error("Failed to initialize MinIO client: " + minioErr.Error())
+		log.Error("File upload to MinIO will be unavailable")
+	} else {
+		log.Info("MinIO client initialized successfully")
+	}
+
 	var fcmService *fcm.FCMService
 	if fcmCredentialsJSON := getEnv("FCM_CREDENTIALS_JSON", ""); fcmCredentialsJSON != "" {
 		fcmService, err = fcm.NewFCMServiceFromJSON(fcmCredentialsJSON)
@@ -213,6 +220,7 @@ func NewUserPortal(cfg *config.Config, log *logger.Logger) (*UserPortal, error) 
 		wsHub:               wsHub,
 		rabbitMQPublisher:   rabbitMQPublisher,
 		redisPublisher:      redisPublisher,
+		minioClient:         minioClient,
 		fcmService:          fcmService,
 		notificationService: notificationService,
 	}, nil
@@ -329,14 +337,12 @@ func (up *UserPortal) healthHandler(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Router /api/v1/recordings/upload [post]
 func (up *UserPortal) uploadHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user from context
 	claims, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
 		return
 	}
 
-	// Parse multipart form (max 500MB)
 	if err := r.ParseMultipartForm(500 << 20); err != nil {
 		up.respondWithError(w, http.StatusBadRequest, "Failed to parse form", err.Error())
 		return
@@ -355,7 +361,6 @@ func (up *UserPortal) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Create recording
 	recording := &models.Recording{
 		ID:          uuid.New(),
 		UserID:      claims.UserID,
@@ -370,10 +375,6 @@ func (up *UserPortal) uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	up.recordings[recording.ID.String()] = recording
 	up.logger.Infof("Recording uploaded: %s by user %s", recording.ID, claims.Username)
-
-	// Примечание: Загрузка в MinIO и отправка задачи в RabbitMQ
-	// реализуются через отдельный сервис обработки файлов
-	// Текущая реализация сохраняет метаданные для дальнейшей обработки
 
 	response := models.UploadResponse{
 		RecordingID: recording.ID,
@@ -404,7 +405,6 @@ func (up *UserPortal) listRecordingsHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Filter recordings by user
 	var userRecordings []models.Recording
 	for _, rec := range up.recordings {
 		if rec.UserID == claims.UserID {
@@ -486,8 +486,6 @@ func (up *UserPortal) searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Implement actual search using Qdrant
-
 	response := models.SearchResponse{
 		Results:  []models.SearchResult{},
 		Total:    0,
@@ -506,7 +504,6 @@ func (up *UserPortal) searchHandler(w http.ResponseWriter, r *http.Request) {
 // @Accept multipart/form-data
 // @Produce json
 // @Param file formData file true "Аудио- или видеофайл"
-// @Param description formData string false "Описание файла"
 // @Success 200 {object} models.FileUploadResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -520,14 +517,12 @@ func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Check if user has file upload permission
 	hasPermission, err := up.db.CheckUserHasFilePermission(claims.UserID, "write")
 	if err != nil || !hasPermission {
 		up.respondWithError(w, http.StatusForbidden, "You don't have permission to upload files", "Contact administrator to grant file upload access")
 		return
 	}
 
-	// Parse multipart form (max 500MB)
 	if err := r.ParseMultipartForm(500 << 20); err != nil {
 		up.respondWithError(w, http.StatusBadRequest, "Failed to parse form", err.Error())
 		return
@@ -540,29 +535,67 @@ func (up *UserPortal) uploadFileHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	defer file.Close()
 
-	// Create file record
 	fileID := uuid.New()
-	groupFileUploadersID := uuid.Must(uuid.Parse("00000000-0000-0000-0000-000000000001")) // Use a fixed UUID for the file uploaders group
+	objectPath := fmt.Sprintf("uploads/%s/%s/%s", claims.UserID, fileID, header.Filename)
+	bucket := "recontext"
+	if up.minioClient != nil {
+		bucket = up.minioClient.GetBucket()
+	}
+
 	uploadedFile := &models.UploadedFile{
 		ID:           fileID,
 		Filename:     fmt.Sprintf("%d-%s", time.Now().Unix(), header.Filename),
 		OriginalName: header.Filename,
 		FileSize:     header.Size,
 		MimeType:     header.Header.Get("Content-Type"),
-		StoragePath:  fmt.Sprintf("files/%s/%s", claims.UserID, fileID),
+		StoragePath:  objectPath,
 		UserID:       claims.UserID,
-		GroupID:      groupFileUploadersID,
+		GroupID:      uuid.Must(uuid.Parse("00000000-0000-0000-0000-000000000001")),
 		Status:       models.StatusPending,
 		UploadedAt:   time.Now(),
 	}
 
-	// Save to database
 	if err := up.db.CreateUploadedFile(uploadedFile); err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to save file record", err.Error())
 		return
 	}
 
-	up.logger.Infof("File uploaded: %s by user %s", fileID, claims.Username)
+	if up.minioClient == nil {
+		up.logger.Error("[Upload] MinIO client not available, skipping upload")
+		up.respondWithError(w, http.StatusServiceUnavailable, "Storage service unavailable", "")
+		_ = up.db.DeleteUploadedFile(fileID.String())
+		return
+	}
+
+	contentType := header.Header.Get("Content-Type")
+	if _, err := up.minioClient.UploadReader(r.Context(), file, header.Size, objectPath, contentType); err != nil {
+		up.logger.Errorf("[Upload] MinIO upload failed: %v", err)
+		_ = up.db.UpdateFileStatus(fileID.String(), models.StatusFailed)
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to upload file to storage", err.Error())
+		return
+	}
+
+	_ = up.db.UpdateFileStatus(fileID.String(), models.StatusProcessing)
+	uploadedFile.Status = models.StatusProcessing
+
+	if up.redisPublisher != nil {
+		if err := up.redisPublisher.PublishTranscriptionTask(
+			fileID,
+			claims.UserID,
+			bucket,
+			objectPath,
+			"upload",
+			"",
+		); err != nil {
+			up.logger.Errorf("[Upload] Failed to publish transcription task: %v", err)
+		} else {
+			up.logger.Infof("[Upload] Transcription task queued for file %s", fileID)
+		}
+	} else {
+		up.logger.Error("[Upload] Redis publisher not available, transcription task not queued")
+	}
+
+	up.logger.Infof("[Upload] File %s uploaded by user %s, transcription queued", fileID, claims.Username)
 
 	response := models.FileUploadResponse{
 		ID:           fileID,

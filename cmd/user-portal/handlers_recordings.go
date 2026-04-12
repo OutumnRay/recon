@@ -31,21 +31,16 @@ type TranscriptionPhrase struct {
 	Speaker *string `json:"speaker,omitempty"` // Идентификатор говорящего (если есть диаризация)
 }
 
-// mergePhrases объединяет фразы одного спикера в блоки по ~100 слов
-// Условия объединения:
-// - Фразы идут подряд от одного спикера
-// - Суммарное количество слов не превышает maxWords
-// - Пауза между фразами не превышает maxPauseSeconds
 func mergePhrases(phrases []TranscriptionPhrase, maxWords int, maxPauseSeconds float64) []TranscriptionPhrase {
 	if len(phrases) == 0 {
 		return phrases
 	}
 
 	if maxWords <= 0 {
-		maxWords = 100 // По умолчанию 100 слов
+		maxWords = 100
 	}
 	if maxPauseSeconds <= 0 {
-		maxPauseSeconds = 3.0 // По умолчанию 3 секунды паузы
+		maxPauseSeconds = 3.0
 	}
 
 	var merged []TranscriptionPhrase
@@ -57,26 +52,22 @@ func mergePhrases(phrases []TranscriptionPhrase, maxWords int, maxPauseSeconds f
 		nextWordCount := countWords(nextPhrase.Text)
 		pause := nextPhrase.Start - currentPhrase.End
 
-		// Проверяем, можно ли объединить фразы
 		sameSpeaker := (currentPhrase.Speaker == nil && nextPhrase.Speaker == nil) ||
 			(currentPhrase.Speaker != nil && nextPhrase.Speaker != nil && *currentPhrase.Speaker == *nextPhrase.Speaker)
 		withinWordLimit := currentWordCount+nextWordCount <= maxWords
 		withinPauseLimit := pause <= maxPauseSeconds
 
 		if sameSpeaker && withinWordLimit && withinPauseLimit {
-			// Объединяем фразы
 			currentPhrase.End = nextPhrase.End
 			currentPhrase.Text = currentPhrase.Text + " " + nextPhrase.Text
 			currentWordCount += nextWordCount
 		} else {
-			// Сохраняем текущую фразу и начинаем новую
 			merged = append(merged, currentPhrase)
 			currentPhrase = nextPhrase
 			currentWordCount = nextWordCount
 		}
 	}
 
-	// Добавляем последнюю фразу
 	merged = append(merged, currentPhrase)
 
 	return merged
@@ -187,16 +178,11 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 
 	roomRecordings := []RoomRecordingInfo{}
 
-	// Pre-collect all participant SIDs for batch loading
-	// Собираем участников для всех треков с записями (аудио и видео)
-	// Collect participants for all tracks with recordings (audio and video)
 	allParticipantSIDsSet := make(map[string]bool)
 	for _, room := range rooms {
 		tracks, err := up.liveKitRepo.GetTracksByRoomSID(room.SID)
 		if err == nil {
 			for _, track := range tracks {
-				// Включаем всех участников, у которых есть записанные треки (audio or video)
-				// Include all participants who have recorded tracks (audio or video)
 				if track.EgressID != "" {
 					allParticipantSIDsSet[track.ParticipantSID] = true
 				}
@@ -204,7 +190,6 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 		}
 	}
 
-	// Batch load all participants once
 	participantsMap := make(map[string]*models.UserInfo)
 	for participantSID := range allParticipantSIDsSet {
 		participant, err := up.liveKitRepo.GetParticipantBySID(participantSID)
@@ -230,10 +215,7 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 					}
 					participantsMap[participantSID] = userInfo
 				} else {
-					// User not found in users table, this might be an anonymous user
-					// Use the participant's name from LiveKit (set from display name)
 					if participant.Name != "" {
-						// Create a minimal UserInfo with the display name
 						displayName := participant.Name
 						userInfo := &models.UserInfo{
 							ID:        userID,
@@ -251,7 +233,6 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 		up.logger.Infof("📹 [RECORDINGS] Batch loaded %d unique participants", len(participantsMap))
 	}
 
-	// Collect room recordings with their tracks
 	for i, room := range rooms {
 		up.logger.Infof("📹 [RECORDINGS] Room %d: SID=%s, Name=%s, EgressID=%s, Status=%s",
 			i, room.SID, room.Name, room.EgressID, room.Status)
@@ -270,31 +251,20 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 			roomRec.EndedAt = &endedAt
 		}
 
-		// Add composite video URL if exists (created by VideoPostProcessor)
-		// VideoPostProcessor assembles composite video from individual tracks after transcription
-		// Если есть композитное видео, оно лежит в корне: {meetingID}_{roomSID}/composite.m3u8
 		if room.HasCompositeVideo {
-			// Return API proxy URL instead of MinIO path (for authenticated access)
-			// API proxy will serve: {meetingID}_{roomSID}/composite.m3u8 from MinIO
 			compositePlaylistURL := fmt.Sprintf("/api/v1/recordings/%s/playlist", room.SID)
 			roomRec.PlaylistURL = compositePlaylistURL
 			up.logger.Infof("📹 [RECORDINGS] Room has composite video: %s", compositePlaylistURL)
 		}
 
-		// Get tracks for this room
 		tracks, err := up.liveKitRepo.GetTracksByRoomSID(room.SID)
 		if err == nil {
 			up.logger.Infof("📹 [RECORDINGS] Found %d tracks for room %s", len(tracks), room.SID)
 
-			// Process tracks (transcriptions will be fetched separately via /api/v1/rooms/{roomSid}/transcripts)
 			for j, track := range tracks {
 				up.logger.Infof("📹 [RECORDINGS]   Track %d: SID=%s, Source=%s, EgressID=%s, Type=%s",
 					j, track.SID, track.Source, track.EgressID, track.Type)
 
-				// Включаем треки с записью (egress_id не пустой)
-				// Это могут быть: аудио (MICROPHONE), видео (CAMERA), шаринг экрана (SCREEN_SHARE, SCREEN_SHARE_AUDIO)
-				// Include tracks that have recordings (egress_id is not empty)
-				// This can be: audio (MICROPHONE), video (CAMERA), screen sharing (SCREEN_SHARE, SCREEN_SHARE_AUDIO)
 				if track.EgressID != "" {
 					trackRec := TrackRecordingInfo{
 						ID:            track.SID,
@@ -313,8 +283,6 @@ func (up *UserPortal) getMeetingRecordingsHandler(w http.ResponseWriter, r *http
 					if track.TranscriptionStatus != "" {
 						trackRec.TranscriptionStatus = &track.TranscriptionStatus
 					}
-
-					// Note: Transcription phrases are fetched separately via /api/v1/rooms/{roomSid}/transcripts
 
 					// Get participant info from pre-loaded map
 					if userInfo, exists := participantsMap[track.ParticipantSID]; exists {
@@ -391,14 +359,9 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Collect track IDs for transcription loading
-	// Транскрипции делаются только для аудио-треков (MICROPHONE, SCREEN_SHARE_AUDIO)
-	// Transcriptions are only done for audio tracks (MICROPHONE, SCREEN_SHARE_AUDIO)
 	var trackIDs []uuid.UUID
 	trackMap := make(map[uuid.UUID]*models.Track)
 	for i := range tracks {
-		// Для транскрипций: egress_id не пустой, это аудио-трек, и транскрипция завершена
-		// For transcriptions: egress_id not empty, it's an audio track, and transcription is completed
 		isAudioTrack := tracks[i].Source == "MICROPHONE" || tracks[i].Source == "SCREEN_SHARE_AUDIO"
 		if tracks[i].EgressID != "" && isAudioTrack && tracks[i].TranscriptionStatus == "completed" {
 			trackIDs = append(trackIDs, tracks[i].ID)
@@ -425,9 +388,6 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// Pre-load participants
-	// Загружаем участников для всех треков с записью (аудио и видео)
-	// Load participants for all tracks with recordings (audio and video)
 	participantSIDsSet := make(map[string]bool)
 	for _, track := range tracks {
 		if track.EgressID != "" {
@@ -460,10 +420,7 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 					}
 					participantsMap[participantSID] = userInfo
 				} else {
-					// User not found in users table, this might be an anonymous user
-					// Use the participant's name from LiveKit (set from display name)
 					if participant.Name != "" {
-						// Create a minimal UserInfo with the display name
 						displayName := participant.Name
 						userInfo := &models.UserInfo{
 							ID:        userID,
@@ -478,7 +435,6 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// Build response
 	response := RoomTranscriptsResponse{
 		RoomSID:       roomSID,
 		Tracks:        []TrackTranscriptInfo{},
@@ -499,12 +455,10 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 				StartedAt:     track.PublishedAt.Format("2006-01-02T15:04:05Z07:00"),
 			}
 
-			// Add participant info
 			if userInfo, exists := participantsMap[track.ParticipantSID]; exists {
 				trackInfo.Participant = userInfo
 			}
 
-			// Add transcription phrases - сначала конвертируем, потом объединяем
 			rawPhrases := make([]TranscriptionPhrase, len(phrases))
 			for i, p := range phrases {
 				rawPhrases[i] = TranscriptionPhrase{
@@ -515,7 +469,6 @@ func (up *UserPortal) getRoomTranscriptsHandler(w http.ResponseWriter, r *http.R
 				}
 			}
 
-			// Объединяем фразы в блоки по ~100 слов с паузой не более 3 секунд
 			trackInfo.TranscriptionPhrases = mergePhrases(rawPhrases, 100, 3.0)
 
 			response.Tracks = append(response.Tracks, trackInfo)

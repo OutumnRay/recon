@@ -1069,13 +1069,31 @@
   - CRM integrations
   - Webhook system
 
+### Phase 13: Полный цикл транскрибации загруженных файлов (Completed)
+
+#### Backend — User Portal
+- ✅ Добавлен метод `UploadReader` в `pkg/storage/minio.go`
+  - Потоковая загрузка из `io.Reader` напрямую в MinIO без временных файлов
+  - Принимает `reader io.Reader`, `size int64`, `remotePath`, `contentType`
+- ✅ Добавлен `MinIOClient` в структуру `UserPortal` (`cmd/user-portal/main.go`)
+  - Инициализация из переменных окружения (`MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`)
+  - Если MinIO недоступен — логируется предупреждение, сервис не падает
+- ✅ Переработан `uploadFileHandler` (`POST /api/v1/files/upload`):
+  1. Создаёт запись в БД (`status=pending`)
+  2. Загружает файл потоком в MinIO: `uploads/{userID}/{fileID}/{filename}`
+  3. Обновляет статус в БД на `processing`
+  4. Публикует задачу на транскрибацию в Redis (`recontext:transcription:queue`)
+  5. Python-воркер подхватывает задачу и запускает полный пайплайн (Whisper + диаризация + векторизация)
+- ✅ Очищен код от лишних комментариев в изменённых файлах:
+  - `pkg/storage/minio.go` — убраны дублирующие русскоязычные комментарии, лишние логи
+  - `cmd/user-portal/handlers_recordings.go` — удалены двуязычные дубликаты, шумовые комментарии
+  - `cmd/user-portal/handlers_transcription.go` — убраны очевидные комментарии
+
 ### Immediate Next Steps
-1. Implement PostgreSQL storage client and database schema
-2. Implement RabbitMQ queue client
-3. Implement Transcription Worker with Whisper integration
-4. Implement Summarization Worker with LLM integration
-5. Connect User Portal file upload to MinIO storage
-6. Test end-to-end flow: upload → queue → transcribe → summarize → search
+1. Реализовать обратный вызов от Python-воркера для обновления статуса файла в БД (webhook или Redis pub/sub)
+2. Добавить отображение статуса транскрибации и результатов в UI Documents-страницы
+3. Тестировать сквозной поток: загрузка → MinIO → Redis → Python-воркер → транскрипция → векторизация
+4. Complete Summarization Worker integration
 
 ## Notes
 - **Phase 1 (Infrastructure) is complete**: Project structure, Docker infrastructure, CI/CD pipeline
