@@ -1,6 +1,0 @@
-faster-whisper
-pika
-python-dotenv
-requests
-minio
-torch

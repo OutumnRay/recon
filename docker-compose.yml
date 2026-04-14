@@ -1,5 +1,12 @@
+# docker-compose для деплоя на TimeWeb Cloud Apps
+# Отличия от основного docker-compose.yml:
+#   - volumes ПОЛНОСТЬЮ убраны (не поддерживаются платформой)
+#   - данные хранятся в эфемерных слоях контейнеров (тестовый стенд)
+#   - Redis работает без disk persistence
+#   - transcription-worker-py использует внутренний /tmp без bind mount
+
 services:
-  # 1. Managing Portal - monitors and manages everything else
+  # 1. Managing Portal
   managing-portal:
     build:
       context: .
@@ -31,7 +38,6 @@ services:
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-}
       - LIVEKIT_WEBHOOK_DEBUG=${LIVEKIT_WEBHOOK_DEBUG:-false}
       - DEBUG_LOGS_ENABLED=${DEBUG_LOGS_ENABLED:-false}
-      # LiveKit Egress (Recording) Configuration
       - LIVEKIT_EGRESS_ENABLED=${LIVEKIT_EGRESS_ENABLED:-false}
       - LIVEKIT_EGRESS_S3_ENDPOINT=${LIVEKIT_EGRESS_S3_ENDPOINT:-}
       - LIVEKIT_EGRESS_S3_BUCKET=${LIVEKIT_EGRESS_S3_BUCKET:-recontext}
@@ -39,14 +45,12 @@ services:
       - LIVEKIT_EGRESS_S3_SECRET=${LIVEKIT_EGRESS_S3_SECRET:-minioadmin}
       - LIVEKIT_EGRESS_S3_REGION=${LIVEKIT_EGRESS_S3_REGION:-}
       - LIVEKIT_EGRESS_RECORD_TRACKS=${LIVEKIT_EGRESS_RECORD_TRACKS:-false}
-      # SMTP Configuration for email sending
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-noreply@localhost}
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Recontext}
-      # Portal URL for generating anonymous join links
       - PORTAL_URL=${PORTAL_URL:-http://localhost:20081}
     depends_on:
       postgres:
@@ -59,7 +63,7 @@ services:
       - recontext-network
     restart: unless-stopped
 
-  # 2. User Portal - for interaction with the system
+  # 2. User Portal
   user-portal:
     build:
       context: .
@@ -91,7 +95,6 @@ services:
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-}
       - LIVEKIT_WEBHOOK_DEBUG=${LIVEKIT_WEBHOOK_DEBUG:-false}
       - DEBUG_LOGS_ENABLED=${DEBUG_LOGS_ENABLED:-false}
-      # LiveKit Egress (Recording) Configuration
       - LIVEKIT_EGRESS_ENABLED=${LIVEKIT_EGRESS_ENABLED:-false}
       - LIVEKIT_EGRESS_S3_ENDPOINT=${LIVEKIT_EGRESS_S3_ENDPOINT:-}
       - LIVEKIT_EGRESS_S3_BUCKET=${LIVEKIT_EGRESS_S3_BUCKET:-recontext}
@@ -99,22 +102,17 @@ services:
       - LIVEKIT_EGRESS_S3_SECRET=${LIVEKIT_EGRESS_S3_SECRET:-minioadmin}
       - LIVEKIT_EGRESS_S3_REGION=${LIVEKIT_EGRESS_S3_REGION:-}
       - LIVEKIT_EGRESS_RECORD_TRACKS=${LIVEKIT_EGRESS_RECORD_TRACKS:-false}
-      # SMTP Configuration for email sending
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-noreply@localhost}
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Recontext}
-      # Portal URL for generating anonymous join links
       - PORTAL_URL=${PORTAL_URL:-http://localhost:20081}
-      # Redis for Python transcription worker task queue
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_TASK_QUEUE=${REDIS_TASK_QUEUE:-recontext:transcription:queue}
-      # Firebase Cloud Messaging for push notifications (JSON-string, optional)
       - FCM_CREDENTIALS_JSON=${FCM_CREDENTIALS_JSON:-}
-      # LLM Configuration for memo generation (OpenAI-compatible API)
       - LLM_API_ENDPOINT=${LLM_API_ENDPOINT:-https://api.openai.com/v1}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
       - LLM_API_KEY=${LLM_API_KEY:-}
@@ -131,7 +129,7 @@ services:
       - recontext-network
     restart: unless-stopped
 
-  # 3. PostgreSQL Database with pgvector extension
+  # 3. PostgreSQL с pgvector (без volume — данные эфемерны)
   postgres:
     image: pgvector/pgvector:pg16
     container_name: recontext-postgres
@@ -141,8 +139,6 @@ services:
       - POSTGRES_USER=${DB_USER:-recontext}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-recontext}
       - POSTGRES_DB=${DB_NAME:-recontext}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
     networks:
       - recontext-network
     restart: unless-stopped
@@ -152,7 +148,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 4. RabbitMQ - Message Broker
+  # 4. RabbitMQ (без volume — данные эфемерны)
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: recontext-rabbitmq
@@ -162,8 +158,6 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-recontext}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-recontext}
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - recontext-network
     restart: unless-stopped
@@ -173,15 +167,13 @@ services:
       timeout: 10s
       retries: 5
 
-  # 5. Redis - Task queue for Python transcription worker
+  # 5. Redis (без volume, persistence отключён)
   redis:
     image: redis:7-alpine
     container_name: recontext-redis
     ports:
       - "${REDIS_PORT:-6380}:6379"
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - redis-data:/data
+    command: redis-server --save "" --appendonly no --loglevel warning
     networks:
       - recontext-network
     restart: unless-stopped
@@ -191,46 +183,37 @@ services:
       timeout: 5s
       retries: 5
 
-  # 6. Python Transcription Worker - Whisper + diarization + paragraph chunking
+  # 6. Python Transcription Worker (без bind mount)
   transcription-worker-py:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.transcription-worker-py
     container_name: recontext-transcription-worker-py
     environment:
-      # Redis
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_TASK_QUEUE=${REDIS_TASK_QUEUE:-recontext:transcription:queue}
       - REDIS_RESULT_QUEUE=${REDIS_RESULT_QUEUE:-recontext:transcription:results}
-      # MinIO
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_BUCKET=${MINIO_BUCKET:-recontext}
-      # Whisper (use 'medium' for better quality, 'base' for speed)
       - WHISPER_MODEL=${WHISPER_MODEL:-base}
       - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
       - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-ru}
-      # Diarization (set HuggingFace token to enable)
       - HF_TOKEN=${HF_TOKEN:-}
       - ENABLE_DIARIZATION=${ENABLE_DIARIZATION:-false}
-      # Qdrant vector DB (optional)
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - QDRANT_ENABLED=${QDRANT_ENABLED:-false}
-      # Audio
       - ENABLE_AUDIO_ENHANCEMENT=${ENABLE_AUDIO_ENHANCEMENT:-true}
       - MAX_PAUSE_SECONDS=${MAX_PAUSE_SECONDS:-1.5}
       - MAX_PARAGRAPH_CHARS=${MAX_PARAGRAPH_CHARS:-800}
-      # Worker
       - WORKDIR=/tmp/recontext-worker
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - HEALTH_PORT=8085
     ports:
       - "8085:8085"
-    volumes:
-      - /tmp/recontext-worker:/tmp/recontext-worker
     depends_on:
       redis:
         condition: service_healthy
@@ -240,7 +223,7 @@ services:
       - recontext-network
     restart: unless-stopped
 
-  # 7. MinIO Storage
+  # 7. MinIO Storage (без volume — данные эфемерны)
   minio:
     image: minio/minio:latest
     container_name: recontext-minio
@@ -252,8 +235,6 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_PROMETHEUS_AUTH_TYPE=public
     command: server /data --console-address ":9001"
-    volumes:
-      - minio-data:/data
     networks:
       - recontext-network
     restart: unless-stopped
@@ -263,15 +244,13 @@ services:
       timeout: 10s
       retries: 5
 
-  # 8. Qdrant - Vector database for semantic search (optional)
+  # 8. Qdrant Vector DB (без volume — данные эфемерны)
   qdrant:
     image: qdrant/qdrant:latest
     container_name: recontext-qdrant
     ports:
       - "${QDRANT_PORT:-6333}:6333"
       - "${QDRANT_GRPC_PORT:-6334}:6334"
-    volumes:
-      - qdrant-data:/qdrant/storage
     networks:
       - recontext-network
     restart: unless-stopped
@@ -279,15 +258,3 @@ services:
 networks:
   recontext-network:
     driver: bridge
-
-volumes:
-  postgres-data:
-  redis-data:
-  minio-data:
-  rabbitmq-data:
-  qdrant-data:
-  jitsi-recordings:
-  prometheus-data:
-  grafana-data:
-  ollama-data:
-  whisper-models:
