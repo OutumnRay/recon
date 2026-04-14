@@ -2,6 +2,13 @@
 
 ## What Has Been Completed
 
+### Деплой на TimeWeb Cloud
+- ✅ `docker-compose.timeweb.yml` — версия без `volumes` для TimeWeb Cloud Apps:
+  - Убраны все named volumes и bind mounts (не поддерживаются санитайзером TimeWeb)
+  - Redis запускается с `--save "" --appendonly no` (без disk persistence)
+  - Данные хранятся в эфемерных слоях контейнеров (только для тестового стенда)
+  - При деплое нужно переименовать файл в `docker-compose.yml` или указать путь в настройках платформы
+
 ### Локальный запуск (docker compose)
 - ✅ `docker-compose.yml` переработан для запуска любым разработчиком без настройки:
   - Все сервисы используют внутренние имена Docker-сети (postgres, rabbitmq, minio, redis)
