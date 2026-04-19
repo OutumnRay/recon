@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"Recontext.online/internal/models"
+	"Recontext.online/pkg/auth"
 	"github.com/google/uuid"
 	"github.com/nfnt/resize"
-	"Recontext.online/pkg/auth"
 )
 
 const (
@@ -267,19 +267,13 @@ func (up *UserPortal) updateProfileHandler(w http.ResponseWriter, r *http.Reques
 
 	// Return updated user info
 	userInfo := models.UserInfo{
-		ID:                      user.ID,
-		Username:                user.Username,
-		Email:                   user.Email,
-		Role:                    user.Role,
-		FirstName:               user.FirstName,
-		LastName:                user.LastName,
-		Phone:                   user.Phone,
-		Bio:                     user.Bio,
-		Avatar:                  user.Avatar,
-		DepartmentID:            user.DepartmentID,
-		Permissions:             user.Permissions,
-		Language:                user.Language,
-		NotificationPreferences: user.NotificationPreferences,
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Bio:       user.Bio,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -327,19 +321,13 @@ func (up *UserPortal) getProfileHandler(w http.ResponseWriter, r *http.Request) 
 
 	// Return user info
 	userInfo := models.UserInfo{
-		ID:                      user.ID,
-		Username:                user.Username,
-		Email:                   user.Email,
-		Role:                    user.Role,
-		FirstName:               user.FirstName,
-		LastName:                user.LastName,
-		Phone:                   user.Phone,
-		Bio:                     user.Bio,
-		Avatar:                  user.Avatar,
-		DepartmentID:            user.DepartmentID,
-		Permissions:             user.Permissions,
-		Language:                user.Language,
-		NotificationPreferences: user.NotificationPreferences,
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Bio:       user.Bio,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
