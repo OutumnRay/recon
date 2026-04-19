@@ -59,28 +59,28 @@ const version = "0.1.0"
 // @description Type "Bearer" followed by a space and JWT token.
 
 type UserPortal struct {
-	config                   *config.Config
-	logger                   *logger.Logger
-	jwtManager               *auth.JWTManager
-	db                       *database.DB                      // Database connection
-	userRepo                 *database.UserRepository          // User repository
-	departmentRepo           *database.DepartmentRepository    // Department repository
-	meetingRepo              *database.MeetingRepository       // Meeting repository
-	liveKitRepo              *database.LiveKitRepository       // LiveKit repository
-	fcmDeviceRepo            *database.FCMDeviceRepository     // FCM device repository
-	taskRepo                 *database.TaskRepository          // Task repository
-	recordings               map[string]*models.Recording      // In-memory recordings store
-	prometheusMetrics        *metrics.ServiceMetrics           // Prometheus metrics
-	embeddingsClient         *embeddings.EmbeddingsClient      // Embeddings client for RAG
-	emailService             EmailServiceInterface             // Email service for sending emails
-	wsHub                    *WSHub                            // WebSocket hub for real-time communication
-	rabbitMQPublisher        *rabbitmq.Publisher
-	redisPublisher           *redispkg.Publisher
-	minioClient              *storage.MinIOClient
-	transcriptionScheduler   *TranscriptionScheduler
-	fcmService               *fcm.FCMService
-	transcriptionNotifier    *TranscriptionNotifier
-	notificationService      *notifications.NotificationService
+	config                 *config.Config
+	logger                 *logger.Logger
+	jwtManager             *auth.JWTManager
+	db                     *database.DB                   // Database connection
+	userRepo               *database.UserRepository       // User repository
+	departmentRepo         *database.DepartmentRepository // Department repository
+	meetingRepo            *database.MeetingRepository    // Meeting repository
+	liveKitRepo            *database.LiveKitRepository    // LiveKit repository
+	fcmDeviceRepo          *database.FCMDeviceRepository  // FCM device repository
+	taskRepo               *database.TaskRepository       // Task repository
+	recordings             map[string]*models.Recording   // In-memory recordings store
+	prometheusMetrics      *metrics.ServiceMetrics        // Prometheus metrics
+	embeddingsClient       *embeddings.EmbeddingsClient   // Embeddings client for RAG
+	emailService           EmailServiceInterface          // Email service for sending emails
+	wsHub                  *WSHub                         // WebSocket hub for real-time communication
+	rabbitMQPublisher      *rabbitmq.Publisher
+	redisPublisher         *redispkg.Publisher
+	minioClient            *storage.MinIOClient
+	transcriptionScheduler *TranscriptionScheduler
+	fcmService             *fcm.FCMService
+	transcriptionNotifier  *TranscriptionNotifier
+	notificationService    *notifications.NotificationService
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -286,22 +286,96 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		Token:     token,
 		ExpiresAt: expiresAt,
 		User: models.UserInfo{
-			ID:           user.ID,
-			Username:     user.Username,
-			Email:        user.Email,
-			Role:         user.Role,
-			FirstName:    user.FirstName,
-			LastName:     user.LastName,
-			Phone:        user.Phone,
-			Bio:          user.Bio,
-			Avatar:       user.Avatar,
-			DepartmentID: user.DepartmentID,
-			Permissions:  user.Permissions,
-			Language:     user.Language,
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			Role:      user.Role,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Bio:       user.Bio,
 		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Register godoc
+// @Summary Регистрация нового пользователя
+// @Description Создать новый аккаунт пользователя и получить JWT токен
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body models.RegisterRequest true "Данные для регистрации"
+// @Success 201 {object} models.LoginResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 409 {object} models.ErrorResponse "Username or email already exists"
+// @Router /api/v1/auth/register [post]
+func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
+	var req models.RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	if req.Username == "" || req.Email == "" || req.Password == "" {
+		up.respondWithError(w, http.StatusBadRequest, "Username, email and password required", "")
+		return
+	}
+
+	// Check uniqueness
+	if exists, _ := up.userRepo.UsernameExists(req.Username); exists {
+		up.respondWithError(w, http.StatusConflict, "Username already exists", "")
+		return
+	}
+	if exists, _ := up.userRepo.EmailExists(req.Email); exists {
+		up.respondWithError(w, http.StatusConflict, "Email already exists", "")
+		return
+	}
+
+	// Create user
+	hashedPassword := auth.HashPassword(req.Password)
+
+	user := &models.User{
+		ID:        uuid.New(),
+		Username:  req.Username,
+		Email:     req.Email,
+		Password:  hashedPassword,
+		Role:      models.RoleUser,
+		IsActive:  true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Language:  req.Language,
+	}
+
+	if err := up.userRepo.Create(user); err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to create user", err.Error())
+		return
+	}
+
+	// Generate token
+	token, expiresAt, err := up.jwtManager.GenerateToken(user)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to generate token", err.Error())
+		return
+	}
+
+	response := models.LoginResponse{
+		Token:     token,
+		ExpiresAt: expiresAt,
+		User: models.UserInfo{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			Role:      user.Role,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Bio:       user.Bio,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -983,6 +1057,14 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	// Public endpoints
 	mux.HandleFunc("/health", up.healthHandler)
 	mux.HandleFunc("/api/v1/auth/login", up.loginHandler)
+	mux.HandleFunc("/api/v1/auth/register", up.registerHandler)
+
+	// Profile endpoints (protected)
+	profileMiddleware := chainMiddleware(http.HandlerFunc(up.getMyProfileHandler), auth.AuthMiddleware(up.jwtManager))
+	mux.HandleFunc("/api/v1/profile", http.HandlerFunc(profileMiddleware.ServeHTTP))
+
+	updateMiddleware := chainMiddleware(http.HandlerFunc(up.updateMyProfileHandler), auth.AuthMiddleware(up.jwtManager))
+	mux.HandleFunc("/api/v1/update-profile", http.HandlerFunc(updateMiddleware.ServeHTTP))
 
 	// Password reset endpoints (public)
 	mux.HandleFunc("/api/v1/auth/password-reset/request", up.requestPasswordResetHandler)
