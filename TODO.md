@@ -1,43 +1,13 @@
-# Task: Fix and add API handlers for auth, profile, videos, transcription
+# User Portal Swagger Sync Task
 
-## Plan Breakdown (Approved)
+## Plan Steps:
+- [x] Understand project files and endpoints via search_files/read_file
+- [x] Create detailed edit plan and get user approval  
+- [ ] Step 1: Create TODO.md with breakdown
+- [x] Step 2: Update cmd/user-portal/docs/swagger.json with missing paths, params, schemas
+- [ ] Step 3: Verify changes (read updated file)
+- [ ] Step 4: Followup - instruct restart server, check Swagger UI
+- [ ] Step 5: attempt_completion
 
-### Step 1: Create TODO.md ✅ (done)
-
-### Step 2: Fix /auth/login & profile responses - remove forbidden fields ✅
-- Files: cmd/user-portal/main.go (login), handlers_profile.go (get/update profile)
-- Removed from UserInfo: Avatar, DepartmentID, Phone, Language, NotificationPreferences (Permissions kept minimal)
-
-
-### Step 3: Add registration handler /api/v1/auth/register POST ✅
-- File: cmd/user-portal/main.go
-- Added registerHandler + route (public), uses RegisterRequest, userRepo.Create, HashPassword, returns LoginResponse minimal
-
-### Step 4: Add /profile GET (current user data) ✅
-### Step 5: Add /update-profile PUT (bio etc.) ✅
-- Files: handlers_profile_minimal.go + main.go routes
-
-### Step 6: Add /videos GET (list loaded videos)
-- File: cmd/user-portal/main.go
-- New listVideosHandler: combine listFilesHandler + meeting recordings? Or use existing /files or /recordings as base. Paginated list of user videos/files.
-
-### Step 7: Add /videos/{videoId} GET (transcription decode)
-- File: cmd/user-portal/main.go or handlers_recordings.go
-- New getVideoTranscriptHandler: videoId=roomSid/trackSid?, fetch room/track transcripts via DB/liveKitRepo, merge phrases, return with summary/memo.
-
-### Step 8: Add routes for new handlers in setupRoutes()
-- File: cmd/user-portal/main.go
-
-### Step 9: Add swaggo docs for new endpoints
-
-### Step 10: Test changes
-- Build: go build ./cmd/user-portal
-- Run endpoints: curl login/register/profile/update-profile/videos etc.
-- Verify no regressions.
-
-### Step 11: attempt_completion
-
-**Current Progress:** Ready for Step 2.
-
-**Next Action:** Confirm TODO.md created, then proceed to read models for UserInfo exact fields if needed, or start edits.
+**Next: Update swagger.json**
 

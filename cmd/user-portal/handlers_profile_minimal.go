@@ -16,7 +16,7 @@ import (
 // @Description Получить данные текущего пользователя (минимальные)
 // @Tags Profile
 // @Produce json
-// @Success 200 {object} models.UserInfo
+// @Success 200 {object} models.MinimalUserInfo
 // @Failure 401 {object} models.ErrorResponse
 // @Security BearerAuth
 // @Router /api/v1/profile [get]
@@ -33,7 +33,7 @@ func (up *UserPortal) getMyProfileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userInfo := models.UserInfo{
+	userInfo := models.MinimalUserInfo{
 		ID:        user.ID,
 		Username:  user.Username,
 		Email:     user.Email,
@@ -54,7 +54,7 @@ func (up *UserPortal) getMyProfileHandler(w http.ResponseWriter, r *http.Request
 // @Accept json
 // @Produce json
 // @Param request body models.UpdateProfileRequest true "Обновленные данные профиля"
-// @Success 200 {object} models.UserInfo
+// @Success 200 {object} models.MinimalUserInfo
 // @Failure 400 {object} models.ErrorResponse
 // @Security BearerAuth
 // @Router /api/v1/update-profile [put]

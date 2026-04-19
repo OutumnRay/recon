@@ -249,7 +249,7 @@ func getEnvInt(key string, defaultValue int) int {
 // @Accept json
 // @Produce json
 // @Param request body models.LoginRequest true "Учетные данные для входа"
-// @Success 200 {object} models.LoginResponse
+// @Success 200 {object} models.MinimalLoginResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Router /api/v1/auth/login [post]
@@ -282,10 +282,10 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := models.LoginResponse{
+	response := models.MinimalLoginResponse{
 		Token:     token,
 		ExpiresAt: expiresAt,
-		User: models.UserInfo{
+		User: models.MinimalUserInfo{
 			ID:        user.ID,
 			Username:  user.Username,
 			Email:     user.Email,
@@ -307,7 +307,7 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body models.RegisterRequest true "Данные для регистрации"
-// @Success 201 {object} models.LoginResponse
+// @Success 201 {object} models.MinimalLoginResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 409 {object} models.ErrorResponse "Username or email already exists"
 // @Router /api/v1/auth/register [post]
@@ -360,10 +360,10 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := models.LoginResponse{
+	response := models.MinimalLoginResponse{
 		Token:     token,
 		ExpiresAt: expiresAt,
-		User: models.UserInfo{
+		User: models.MinimalUserInfo{
 			ID:        user.ID,
 			Username:  user.Username,
 			Email:     user.Email,
@@ -1063,7 +1063,7 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	profileMiddleware := chainMiddleware(http.HandlerFunc(up.getMyProfileHandler), auth.AuthMiddleware(up.jwtManager))
 	mux.HandleFunc("/api/v1/profile", http.HandlerFunc(profileMiddleware.ServeHTTP))
 
-	updateMiddleware := chainMiddleware(http.HandlerFunc(up.updateMyProfileHandler), auth.AuthMiddleware(up.jwtManager))
+	updateMiddleware := chainMiddleware(http.HandlerFunc(up.updateProfileHandler), auth.AuthMiddleware(up.jwtManager))
 	mux.HandleFunc("/api/v1/update-profile", http.HandlerFunc(updateMiddleware.ServeHTTP))
 
 	// Password reset endpoints (public)

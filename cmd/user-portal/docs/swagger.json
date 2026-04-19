@@ -1,2716 +1,638 @@
 {
-    "swagger": "2.0",
-    "info": {
-        "description": "API пользовательского портала Recontext.online: загрузка записей, транскрибация, поиск и управление материалами",
-        "title": "Recontext.online User Portal API",
-        "termsOfService": "http://recontext.online/terms/",
-        "contact": {
-            "name": "API Support",
-            "url": "http://recontext.online/support",
-            "email": "support@recontext.online"
-        },
-        "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-        },
-        "version": "0.1.0"
+  "swagger": "2.0",
+  "info": {
+    "description": "API пользовательского портала Recontext.online: загрузка записей, транскрибация, поиск и управление материалами",
+    "title": "Recontext.online User Portal API",
+    "termsOfService": "http://recontext.online/terms/",
+    "contact": {
+      "name": "API Support",
+      "url": "http://recontext.online/support",
+      "email": "support@recontext.online"
     },
-    "host": "localhost:8081",
-    "basePath": "/",
-    "paths": {
-        "/api/v1/auth/login": {
-            "post": {
-                "description": "Аутентификация пользователя и получение JWT токена",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Вход в систему",
-                "parameters": [
-                    {
-                        "description": "Учетные данные для входа",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.LoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.LoginResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/password-reset/request": {
-            "post": {
-                "description": "Запросить код сброса пароля для отправки по электронной почте",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Запросить сброс пароля",
-                "parameters": [
-                    {
-                        "description": "Адрес электронной почты",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.RequestPasswordResetRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.RequestPasswordResetResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/password-reset/reset": {
-            "post": {
-                "description": "Сбросить пароль пользователя с использованием проверенного кода",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Сбросить пароль с кодом",
-                "parameters": [
-                    {
-                        "description": "Данные для сброса пароля",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.ResetPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.ResetPasswordResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/password-reset/verify": {
-            "post": {
-                "description": "Проверить, что предоставленный код сброса действителен",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Проверить код сброса пароля",
-                "parameters": [
-                    {
-                        "description": "Идентификатор токена и код",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.VerifyResetCodeRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.VerifyResetCodeResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/departments": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить список отделов для массового выбора участников",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Helpers"
-                ],
-                "summary": "Список отделов для приглашений на встречи",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/files": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить постраничный список загруженных файлов пользователя",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Files"
-                ],
-                "summary": "Список загруженных файлов",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Размер страницы",
-                        "name": "page_size",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.ListFilesResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/files/permission": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Проверить, имеет ли текущий пользователь разрешение на загрузку файлов",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Files"
-                ],
-                "summary": "Проверить разрешение на загрузку файлов",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "boolean"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/files/upload": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Загрузить аудио или видео файл для транскрибации (требуется разрешение на загрузку файлов)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Files"
-                ],
-                "summary": "Загрузить файл для транскрибации",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Аудио- или видеофайл",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Описание файла",
-                        "name": "description",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.FileUploadResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/meeting-subjects": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить постраничный список активных тем встреч",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Meetings"
-                ],
-                "summary": "Список тем встреч",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 100,
-                        "description": "Размер страницы",
-                        "name": "page_size",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "Включать неактивные темы",
-                        "name": "include_inactive",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.MeetingSubjectsResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/meetings": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить постраничный список встреч, где пользователь является участником или докладчиком",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Meetings"
-                ],
-                "summary": "Список моих встреч",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Размер страницы",
-                        "name": "page_size",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "scheduled",
-                            "in_progress",
-                            "completed",
-                            "cancelled"
-                        ],
-                        "type": "string",
-                        "description": "Фильтр по статусу",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "presentation",
-                            "conference"
-                        ],
-                        "type": "string",
-                        "description": "Фильтр по типу",
-                        "name": "type",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Фильтр по идентификатору темы",
-                        "name": "subject_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Фильтр по дате начала (формат RFC3339)",
-                        "name": "date_from",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Фильтр по дате окончания (формат RFC3339)",
-                        "name": "date_to",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.MeetingsResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Создать новую встречу (требуется разрешение can_schedule_meetings или роль admin/operator)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Meetings"
-                ],
-                "summary": "Создать новую встречу",
-                "parameters": [
-                    {
-                        "description": "Данные встречи",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.CreateMeetingRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.MeetingWithDetails"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/meetings/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить детальную информацию о конкретной встрече (должен быть участником/докладчиком или администратором)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Meetings"
-                ],
-                "summary": "Получить детали встречи",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Идентификатор встречи",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.MeetingWithDetails"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Обновить информацию о встрече (должен быть создателем или администратором)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Meetings"
-                ],
-                "summary": "Обновить встречу",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Идентификатор встречи",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Данные для обновления встречи",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.UpdateMeetingRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.MeetingWithDetails"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Удалить встречу (должен быть создателем или администратором)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Meetings"
-                ],
-                "summary": "Удалить встречу",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Идентификатор встречи",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/meetings/{meetingId}/token": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить токен доступа LiveKit для присоединения к комнате встречи (можно присоединиться за 10 минут до начала)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Meetings"
-                ],
-                "summary": "Получить токен LiveKit для присоединения к встрече",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Идентификатор встречи",
-                        "name": "meetingId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/main.GetMeetingTokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/rag/permission": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Проверить, имеет ли текущий пользователь разрешение на использование RAG поиска",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "RAG"
-                ],
-                "summary": "Проверить разрешение на RAG",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "boolean"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/rag/search": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Выполнить семантический поиск с использованием RAG по транскрипциям",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "RAG"
-                ],
-                "summary": "Семантический поиск по транскрипциям",
-                "parameters": [
-                    {
-                        "description": "Параметры поискового запроса",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.RAGSearchRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.RAGSearchResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/rag/status": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить статистику о системе RAG",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "RAG"
-                ],
-                "summary": "Получить статус системы RAG",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.RAGStatusResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/recordings": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить постраничный список записей пользователя",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Recordings"
-                ],
-                "summary": "Список записей пользователя",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Размер страницы",
-                        "name": "page_size",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Фильтр по статусу",
-                        "name": "status",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.ListRecordingsResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/recordings/upload": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Загрузить аудио или видео файл для транскрибации",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Recordings"
-                ],
-                "summary": "Загрузить запись",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Название записи",
-                        "name": "title",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "Аудио- или видеофайл",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.UploadResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/recordings/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить детальную информацию о конкретной записи",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Recordings"
-                ],
-                "summary": "Получить детали записи",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Идентификатор записи",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.Recording"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Поиск по транскриптам с использованием семантического или ключевого поиска",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Search"
-                ],
-                "summary": "Поиск по транскриптам",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Поисковый запрос",
-                        "name": "query",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Номер страницы",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "description": "Размер страницы",
-                        "name": "page_size",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SearchResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/users": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить список пользователей для выбора участников встречи",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Helpers"
-                ],
-                "summary": "Список пользователей для участников встречи",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/users/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Получить информацию о профиле пользователя",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Profile"
-                ],
-                "summary": "Получить профиль пользователя",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Идентификатор пользователя",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.UserInfo"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Обновить информацию профиля пользователя (самообслуживание)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Profile"
-                ],
-                "summary": "Обновить профиль пользователя",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Идентификатор пользователя",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Данные профиля",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.UpdateProfileRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.UserInfo"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/users/{id}/avatar": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Загрузить изображение аватара пользователя",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Profile"
-                ],
-                "summary": "Загрузить аватар пользователя",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Файл изображения аватара",
-                        "name": "avatar",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.UploadAvatarResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/health": {
-            "get": {
-                "description": "Проверка, работает ли сервис",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Monitoring"
-                ],
-                "summary": "Проверка здоровья",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.HealthResponse"
-                        }
-                    }
-                }
-            }
-        }
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "definitions": {
-        "main.GetMeetingTokenResponse": {
-            "type": "object",
-            "properties": {
-                "duration": {
-                    "description": "Длительность встречи в минутах",
-                    "type": "integer"
-                },
-                "forceEndAt": {
-                    "description": "Время принудительного завершения встречи (если задано)",
-                    "type": "string"
-                },
-                "meetingId": {
-                    "description": "Идентификатор встречи",
-                    "type": "string"
-                },
-                "participantName": {
-                    "description": "Имя участника, отображаемое в комнате",
-                    "type": "string"
-                },
-                "roomName": {
-                    "description": "Название комнаты LiveKit",
-                    "type": "string"
-                },
-                "scheduledAt": {
-                    "description": "Запланированное время начала встречи (строка RFC3339)",
-                    "type": "string"
-                },
-                "token": {
-                    "description": "Токен доступа LiveKit",
-                    "type": "string"
-                },
-                "url": {
-                    "description": "URL сервера LiveKit",
-                    "type": "string"
-                }
-            }
-        },
-        "models.CreateMeetingRequest": {
-            "type": "object",
-            "required": [
-                "duration",
-                "scheduled_at",
-                "subject_id",
-                "title",
-                "type"
-            ],
-            "properties": {
-                "additional_notes": {
-                    "description": "Дополнительные заметки",
-                    "type": "string",
-                    "example": "Подготовить отчеты"
-                },
-                "department_ids": {
-                    "description": "Идентификаторы отделов",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "[\"550e8400-e29b-41d4-a716-446655440000\"]"
-                    ]
-                },
-                "duration": {
-                    "description": "Длительность в минутах",
-                    "type": "integer",
-                    "example": 60
-                },
-                "force_end_at_duration": {
-                    "description": "Принудительно завершить встречу после истечения времени",
-                    "type": "boolean",
-                    "example": true
-                },
-                "needs_audio_record": {
-                    "description": "Требуется ли аудиозапись",
-                    "type": "boolean",
-                    "example": true
-                },
-                "needs_video_record": {
-                    "description": "Требуется ли видеозапись",
-                    "type": "boolean",
-                    "example": true
-                },
-                "participant_ids": {
-                    "description": "Идентификаторы участников",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "[\"550e8400-e29b-41d4-a716-446655440000\"]"
-                    ]
-                },
-                "recurrence": {
-                    "description": "Частота повторения",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingRecurrence"
-                        }
-                    ],
-                    "example": "weekly"
-                },
-                "scheduled_at": {
-                    "description": "Запланированное время начала",
-                    "type": "string",
-                    "example": "2025-01-15T10:00:00Z"
-                },
-                "speaker_id": {
-                    "description": "Идентификатор докладчика (для презентаций)",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "subject_id": {
-                    "description": "Идентификатор темы",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "title": {
-                    "description": "Название встречи",
-                    "type": "string",
-                    "example": "Еженедельное совещание"
-                },
-                "type": {
-                    "description": "Тип встречи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingType"
-                        }
-                    ],
-                    "example": "conference"
-                }
-            }
-        },
-        "models.Department": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "description": "Время создания отдела",
-                    "type": "string"
-                },
-                "description": {
-                    "description": "Описание отдела",
-                    "type": "string"
-                },
-                "id": {
-                    "description": "Уникальный идентификатор отдела",
-                    "type": "string"
-                },
-                "is_active": {
-                    "description": "Активен ли отдел",
-                    "type": "boolean"
-                },
-                "level": {
-                    "description": "Глубина в иерархии (0 для корневого)",
-                    "type": "integer"
-                },
-                "name": {
-                    "description": "Название отдела",
-                    "type": "string"
-                },
-                "parent_id": {
-                    "description": "Идентификатор родительского отдела (NULL для корневых отделов)",
-                    "type": "string"
-                },
-                "path": {
-                    "description": "Полный путь вида \"root/child/grandchild\"",
-                    "type": "string"
-                },
-                "updated_at": {
-                    "description": "Время последнего обновления отдела",
-                    "type": "string"
-                }
-            }
-        },
-        "models.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "description": "HTTP код ошибки",
-                    "type": "integer"
-                },
-                "error": {
-                    "description": "Код ошибки",
-                    "type": "string"
-                },
-                "message": {
-                    "description": "Сообщение об ошибке",
-                    "type": "string"
-                },
-                "timestamp": {
-                    "description": "Время возникновения ошибки",
-                    "type": "string"
-                }
-            }
-        },
-        "models.FileUploadResponse": {
-            "type": "object",
-            "properties": {
-                "file_size": {
-                    "description": "Размер файла в байтах",
-                    "type": "integer"
-                },
-                "filename": {
-                    "description": "Имя файла",
-                    "type": "string"
-                },
-                "id": {
-                    "description": "Уникальный идентификатор загруженного файла",
-                    "type": "string"
-                },
-                "original_name": {
-                    "description": "Оригинальное имя файла",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "Статус обработки",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.TranscriptionStatus"
-                        }
-                    ]
-                },
-                "uploaded_at": {
-                    "description": "Время загрузки",
-                    "type": "string"
-                }
-            }
-        },
-        "models.HealthResponse": {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "description": "Статус здоровья",
-                    "type": "string"
-                },
-                "timestamp": {
-                    "description": "Время проверки",
-                    "type": "string"
-                },
-                "version": {
-                    "description": "Версия сервиса",
-                    "type": "string"
-                }
-            }
-        },
-        "models.ListFilesResponse": {
-            "type": "object",
-            "properties": {
-                "files": {
-                    "description": "Список файлов",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.UploadedFile"
-                    }
-                },
-                "page": {
-                    "description": "Номер текущей страницы",
-                    "type": "integer"
-                },
-                "pageSize": {
-                    "description": "Размер страницы",
-                    "type": "integer"
-                },
-                "total": {
-                    "description": "Общее количество файлов",
-                    "type": "integer"
-                }
-            }
-        },
-        "models.ListRecordingsResponse": {
-            "type": "object",
-            "properties": {
-                "page": {
-                    "description": "Номер текущей страницы",
-                    "type": "integer"
-                },
-                "page_size": {
-                    "description": "Размер страницы",
-                    "type": "integer"
-                },
-                "recordings": {
-                    "description": "Список записей",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Recording"
-                    }
-                },
-                "total": {
-                    "description": "Общее количество записей",
-                    "type": "integer"
-                }
-            }
-        },
-        "models.LoginRequest": {
-            "type": "object",
-            "required": [
-                "password",
-                "username"
-            ],
-            "properties": {
-                "password": {
-                    "description": "Пароль пользователя",
-                    "type": "string",
-                    "example": "password123"
-                },
-                "username": {
-                    "description": "Имя пользователя или email для входа",
-                    "type": "string",
-                    "example": "admin@recontext.online"
-                }
-            }
-        },
-        "models.LoginResponse": {
-            "type": "object",
-            "properties": {
-                "expires_at": {
-                    "description": "Время истечения срока действия токена",
-                    "type": "string"
-                },
-                "token": {
-                    "description": "JWT токен аутентификации",
-                    "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                },
-                "user": {
-                    "description": "Информация об аутентифицированном пользователе",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.UserInfo"
-                        }
-                    ]
-                }
-            }
-        },
-        "models.MeetingParticipantInfo": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "description": "Время создания записи",
-                    "type": "string"
-                },
-                "id": {
-                    "description": "Уникальный идентификатор участника",
-                    "type": "string"
-                },
-                "joined_at": {
-                    "description": "Время присоединения к встрече",
-                    "type": "string"
-                },
-                "left_at": {
-                    "description": "Время выхода из встречи",
-                    "type": "string"
-                },
-                "meeting_id": {
-                    "description": "Идентификатор встречи",
-                    "type": "string"
-                },
-                "role": {
-                    "description": "Роль участника (\"speaker\", \"participant\")",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "Статус участника (\"invited\", \"accepted\", \"declined\", \"attended\")",
-                    "type": "string"
-                },
-                "user": {
-                    "description": "Информация о пользователе",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.UserInfo"
-                        }
-                    ]
-                },
-                "user_id": {
-                    "description": "Идентификатор пользователя",
-                    "type": "string"
-                }
-            }
-        },
-        "models.MeetingRecurrence": {
-            "type": "string",
-            "enum": [
-                "none",
-                "daily",
-                "weekly",
-                "monthly"
-            ],
-            "x-enum-comments": {
-                "MeetingRecurrenceDaily": "Ежедневно",
-                "MeetingRecurrenceMonthly": "Ежемесячно",
-                "MeetingRecurrenceNone": "Не повторяется",
-                "MeetingRecurrenceWeekly": "Еженедельно"
-            },
-            "x-enum-descriptions": [
-                "Не повторяется",
-                "Ежедневно",
-                "Еженедельно",
-                "Ежемесячно"
-            ],
-            "x-enum-varnames": [
-                "MeetingRecurrenceNone",
-                "MeetingRecurrenceDaily",
-                "MeetingRecurrenceWeekly",
-                "MeetingRecurrenceMonthly"
-            ]
-        },
-        "models.MeetingStatus": {
-            "type": "string",
-            "enum": [
-                "scheduled",
-                "in_progress",
-                "completed",
-                "cancelled"
-            ],
-            "x-enum-comments": {
-                "MeetingStatusCancelled": "Отменена",
-                "MeetingStatusCompleted": "Завершена",
-                "MeetingStatusInProgress": "Идет",
-                "MeetingStatusScheduled": "Запланирована"
-            },
-            "x-enum-descriptions": [
-                "Запланирована",
-                "Идет",
-                "Завершена",
-                "Отменена"
-            ],
-            "x-enum-varnames": [
-                "MeetingStatusScheduled",
-                "MeetingStatusInProgress",
-                "MeetingStatusCompleted",
-                "MeetingStatusCancelled"
-            ]
-        },
-        "models.MeetingSubject": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "description": "Время создания",
-                    "type": "string"
-                },
-                "department_ids": {
-                    "description": "Отделы, с которыми связана эта тема",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "description": {
-                    "description": "Описание темы",
-                    "type": "string"
-                },
-                "id": {
-                    "description": "Уникальный идентификатор темы",
-                    "type": "string"
-                },
-                "is_active": {
-                    "description": "Активна ли тема",
-                    "type": "boolean"
-                },
-                "name": {
-                    "description": "Название темы",
-                    "type": "string"
-                },
-                "updated_at": {
-                    "description": "Время последнего обновления",
-                    "type": "string"
-                }
-            }
-        },
-        "models.MeetingSubjectsResponse": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "description": "Список тем",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.MeetingSubject"
-                    }
-                },
-                "offset": {
-                    "description": "Смещение от начала",
-                    "type": "integer"
-                },
-                "page_size": {
-                    "description": "Размер страницы",
-                    "type": "integer"
-                },
-                "total": {
-                    "description": "Общее количество тем",
-                    "type": "integer"
-                }
-            }
-        },
-        "models.MeetingType": {
-            "type": "string",
-            "enum": [
-                "presentation",
-                "conference"
-            ],
-            "x-enum-comments": {
-                "MeetingTypeConference": "Совещание",
-                "MeetingTypePresentation": "Доклад"
-            },
-            "x-enum-descriptions": [
-                "Доклад",
-                "Совещание"
-            ],
-            "x-enum-varnames": [
-                "MeetingTypePresentation",
-                "MeetingTypeConference"
-            ]
-        },
-        "models.MeetingWithDetails": {
-            "type": "object",
-            "properties": {
-                "additional_notes": {
-                    "description": "Дополнительные заметки",
-                    "type": "string"
-                },
-                "created_at": {
-                    "description": "Время создания",
-                    "type": "string"
-                },
-                "created_by": {
-                    "description": "Идентификатор пользователя, создавшего встречу",
-                    "type": "string"
-                },
-                "created_by_user": {
-                    "description": "Пользователь, создавший встречу",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.UserInfo"
-                        }
-                    ]
-                },
-                "departments": {
-                    "description": "Список отделов",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Department"
-                    }
-                },
-                "duration": {
-                    "description": "Длительность в минутах",
-                    "type": "integer"
-                },
-                "force_end_at_duration": {
-                    "description": "Принудительно завершить встречу после истечения времени",
-                    "type": "boolean"
-                },
-                "id": {
-                    "description": "Уникальный идентификатор встречи",
-                    "type": "string"
-                },
-                "livekit_room_id": {
-                    "description": "Ссылка на комнату LiveKit если встреча начата",
-                    "type": "string"
-                },
-                "needs_audio_record": {
-                    "description": "Требуется ли аудиозапись",
-                    "type": "boolean"
-                },
-                "needs_video_record": {
-                    "description": "Требуется ли видеозапись",
-                    "type": "boolean"
-                },
-                "participants": {
-                    "description": "Список участников",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.MeetingParticipantInfo"
-                    }
-                },
-                "recurrence": {
-                    "description": "Частота повторения",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingRecurrence"
-                        }
-                    ]
-                },
-                "scheduled_at": {
-                    "description": "Запланированное время начала",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "Текущий статус встречи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingStatus"
-                        }
-                    ]
-                },
-                "subject": {
-                    "description": "Тема встречи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingSubject"
-                        }
-                    ]
-                },
-                "subject_id": {
-                    "description": "Идентификатор темы встречи",
-                    "type": "string"
-                },
-                "title": {
-                    "description": "Название встречи",
-                    "type": "string"
-                },
-                "type": {
-                    "description": "Тип встречи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingType"
-                        }
-                    ]
-                },
-                "updated_at": {
-                    "description": "Время последнего обновления",
-                    "type": "string"
-                }
-            }
-        },
-        "models.MeetingsResponse": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "description": "Список встреч",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.MeetingWithDetails"
-                    }
-                },
-                "offset": {
-                    "description": "Смещение от начала",
-                    "type": "integer"
-                },
-                "page_size": {
-                    "description": "Размер страницы",
-                    "type": "integer"
-                },
-                "total": {
-                    "description": "Общее количество встреч",
-                    "type": "integer"
-                }
-            }
-        },
-        "models.RAGSearchRequest": {
-            "type": "object",
-            "required": [
-                "query"
-            ],
-            "properties": {
-                "query": {
-                    "description": "Текст запроса",
-                    "type": "string"
-                },
-                "threshold": {
-                    "description": "Порог схожести (по умолчанию: 0.7)",
-                    "type": "number"
-                },
-                "top_k": {
-                    "description": "Количество возвращаемых результатов (по умолчанию: 5)",
-                    "type": "integer"
-                }
-            }
-        },
-        "models.RAGSearchResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "description": "Количество найденных результатов",
-                    "type": "integer"
-                },
-                "query": {
-                    "description": "Исходный запрос",
-                    "type": "string"
-                },
-                "results": {
-                    "description": "Список результатов",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.RAGSearchResult"
-                    }
-                }
-            }
-        },
-        "models.RAGSearchResult": {
-            "type": "object",
-            "properties": {
-                "chunk_id": {
-                    "description": "Идентификатор фрагмента",
-                    "type": "string"
-                },
-                "chunk_index": {
-                    "description": "Индекс фрагмента",
-                    "type": "integer"
-                },
-                "chunk_text": {
-                    "description": "Текст фрагмента",
-                    "type": "string"
-                },
-                "file_id": {
-                    "description": "Идентификатор файла",
-                    "type": "string"
-                },
-                "file_name": {
-                    "description": "Имя файла",
-                    "type": "string"
-                },
-                "similarity": {
-                    "description": "Уровень схожести с запросом",
-                    "type": "number"
-                },
-                "uploaded_at": {
-                    "description": "Время загрузки файла",
-                    "type": "string"
-                }
-            }
-        },
-        "models.RAGStatusResponse": {
-            "type": "object",
-            "properties": {
-                "indexed_files": {
-                    "description": "Количество проиндексированных файлов",
-                    "type": "integer"
-                },
-                "is_ready": {
-                    "description": "Готова ли система к работе",
-                    "type": "boolean"
-                },
-                "total_chunks": {
-                    "description": "Общее количество фрагментов",
-                    "type": "integer"
-                }
-            }
-        },
-        "models.Recording": {
-            "type": "object",
-            "properties": {
-                "duration": {
-                    "description": "Длительность в секундах",
-                    "type": "number"
-                },
-                "file_name": {
-                    "description": "Имя файла",
-                    "type": "string"
-                },
-                "file_size": {
-                    "description": "Размер файла в байтах",
-                    "type": "integer"
-                },
-                "id": {
-                    "description": "Уникальный идентификатор записи",
-                    "type": "string"
-                },
-                "mime_type": {
-                    "description": "MIME тип файла",
-                    "type": "string"
-                },
-                "processed_at": {
-                    "description": "Время завершения обработки",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "Статус обработки записи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.RecordingStatus"
-                        }
-                    ]
-                },
-                "storage_path": {
-                    "description": "Путь к файлу в хранилище",
-                    "type": "string"
-                },
-                "title": {
-                    "description": "Название записи",
-                    "type": "string"
-                },
-                "transcript_id": {
-                    "description": "Идентификатор транскрипции (если есть)",
-                    "type": "string"
-                },
-                "uploaded_at": {
-                    "description": "Время загрузки",
-                    "type": "string"
-                },
-                "user_id": {
-                    "description": "Идентификатор пользователя",
-                    "type": "string"
-                }
-            }
-        },
-        "models.RecordingStatus": {
-            "type": "string",
-            "enum": [
-                "uploading",
-                "queued",
-                "transcribing",
-                "completed",
-                "failed"
-            ],
-            "x-enum-comments": {
-                "RecordingStatusCompleted": "Завершено",
-                "RecordingStatusFailed": "Ошибка",
-                "RecordingStatusQueued": "В очереди",
-                "RecordingStatusTranscribing": "Транскрибируется",
-                "RecordingStatusUploading": "Загружается"
-            },
-            "x-enum-descriptions": [
-                "Загружается",
-                "В очереди",
-                "Транскрибируется",
-                "Завершено",
-                "Ошибка"
-            ],
-            "x-enum-varnames": [
-                "RecordingStatusUploading",
-                "RecordingStatusQueued",
-                "RecordingStatusTranscribing",
-                "RecordingStatusCompleted",
-                "RecordingStatusFailed"
-            ]
-        },
-        "models.RequestPasswordResetRequest": {
-            "type": "object",
-            "required": [
-                "email"
-            ],
-            "properties": {
-                "email": {
-                    "description": "Адрес электронной почты для отправки кода сброса",
-                    "type": "string",
-                    "example": "user@example.com"
-                }
-            }
-        },
-        "models.RequestPasswordResetResponse": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "description": "Статусное сообщение",
-                    "type": "string",
-                    "example": "Password reset code sent to your email"
-                },
-                "token_id": {
-                    "description": "Идентификатор сгенерированного токена сброса",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                }
-            }
-        },
-        "models.ResetPasswordRequest": {
-            "type": "object",
-            "required": [
-                "code",
-                "new_password",
-                "token_id"
-            ],
-            "properties": {
-                "code": {
-                    "description": "6-значный код подтверждения",
-                    "type": "string",
-                    "example": "123456"
-                },
-                "new_password": {
-                    "description": "Новый пароль (минимум 8 символов)",
-                    "type": "string",
-                    "minLength": 8,
-                    "example": "newpassword123"
-                },
-                "token_id": {
-                    "description": "Идентификатор токена сброса",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                }
-            }
-        },
-        "models.ResetPasswordResponse": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "description": "Статусное сообщение",
-                    "type": "string",
-                    "example": "Password reset successfully"
-                }
-            }
-        },
-        "models.SearchResponse": {
-            "type": "object",
-            "properties": {
-                "page": {
-                    "description": "Номер текущей страницы",
-                    "type": "integer"
-                },
-                "page_size": {
-                    "description": "Размер страницы",
-                    "type": "integer"
-                },
-                "results": {
-                    "description": "Список результатов",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.SearchResult"
-                    }
-                },
-                "total": {
-                    "description": "Общее количество результатов",
-                    "type": "integer"
-                }
-            }
-        },
-        "models.SearchResult": {
-            "type": "object",
-            "properties": {
-                "recording_id": {
-                    "description": "Идентификатор записи",
-                    "type": "string"
-                },
-                "relevance": {
-                    "description": "Релевантность результата",
-                    "type": "number"
-                },
-                "snippet": {
-                    "description": "Фрагмент текста с совпадением",
-                    "type": "string"
-                },
-                "timestamp": {
-                    "description": "Временная метка в секундах",
-                    "type": "number"
-                },
-                "title": {
-                    "description": "Название записи",
-                    "type": "string"
-                },
-                "uploaded_at": {
-                    "description": "Время загрузки",
-                    "type": "string"
-                }
-            }
-        },
-        "models.TranscriptionStatus": {
-            "type": "string",
-            "enum": [
-                "pending",
-                "processing",
-                "completed",
-                "failed"
-            ],
-            "x-enum-comments": {
-                "StatusCompleted": "Завершено",
-                "StatusFailed": "Ошибка",
-                "StatusPending": "Ожидает обработки",
-                "StatusProcessing": "В процессе обработки"
-            },
-            "x-enum-descriptions": [
-                "Ожидает обработки",
-                "В процессе обработки",
-                "Завершено",
-                "Ошибка"
-            ],
-            "x-enum-varnames": [
-                "StatusPending",
-                "StatusProcessing",
-                "StatusCompleted",
-                "StatusFailed"
-            ]
-        },
-        "models.UpdateMeetingRequest": {
-            "type": "object",
-            "properties": {
-                "additional_notes": {
-                    "description": "Дополнительные заметки",
-                    "type": "string",
-                    "example": "Обновленные комментарии"
-                },
-                "department_ids": {
-                    "description": "Идентификаторы отделов",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "[\"550e8400-e29b-41d4-a716-446655440000\"]"
-                    ]
-                },
-                "duration": {
-                    "description": "Длительность в минутах",
-                    "type": "integer",
-                    "example": 90
-                },
-                "force_end_at_duration": {
-                    "description": "Принудительно завершить встречу после истечения времени",
-                    "type": "boolean",
-                    "example": true
-                },
-                "needs_audio_record": {
-                    "description": "Требуется ли аудиозапись",
-                    "type": "boolean",
-                    "example": true
-                },
-                "needs_video_record": {
-                    "description": "Требуется ли видеозапись",
-                    "type": "boolean",
-                    "example": true
-                },
-                "participant_ids": {
-                    "description": "Идентификаторы участников",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "[\"550e8400-e29b-41d4-a716-446655440000\"]"
-                    ]
-                },
-                "recurrence": {
-                    "description": "Частота повторения",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingRecurrence"
-                        }
-                    ],
-                    "example": "weekly"
-                },
-                "scheduled_at": {
-                    "description": "Запланированное время начала",
-                    "type": "string",
-                    "example": "2025-01-15T10:00:00Z"
-                },
-                "speaker_id": {
-                    "description": "Идентификатор докладчика",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "status": {
-                    "description": "Статус встречи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingStatus"
-                        }
-                    ],
-                    "example": "in_progress"
-                },
-                "subject_id": {
-                    "description": "Идентификатор темы",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "title": {
-                    "description": "Название встречи",
-                    "type": "string",
-                    "example": "Обновленное название"
-                },
-                "type": {
-                    "description": "Тип встречи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.MeetingType"
-                        }
-                    ],
-                    "example": "conference"
-                }
-            }
-        },
-        "models.UpdateProfileRequest": {
-            "type": "object",
-            "properties": {
-                "avatar": {
-                    "description": "URL аватара",
-                    "type": "string",
-                    "example": "https://example.com/avatar.jpg"
-                },
-                "bio": {
-                    "description": "Биография",
-                    "type": "string",
-                    "example": "Software developer"
-                },
-                "first_name": {
-                    "description": "Имя",
-                    "type": "string",
-                    "example": "John"
-                },
-                "language": {
-                    "description": "Предпочитаемый язык",
-                    "type": "string",
-                    "example": "en"
-                },
-                "last_name": {
-                    "description": "Фамилия",
-                    "type": "string",
-                    "example": "Doe"
-                },
-                "phone": {
-                    "description": "Номер телефона",
-                    "type": "string",
-                    "example": "+1234567890"
-                }
-            }
-        },
-        "models.UploadAvatarResponse": {
-            "type": "object",
-            "properties": {
-                "avatar_url": {
-                    "description": "URL загруженного аватара",
-                    "type": "string",
-                    "example": "https://example.com/avatars/user-123.jpg"
-                },
-                "message": {
-                    "description": "Статусное сообщение",
-                    "type": "string",
-                    "example": "Avatar uploaded successfully"
-                }
-            }
-        },
-        "models.UploadResponse": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "description": "Статусное сообщение",
-                    "type": "string",
-                    "example": "File uploaded successfully"
-                },
-                "recording_id": {
-                    "description": "Идентификатор созданной записи",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "upload_url": {
-                    "description": "URL для загрузки файла",
-                    "type": "string",
-                    "example": "https://minio:9000/recontext/uploads/550e8400-e29b-41d4-a716-446655440000.mp4"
-                }
-            }
-        },
-        "models.UploadedFile": {
-            "type": "object",
-            "properties": {
-                "file_size": {
-                    "description": "Размер файла в байтах",
-                    "type": "integer"
-                },
-                "filename": {
-                    "description": "Имя файла в хранилище",
-                    "type": "string"
-                },
-                "group_id": {
-                    "description": "Идентификатор группы",
-                    "type": "string"
-                },
-                "id": {
-                    "description": "Уникальный идентификатор файла",
-                    "type": "string"
-                },
-                "metadata": {
-                    "description": "Дополнительные метаданные файла",
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "mime_type": {
-                    "description": "MIME тип файла",
-                    "type": "string"
-                },
-                "original_name": {
-                    "description": "Оригинальное имя файла",
-                    "type": "string"
-                },
-                "processed_at": {
-                    "description": "Время завершения обработки файла",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "Статус обработки файла",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.TranscriptionStatus"
-                        }
-                    ]
-                },
-                "storage_path": {
-                    "description": "Путь к файлу в хранилище",
-                    "type": "string"
-                },
-                "transcription_id": {
-                    "description": "Идентификатор транскрипции (если есть)",
-                    "type": "string"
-                },
-                "uploaded_at": {
-                    "description": "Время загрузки файла",
-                    "type": "string"
-                },
-                "user_id": {
-                    "description": "Идентификатор пользователя, загрузившего файл",
-                    "type": "string"
-                }
-            }
-        },
-        "models.UserInfo": {
-            "type": "object",
-            "properties": {
-                "avatar": {
-                    "description": "URL аватара или base64 изображение",
-                    "type": "string",
-                    "example": "https://example.com/avatar.jpg"
-                },
-                "bio": {
-                    "description": "Биография пользователя",
-                    "type": "string",
-                    "example": "Software developer"
-                },
-                "department_id": {
-                    "description": "Идентификатор отдела, к которому принадлежит пользователь",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "email": {
-                    "description": "Адрес электронной почты пользователя",
-                    "type": "string",
-                    "example": "admin@recontext.online"
-                },
-                "first_name": {
-                    "description": "Имя пользователя",
-                    "type": "string",
-                    "example": "John"
-                },
-                "id": {
-                    "description": "Уникальный идентификатор пользователя",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "language": {
-                    "description": "Предпочитаемый язык пользователя",
-                    "type": "string",
-                    "example": "en"
-                },
-                "last_name": {
-                    "description": "Фамилия пользователя",
-                    "type": "string",
-                    "example": "Doe"
-                },
-                "permissions": {
-                    "description": "Специфические разрешения пользователя",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.UserPermissions"
-                        }
-                    ]
-                },
-                "phone": {
-                    "description": "Номер телефона пользователя",
-                    "type": "string",
-                    "example": "+1234567890"
-                },
-                "role": {
-                    "description": "Роль пользователя в системе",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.UserRole"
-                        }
-                    ],
-                    "example": "admin"
-                },
-                "username": {
-                    "description": "Имя пользователя для входа",
-                    "type": "string",
-                    "example": "admin"
-                }
-            }
-        },
-        "models.UserPermissions": {
-            "type": "object",
-            "properties": {
-                "can_approve_recordings": {
-                    "description": "Разрешение на утверждение записей",
-                    "type": "boolean"
-                },
-                "can_manage_department": {
-                    "description": "Разрешение на управление отделом",
-                    "type": "boolean"
-                },
-                "can_schedule_meetings": {
-                    "description": "Разрешение на планирование видеовстреч",
-                    "type": "boolean"
-                }
-            }
-        },
-        "models.UserRole": {
-            "type": "string",
-            "enum": [
-                "admin",
-                "user",
-                "operator",
-                "service"
-            ],
-            "x-enum-comments": {
-                "RoleService": "Роль для сервисной аутентификации (межсервисные вызовы)"
-            },
-            "x-enum-descriptions": [
-                "",
-                "",
-                "",
-                "Роль для сервисной аутентификации (межсервисные вызовы)"
-            ],
-            "x-enum-varnames": [
-                "RoleAdmin",
-                "RoleUser",
-                "RoleOperator",
-                "RoleService"
-            ]
-        },
-        "models.VerifyResetCodeRequest": {
-            "type": "object",
-            "required": [
-                "code",
-                "token_id"
-            ],
-            "properties": {
-                "code": {
-                    "description": "6-значный код подтверждения",
-                    "type": "string",
-                    "example": "123456"
-                },
-                "token_id": {
-                    "description": "Идентификатор токена сброса для проверки",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                }
-            }
-        },
-        "models.VerifyResetCodeResponse": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "description": "Дополнительная информация о проверке",
-                    "type": "string",
-                    "example": "Code verified successfully"
-                },
-                "valid": {
-                    "description": "Валиден ли код",
-                    "type": "boolean",
-                    "example": true
-                }
-            }
-        }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and JWT token.",
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
+    "version": "0.1.0"
+  },
+  "host": "localhost:8081",
+  "basePath": "/",
+  "schemes": ["http"],
+  "securityDefinitions": {
+    "BearerAuth": {
+      "description": "Type \"Bearer\" followed by a space and JWT token.",
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
     }
+  },
+  "paths": {
+    "/api/v1/profile": {
+      "get": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Profile"],
+        "summary": "Текущий профиль",
+        "description": "Получить минимальный профиль пользователя",
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.MinimalUserInfo"}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/update-profile": {
+      "put": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Profile"],
+        "summary": "Обновить профиль",
+        "description": "Обновить bio, имя текущего пользователя",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [{
+          "name": "request",
+          "in": "body",
+          "required": true,
+          "schema": {"$ref": "#/definitions/models.UpdateProfileRequest"}
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.UserInfo"}
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Аутентификация пользователя",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["Auth"],
+        "summary": "Вход",
+        "parameters": [{
+          "description": "Учетные данные",
+          "name": "request",
+          "in": "body",
+          "required": true,
+          "schema": {"$ref": "#/definitions/models.LoginRequest"}
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.LoginResponse"}
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password-reset/request": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Запрос сброса",
+        "description": "Запросить код на email",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [{
+          "description": "Email",
+          "name": "request",
+          "in": "body",
+          "required": true,
+          "schema": {"$ref": "#/definitions/models.RequestPasswordResetRequest"}
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.RequestPasswordResetResponse"}
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password-reset/verify": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Проверить код",
+        "description": "Проверить код сброса",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [{
+          "description": "Токен и код",
+          "name": "request",
+          "in": "body",
+          "required": true,
+          "schema": {"$ref": "#/definitions/models.VerifyResetCodeRequest"}
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.VerifyResetCodeResponse"}
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password-reset/reset": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Сброс пароля",
+        "description": "Сброс с кодом",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [{
+          "description": "Данные сброса",
+          "name": "request",
+          "in": "body",
+          "required": true,
+          "schema": {"$ref": "#/definitions/models.ResetPasswordRequest"}
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.ResetPasswordResponse"}
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Profile"],
+        "summary": "Профиль пользователя",
+        "description": "Получить профиль",
+        "produces": ["application/json"],
+        "parameters": [{
+          "type": "string",
+          "description": "ID пользователя",
+          "name": "id",
+          "in": "path",
+          "required": true
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.UserInfo"}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      },
+      "put": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Profile"],
+        "summary": "Обновить профиль",
+        "description": "Самообслуживание",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [{
+          "type": "string",
+          "description": "ID",
+          "name": "id",
+          "in": "path",
+          "required": true
+        }, {
+          "description": "Данные",
+          "name": "request",
+          "in": "body",
+          "required": true,
+          "schema": {"$ref": "#/definitions/models.UpdateProfileRequest"}
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.UserInfo"}
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/avatar": {
+      "post": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Profile"],
+        "summary": "Загрузить аватар",
+        "description": "Обновить аватар",
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
+        "parameters": [{
+          "type": "file",
+          "description": "Файл аватара",
+          "name": "avatar",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.UploadAvatarResponse"}
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/meetings": {
+      "get": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Meetings"],
+        "summary": "Мои встречи",
+        "description": "Список с фильтрами",
+        "produces": ["application/json"],
+        "parameters": [{
+          "type": "integer",
+          "default": 1,
+          "name": "page",
+          "in": "query"
+        }, {
+          "type": "integer",
+          "default": 20,
+          "name": "page_size",
+          "in": "query"
+        }, {
+          "type": "string",
+          "enum": ["scheduled", "in_progress", "completed", "cancelled"],
+          "name": "status",
+          "in": "query"
+        }, {
+          "type": "string",
+          "enum": ["presentation", "conference"],
+          "name": "type",
+          "in": "query"
+        }, {
+          "type": "string",
+          "name": "subject_id",
+          "in": "query"
+        }, {
+          "type": "string",
+          "name": "date_from",
+          "in": "query"
+        }, {
+          "type": "string",
+          "name": "date_to",
+          "in": "query"
+        }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.MeetingsResponse"}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      },
+      "post": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Meetings"],
+        "summary": "Создать встречу",
+        "description": "Новая встреча",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [{
+          "description": "Данные встречи",
+          "name": "request",
+          "in": "body",
+          "required": true,
+          "schema": {"$ref": "#/definitions/models.CreateMeetingRequest"}
+        }],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          }
+        }
+      }
+    },
+    "/api/v1/meetings/{id}": {
+      "get": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Meetings"],
+        "summary": "Детали встречи",
+        "parameters": [{
+          "type": "string",
+          "name": "id",
+          "in": "path",
+          "required": true
+        }],
+        "responses": {
+          "200": {
+            "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}
+          }
+        }
+      },
+      "put": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Meetings"],
+        "summary": "Обновить",
+        "consumes": ["application/json"],
+        "parameters": [{
+          "type": "string",
+          "name": "id",
+          "in": "path",
+          "required": true
+        }, {
+          "name": "request",
+          "in": "body",
+          "required": true,
+          "schema": {"$ref": "#/definitions/models.UpdateMeetingRequest"}
+        }],
+        "responses": {
+          "200": {
+            "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}
+          }
+        }
+      },
+      "delete": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Meetings"],
+        "summary": "Отменить",
+        "parameters": [{
+          "type": "string",
+          "name": "id",
+          "in": "path",
+          "required": true
+        }],
+        "responses": {
+          "200": {
+            "schema": {"type": "object", "additionalProperties": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/hard-delete": {
+      "delete": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Meetings"],
+        "summary": "Удалить навсегда",
+        "description": "Только отмененные",
+        "parameters": [{
+          "type": "string",
+          "name": "id",
+          "in": "path",
+          "required": true
+        }],
+        "responses": {
+          "200": {
+            "schema": {"type": "object", "additionalProperties": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "/api/v1/meeting-subjects": {
+      "get": {
+        "security": [{"BearerAuth": []}],
+        "tags": ["Meetings"],
+        "summary": "Темы",
+        "parameters": [{
+          "type": "integer",
+          "default": 1,
+          "name": "page",
+          "in": "query"
+        }, {
+          "type": "integer",
+          "default": 100,
+          "name": "page_size",
+          "in": "query"
+        }, {
+          "type": "boolean",
+          "default": false,
+          "name": "include_inactive",
+          "in": "query"
+        }],
+        "responses": {
+          "200": {
+            "schema": {"$ref": "#/definitions/models.MeetingSubjectsResponse"}
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Здоровье",
+        "responses": {
+          "200": {
+            "schema": {"$ref": "#/definitions/models.HealthResponse"}
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "models.UserInfo": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "username": {"type": "string", "example": "admin"},
+        "email": {"type": "string", "example": "admin@recontext.online"},
+        "role": {"$ref": "#/definitions/models.UserRole"},
+        "organization_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "first_name": {"type": "string", "example": "John"},
+        "last_name": {"type": "string", "example": "Doe"},
+        "phone": {"type": "string", "example": "+1234567890"},
+        "bio": {"type": "string", "example": "Software developer"},
+        "avatar": {"type": "string", "example": "https://example.com/avatar.jpg"},
+        "department_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "permissions": {"$ref": "#/definitions/models.UserPermissions"},
+        "language": {"type": "string", "example": "en"},
+        "notification_preferences": {"type": "string", "example": "rooms"}
+      }
+    },
+    "models.MinimalUserInfo": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "username": {"type": "string"},
+        "email": {"type": "string"},
+        "role": {"$ref": "#/definitions/models.UserRole"},
+        "first_name": {"type": "string"},
+        "last_name": {"type": "string"},
+        "bio": {"type": "string"}
+      }
+    },
+    "models.UpdateProfileRequest": {
+      "type": "object",
+      "properties": {
+        "first_name": {"type": "string"},
+        "last_name": {"type": "string"},
+        "phone": {"type": "string"},
+        "bio": {"type": "string"},
+        "avatar": {"type": "string"},
+        "language": {"type": "string"},
+        "notification_preferences": {"type": "string", "enum": ["tracks", "rooms", "both"]}
+      }
+    },
+    "models.UserPermissions": {
+      "type": "object",
+      "properties": {
+        "can_schedule_meetings": {"type": "boolean"},
+        "can_manage_department": {"type": "boolean"},
+        "can_approve_recordings": {"type": "boolean"}
+      }
+    },
+    "models.UserRole": {
+      "type": "string",
+      "enum": ["admin", "user", "operator", "service"]
+    },
+    "models.ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "code": {"type": "integer"},
+        "error": {"type": "string"},
+        "message": {"type": "string"},
+        "timestamp": {"type": "string"}
+      }
+    },
+    "models.MeetingWithDetails": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "status": {"type": "string", "enum": ["scheduled", "in_progress", "completed", "cancelled"]},
+        "type": {"type": "string", "enum": ["presentation", "conference"]},
+        "scheduled_at": {"type": "string"},
+        "duration": {"type": "integer"},
+        "participants": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/models.UserInfo"}
+        },
+        "subject": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "string"},
+            "name": {"type": "string"}
+          }
+        }
+      }
+    },
+    "models.MeetingsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/models.MeetingWithDetails"}
+        },
+        "page": {"type": "integer"},
+        "page_size": {"type": "integer"},
+        "total": {"type": "integer"}
+      }
+    },
+    "models.CreateMeetingRequest": {
+      "type": "object",
+      "required": ["title", "duration", "type", "subject_id"],
+      "properties": {
+        "title": {"type": "string"},
+        "duration": {"type": "integer"},
+        "type": {"type": "string", "enum": ["presentation", "conference"]},
+        "subject_id": {"type": "string"},
+        "scheduled_at": {"type": "string"},
+        "participant_ids": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "department_ids": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "speaker_id": {"type": "string"},
+        "recurrence": {"type": "string", "enum": ["none", "daily", "weekly", "monthly"]}
+      }
+    },
+    "models.UpdateMeetingRequest": {
+      "type": "object",
+      "properties": {
+        "title": {"type": "string"},
+        "duration": {"type": "integer"},
+        "status": {"type": "string", "enum": ["scheduled", "in_progress", "completed", "cancelled"]},
+        "subject_id": {"type": "string"},
+        "participant_ids": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "models.MeetingSubjectsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "name": {"type": "string"},
+              "is_active": {"type": "boolean"}
+            }
+          }
+        },
+        "total": {"type": "integer"}
+      }
+    },
+    "models.LoginRequest": {
+      "type": "object",
+      "required": ["username", "password"],
+      "properties": {
+        "username": {"type": "string"},
+        "password": {"type": "string"}
+      }
+    },
+    "models.LoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {"type": "string"},
+        "expires_at": {"type": "string"},
+        "user": {"$ref": "#/definitions/models.UserInfo"}
+      }
+    },
+    "models.UploadAvatarResponse": {
+      "type": "object",
+      "properties": {
+        "avatar_url": {"type": "string"},
+        "message": {"type": "string"}
+      }
+    }
+  }
 }
+
