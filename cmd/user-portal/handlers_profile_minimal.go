@@ -85,6 +85,9 @@ func (up *UserPortal) updateMyProfileHandler(w http.ResponseWriter, r *http.Requ
 		user.LastName = req.LastName
 	}
 	user.Bio = req.Bio // allow empty to clear
+	if req.AvatarURL != "" {
+		user.Avatar = req.AvatarURL
+	}
 
 	user.UpdatedAt = time.Now()
 	if err := up.userRepo.Update(user); err != nil {

@@ -323,6 +323,11 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Password != req.ConfirmPassword {
+		up.respondWithError(w, http.StatusBadRequest, "Passwords do not match", "")
+		return
+	}
+
 	// Check uniqueness
 	if exists, _ := up.userRepo.UsernameExists(req.Username); exists {
 		up.respondWithError(w, http.StatusConflict, "Username already exists", "")
@@ -345,7 +350,6 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Language:  req.Language,
 	}
 
 	if err := up.userRepo.Create(user); err != nil {
@@ -1068,7 +1072,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	// Password reset endpoints (public)
 	mux.HandleFunc("/api/v1/auth/password-reset/request", up.requestPasswordResetHandler)
-	mux.HandleFunc("/api/v1/auth/password-reset/verify", up.verifyResetCodeHandler)
 	mux.HandleFunc("/api/v1/auth/password-reset/reset", up.resetPasswordHandler)
 
 	// Anonymous meeting join endpoint (public) - must be registered before protected /api/v1/meetings/ route
@@ -1150,13 +1153,10 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/meetings/", chainMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Check if this is a token request
 			if strings.HasSuffix(r.URL.Path, "/token") && r.Method == http.MethodGet {
 				up.getMeetingTokenHandler(w, r)
 				return
 			}
-
-			// Check if this is a recording control request
 			if strings.HasSuffix(r.URL.Path, "/recording/start") && r.Method == http.MethodPost {
 				up.startRecordingHandler(w, r)
 				return
@@ -1165,8 +1165,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				up.stopRecordingHandler(w, r)
 				return
 			}
-
-			// Check if this is a transcription control request
 			if strings.HasSuffix(r.URL.Path, "/transcription/start") && r.Method == http.MethodPost {
 				up.startTranscriptionHandler(w, r)
 				return
@@ -1175,43 +1173,30 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				up.stopTranscriptionHandler(w, r)
 				return
 			}
-
-			// Check if this is a WebSocket connection request
 			if strings.HasSuffix(r.URL.Path, "/ws") && r.Method == http.MethodGet {
 				up.handleWebSocket(w, r)
 				return
 			}
-
-			// Check if this is a recordings request
 			if strings.HasSuffix(r.URL.Path, "/recordings") && r.Method == http.MethodGet {
 				up.getMeetingRecordingsHandler(w, r)
 				return
 			}
-
-			// Check if this is a tasks request
 			if strings.HasSuffix(r.URL.Path, "/tasks") && r.Method == http.MethodGet {
 				up.getMeetingTasksHandler(w, r)
 				return
 			}
-
-			// Check if this is a generate-summary request
 			if strings.HasSuffix(r.URL.Path, "/generate-summary") && r.Method == http.MethodPost {
 				up.generateMeetingSummaryHandler(w, r)
 				return
 			}
-
-			// Check if this is a hard-delete request
 			if strings.HasSuffix(r.URL.Path, "/hard-delete") && r.Method == http.MethodDelete {
 				up.hardDeleteMeetingHandler(w, r)
 				return
 			}
-
-			// Check if this is a recording delete request: /api/v1/meetings/{id}/recordings/{roomSid}
 			if strings.Contains(r.URL.Path, "/recordings/") && r.Method == http.MethodDelete {
 				up.deleteRecordingHandler(w, r)
 				return
 			}
-
 			switch r.Method {
 			case http.MethodGet:
 				up.getMeetingHandler(w, r)
@@ -1225,10 +1210,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		}),
 		authMiddleware,
 	))
-
-	// Generate meeting summary endpoint (match pattern /api/v1/meetings/{id}/generate-summary)
-	// Note: This will match before the generic /api/v1/meetings/{id} handler
-	// We need to check the path more carefully in the handler
 
 	// Meeting subjects endpoint
 	mux.Handle("/api/v1/meeting-subjects", chainMiddleware(
@@ -1289,7 +1270,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/tasks/", chainMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Check if this is a status update request
 			if strings.HasSuffix(r.URL.Path, "/status") && r.Method == http.MethodPut {
 				up.updateTaskStatusHandler(w, r)
 				return
@@ -1302,7 +1282,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	// Track transcription endpoint
 	mux.Handle("/api/tracks/", chainMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Check if this is a transcribe request: /api/tracks/{id}/transcribe
 			if strings.Contains(r.URL.Path, "/transcribe") && r.Method == http.MethodPost {
 				up.forceTranscribeTrackHandler(w, r)
 				return
@@ -1315,10 +1294,7 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	// Profile endpoints - MUST come before /api/v1/users to avoid conflicts
 	mux.Handle("/api/v1/users/", chainMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Extract path after /api/v1/users/
 			pathAfterUsers := strings.TrimPrefix(r.URL.Path, "/api/v1/users/")
-
-			// Check if this is the list endpoint (empty path after users/)
 			if pathAfterUsers == "" {
 				if r.Method == http.MethodGet {
 					up.listUsersHandler(w, r)
@@ -1327,14 +1303,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				}
 				return
 			}
-
-			// Check if this is an avatar upload request
-			if strings.HasSuffix(r.URL.Path, "/avatar") && r.Method == http.MethodPost {
-				up.uploadAvatarHandler(w, r)
-				return
-			}
-
-			// Handle profile GET/PUT for specific user ID
 			switch r.Method {
 			case http.MethodGet:
 				up.getProfileHandler(w, r)
@@ -1369,13 +1337,10 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	mux.Handle("/api/v1/organizations/", chainMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Check if this is a stats request
 			if strings.HasSuffix(r.URL.Path, "/stats") && r.Method == http.MethodGet {
 				up.GetOrganizationStatsHandler(w, r)
 				return
 			}
-
-			// Handle single organization operations
 			switch r.Method {
 			case http.MethodGet:
 				up.GetOrganizationHandler(w, r)
@@ -1410,7 +1375,7 @@ func (up *UserPortal) Start() error {
 		up.transcriptionScheduler = NewTranscriptionScheduler(up)
 		up.transcriptionScheduler.Start()
 	} else {
-		up.logger.Info("🎙️ [TRANSCRIPTION SCHEDULER] Skipped - RabbitMQ not available")
+		up.logger.Info("️ [TRANSCRIPTION SCHEDULER] Skipped - RabbitMQ not available")
 	}
 
 	// Initialize LLM client for memo generation
@@ -1420,11 +1385,11 @@ func (up *UserPortal) Start() error {
 		getEnv("LLM_API_KEY", ""),
 	)
 	if llmClient.IsConfigured() {
-		up.logger.Infof("📝 [LLM] Configured with endpoint: %s, model: %s",
+		up.logger.Infof(" [LLM] Configured with endpoint: %s, model: %s",
 			getEnv("LLM_API_ENDPOINT", "https://api.openai.com/v1"),
 			getEnv("LLM_MODEL", "gpt-3.5-turbo"))
 	} else {
-		up.logger.Info("📝 [LLM] Not configured - memo generation will be skipped")
+		up.logger.Info(" [LLM] Not configured - memo generation will be skipped")
 	}
 
 	// Start transcription notifier if RabbitMQ and FCM are available
@@ -1437,10 +1402,10 @@ func (up *UserPortal) Start() error {
 
 		up.transcriptionNotifier = NewTranscriptionNotifier(up, up.fcmService, llmClient)
 		if err := up.transcriptionNotifier.Start(rabbitmqURL); err != nil {
-			up.logger.Errorf("📢 [TRANSCRIPTION NOTIFIER] Failed to start: %v", err)
+			up.logger.Errorf(" [TRANSCRIPTION NOTIFIER] Failed to start: %v", err)
 		}
 	} else {
-		up.logger.Info("📢 [TRANSCRIPTION NOTIFIER] Skipped - RabbitMQ not available")
+		up.logger.Info(" [TRANSCRIPTION NOTIFIER] Skipped - RabbitMQ not available")
 	}
 
 	mux := up.setupRoutes()
@@ -1449,6 +1414,41 @@ func (up *UserPortal) Start() error {
 	handler := recoveryMiddleware(mux)
 	metricsMiddleware := metrics.HTTPMetricsMiddleware(up.prometheusMetrics)
 	handler = metricsMiddleware(handler)
+
+	// CORS middleware
+	corsHandler := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			allowedOrigins := []string{
+				"http://localhost:20081",
+				"http://185.200.240.31:20081",
+				"http://localhost.hehe.dev",
+				"http://localhost.recontext.dev",
+				"http://localhost:3000",
+				"http://localhost:5173",
+				"http://localhost.recontext.local",
+				"https://localhost.recontext.dev",
+				"https://localhost.recontext.local",
+				"https://24recontext.ru",
+				"https://www.24recontext.ru",
+			}
+			for _, allowed := range allowedOrigins {
+				if origin == allowed {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					break
+				}
+			}
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+	handler = corsHandler(handler)
 
 	addr := fmt.Sprintf("%s:%d", up.config.Server.Host, up.config.Server.Port)
 	up.logger.Infof("User Portal starting on %s", addr)

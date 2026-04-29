@@ -128,8 +128,8 @@ type RegisterRequest struct {
 	Email string `json:"email" binding:"required,email" example:"user@example.com"`
 	// Желаемый пароль (минимум 8 символов)
 	Password string `json:"password" binding:"required,min=8" example:"password123"`
-	// Предпочитаемый язык (опционально)
-	Language string `json:"language,omitempty" example:"en"`
+	// Подтверждение пароля (должно совпадать с password)
+	ConfirmPassword string `json:"confirm_password" binding:"required" example:"password123"`
 }
 
 // TokenClaims представляет claims JWT токена

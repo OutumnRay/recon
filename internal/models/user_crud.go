@@ -45,7 +45,7 @@ type UpdateProfileRequest struct {
 	// Биография
 	Bio       string `json:"bio,omitempty" example:"Software developer"`
 	// URL аватара
-	Avatar    string `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
+	AvatarURL string `json:"avatar_url,omitempty" example:"https://example.com/avatar.jpg"`
 	// Предпочитаемый язык
 	Language  string `json:"language,omitempty" example:"en"`
 	// Настройки уведомлений пользователя (tracks, rooms, both)
