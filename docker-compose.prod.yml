@@ -7,7 +7,7 @@
 services:
   # 1. Managing Portal
   managing-portal:
-    image: sivanov2018/recontext-managing-portal:latest
+    image: raykzer/recontext-managing-portal:latest
     pull_policy: always
     container_name: recontext-managing-portal
     ports:
@@ -64,7 +64,7 @@ services:
 
   # 2. User Portal
   user-portal:
-    image: sivanov2018/recontext-user-portal:latest
+    image: raykzer/recontext-user-portal:latest
     pull_policy: always
     container_name: recontext-user-portal
     ports:
@@ -188,7 +188,7 @@ services:
 
   # 6. Python Transcription Worker
   transcription-worker-py:
-    image: sivanov2018/recontext-transcription-worker:latest
+    image: raykzer/recontext-transcription-worker:latest
     pull_policy: always
     container_name: recontext-transcription-worker-py
     environment:

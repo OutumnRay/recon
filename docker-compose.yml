@@ -11,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.managing-portal
-    image: sivanov2018/recontext-managing-portal:latest
+    image: raykzer/recontext-managing-portal:latest
     container_name: recontext-managing-portal
     ports:
       - "${MANAGING_PORTAL_PORT:-20080}:8080"
@@ -68,7 +68,7 @@ services:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.user-portal
-    image: sivanov2018/recontext-user-portal:latest
+    image: raykzer/recontext-user-portal:latest
     container_name: recontext-user-portal
     ports:
       - "${USER_PORTAL_PORT:-20081}:8081"

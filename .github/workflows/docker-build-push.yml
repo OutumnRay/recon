@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  DOCKER_USERNAME: sivanov2018
+  DOCKER_USERNAME: raykzer
   DOCKER_REGISTRY: docker.io
 
 jobs:
