@@ -26,8 +26,8 @@ jobs:
             dockerfile: deployments/docker/Dockerfile.managing-portal
           - name: user-portal
             dockerfile: deployments/docker/Dockerfile.user-portal
-#          - name: transcription-worker
-#            dockerfile: deployments/docker/Dockerfile.transcription-worker
+          - name: transcription-worker
+            dockerfile: deployments/docker/Dockerfile.transcription-worker-py
 #          - name: summarization-worker
 #            dockerfile: deployments/docker/Dockerfile.summarization-worker
 #          - name: jitsi-agent
