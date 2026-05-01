@@ -375,7 +375,9 @@ docker-compose build
 - **Logging Utility**: Structured logging across all services
 - **Dockerfiles**: All 5 services containerized with multi-stage builds
 - **Docker Compose**: Full 11-service orchestration
-- **CI/CD Pipeline**: GitHub Actions with multi-service builds (main branch only)
+- **CI/CD Pipeline**: GitHub Actions with multi-service builds and SSH auto-deploy to prod server
+- **docker-compose.prod.yml**: Production compose с named volumes (PostgreSQL, MinIO, Qdrant, RabbitMQ)
+- **scripts/deploy.sh**: Скрипт деплоя — `docker compose pull && up -d`, запускается с сервера по SSH
 
 ⚠️ **Partially Implemented**:
 - **Worker Services**: Basic Go structure implemented, pending:

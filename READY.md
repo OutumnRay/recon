@@ -2,6 +2,18 @@
 
 ## What Has Been Completed
 
+### Production-деплой на выделенный сервер (CI/CD)
+- ✅ `docker-compose.prod.yml` — файл для выделенного сервера с named volumes:
+  - `postgres_data` — данные PostgreSQL сохраняются между деплоями
+  - `minio_data` — файлы в MinIO сохраняются между деплоями
+  - `qdrant_data` — векторные индексы Qdrant сохраняются
+  - `rabbitmq_data` — очереди RabbitMQ сохраняются
+  - Использует готовые образы из Docker Hub с `pull_policy: always`
+- ✅ `scripts/deploy.sh` — скрипт деплоя на сервере: `docker compose pull && up -d`
+- ✅ GitHub Actions `deploy` job — после успешного билда SSH-подключается к серверу и запускает деплой
+  - Секреты: `SERVER_HOST`, `SERVER_USER`, `SERVER_SSH_KEY`, `SERVER_SSH_PORT`
+- ✅ GORM AutoMigrate — миграции БД накопительные, данные не стираются при обновлении кода
+
 ### Деплой на TimeWeb Cloud
 - ✅ `docker-compose.timeweb.yml` — версия без `volumes` для TimeWeb Cloud Apps:
   - Убраны все named volumes и bind mounts (не поддерживаются санитайзером TimeWeb)
