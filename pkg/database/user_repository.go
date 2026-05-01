@@ -1,6 +1,7 @@
 package database
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -124,6 +125,12 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 		user.DepartmentID = dbUser.DepartmentID
 	}
 
+	if dbUser.Permissions != "" {
+		if err := json.Unmarshal([]byte(dbUser.Permissions), &user.Permissions); err != nil {
+			return nil, fmt.Errorf("failed to parse user permissions: %w", err)
+		}
+	}
+
 	return user, nil
 }
 
@@ -164,6 +171,12 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 
 	if dbUser.DepartmentID != nil {
 		user.DepartmentID = dbUser.DepartmentID
+	}
+
+	if dbUser.Permissions != "" {
+		if err := json.Unmarshal([]byte(dbUser.Permissions), &user.Permissions); err != nil {
+			return nil, fmt.Errorf("failed to parse user permissions: %w", err)
+		}
 	}
 
 	return user, nil
@@ -222,6 +235,12 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	}
 	if dbUser.DepartmentID != nil {
 		user.DepartmentID = dbUser.DepartmentID
+	}
+
+	if dbUser.Permissions != "" {
+		if err := json.Unmarshal([]byte(dbUser.Permissions), &user.Permissions); err != nil {
+			return nil, fmt.Errorf("failed to parse user permissions: %w", err)
+		}
 	}
 
 	return user, nil
