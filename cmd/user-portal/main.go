@@ -302,14 +302,16 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 
 // Register godoc
 // @Summary Регистрация нового пользователя
-// @Description Создать новый аккаунт пользователя и получить JWT токен
+// @Description Создать новый аккаунт пользователя. Требуется organization_id организации-партнёра.
+// @Description Если для организации задан корпоративный домен, email должен ему соответствовать.
 // @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param request body models.RegisterRequest true "Данные для регистрации"
 // @Success 201 {object} models.MinimalLoginResponse
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 409 {object} models.ErrorResponse "Username or email already exists"
+// @Failure 400 {object} models.ErrorResponse "Некорректные данные или неверный organization_id"
+// @Failure 403 {object} models.ErrorResponse "Организация неактивна или домен email не разрешён"
+// @Failure 409 {object} models.ErrorResponse "Username или email уже существует"
 // @Router /api/v1/auth/register [post]
 func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.RegisterRequest
@@ -323,9 +325,36 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.OrganizationID == uuid.Nil {
+		up.respondWithError(w, http.StatusBadRequest, "Organization ID is required", "")
+		return
+	}
+
 	if req.Password != req.ConfirmPassword {
 		up.respondWithError(w, http.StatusBadRequest, "Passwords do not match", "")
 		return
+	}
+
+	// Проверяем, что организация существует и активна
+	orgRepo := database.NewOrganizationRepository(up.db)
+	org, err := orgRepo.GetOrganizationByID(req.OrganizationID)
+	if err != nil {
+		up.respondWithError(w, http.StatusBadRequest, "Invalid organization ID", "")
+		return
+	}
+	if !org.IsActive {
+		up.respondWithError(w, http.StatusForbidden, "Organization is not active", "")
+		return
+	}
+
+	// Если для организации задан корпоративный домен — проверяем email
+	if org.Domain != nil && *org.Domain != "" {
+		emailParts := strings.SplitN(req.Email, "@", 2)
+		if len(emailParts) != 2 || emailParts[1] != *org.Domain {
+			up.respondWithError(w, http.StatusForbidden,
+				"Email domain is not allowed for this organization. Expected: @"+*org.Domain, "")
+			return
+		}
 	}
 
 	// Check uniqueness
@@ -340,16 +369,18 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create user
 	hashedPassword := auth.HashPassword(req.Password)
+	orgID := req.OrganizationID
 
 	user := &models.User{
-		ID:        uuid.New(),
-		Username:  req.Username,
-		Email:     req.Email,
-		Password:  hashedPassword,
-		Role:      models.RoleUser,
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:             uuid.New(),
+		Username:       req.Username,
+		Email:          req.Email,
+		Password:       hashedPassword,
+		Role:           models.RoleUser,
+		OrganizationID: &orgID,
+		IsActive:       true,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	if err := up.userRepo.Create(user); err != nil {

@@ -1096,6 +1096,24 @@
   - `cmd/user-portal/handlers_recordings.go` — удалены двуязычные дубликаты, шумовые комментарии
   - `cmd/user-portal/handlers_transcription.go` — убраны очевидные комментарии
 
+### Phase 14: Регистрация с привязкой к организации (Completed)
+
+#### Backend
+- ✅ Добавлено поле `organization_id` (UUID) в `RegisterRequest` (`internal/models/auth.go`)
+- ✅ Обновлён `registerHandler` (`cmd/user-portal/main.go`):
+  - `organization_id` обязателен при регистрации
+  - Проверяется существование организации (по ID) и её активность (`is_active = true`)
+  - Если для организации задан корпоративный домен (`domain`), email пользователя обязан ему соответствовать
+  - При успехе пользователь создаётся с заполненным `organization_id`
+- ✅ Логика домена: если `Organization.Domain == NULL` — любой email разрешён; если задан — только `user@{domain}`
+
+#### Как работает
+1. Администратор заводит организацию через `POST /api/v1/organizations` (managing-portal)
+2. Опционально задаёт поле `domain` = `"company.com"` — только корпоративные почты
+3. Сообщает сотрудникам `organization_id` организации
+4. Пользователь регистрируется через `POST /api/v1/auth/register`, передавая `organization_id`
+5. Сервер проверяет организацию и (если задан домен) соответствие email
+
 ### Immediate Next Steps
 1. Реализовать обратный вызов от Python-воркера для обновления статуса файла в БД (webhook или Redis pub/sub)
 2. Добавить отображение статуса транскрибации и результатов в UI Documents-страницы

@@ -124,12 +124,14 @@ type UserInfo struct {
 type RegisterRequest struct {
 	// Желаемое имя пользователя для нового аккаунта
 	Username string `json:"username" binding:"required" example:"newuser"`
-	// Адрес электронной почты для нового аккаунта
-	Email string `json:"email" binding:"required,email" example:"user@example.com"`
+	// Адрес электронной почты для нового аккаунта (должен соответствовать домену организации)
+	Email string `json:"email" binding:"required,email" example:"user@company.com"`
 	// Желаемый пароль (минимум 8 символов)
 	Password string `json:"password" binding:"required,min=8" example:"password123"`
 	// Подтверждение пароля (должно совпадать с password)
 	ConfirmPassword string `json:"confirm_password" binding:"required" example:"password123"`
+	// ID организации, выданный сотрудникам организации-партнёра
+	OrganizationID uuid.UUID `json:"organization_id" example:"550e8400-e29b-41d4-a716-446655440000"`
 }
 
 // TokenClaims представляет claims JWT токена
