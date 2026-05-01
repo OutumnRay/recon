@@ -275,11 +275,6 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Create new user with default permissions
-	language := req.Language
-	if language == "" {
-		language = "en" // Default language
-	}
-
 	newUser := &models.User{
 		ID:       uuid.New(),
 		Username: req.Username,
@@ -291,7 +286,7 @@ func (mp *ManagingPortal) registerHandler(w http.ResponseWriter, r *http.Request
 			CanManageDepartment:  false,
 			CanApproveRecordings: false,
 		},
-		Language:  language,
+		Language:  "en",
 		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
