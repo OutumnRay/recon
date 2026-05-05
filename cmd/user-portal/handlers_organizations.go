@@ -55,6 +55,7 @@ type CreateOrganizationRequest struct {
 	Domain      *string `json:"domain"`
 	LogoURL     *string `json:"logo_url"`
 	IsActive    bool    `json:"is_active"`
+	MaxUsers    *int    `json:"max_users"`
 	Settings    string  `json:"settings"`
 }
 
@@ -77,6 +78,7 @@ func (up *UserPortal) CreateOrganizationHandler(w http.ResponseWriter, r *http.R
 		Domain:      req.Domain,
 		LogoURL:     req.LogoURL,
 		IsActive:    req.IsActive,
+		MaxUsers:    req.MaxUsers,
 		Settings:    req.Settings,
 	}
 
@@ -98,6 +100,7 @@ type UpdateOrganizationRequest struct {
 	Domain      *string `json:"domain"`
 	LogoURL     *string `json:"logo_url"`
 	IsActive    bool    `json:"is_active"`
+	MaxUsers    *int    `json:"max_users"`
 	Settings    string  `json:"settings"`
 }
 
@@ -134,6 +137,7 @@ func (up *UserPortal) UpdateOrganizationHandler(w http.ResponseWriter, r *http.R
 		Domain:      req.Domain,
 		LogoURL:     req.LogoURL,
 		IsActive:    req.IsActive,
+		MaxUsers:    req.MaxUsers,
 		Settings:    req.Settings,
 	}
 

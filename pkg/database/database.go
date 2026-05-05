@@ -382,6 +382,19 @@ func (db *DB) insertDefaultData() error {
 	}
 	db.Where(Organization{Name: org.Name}).FirstOrCreate(&org)
 
+	// Insert test company for development/demo purposes
+	demoDomain := "demo.recontext.online"
+	demoMaxUsers := 50
+	demoOrg := Organization{
+		Name:        "Demo Company",
+		Description: "Тестовая компания для демонстрации и разработки",
+		Domain:      &demoDomain,
+		MaxUsers:    &demoMaxUsers,
+		IsActive:    true,
+		Settings:    `{}`,
+	}
+	db.Where(Organization{Name: demoOrg.Name}).FirstOrCreate(&demoOrg)
+
 	// Insert default root department with organization link (UUID will be auto-generated)
 	dept := Department{
 		Name:           "Organization",

@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"Recontext.online/internal/models"
+	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/database"
 	"Recontext.online/pkg/email"
 	"golang.org/x/crypto/bcrypt"
@@ -193,6 +194,11 @@ func (up *UserPortal) resetPasswordHandler(w http.ResponseWriter, r *http.Reques
 
 	if token.Code != req.Code {
 		up.respondWithError(w, http.StatusBadRequest, "Invalid code", "The provided code is incorrect")
+		return
+	}
+
+	if msg := auth.ValidatePassword(req.NewPassword); msg != "" {
+		up.respondWithError(w, http.StatusBadRequest, msg, "")
 		return
 	}
 

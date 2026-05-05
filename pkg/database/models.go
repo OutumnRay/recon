@@ -22,6 +22,8 @@ type Organization struct {
 	LogoURL *string `gorm:"type:text" json:"logo_url"`
 	// IsActive - активна ли организация
 	IsActive bool `gorm:"not null;default:true" json:"is_active"`
+	// MaxUsers - максимальное количество пользователей, которые могут зарегистрироваться в организации (nil = без ограничений)
+	MaxUsers *int `gorm:"type:integer" json:"max_users,omitempty"`
 	// Settings - JSON с настройками организации
 	Settings string `gorm:"type:jsonb;not null;default:'{}'" json:"settings"`
 	// CreatedAt - время создания организации

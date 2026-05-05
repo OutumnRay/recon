@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"Recontext.online/internal/models"
 )
@@ -119,6 +120,35 @@ func (m *JWTManager) createSignature(message string) string {
 	h := hmac.New(sha256.New, m.secretKey)
 	h.Write([]byte(message))
 	return base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+}
+
+// ValidatePassword checks password strength: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit.
+// Returns an error message string (empty string = valid).
+func ValidatePassword(password string) string {
+	if len(password) < 8 {
+		return "Password must be at least 8 characters long"
+	}
+	var hasUpper, hasLower, hasDigit bool
+	for _, ch := range password {
+		switch {
+		case unicode.IsUpper(ch):
+			hasUpper = true
+		case unicode.IsLower(ch):
+			hasLower = true
+		case unicode.IsDigit(ch):
+			hasDigit = true
+		}
+	}
+	if !hasUpper {
+		return "Password must contain at least one uppercase letter"
+	}
+	if !hasLower {
+		return "Password must contain at least one lowercase letter"
+	}
+	if !hasDigit {
+		return "Password must contain at least one digit"
+	}
+	return ""
 }
 
 // HashPassword creates a simple hash of the password (for demo purposes)

@@ -330,6 +330,11 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if msg := auth.ValidatePassword(req.Password); msg != "" {
+		up.respondWithError(w, http.StatusBadRequest, msg, "")
+		return
+	}
+
 	if req.Password != req.ConfirmPassword {
 		up.respondWithError(w, http.StatusBadRequest, "Passwords do not match", "")
 		return
@@ -353,6 +358,22 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 		if len(emailParts) != 2 || emailParts[1] != *org.Domain {
 			up.respondWithError(w, http.StatusForbidden,
 				"Email domain is not allowed for this organization. Expected: @"+*org.Domain, "")
+			return
+		}
+	}
+
+	// Проверяем лимит пользователей организации
+	if org.MaxUsers != nil {
+		var currentCount int64
+		if err := up.db.DB.Model(&database.User{}).
+			Where("organization_id = ?", org.ID).
+			Count(&currentCount).Error; err != nil {
+			up.respondWithError(w, http.StatusInternalServerError, "Failed to check organization user limit", err.Error())
+			return
+		}
+		if int(currentCount) >= *org.MaxUsers {
+			up.respondWithError(w, http.StatusForbidden,
+				fmt.Sprintf("Organization has reached its user limit (%d)", *org.MaxUsers), "")
 			return
 		}
 	}
@@ -411,6 +432,57 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+// CheckAuth godoc
+// @Summary Проверка авторизации
+// @Description Проверяет валидность JWT-токена и возвращает информацию о текущем пользователе
+// @Tags Authentication
+// @Produce json
+// @Success 200 {object} models.MinimalLoginResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Security BearerAuth
+// @Router /api/v1/auth/check [get]
+func (up *UserPortal) checkAuthHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		up.respondWithError(w, http.StatusUnauthorized, "Unauthorized", "")
+		return
+	}
+
+	user, err := up.userRepo.GetByID(claims.UserID)
+	if err != nil {
+		up.respondWithError(w, http.StatusUnauthorized, "User not found", "")
+		return
+	}
+
+	if !user.IsActive {
+		up.respondWithError(w, http.StatusUnauthorized, "Account is inactive", "")
+		return
+	}
+
+	token, expiresAt, err := up.jwtManager.GenerateToken(user)
+	if err != nil {
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to generate token", err.Error())
+		return
+	}
+
+	response := models.MinimalLoginResponse{
+		Token:     token,
+		ExpiresAt: expiresAt,
+		User: models.MinimalUserInfo{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			Role:      user.Role,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Bio:       user.Bio,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -1093,6 +1165,10 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("/health", up.healthHandler)
 	mux.HandleFunc("/api/v1/auth/login", up.loginHandler)
 	mux.HandleFunc("/api/v1/auth/register", up.registerHandler)
+	mux.Handle("/api/v1/auth/check", chainMiddleware(
+		http.HandlerFunc(up.checkAuthHandler),
+		auth.AuthMiddleware(up.jwtManager),
+	))
 
 	// Profile endpoints (protected)
 	profileMiddleware := chainMiddleware(http.HandlerFunc(up.getMyProfileHandler), auth.AuthMiddleware(up.jwtManager))
