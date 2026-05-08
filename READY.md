@@ -1126,11 +1126,72 @@
 4. Пользователь регистрируется через `POST /api/v1/auth/register`, передавая `organization_id`
 5. Сервер проверяет организацию и (если задан домен) соответствие email
 
+### Phase 15: Presigned-URL Upload Flow + Redis Result Consumer (Completed)
+
+#### Backend — User Portal
+
+- ✅ **pkg/storage/minio.go** — добавлены три метода:
+  - `PresignedPutObject(ctx, objectPath, expiry)` — presigned PUT URL для прямой загрузки браузером
+  - `PresignedGetObject(ctx, objectPath, expiry)` — presigned GET URL для скачивания/воспроизведения
+  - `StatObject(ctx, objectPath)` — проверка наличия объекта в MinIO (используется при confirm)
+  - Оба presigned-метода заменяют внутренний хост публичным `MINIO_PUBLIC_ENDPOINT` для доступа из браузера
+
+- ✅ **pkg/database/models.go** — расширена модель `UploadedFile`:
+  - Новые поля: `Title`, `Bucket`, `Language`, `Duration *float64`, `Progress int`, `Stage`, `ErrorMessage *string`, `ETag *string`
+  - Добавлена модель `FileTranscriptionPhrase` (таблица `file_transcription_phrases`) — фразы транскрипции с временными метками и спикером
+  - Добавлена модель `FileSummary` (таблица `file_summaries`) — резюме файла (summary, key_topics, action_items)
+
+- ✅ **pkg/database/database.go** — добавлены миграции и индексы для новых таблиц
+
+- ✅ **pkg/database/files_repository.go** — 14 новых методов:
+  - `CreateUploadedFileV2`, `GetUploadedFileV2`, `ConfirmUpload`, `UpdateFileProgress`
+  - `SetFileCompleted`, `SetFileFailed`, `ListUploadedFilesV2`
+  - `BulkInsertPhrases`, `GetFilePhrasesPage`, `GetFileSpeakers`, `DeleteFilePhrases`
+  - `UpsertFileSummary`, `UpdateFileSummaryStatus`, `GetFileSummary`
+
+- ✅ **internal/models/uploads.go** — новые типы запросов/ответов:
+  - `InitUploadRequest/Response`, `ConfirmUploadRequest/Response`
+  - `FileStatusResponse`, `FileListItem/Response`, `FileDetailResponse`
+  - `FilePhraseItem`, `FileTranscriptResponse`, `FileSummaryResponse`
+  - `FileResultCallback`, `FileResultParagraph` — формат от Python-воркера
+
+- ✅ **cmd/user-portal/handlers_files_upload.go** (НОВЫЙ) — 9 хэндлеров:
+  - `POST /api/v1/files/init` — создаёт запись в БД, возвращает presigned PUT URL
+  - `POST /api/v1/files/{id}/confirm` — проверяет объект в MinIO через `StatObject`, переводит статус `pending→queued`, публикует задачу в Redis
+  - `GET /api/v1/files/{id}/status` — статус обработки (`status, progress, stage, error`)
+  - `GET /api/v1/files` — список файлов с пагинацией, фильтрами `status` и `search`
+  - `GET /api/v1/files/{id}` — детали файла + `transcript_summary` (кол-во фраз, спикеров, has_summary)
+  - `DELETE /api/v1/files/{id}` — удаление из MinIO + soft-delete в БД
+  - `GET /api/v1/files/{id}/transcript` — страница фраз с фильтром по спикеру
+  - `GET /api/v1/files/{id}/summary` — резюме файла
+  - `GET /api/v1/files/{id}/video` — редирект на presigned GET URL (с поддержкой Range для стриминга)
+
+- ✅ **cmd/user-portal/handlers_files_consumer.go** (НОВЫЙ) — Redis result consumer:
+  - `FileResultConsumer` — слушает очередь `recontext:transcription:results` через `BRPOP`
+  - Для завершённых задач: скачивает `paragraphs.json` из MinIO, bulk-insert фраз, отмечает файл `completed`
+  - Для failed задач: отмечает файл `failed` с сообщением об ошибке
+  - Graceful disable если `REDIS_HOST` не задан
+
+- ✅ **cmd/user-portal/main.go** — роуты и инициализация:
+  - Добавлено поле `fileResultConsumer *FileResultConsumer` в структуру `UserPortal`
+  - Все новые маршруты зарегистрированы в `setupRoutes()`
+  - `FileResultConsumer` инициализируется и стартует в методе `Start()`
+  - Сборка `go build ./cmd/user-portal/...` — успешно
+
+#### Как работает полный цикл
+1. Фронтенд вызывает `POST /api/v1/files/init` — получает presigned PUT URL
+2. Браузер загружает файл напрямую в MinIO по presigned URL (без Go-прокси)
+3. Фронтенд вызывает `POST /api/v1/files/{id}/confirm` с ETag от MinIO
+4. Go проверяет объект в MinIO, публикует задачу в Redis (`recontext:transcription:queue`)
+5. Python-воркер подхватывает задачу, запускает Whisper + diarization
+6. Результат пушится в Redis (`recontext:transcription:results`)
+7. `FileResultConsumer` читает результат, сохраняет фразы в `file_transcription_phrases`, обновляет статус файла
+8. Фронтенд опрашивает `GET /api/v1/files/{id}/status` (или `/transcript`, `/summary`)
+
 ### Immediate Next Steps
-1. Реализовать обратный вызов от Python-воркера для обновления статуса файла в БД (webhook или Redis pub/sub)
-2. Добавить отображение статуса транскрибации и результатов в UI Documents-страницы
-3. Тестировать сквозной поток: загрузка → MinIO → Redis → Python-воркер → транскрипция → векторизация
-4. Complete Summarization Worker integration
+1. Добавить отображение статуса транскрибации и результатов транскрипции в UI Documents-страницы
+2. Тестировать сквозной поток: загрузка → MinIO → Redis → Python-воркер → транскрипция → результат → БД
+3. Complete Summarization Worker integration
 
 ## Notes
 - **Phase 1 (Infrastructure) is complete**: Project structure, Docker infrastructure, CI/CD pipeline

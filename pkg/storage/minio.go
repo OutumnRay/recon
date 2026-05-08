@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -258,6 +260,53 @@ func (mc *MinIOClient) EnsureBucket(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// PresignedPutObject returns a time-limited URL the client can use to PUT an object
+// directly into MinIO without credentials. expiry must not exceed 7 days.
+func (mc *MinIOClient) PresignedPutObject(ctx context.Context, objectPath string, expiry time.Duration) (string, error) {
+	u, err := mc.client.PresignedPutObject(ctx, mc.bucket, objectPath, expiry)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned PUT URL: %w", err)
+	}
+
+	// Replace internal host with the public endpoint so the browser can reach it
+	if mc.publicEndpoint != "" && mc.publicEndpoint != mc.client.EndpointURL().Host {
+		scheme := "http"
+		if mc.useSSL {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+		u.Host = mc.publicEndpoint
+	}
+
+	return u.String(), nil
+}
+
+// PresignedGetObject returns a time-limited URL for downloading an object.
+func (mc *MinIOClient) PresignedGetObject(ctx context.Context, objectPath string, expiry time.Duration) (string, error) {
+	reqParams := make(url.Values)
+	u, err := mc.client.PresignedGetObject(ctx, mc.bucket, objectPath, expiry, reqParams)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned GET URL: %w", err)
+	}
+
+	if mc.publicEndpoint != "" && mc.publicEndpoint != mc.client.EndpointURL().Host {
+		scheme := "http"
+		if mc.useSSL {
+			scheme = "https"
+		}
+		u.Scheme = scheme
+		u.Host = mc.publicEndpoint
+	}
+
+	return u.String(), nil
+}
+
+// StatObject returns metadata for an object (size, ETag, etc.).
+// Returns an error if the object does not exist.
+func (mc *MinIOClient) StatObject(ctx context.Context, objectPath string) (minio.ObjectInfo, error) {
+	return mc.client.StatObject(ctx, mc.bucket, objectPath, minio.StatObjectOptions{})
 }
 
 func (mc *MinIOClient) GetClient() *minio.Client {

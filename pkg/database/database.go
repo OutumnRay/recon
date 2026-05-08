@@ -219,6 +219,8 @@ func (db *DB) RunMigrations() error {
 		&GroupMembership{},
 		&UploadedFile{},
 		&FileTranscription{},
+		&FileTranscriptionPhrase{},
+		&FileSummary{},
 		&DocumentChunk{},
 		&models.Room{},
 		&models.Participant{},
@@ -277,6 +279,15 @@ func (db *DB) createAdditionalIndexes() error {
 		"CREATE INDEX IF NOT EXISTS idx_uploaded_files_group ON uploaded_files(group_id)",
 		"CREATE INDEX IF NOT EXISTS idx_uploaded_files_status ON uploaded_files(status)",
 		"CREATE INDEX IF NOT EXISTS idx_uploaded_files_uploaded_at ON uploaded_files(uploaded_at DESC)",
+
+		// File transcription phrases indexes
+		"CREATE INDEX IF NOT EXISTS idx_file_phrases_file_id ON file_transcription_phrases(file_id)",
+		"CREATE INDEX IF NOT EXISTS idx_file_phrases_file_phrase ON file_transcription_phrases(file_id, phrase_index)",
+		"CREATE INDEX IF NOT EXISTS idx_file_phrases_speaker ON file_transcription_phrases(file_id, speaker)",
+
+		// File summaries indexes
+		"CREATE INDEX IF NOT EXISTS idx_file_summaries_file_id ON file_summaries(file_id)",
+		"CREATE INDEX IF NOT EXISTS idx_file_summaries_status ON file_summaries(status)",
 
 		// File transcriptions indexes
 		"CREATE INDEX IF NOT EXISTS idx_file_transcriptions_file ON file_transcriptions(file_id)",

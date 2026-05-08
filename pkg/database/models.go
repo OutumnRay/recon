@@ -168,6 +168,8 @@ type GroupMembership struct {
 type UploadedFile struct {
 	// ID - уникальный идентификатор файла
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()" json:"id"`
+	// Title - пользовательское название файла
+	Title string `gorm:"type:varchar(500);not null;default:''" json:"title"`
 	// Filename - имя файла в системе хранения
 	Filename string `gorm:"type:varchar(500);not null" json:"filename"`
 	// OriginalName - оригинальное имя файла при загрузке
@@ -178,12 +180,26 @@ type UploadedFile struct {
 	MimeType string `gorm:"type:varchar(255);not null" json:"mime_type"`
 	// StoragePath - путь к файлу в системе хранения (S3, MinIO и т.д.)
 	StoragePath string `gorm:"type:text;not null" json:"storage_path"`
+	// Bucket - MinIO бакет, в котором хранится файл
+	Bucket string `gorm:"type:varchar(100);not null;default:'recontext'" json:"bucket"`
 	// UserID - ID пользователя, который загрузил файл
 	UserID uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	// GroupID - ID группы, к которой относится файл
 	GroupID uuid.UUID `gorm:"type:uuid;not null" json:"group_id"`
-	// Status - статус обработки файла (pending, processing, completed, failed)
+	// Language - язык файла для транскрипции (ru, en, auto)
+	Language string `gorm:"type:varchar(10);not null;default:'auto'" json:"language"`
+	// Duration - длительность аудио/видео в секундах
+	Duration *float64 `gorm:"type:decimal(12,3)" json:"duration,omitempty"`
+	// Status - статус обработки файла (pending, queued, transcribing, diarizing, vectorizing, completed, failed)
 	Status string `gorm:"type:varchar(50);not null;default:'pending'" json:"status"`
+	// Progress - процент выполнения (0-100)
+	Progress int `gorm:"not null;default:0" json:"progress"`
+	// Stage - текущий этап обработки (transcribing, diarizing, vectorizing)
+	Stage string `gorm:"type:varchar(50)" json:"stage,omitempty"`
+	// ErrorMessage - описание ошибки (если есть)
+	ErrorMessage *string `gorm:"type:text" json:"error_message,omitempty"`
+	// ETag - ETag файла из MinIO (подтверждение загрузки)
+	ETag *string `gorm:"type:varchar(255)" json:"etag,omitempty"`
 	// TranscriptionID - ID транскрипции файла (если есть)
 	TranscriptionID *uuid.UUID `gorm:"type:uuid" json:"transcription_id"`
 	// Metadata - JSON с дополнительными метаданными файла
@@ -200,6 +216,68 @@ type UploadedFile struct {
 	User User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	// Group - группа, к которой относится файл
 	Group Group `gorm:"foreignKey:GroupID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+// FileTranscriptionPhrase - отдельная фраза транскрипции загруженного файла
+type FileTranscriptionPhrase struct {
+	// ID - уникальный идентификатор фразы
+	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	// FileID - ID загруженного файла
+	FileID uuid.UUID `gorm:"type:uuid;not null;index:idx_file_phrases_file_id" json:"file_id"`
+	// PhraseIndex - порядковый номер фразы в транскрипции
+	PhraseIndex int `gorm:"not null" json:"phrase_index"`
+	// StartTime - время начала фразы в секундах
+	StartTime float64 `gorm:"type:decimal(12,3);not null" json:"start_time"`
+	// EndTime - время окончания фразы в секундах
+	EndTime float64 `gorm:"type:decimal(12,3);not null" json:"end_time"`
+	// Text - текст фразы
+	Text string `gorm:"type:text;not null" json:"text"`
+	// Speaker - идентификатор говорящего (из диаризации: SPEAKER_00, SPEAKER_01...)
+	Speaker string `gorm:"type:varchar(100)" json:"speaker,omitempty"`
+	// Confidence - уровень уверенности распознавания (0-1)
+	Confidence *float64 `gorm:"type:decimal(5,4)" json:"confidence,omitempty"`
+	// CreatedAt - время создания записи
+	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+
+	// Relations
+	File UploadedFile `gorm:"foreignKey:FileID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+// TableName задаёт имя таблицы
+func (FileTranscriptionPhrase) TableName() string {
+	return "file_transcription_phrases"
+}
+
+// FileSummary - итоговое резюме транскрипции загруженного файла
+type FileSummary struct {
+	// ID - уникальный идентификатор
+	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	// FileID - ID загруженного файла (уникальный — один файл = одно резюме)
+	FileID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex" json:"file_id"`
+	// Summary - итоговое резюме
+	Summary string `gorm:"type:text" json:"summary,omitempty"`
+	// SummaryRu - резюме на русском языке
+	SummaryRu string `gorm:"type:text" json:"summary_ru,omitempty"`
+	// KeyTopics - ключевые темы
+	KeyTopics pq.StringArray `gorm:"type:text[]" json:"key_topics,omitempty"`
+	// ActionItems - задачи и решения из встречи
+	ActionItems pq.StringArray `gorm:"type:text[]" json:"action_items,omitempty"`
+	// Status - статус генерации резюме (pending, processing, completed, failed)
+	Status string `gorm:"type:varchar(50);not null;default:'pending'" json:"status"`
+	// ErrorMessage - описание ошибки (если есть)
+	ErrorMessage *string `gorm:"type:text" json:"error_message,omitempty"`
+	// CreatedAt - время создания записи
+	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+	// UpdatedAt - время последнего обновления
+	UpdatedAt time.Time `gorm:"not null;default:now()" json:"updated_at"`
+
+	// Relations
+	File UploadedFile `gorm:"foreignKey:FileID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+// TableName задаёт имя таблицы
+func (FileSummary) TableName() string {
+	return "file_summaries"
 }
 
 // FileTranscription - транскрипция загруженного аудио/видео файла

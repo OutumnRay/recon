@@ -118,14 +118,155 @@ type FileTranscription struct {
 
 // DownloadFileRequest представляет запрос на скачивание файла
 type DownloadFileRequest struct {
-	// Идентификатор файла для скачивания
 	FileID uuid.UUID `json:"file_id" binding:"required"`
 }
 
 // DeleteFileRequest представляет запрос на удаление файла
 type DeleteFileRequest struct {
-	// Идентификатор файла для удаления
 	FileID uuid.UUID `json:"file_id" binding:"required"`
-	// Причина удаления
 	Reason string    `json:"reason,omitempty"`
+}
+
+// ─── Presigned-upload flow ────────────────────────────────────────────────────
+
+// InitUploadRequest — тело POST /api/v1/files/init
+type InitUploadRequest struct {
+	Title    string `json:"title"`
+	FileName string `json:"file_name"`
+	FileSize int64  `json:"file_size"`
+	MimeType string `json:"mime_type"`
+	Language string `json:"language"` // "ru", "en", "auto"
+}
+
+// InitUploadResponse — ответ на POST /api/v1/files/init
+type InitUploadResponse struct {
+	FileID        uuid.UUID         `json:"file_id"`
+	UploadURL     string            `json:"upload_url"`
+	UploadMethod  string            `json:"upload_method"`
+	UploadHeaders map[string]string `json:"upload_headers"`
+	StoragePath   string            `json:"storage_path"`
+	ExpiresAt     time.Time         `json:"expires_at"`
+}
+
+// ConfirmUploadRequest — тело POST /api/v1/files/{id}/confirm
+type ConfirmUploadRequest struct {
+	ETag string `json:"etag"`
+}
+
+// ConfirmUploadResponse — ответ на POST /api/v1/files/{id}/confirm
+type ConfirmUploadResponse struct {
+	FileID  uuid.UUID `json:"file_id"`
+	Status  string    `json:"status"`
+	Message string    `json:"message"`
+}
+
+// FileStatusResponse — ответ на GET /api/v1/files/{id}/status
+type FileStatusResponse struct {
+	FileID    uuid.UUID  `json:"file_id"`
+	Status    string     `json:"status"`
+	Progress  int        `json:"progress"`
+	Stage     string     `json:"stage,omitempty"`
+	Error     string     `json:"error,omitempty"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+// FileListItem — элемент в списке файлов
+type FileListItem struct {
+	ID           uuid.UUID  `json:"id"`
+	Title        string     `json:"title"`
+	FileName     string     `json:"file_name"`
+	FileSize     int64      `json:"file_size"`
+	MimeType     string     `json:"mime_type"`
+	Duration     *float64   `json:"duration,omitempty"`
+	Status       string     `json:"status"`
+	Progress     int        `json:"progress"`
+	Language     string     `json:"language"`
+	UploadedAt   time.Time  `json:"uploaded_at"`
+	CompletedAt  *time.Time `json:"completed_at,omitempty"`
+}
+
+// FileListResponse — ответ на GET /api/v1/files
+type FileListResponse struct {
+	Items    []FileListItem `json:"items"`
+	Total    int64          `json:"total"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"page_size"`
+}
+
+// FileDetailResponse — ответ на GET /api/v1/files/{id}
+type FileDetailResponse struct {
+	ID          uuid.UUID  `json:"id"`
+	Title       string     `json:"title"`
+	FileName    string     `json:"file_name"`
+	FileSize    int64      `json:"file_size"`
+	MimeType    string     `json:"mime_type"`
+	Duration    *float64   `json:"duration,omitempty"`
+	Status      string     `json:"status"`
+	Progress    int        `json:"progress"`
+	Stage       string     `json:"stage,omitempty"`
+	Language    string     `json:"language"`
+	ErrorMsg    string     `json:"error,omitempty"`
+	UploadedAt  time.Time  `json:"uploaded_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	Transcript  *struct {
+		PhraseCount  int64    `json:"phrase_count"`
+		SpeakerCount int      `json:"speaker_count"`
+		HasSummary   bool     `json:"has_summary"`
+		Speakers     []string `json:"speakers,omitempty"`
+	} `json:"transcript_summary,omitempty"`
+	VideoURL string `json:"video_url,omitempty"`
+}
+
+// FilePhraseItem — одна фраза в ответе транскрипции
+type FilePhraseItem struct {
+	PhraseIndex int      `json:"phrase_index"`
+	StartTime   float64  `json:"start_time"`
+	EndTime     float64  `json:"end_time"`
+	Text        string   `json:"text"`
+	Speaker     string   `json:"speaker,omitempty"`
+	Confidence  *float64 `json:"confidence,omitempty"`
+}
+
+// FileTranscriptResponse — ответ на GET /api/v1/files/{id}/transcript
+type FileTranscriptResponse struct {
+	FileID   uuid.UUID        `json:"file_id"`
+	Language string           `json:"language"`
+	Duration *float64         `json:"duration,omitempty"`
+	Speakers []string         `json:"speakers"`
+	Phrases  []FilePhraseItem `json:"phrases"`
+	Total    int64            `json:"total"`
+	Page     int              `json:"page"`
+	PageSize int              `json:"page_size"`
+}
+
+// FileSummaryResponse — ответ на GET /api/v1/files/{id}/summary
+type FileSummaryResponse struct {
+	FileID      uuid.UUID `json:"file_id"`
+	Summary     string    `json:"summary,omitempty"`
+	SummaryRu   string    `json:"summary_ru,omitempty"`
+	KeyTopics   []string  `json:"key_topics,omitempty"`
+	ActionItems []string  `json:"action_items,omitempty"`
+	Status      string    `json:"status"`
+	GeneratedAt time.Time `json:"generated_at"`
+}
+
+// FileResultCallback — тело POST /internal/files/{id}/result (от Python-воркера)
+type FileResultCallback struct {
+	TaskID          string  `json:"task_id"`
+	SessionID       string  `json:"session_id"`
+	Status          string  `json:"status"`
+	Duration        float64 `json:"duration"`
+	ParagraphsCount int     `json:"paragraphs_count"`
+	ChunksCount     int     `json:"chunks_count"`
+	TranscriptPath  string  `json:"transcript_path"`
+	SRTPath         string  `json:"srt_path"`
+	Error           string  `json:"error"`
+}
+
+// FileResultParagraph — один абзац из paragraphs.json воркера
+type FileResultParagraph struct {
+	Start   float64 `json:"start"`
+	End     float64 `json:"end"`
+	Text    string  `json:"text"`
+	Speaker string  `json:"speaker"`
 }

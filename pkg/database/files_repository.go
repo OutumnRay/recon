@@ -10,6 +10,179 @@ import (
 	"gorm.io/gorm"
 )
 
+// ─── Presigned-upload flow ────────────────────────────────────────────────────
+
+// CreateUploadedFileV2 creates a file record for the presigned-URL upload flow.
+// Status starts as "pending"; the client will PUT the file directly to MinIO and
+// then call ConfirmUpload to transition to "queued".
+func (db *DB) CreateUploadedFileV2(f *UploadedFile) error {
+	return db.DB.Create(f).Error
+}
+
+// GetUploadedFileV2 fetches a file record by ID without soft-delete filter.
+func (db *DB) GetUploadedFileV2(id uuid.UUID) (*UploadedFile, error) {
+	var f UploadedFile
+	if err := db.DB.Where("id = ?", id).First(&f).Error; err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+// ConfirmUpload transitions a file from "pending" to "queued" and records the ETag.
+func (db *DB) ConfirmUpload(id uuid.UUID, etag string) error {
+	return db.DB.Model(&UploadedFile{}).
+		Where("id = ? AND deleted_at IS NULL", id).
+		Updates(map[string]interface{}{
+			"status":     "queued",
+			"etag":       etag,
+			"updated_at": time.Now(),
+		}).Error
+}
+
+// UpdateFileProgress updates status, progress percentage, and current stage.
+func (db *DB) UpdateFileProgress(id uuid.UUID, status, stage string, progress int) error {
+	return db.DB.Model(&UploadedFile{}).
+		Where("id = ? AND deleted_at IS NULL", id).
+		Updates(map[string]interface{}{
+			"status":     status,
+			"stage":      stage,
+			"progress":   progress,
+			"updated_at": time.Now(),
+		}).Error
+}
+
+// SetFileCompleted marks the file as completed, records duration.
+func (db *DB) SetFileCompleted(id uuid.UUID, duration float64) error {
+	now := time.Now()
+	return db.DB.Model(&UploadedFile{}).
+		Where("id = ? AND deleted_at IS NULL", id).
+		Updates(map[string]interface{}{
+			"status":       "completed",
+			"stage":        "",
+			"progress":     100,
+			"duration":     duration,
+			"processed_at": &now,
+			"updated_at":   now,
+		}).Error
+}
+
+// SetFileFailed marks the file as failed with an error message.
+func (db *DB) SetFileFailed(id uuid.UUID, errMsg string) error {
+	return db.DB.Model(&UploadedFile{}).
+		Where("id = ? AND deleted_at IS NULL", id).
+		Updates(map[string]interface{}{
+			"status":        "failed",
+			"error_message": errMsg,
+			"updated_at":    time.Now(),
+		}).Error
+}
+
+// ListUploadedFilesV2 returns a paginated list of files for a user with optional
+// status and title-search filters.
+func (db *DB) ListUploadedFilesV2(userID uuid.UUID, page, pageSize int, status, search string) ([]UploadedFile, int64, error) {
+	var total int64
+	q := db.DB.Model(&UploadedFile{}).Where("user_id = ? AND deleted_at IS NULL", userID)
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	if search != "" {
+		q = q.Where("title ILIKE ? OR original_name ILIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var files []UploadedFile
+	offset := (page - 1) * pageSize
+	if err := q.Order("uploaded_at DESC").Limit(pageSize).Offset(offset).Find(&files).Error; err != nil {
+		return nil, 0, err
+	}
+	return files, total, nil
+}
+
+// ─── Transcription phrases ────────────────────────────────────────────────────
+
+// BulkInsertPhrases inserts a batch of phrases in one statement.
+func (db *DB) BulkInsertPhrases(phrases []FileTranscriptionPhrase) error {
+	if len(phrases) == 0 {
+		return nil
+	}
+	return db.DB.CreateInBatches(phrases, 500).Error
+}
+
+// GetFilePhrasesPage returns a paginated slice of phrases for a file.
+// speaker filter is optional (empty string = all speakers).
+func (db *DB) GetFilePhrasesPage(fileID uuid.UUID, page, pageSize int, speaker string) ([]FileTranscriptionPhrase, int64, error) {
+	var total int64
+	q := db.DB.Model(&FileTranscriptionPhrase{}).Where("file_id = ?", fileID)
+	if speaker != "" {
+		q = q.Where("speaker = ?", speaker)
+	}
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var phrases []FileTranscriptionPhrase
+	offset := (page - 1) * pageSize
+	if err := q.Order("phrase_index ASC").Limit(pageSize).Offset(offset).Find(&phrases).Error; err != nil {
+		return nil, 0, err
+	}
+	return phrases, total, nil
+}
+
+// GetFileSpeakers returns the distinct speaker identifiers for a file.
+func (db *DB) GetFileSpeakers(fileID uuid.UUID) ([]string, error) {
+	var speakers []string
+	err := db.DB.Model(&FileTranscriptionPhrase{}).
+		Where("file_id = ? AND speaker <> ''", fileID).
+		Distinct("speaker").
+		Order("speaker").
+		Pluck("speaker", &speakers).Error
+	return speakers, err
+}
+
+// DeleteFilePhrases removes all phrases for a file (used before re-transcription).
+func (db *DB) DeleteFilePhrases(fileID uuid.UUID) error {
+	return db.DB.Where("file_id = ?", fileID).Delete(&FileTranscriptionPhrase{}).Error
+}
+
+// ─── File summaries ───────────────────────────────────────────────────────────
+
+// UpsertFileSummary creates or replaces the summary for a file.
+func (db *DB) UpsertFileSummary(s *FileSummary) error {
+	return db.DB.
+		Where(FileSummary{FileID: s.FileID}).
+		Assign(FileSummary{
+			Summary:      s.Summary,
+			SummaryRu:    s.SummaryRu,
+			KeyTopics:    s.KeyTopics,
+			ActionItems:  s.ActionItems,
+			Status:       s.Status,
+			ErrorMessage: s.ErrorMessage,
+			UpdatedAt:    time.Now(),
+		}).
+		FirstOrCreate(s).Error
+}
+
+// UpdateFileSummaryStatus updates only the status (and optional error) of a summary.
+func (db *DB) UpdateFileSummaryStatus(fileID uuid.UUID, status string, errMsg *string) error {
+	updates := map[string]interface{}{"status": status, "updated_at": time.Now()}
+	if errMsg != nil {
+		updates["error_message"] = *errMsg
+	}
+	return db.DB.Model(&FileSummary{}).Where("file_id = ?", fileID).Updates(updates).Error
+}
+
+// GetFileSummary returns the summary for a file (nil, nil if not yet generated).
+func (db *DB) GetFileSummary(fileID uuid.UUID) (*FileSummary, error) {
+	var s FileSummary
+	err := db.DB.Where("file_id = ?", fileID).First(&s).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &s, err
+}
+
 // CreateUploadedFile creates a new file upload record
 func (db *DB) CreateUploadedFile(file *models.UploadedFile) error {
 	metadata, err := json.Marshal(file.Metadata)

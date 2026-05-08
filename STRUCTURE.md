@@ -30,7 +30,9 @@ Recontext.online/
 │   │   ├── handlers_groups.go    # Group management endpoints
 │   │   └── handlers_metrics.go   # Metrics collection endpoints
 │   ├── user-portal/               # User Portal service
-│   │   └── main.go                # Entry point with file upload and search
+│   │   ├── main.go                # Entry point with file upload and search
+│   │   ├── handlers_files_upload.go   # Presigned-URL upload flow handlers (init, confirm, status, list, detail, transcript, summary, video, delete)
+│   │   └── handlers_files_consumer.go # Redis BRPOP consumer — reads transcription results from Python worker
 │   ├── jitsi-agent/               # Custom Jitsi recording agent
 │   │   └── main.go                # WebRTC recording service
 │   ├── transcription-worker/      # Transcription worker service
@@ -218,6 +220,9 @@ Recontext.online/
   - `NewMinIOClient`, `NewMinIOClientFromEnv` — создание клиента
   - `UploadFile(localPath)` — загрузка из файловой системы
   - `UploadReader(reader, size, remotePath, contentType)` — потоковая загрузка из `io.Reader`
+  - `PresignedPutObject(ctx, path, expiry)` — presigned PUT URL для прямой загрузки браузером
+  - `PresignedGetObject(ctx, path, expiry)` — presigned GET URL для стриминга/скачивания
+  - `StatObject(ctx, path)` — проверка наличия объекта (для confirm flow)
   - `DownloadFile`, `UploadDirectory`, `DeleteFile`, `DeleteDirectory`
   - `EnsureBucket`, `GetPublicURL`, `GetRelativePath`
 - **pkg/redis/publisher.go**: Redis publisher for Go services

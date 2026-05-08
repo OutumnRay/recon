@@ -81,6 +81,7 @@ type UserPortal struct {
 	fcmService             *fcm.FCMService
 	transcriptionNotifier  *TranscriptionNotifier
 	notificationService    *notifications.NotificationService
+	fileResultConsumer     *FileResultConsumer
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -1228,19 +1229,64 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
-	// File upload endpoints
+	// ── Legacy file upload (kept for backward-compat) ──────────────────────────
 	mux.Handle("/api/v1/files/upload", chainMiddleware(
 		http.HandlerFunc(up.uploadFileHandler),
 		authMiddleware,
 	))
-
 	mux.Handle("/api/v1/files/permission", chainMiddleware(
 		http.HandlerFunc(up.checkFilePermissionHandler),
 		authMiddleware,
 	))
 
+	// ── Presigned-URL upload flow ────────────────────────────────────────────
+	// POST /api/v1/files/init — get presigned PUT URL
+	mux.Handle("/api/v1/files/init", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPost {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			up.initFileUploadHandler(w, r)
+		}),
+		authMiddleware,
+	))
+
+	// GET /api/v1/files — list (new handler with status/search filters)
 	mux.Handle("/api/v1/files", chainMiddleware(
-		http.HandlerFunc(up.listFilesHandler),
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				up.listFilesV2Handler(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}),
+		authMiddleware,
+	))
+
+	// /api/v1/files/{id}/... — per-file operations
+	mux.Handle("/api/v1/files/", chainMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			p := r.URL.Path
+			switch {
+			case strings.HasSuffix(p, "/confirm") && r.Method == http.MethodPost:
+				up.confirmFileUploadHandler(w, r)
+			case strings.HasSuffix(p, "/status") && r.Method == http.MethodGet:
+				up.getFileStatusHandler(w, r)
+			case strings.HasSuffix(p, "/transcript") && r.Method == http.MethodGet:
+				up.getFileTranscriptHandler(w, r)
+			case strings.HasSuffix(p, "/summary") && r.Method == http.MethodGet:
+				up.getFileSummaryHandler(w, r)
+			case strings.HasSuffix(p, "/video"):
+				up.getFileVideoHandler(w, r)
+			case r.Method == http.MethodGet:
+				up.getFileDetailHandler(w, r)
+			case r.Method == http.MethodDelete:
+				up.deleteFileHandler(w, r)
+			default:
+				http.Error(w, "Not found", http.StatusNotFound)
+			}
+		}),
 		authMiddleware,
 	))
 
@@ -1513,6 +1559,14 @@ func (up *UserPortal) Start() error {
 		}
 	} else {
 		up.logger.Info(" [TRANSCRIPTION NOTIFIER] Skipped - RabbitMQ not available")
+	}
+
+	// Start Redis result consumer for file transcription results from Python worker
+	if consumer, err := newFileResultConsumer(up); err != nil {
+		up.logger.Errorf("[FileConsumer] Init error: %v", err)
+	} else if consumer != nil {
+		up.fileResultConsumer = consumer
+		up.fileResultConsumer.Start()
 	}
 
 	mux := up.setupRoutes()
