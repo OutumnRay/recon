@@ -70,17 +70,25 @@ func NewMinIOClient(config MinIOConfig) (*MinIOClient, error) {
 	}, nil
 }
 
-// parseEndpointHost strips the scheme from an endpoint string and returns
-// (host:port, useSSL). Accepts "http://host:port", "https://host:port", or "host:port".
+// parseEndpointHost strips the scheme and any path from an endpoint string.
+// MinIO SDK requires a bare "host" or "host:port" — no scheme, no path.
+//   "http://185.200.240.31:9000"   → ("185.200.240.31:9000", false)
+//   "https://24recontext.ru"       → ("24recontext.ru", true)
+//   "https://24recontext.ru/minio" → ("24recontext.ru", true)  path stripped
+//   "minio:9000"                   → ("minio:9000", false)
 func parseEndpointHost(endpoint string) (host string, useSSL bool) {
+	rest := endpoint
 	switch {
 	case strings.HasPrefix(endpoint, "https://"):
-		return strings.TrimPrefix(endpoint, "https://"), true
+		rest = strings.TrimPrefix(endpoint, "https://")
+		useSSL = true
 	case strings.HasPrefix(endpoint, "http://"):
-		return strings.TrimPrefix(endpoint, "http://"), false
-	default:
-		return endpoint, false
+		rest = strings.TrimPrefix(endpoint, "http://")
 	}
+	if idx := strings.Index(rest, "/"); idx != -1 {
+		rest = rest[:idx]
+	}
+	return rest, useSSL
 }
 
 func NewMinIOClientFromEnv() (*MinIOClient, error) {
