@@ -206,6 +206,8 @@ type UploadedFile struct {
 	Metadata string `gorm:"type:jsonb;default:'{}'" json:"metadata"`
 	// UploadedAt - время загрузки файла
 	UploadedAt time.Time `gorm:"not null;default:now()" json:"uploaded_at"`
+	// UpdatedAt - время последнего обновления записи
+	UpdatedAt time.Time `gorm:"not null;default:now()" json:"updated_at"`
 	// ProcessedAt - время завершения обработки файла
 	ProcessedAt *time.Time `json:"processed_at"`
 	// DeletedAt - время мягкого удаления файла
