@@ -618,11 +618,11 @@ func (up *UserPortal) getFileSummaryHandler(w http.ResponseWriter, r *http.Reque
 
 // GetFileVideo godoc
 // @Summary Получить видео файл
-// @Description Возвращает presigned GET URL для стриминга видео из MinIO (redirect)
+// @Description Возвращает presigned GET URL для стриминга видео из MinIO
 // @Tags Files
 // @Produce json
 // @Param id path string true "ID файла"
-// @Success 302 "Redirect на presigned URL"
+// @Success 200 {object} map[string]string
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Security BearerAuth
@@ -662,7 +662,6 @@ func (up *UserPortal) getFileVideoHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Otherwise redirect to a short-lived presigned GET URL
 	presignedURL, err := up.minioClient.PresignedGetObject(r.Context(), dbFile.StoragePath, 2*time.Hour)
 	if err != nil {
 		up.logger.Errorf("[Files/Video] Failed to generate presigned GET URL: %v", err)
@@ -670,7 +669,8 @@ func (up *UserPortal) getFileVideoHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	http.Redirect(w, r, presignedURL, http.StatusFound)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"url": presignedURL})
 }
 
 // streamFileFromMinIO proxies a MinIO object with Range support.
