@@ -16,7 +16,8 @@ import (
 )
 
 type MinIOClient struct {
-	client         *minio.Client
+	client         *minio.Client // internal client for server-to-server operations
+	publicClient   *minio.Client // client signed with public endpoint for presigned URLs
 	bucket         string
 	publicEndpoint string
 	useSSL         bool
@@ -45,12 +46,41 @@ func NewMinIOClient(config MinIOConfig) (*MinIOClient, error) {
 		publicEndpoint = config.Endpoint
 	}
 
+	// Create a separate client whose endpoint matches the public URL.
+	// Presigned URLs embed the signing host, so the client that generates them
+	// must use the same host that the browser/Postman will send the request to.
+	publicHost, publicSSL := parseEndpointHost(publicEndpoint)
+	publicClient := client
+	if publicHost != config.Endpoint {
+		pc, pcErr := minio.New(publicHost, &minio.Options{
+			Creds:  credentials.NewStaticV4(config.AccessKey, config.SecretKey, ""),
+			Secure: publicSSL,
+		})
+		if pcErr == nil {
+			publicClient = pc
+		}
+	}
+
 	return &MinIOClient{
 		client:         client,
+		publicClient:   publicClient,
 		bucket:         config.Bucket,
 		publicEndpoint: publicEndpoint,
 		useSSL:         config.UseSSL,
 	}, nil
+}
+
+// parseEndpointHost strips the scheme from an endpoint string and returns
+// (host:port, useSSL). Accepts "http://host:port", "https://host:port", or "host:port".
+func parseEndpointHost(endpoint string) (host string, useSSL bool) {
+	switch {
+	case strings.HasPrefix(endpoint, "https://"):
+		return strings.TrimPrefix(endpoint, "https://"), true
+	case strings.HasPrefix(endpoint, "http://"):
+		return strings.TrimPrefix(endpoint, "http://"), false
+	default:
+		return endpoint, false
+	}
 }
 
 func NewMinIOClientFromEnv() (*MinIOClient, error) {
@@ -264,42 +294,22 @@ func (mc *MinIOClient) EnsureBucket(ctx context.Context) error {
 
 // PresignedPutObject returns a time-limited URL the client can use to PUT an object
 // directly into MinIO without credentials. expiry must not exceed 7 days.
+// The URL is signed using publicClient so the embedded host matches the address
+// the browser will actually connect to.
 func (mc *MinIOClient) PresignedPutObject(ctx context.Context, objectPath string, expiry time.Duration) (string, error) {
-	u, err := mc.client.PresignedPutObject(ctx, mc.bucket, objectPath, expiry)
+	u, err := mc.publicClient.PresignedPutObject(ctx, mc.bucket, objectPath, expiry)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned PUT URL: %w", err)
 	}
-
-	// Replace internal host with the public endpoint so the browser can reach it
-	if mc.publicEndpoint != "" && mc.publicEndpoint != mc.client.EndpointURL().Host {
-		scheme := "http"
-		if mc.useSSL {
-			scheme = "https"
-		}
-		u.Scheme = scheme
-		u.Host = mc.publicEndpoint
-	}
-
 	return u.String(), nil
 }
 
 // PresignedGetObject returns a time-limited URL for downloading an object.
 func (mc *MinIOClient) PresignedGetObject(ctx context.Context, objectPath string, expiry time.Duration) (string, error) {
-	reqParams := make(url.Values)
-	u, err := mc.client.PresignedGetObject(ctx, mc.bucket, objectPath, expiry, reqParams)
+	u, err := mc.publicClient.PresignedGetObject(ctx, mc.bucket, objectPath, expiry, make(url.Values))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned GET URL: %w", err)
 	}
-
-	if mc.publicEndpoint != "" && mc.publicEndpoint != mc.client.EndpointURL().Host {
-		scheme := "http"
-		if mc.useSSL {
-			scheme = "https"
-		}
-		u.Scheme = scheme
-		u.Host = mc.publicEndpoint
-	}
-
 	return u.String(), nil
 }
 
