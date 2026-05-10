@@ -199,7 +199,7 @@ type UploadedFile struct {
 	// ErrorMessage - описание ошибки (если есть)
 	ErrorMessage *string `gorm:"type:text" json:"error_message,omitempty"`
 	// ETag - ETag файла из MinIO (подтверждение загрузки)
-	ETag *string `gorm:"type:varchar(255)" json:"etag,omitempty"`
+	ETag *string `gorm:"column:etag;type:varchar(255)" json:"etag,omitempty"`
 	// TranscriptionID - ID транскрипции файла (если есть)
 	TranscriptionID *uuid.UUID `gorm:"type:uuid" json:"transcription_id"`
 	// Metadata - JSON с дополнительными метаданными файла
