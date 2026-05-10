@@ -184,8 +184,8 @@ type UploadedFile struct {
 	Bucket string `gorm:"type:varchar(100);not null;default:'recontext'" json:"bucket"`
 	// UserID - ID пользователя, который загрузил файл
 	UserID uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
-	// GroupID - ID группы, к которой относится файл
-	GroupID uuid.UUID `gorm:"type:uuid;not null" json:"group_id"`
+	// GroupID - ID группы, к которой относится файл (опционально)
+	GroupID *uuid.UUID `gorm:"type:uuid" json:"group_id,omitempty"`
 	// Language - язык файла для транскрипции (ru, en, auto)
 	Language string `gorm:"type:varchar(10);not null;default:'auto'" json:"language"`
 	// Duration - длительность аудио/видео в секундах

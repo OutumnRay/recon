@@ -198,10 +198,12 @@ func (db *DB) CreateUploadedFile(file *models.UploadedFile) error {
 		MimeType:     file.MimeType,
 		StoragePath:  file.StoragePath,
 		UserID:       file.UserID,
-		GroupID:      file.GroupID,
 		Status:       string(file.Status),
 		Metadata:     string(metadata),
 		UploadedAt:   file.UploadedAt,
+	}
+	if file.GroupID != uuid.Nil {
+		dbFile.GroupID = &file.GroupID
 	}
 
 	if file.TranscriptionID != nil {
@@ -232,6 +234,10 @@ func (db *DB) GetUploadedFileByID(id string) (*models.UploadedFile, error) {
 		return nil, fmt.Errorf("failed to get uploaded file: %w", err)
 	}
 
+	var groupID uuid.UUID
+	if dbFile.GroupID != nil {
+		groupID = *dbFile.GroupID
+	}
 	file := &models.UploadedFile{
 		ID:           dbFile.ID,
 		Filename:     dbFile.Filename,
@@ -240,7 +246,7 @@ func (db *DB) GetUploadedFileByID(id string) (*models.UploadedFile, error) {
 		MimeType:     dbFile.MimeType,
 		StoragePath:  dbFile.StoragePath,
 		UserID:       dbFile.UserID,
-		GroupID:      dbFile.GroupID,
+		GroupID:      groupID,
 		Status:       models.TranscriptionStatus(dbFile.Status),
 		UploadedAt:   dbFile.UploadedAt,
 		ProcessedAt:  dbFile.ProcessedAt,
@@ -281,6 +287,10 @@ func (db *DB) ListUploadedFilesByUser(userID uuid.UUID, page, pageSize int) ([]m
 
 	files := make([]models.UploadedFile, 0, len(dbFiles))
 	for _, dbFile := range dbFiles {
+		var gid uuid.UUID
+		if dbFile.GroupID != nil {
+			gid = *dbFile.GroupID
+		}
 		file := models.UploadedFile{
 			ID:           dbFile.ID,
 			Filename:     dbFile.Filename,
@@ -289,7 +299,7 @@ func (db *DB) ListUploadedFilesByUser(userID uuid.UUID, page, pageSize int) ([]m
 			MimeType:     dbFile.MimeType,
 			StoragePath:  dbFile.StoragePath,
 			UserID:       dbFile.UserID,
-			GroupID:      dbFile.GroupID,
+			GroupID:      gid,
 			Status:       models.TranscriptionStatus(dbFile.Status),
 			UploadedAt:   dbFile.UploadedAt,
 			ProcessedAt:  dbFile.ProcessedAt,
