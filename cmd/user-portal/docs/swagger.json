@@ -17,567 +17,1884 @@
   },
   "host": "localhost:8081",
   "basePath": "/",
-  "schemes": ["http"],
+  "schemes": ["http", "https"],
   "securityDefinitions": {
     "BearerAuth": {
-      "description": "Type \"Bearer\" followed by a space and JWT token.",
+      "description": "JWT токен. Формат: Bearer {token}",
       "type": "apiKey",
       "name": "Authorization",
       "in": "header"
     }
   },
   "paths": {
-    "/api/v1/profile": {
+    "/health": {
       "get": {
-        "security": [{"BearerAuth": []}],
-        "tags": ["Profile"],
-        "summary": "Текущий профиль",
-        "description": "Получить минимальный профиль пользователя",
+        "tags": ["Monitoring"],
+        "summary": "Проверка здоровья",
+        "description": "Возвращает статус сервиса",
         "produces": ["application/json"],
         "responses": {
           "200": {
             "description": "OK",
-            "schema": {"$ref": "#/definitions/models.MinimalUserInfo"}
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
-          }
-        }
-      }
-    },
-    "/api/v1/update-profile": {
-      "put": {
-        "security": [{"BearerAuth": []}],
-        "tags": ["Profile"],
-        "summary": "Обновить профиль",
-        "description": "Обновить bio, имя текущего пользователя",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "parameters": [{
-          "name": "request",
-          "in": "body",
-          "required": true,
-          "schema": {"$ref": "#/definitions/models.UpdateProfileRequest"}
-        }],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {"$ref": "#/definitions/models.UserInfo"}
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+            "schema": {"$ref": "#/definitions/models.HealthResponse"},
+            "examples": {
+              "application/json": {
+                "status": "ok",
+                "timestamp": "2026-05-11T10:00:00Z",
+                "version": "0.1.0"
+              }
+            }
           }
         }
       }
     },
     "/api/v1/auth/login": {
       "post": {
-        "description": "Аутентификация пользователя",
+        "tags": ["Authentication"],
+        "summary": "Вход в систему",
+        "description": "Аутентификация пользователя по email/username и паролю. Возвращает JWT токен.",
         "consumes": ["application/json"],
         "produces": ["application/json"],
-        "tags": ["Auth"],
-        "summary": "Вход",
-        "parameters": [{
-          "description": "Учетные данные",
-          "name": "request",
-          "in": "body",
-          "required": true,
-          "schema": {"$ref": "#/definitions/models.LoginRequest"}
-        }],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.LoginRequest"},
+            "x-example": {
+              "email": "user@company.com",
+              "password": "password123"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
-            "schema": {"$ref": "#/definitions/models.LoginResponse"}
+            "schema": {"$ref": "#/definitions/models.MinimalLoginResponse"},
+            "examples": {
+              "application/json": {
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "expires_at": "2026-05-12T10:00:00Z",
+                "user": {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "username": "johndoe",
+                  "email": "user@company.com",
+                  "role": "user",
+                  "first_name": "John",
+                  "last_name": "Doe"
+                }
+              }
+            }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Регистрация нового пользователя",
+        "description": "Создать новый аккаунт. Требуется organization_id организации. Если задан корпоративный домен — email должен соответствовать.",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.RegisterRequest"},
+            "x-example": {
+              "username": "johndoe",
+              "email": "john@company.com",
+              "password": "secure123",
+              "confirm_password": "secure123",
+              "organization_id": "550e8400-e29b-41d4-a716-446655440000"
+            }
           }
+        ],
+        "responses": {
+          "201": {"description": "Created", "schema": {"$ref": "#/definitions/models.MinimalLoginResponse"}},
+          "400": {"description": "Bad Request — некорректные данные или неверный organization_id", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "403": {"description": "Forbidden — организация неактивна или домен email не разрешён", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "409": {"description": "Conflict — username или email уже существует", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/auth/check": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Проверка авторизации",
+        "description": "Проверяет валидность JWT-токена и возвращает свежий токен + профиль",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.MinimalLoginResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
     "/api/v1/auth/password-reset/request": {
       "post": {
-        "tags": ["Auth"],
-        "summary": "Запрос сброса",
-        "description": "Запросить код на email",
+        "tags": ["Authentication"],
+        "summary": "Запрос кода сброса пароля",
+        "description": "Отправляет 6-значный код на email. Код действует 15 минут.",
         "consumes": ["application/json"],
         "produces": ["application/json"],
-        "parameters": [{
-          "description": "Email",
-          "name": "request",
-          "in": "body",
-          "required": true,
-          "schema": {"$ref": "#/definitions/models.RequestPasswordResetRequest"}
-        }],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {"$ref": "#/definitions/models.RequestPasswordResetResponse"}
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.RequestPasswordResetRequest"},
+            "x-example": {"email": "user@company.com"}
           }
-        }
-      }
-    },
-    "/api/v1/auth/password-reset/verify": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Проверить код",
-        "description": "Проверить код сброса",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "parameters": [{
-          "description": "Токен и код",
-          "name": "request",
-          "in": "body",
-          "required": true,
-          "schema": {"$ref": "#/definitions/models.VerifyResetCodeRequest"}
-        }],
+        ],
         "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {"$ref": "#/definitions/models.VerifyResetCodeResponse"}
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
-          }
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.RequestPasswordResetResponse"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
     "/api/v1/auth/password-reset/reset": {
       "post": {
-        "tags": ["Auth"],
-        "summary": "Сброс пароля",
-        "description": "Сброс с кодом",
+        "tags": ["Authentication"],
+        "summary": "Сбросить пароль",
+        "description": "Устанавливает новый пароль по token_id и коду из email",
         "consumes": ["application/json"],
         "produces": ["application/json"],
-        "parameters": [{
-          "description": "Данные сброса",
-          "name": "request",
-          "in": "body",
-          "required": true,
-          "schema": {"$ref": "#/definitions/models.ResetPasswordRequest"}
-        }],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {"$ref": "#/definitions/models.ResetPasswordResponse"}
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.ResetPasswordRequest"},
+            "x-example": {
+              "token_id": "550e8400-e29b-41d4-a716-446655440000",
+              "code": "123456",
+              "new_password": "newpassword123"
+            }
           }
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.ResetPasswordResponse"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/profile": {
+      "get": {
+        "tags": ["Profile"],
+        "summary": "Мой профиль",
+        "description": "Возвращает минимальный профиль текущего аутентифицированного пользователя",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.MinimalUserInfo"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/update-profile": {
+      "put": {
+        "tags": ["Profile"],
+        "summary": "Обновить профиль",
+        "description": "Обновить bio, имя, язык и настройки уведомлений текущего пользователя",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.UpdateProfileRequest"},
+            "x-example": {
+              "first_name": "John",
+              "last_name": "Doe",
+              "bio": "Software developer",
+              "language": "ru",
+              "notification_preferences": "rooms"
+            }
+          }
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.UserInfo"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
     "/api/v1/users/{id}": {
       "get": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Profile"],
-        "summary": "Профиль пользователя",
-        "description": "Получить профиль",
+        "summary": "Профиль пользователя по ID",
+        "description": "Получить публичный профиль любого пользователя",
         "produces": ["application/json"],
-        "parameters": [{
-          "type": "string",
-          "description": "ID пользователя",
-          "name": "id",
-          "in": "path",
-          "required": true
-        }],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID пользователя"}
+        ],
         "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {"$ref": "#/definitions/models.UserInfo"}
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
-          }
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.UserInfo"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       },
       "put": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Profile"],
-        "summary": "Обновить профиль",
-        "description": "Самообслуживание",
+        "summary": "Обновить профиль по ID",
+        "description": "Пользователь может обновить только свой профиль",
         "consumes": ["application/json"],
         "produces": ["application/json"],
-        "parameters": [{
-          "type": "string",
-          "description": "ID",
-          "name": "id",
-          "in": "path",
-          "required": true
-        }, {
-          "description": "Данные",
-          "name": "request",
-          "in": "body",
-          "required": true,
-          "schema": {"$ref": "#/definitions/models.UpdateProfileRequest"}
-        }],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID пользователя"},
+          {"name": "request", "in": "body", "required": true, "schema": {"$ref": "#/definitions/models.UpdateProfileRequest"}}
+        ],
         "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {"$ref": "#/definitions/models.UserInfo"}
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
-          }
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.UserInfo"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
     "/api/v1/users/{id}/avatar": {
       "post": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Profile"],
         "summary": "Загрузить аватар",
-        "description": "Обновить аватар",
+        "description": "Загрузить изображение аватара для пользователя (JPEG/PNG, макс. 5 МБ)",
         "consumes": ["multipart/form-data"],
         "produces": ["application/json"],
-        "parameters": [{
-          "type": "file",
-          "description": "Файл аватара",
-          "name": "avatar",
-          "in": "formData",
-          "required": true
-        }],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID пользователя"},
+          {"type": "file", "name": "avatar", "in": "formData", "required": true, "description": "Файл изображения"}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.UploadAvatarResponse"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/recordings/upload": {
+      "post": {
+        "tags": ["Recordings"],
+        "summary": "Загрузить запись (legacy)",
+        "description": "Загрузить аудио или видео файл. Устаревший метод — используйте /api/v1/files/init для presigned upload.",
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "title", "in": "formData", "required": true, "description": "Название записи"},
+          {"type": "file", "name": "file", "in": "formData", "required": true, "description": "Аудио- или видеофайл"}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.UploadResponse"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/recordings": {
+      "get": {
+        "tags": ["Recordings"],
+        "summary": "Список записей",
+        "description": "Получить постраничный список записей текущего пользователя",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "integer", "name": "page", "in": "query", "default": 1},
+          {"type": "integer", "name": "page_size", "in": "query", "default": 20},
+          {"type": "string", "name": "status", "in": "query", "description": "Фильтр по статусу"}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.ListRecordingsResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/recordings/{id}": {
+      "get": {
+        "tags": ["Recordings"],
+        "summary": "Детали записи",
+        "description": "Получить информацию о конкретной записи",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID записи"}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.Recording"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Поиск по транскриптам",
+        "description": "Полнотекстовый или семантический поиск по транскриптам",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "query", "in": "query", "required": true, "description": "Поисковый запрос"},
+          {"type": "integer", "name": "page", "in": "query", "default": 1},
+          {"type": "integer", "name": "page_size", "in": "query", "default": 10}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.SearchResponse"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/init": {
+      "post": {
+        "tags": ["Files"],
+        "summary": "Инициализировать загрузку файла",
+        "description": "Создаёт запись в БД и возвращает presigned PUT URL для прямой загрузки на MinIO без Go-прокси. Загрузите файл PUT-запросом на upload_url, затем подтвердите через /confirm.",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.InitUploadRequest"},
+            "x-example": {
+              "title": "Совещание команды 2026-05-11",
+              "file_name": "meeting.mp4",
+              "file_size": 104857600,
+              "mime_type": "video/mp4",
+              "language": "ru"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {"$ref": "#/definitions/models.InitUploadResponse"},
+            "examples": {
+              "application/json": {
+                "file_id": "550e8400-e29b-41d4-a716-446655440000",
+                "upload_url": "https://minio.example.com/recontext/uploads/...?X-Amz-Signature=...",
+                "upload_method": "PUT",
+                "upload_headers": {"Content-Type": "video/mp4"},
+                "storage_path": "uploads/user-id/file-id/meeting.mp4",
+                "expires_at": "2026-05-11T10:30:00Z"
+              }
+            }
+          },
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "503": {"description": "MinIO недоступен", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Список файлов пользователя",
+        "description": "Постраничный список загруженных файлов с фильтрами по статусу и поиском по названию",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "integer", "name": "page", "in": "query", "default": 1, "description": "Номер страницы (с 1)"},
+          {"type": "integer", "name": "page_size", "in": "query", "default": 20, "description": "Размер страницы (макс. 100)"},
+          {"type": "string", "name": "status", "in": "query", "description": "Фильтр по статусу: pending, queued, processing, completed, failed"},
+          {"type": "string", "name": "search", "in": "query", "description": "Поиск по названию файла"}
+        ],
         "responses": {
           "200": {
             "description": "OK",
-            "schema": {"$ref": "#/definitions/models.UploadAvatarResponse"}
+            "schema": {"$ref": "#/definitions/models.FileListResponse"},
+            "examples": {
+              "application/json": {
+                "items": [
+                  {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "title": "Совещание команды",
+                    "file_name": "meeting.mp4",
+                    "file_size": 104857600,
+                    "mime_type": "video/mp4",
+                    "status": "completed",
+                    "progress": 100,
+                    "language": "ru",
+                    "uploaded_at": "2026-05-11T09:00:00Z"
+                  }
+                ],
+                "total": 1,
+                "page": 1,
+                "page_size": 20
+              }
+            }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/upload": {
+      "post": {
+        "tags": ["Files"],
+        "summary": "Загрузить файл для транскрибации (legacy)",
+        "description": "Прямая загрузка файла через Go (устаревший метод). Требуется разрешение на запись файлов (группа с правом write). Для новых клиентов используйте /api/v1/files/init.",
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "file", "name": "file", "in": "formData", "required": true, "description": "Аудио- или видеофайл (макс. 500 МБ)"}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.FileUploadResponse"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "403": {"description": "Forbidden — нет разрешения на загрузку файлов", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/permission": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Проверить разрешение на загрузку",
+        "description": "Проверить, есть ли у текущего пользователя право загружать файлы",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "hasPermission": {"type": "boolean"}
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/{id}/confirm": {
+      "post": {
+        "tags": ["Files"],
+        "summary": "Подтвердить загрузку файла",
+        "description": "Переводит файл из статуса pending в queued и ставит задачу транскрибации в Redis. Вызывать после успешного PUT на presigned URL.",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID файла"},
+          {
+            "name": "request",
+            "in": "body",
+            "required": false,
+            "schema": {"$ref": "#/definitions/models.ConfirmUploadRequest"},
+            "x-example": {"etag": "\"d41d8cd98f00b204e9800998ecf8427e\""}
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.ConfirmUploadResponse"},
+            "examples": {
+              "application/json": {
+                "file_id": "550e8400-e29b-41d4-a716-446655440000",
+                "status": "queued",
+                "message": "File confirmed, transcription task queued"
+              }
+            }
+          },
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Файл не найден", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "409": {"description": "Файл уже подтверждён", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "422": {"description": "Файл отсутствует в хранилище (загрузка не завершена)", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/{id}/status": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Статус обработки файла",
+        "description": "Возвращает текущий статус транскрибации для polling. Обновляйте каждые 3-5 секунд пока status != completed/failed.",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID файла"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.FileStatusResponse"},
+            "examples": {
+              "application/json": {
+                "file_id": "550e8400-e29b-41d4-a716-446655440000",
+                "status": "processing",
+                "progress": 45,
+                "stage": "transcription",
+                "updated_at": "2026-05-11T09:05:00Z"
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Файл не найден", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/{id}": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Детали файла",
+        "description": "Полные метаданные файла + сводка транскрипции (кол-во фраз, спикеров, наличие резюме)",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID файла"}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.FileDetailResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      },
+      "delete": {
+        "tags": ["Files"],
+        "summary": "Удалить файл",
+        "description": "Удаляет файл из БД и из MinIO",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID файла"}
+        ],
+        "responses": {
+          "204": {"description": "No Content — файл удалён"},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/{id}/transcript": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Транскрипция файла",
+        "description": "Постраничный список фраз транскрипции с временными метками и спикерами",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID файла"},
+          {"type": "integer", "name": "page", "in": "query", "default": 1},
+          {"type": "integer", "name": "page_size", "in": "query", "default": 100, "description": "Макс. 500"},
+          {"type": "string", "name": "speaker", "in": "query", "description": "Фильтр по спикеру (SPEAKER_00, SPEAKER_01 и т.д.)"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.FileTranscriptResponse"},
+            "examples": {
+              "application/json": {
+                "file_id": "550e8400-e29b-41d4-a716-446655440000",
+                "language": "ru",
+                "duration": 3600.5,
+                "speakers": ["SPEAKER_00", "SPEAKER_01"],
+                "phrases": [
+                  {
+                    "phrase_index": 0,
+                    "start_time": 0.5,
+                    "end_time": 4.2,
+                    "text": "Добро пожаловать на совещание.",
+                    "speaker": "SPEAKER_00",
+                    "confidence": 0.98
+                  }
+                ],
+                "total": 256,
+                "page": 1,
+                "page_size": 100
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/{id}/summary": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Резюме транскрипции",
+        "description": "Краткое содержание, ключевые темы и задачи по транскрипции файла",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID файла"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.FileSummaryResponse"},
+            "examples": {
+              "application/json": {
+                "file_id": "550e8400-e29b-41d4-a716-446655440000",
+                "summary": "Meeting discussed Q2 roadmap and budget allocation.",
+                "summary_ru": "На встрече обсуждался план Q2 и распределение бюджета.",
+                "key_topics": ["Q2 roadmap", "budget", "team allocation"],
+                "action_items": ["Prepare budget report by May 20", "Schedule follow-up meeting"],
+                "status": "completed",
+                "generated_at": "2026-05-11T09:30:00Z"
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/files/{id}/video": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Получить видео файл",
+        "description": "Возвращает JSON с presigned GET URL для стриминга видео. При наличии заголовка Range — проксирует поток напрямую из MinIO.",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID файла"},
+          {"type": "string", "name": "Range", "in": "header", "description": "HTTP Range для частичной загрузки (напр. bytes=0-1048576)"}
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON с URL или поток видео",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "url": {"type": "string", "example": "https://minio.example.com/recontext/...?X-Amz-Signature=..."}
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
     "/api/v1/meetings": {
       "get": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Meetings"],
         "summary": "Мои встречи",
-        "description": "Список с фильтрами",
+        "description": "Список встреч, где пользователь — участник или докладчик. Поддерживает фильтрацию и пагинацию.",
         "produces": ["application/json"],
-        "parameters": [{
-          "type": "integer",
-          "default": 1,
-          "name": "page",
-          "in": "query"
-        }, {
-          "type": "integer",
-          "default": 20,
-          "name": "page_size",
-          "in": "query"
-        }, {
-          "type": "string",
-          "enum": ["scheduled", "in_progress", "completed", "cancelled"],
-          "name": "status",
-          "in": "query"
-        }, {
-          "type": "string",
-          "enum": ["presentation", "conference"],
-          "name": "type",
-          "in": "query"
-        }, {
-          "type": "string",
-          "name": "subject_id",
-          "in": "query"
-        }, {
-          "type": "string",
-          "name": "date_from",
-          "in": "query"
-        }, {
-          "type": "string",
-          "name": "date_to",
-          "in": "query"
-        }],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "integer", "name": "page", "in": "query", "default": 1},
+          {"type": "integer", "name": "page_size", "in": "query", "default": 20},
+          {"type": "string", "name": "status", "in": "query", "enum": ["scheduled", "in_progress", "completed", "cancelled"], "description": "Фильтр по статусу"},
+          {"type": "string", "name": "type", "in": "query", "enum": ["presentation", "conference"], "description": "Фильтр по типу"},
+          {"type": "string", "name": "subject_id", "in": "query", "description": "UUID темы встречи"},
+          {"type": "string", "name": "date_from", "in": "query", "description": "Начало диапазона дат (ISO 8601, напр. 2026-05-11T00:00:00Z)"},
+          {"type": "string", "name": "date_to", "in": "query", "description": "Конец диапазона дат (ISO 8601)"},
+          {"type": "string", "name": "speaker_id", "in": "query", "description": "UUID докладчика (только для презентаций)"}
+        ],
         "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {"$ref": "#/definitions/models.MeetingsResponse"}
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
-          }
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.MeetingsResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       },
       "post": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Meetings"],
         "summary": "Создать встречу",
-        "description": "Новая встреча",
+        "description": "Создать новую встречу. Для создания нужно разрешение can_schedule_meetings или роль admin.",
         "consumes": ["application/json"],
         "produces": ["application/json"],
-        "parameters": [{
-          "description": "Данные встречи",
-          "name": "request",
-          "in": "body",
-          "required": true,
-          "schema": {"$ref": "#/definitions/models.CreateMeetingRequest"}
-        }],
-        "responses": {
-          "201": {
-            "description": "Created",
-            "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {"$ref": "#/definitions/models.ErrorResponse"}
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.CreateMeetingRequest"},
+            "x-example": {
+              "title": "Еженедельное совещание",
+              "duration": 60,
+              "type": "conference",
+              "subject_id": "550e8400-e29b-41d4-a716-446655440001",
+              "scheduled_at": "2026-05-12T10:00:00Z",
+              "participant_ids": ["550e8400-e29b-41d4-a716-446655440002"],
+              "recurrence": "weekly",
+              "record_video": true,
+              "record_audio": true
+            }
           }
+        ],
+        "responses": {
+          "201": {"description": "Created", "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "403": {"description": "Forbidden — нет разрешения на создание встреч", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
     "/api/v1/meetings/{id}": {
       "get": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Meetings"],
         "summary": "Детали встречи",
-        "parameters": [{
-          "type": "string",
-          "name": "id",
-          "in": "path",
-          "required": true
-        }],
+        "description": "Получить полную информацию о встрече. Доступно только участникам, докладчику или admin.",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
         "responses": {
-          "200": {
-            "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}
-          }
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "403": {"description": "Forbidden", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       },
       "put": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Meetings"],
-        "summary": "Обновить",
+        "summary": "Обновить встречу",
+        "description": "Обновить данные встречи. Доступно создателю или admin.",
         "consumes": ["application/json"],
-        "parameters": [{
-          "type": "string",
-          "name": "id",
-          "in": "path",
-          "required": true
-        }, {
-          "name": "request",
-          "in": "body",
-          "required": true,
-          "schema": {"$ref": "#/definitions/models.UpdateMeetingRequest"}
-        }],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"},
+          {"name": "request", "in": "body", "required": true, "schema": {"$ref": "#/definitions/models.UpdateMeetingRequest"}}
+        ],
         "responses": {
-          "200": {
-            "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}
-          }
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.MeetingWithDetails"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "403": {"description": "Forbidden", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       },
       "delete": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Meetings"],
-        "summary": "Отменить",
-        "parameters": [{
-          "type": "string",
-          "name": "id",
-          "in": "path",
-          "required": true
-        }],
+        "summary": "Отменить встречу",
+        "description": "Переводит статус встречи в cancelled. Для удаления используйте /hard-delete.",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
         "responses": {
           "200": {
-            "schema": {"type": "object", "additionalProperties": {"type": "string"}}
-          }
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "403": {"description": "Forbidden", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
     "/api/v1/meetings/{id}/hard-delete": {
       "delete": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Meetings"],
-        "summary": "Удалить навсегда",
-        "description": "Только отмененные",
-        "parameters": [{
-          "type": "string",
-          "name": "id",
-          "in": "path",
-          "required": true
-        }],
+        "summary": "Удалить встречу навсегда",
+        "description": "Полное удаление встречи из БД. Доступно только для встреч в статусе cancelled.",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
         "responses": {
           "200": {
-            "schema": {"type": "object", "additionalProperties": {"type": "string"}}
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "403": {"description": "Forbidden", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/token": {
+      "get": {
+        "tags": ["Meetings"],
+        "summary": "Получить токен LiveKit для встречи",
+        "description": "Генерирует JWT токен LiveKit для подключения к видеоконференции",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "token": {"type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+                "room_name": {"type": "string", "example": "meeting-550e8400-e29b-41d4-a716-446655440000"},
+                "livekit_url": {"type": "string", "example": "wss://livekit.example.com"}
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/recording/start": {
+      "post": {
+        "tags": ["Meetings"],
+        "summary": "Начать запись встречи",
+        "description": "Запускает запись LiveKit Egress для текущей встречи",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}, "egress_id": {"type": "string"}}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/recording/stop": {
+      "post": {
+        "tags": ["Meetings"],
+        "summary": "Остановить запись встречи",
+        "description": "Останавливает LiveKit Egress запись",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/transcription/start": {
+      "post": {
+        "tags": ["Meetings"],
+        "summary": "Начать транскрибацию встречи",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/transcription/stop": {
+      "post": {
+        "tags": ["Meetings"],
+        "summary": "Остановить транскрибацию встречи",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/recordings": {
+      "get": {
+        "tags": ["Meetings"],
+        "summary": "Записи встречи",
+        "description": "Список видеозаписей встречи из LiveKit Egress",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "room_sid": {"type": "string"},
+                  "playlist_url": {"type": "string"},
+                  "started_at": {"type": "string"},
+                  "ended_at": {"type": "string"}
+                }
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/tasks": {
+      "get": {
+        "tags": ["Meetings"],
+        "summary": "Задачи встречи",
+        "description": "Список задач, созданных по итогам встречи",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "array", "items": {"$ref": "#/definitions/models.Task"}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/generate-summary": {
+      "post": {
+        "tags": ["Meetings"],
+        "summary": "Сгенерировать резюме встречи",
+        "description": "Запускает LLM-генерацию краткого содержания встречи по транскрипту",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{meetingId}/join-anonymous": {
+      "post": {
+        "tags": ["Meetings"],
+        "summary": "Анонимное подключение к встрече",
+        "description": "Публичный endpoint — позволяет подключиться к встрече без авторизации по публичной ссылке",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {"type": "string", "name": "meetingId", "in": "path", "required": true, "description": "UUID встречи"},
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "display_name": {"type": "string", "example": "Гость"}
+              }
+            }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "token": {"type": "string"},
+                "room_name": {"type": "string"},
+                "livekit_url": {"type": "string"}
+              }
+            }
+          },
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/meetings/{id}/ws": {
+      "get": {
+        "tags": ["Meetings"],
+        "summary": "WebSocket для встречи",
+        "description": "WebSocket соединение для real-time обновлений встречи (участники, статус, транскрипция). Требует Bearer токен в query ?token=...",
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID встречи"},
+          {"type": "string", "name": "token", "in": "query", "description": "JWT токен (альтернатива Authorization header)"}
+        ],
+        "responses": {
+          "101": {"description": "Switching Protocols — WebSocket соединение установлено"},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
     "/api/v1/meeting-subjects": {
       "get": {
-        "security": [{"BearerAuth": []}],
         "tags": ["Meetings"],
-        "summary": "Темы",
-        "parameters": [{
-          "type": "integer",
-          "default": 1,
-          "name": "page",
-          "in": "query"
-        }, {
-          "type": "integer",
-          "default": 100,
-          "name": "page_size",
-          "in": "query"
-        }, {
-          "type": "boolean",
-          "default": false,
-          "name": "include_inactive",
-          "in": "query"
-        }],
+        "summary": "Список тем встреч",
+        "description": "Получить список доступных тем встреч для фильтрации и создания встреч",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "integer", "name": "page", "in": "query", "default": 1},
+          {"type": "integer", "name": "page_size", "in": "query", "default": 100},
+          {"type": "boolean", "name": "include_inactive", "in": "query", "default": false}
+        ],
         "responses": {
-          "200": {
-            "schema": {"$ref": "#/definitions/models.MeetingSubjectsResponse"}
-          }
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.MeetingSubjectsResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     },
-    "/health": {
+    "/api/v1/rag/search": {
+      "post": {
+        "tags": ["RAG Search"],
+        "summary": "Семантический поиск по транскрипциям",
+        "description": "Поиск релевантных фрагментов транскрипций с использованием векторных embeddings. Требует разрешение RAG.",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.RAGSearchRequest"},
+            "x-example": {
+              "query": "какой был бюджет на маркетинг?",
+              "top_k": 5,
+              "threshold": 0.7
+            }
+          }
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.RAGSearchResponse"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "403": {"description": "Forbidden — нет доступа к RAG", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/rag/permission": {
       "get": {
-        "tags": ["Health"],
-        "summary": "Здоровье",
+        "tags": ["RAG Search"],
+        "summary": "Проверить доступ к RAG",
+        "description": "Проверить, есть ли у пользователя разрешение на семантический поиск",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
         "responses": {
           "200": {
-            "schema": {"$ref": "#/definitions/models.HealthResponse"}
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {"hasPermission": {"type": "boolean"}}
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/rag/status": {
+      "get": {
+        "tags": ["RAG Search"],
+        "summary": "Статус системы RAG",
+        "description": "Статистика о векторной базе данных и индексированных документах",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "documents_count": {"type": "integer"},
+                "chunks_count": {"type": "integer"},
+                "status": {"type": "string"}
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "403": {"description": "Forbidden", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/fcm/register": {
+      "post": {
+        "tags": ["Push Notifications"],
+        "summary": "Зарегистрировать устройство для push-уведомлений",
+        "description": "Регистрирует или обновляет FCM токен устройства для получения push-уведомлений",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.RegisterFCMDeviceRequest"},
+            "x-example": {
+              "fcm_token": "fMD...token...",
+              "platform": "android",
+              "device_id": "device-uuid-123"
+            }
           }
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.RegisterFCMDeviceResponse"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/fcm/unregister": {
+      "post": {
+        "tags": ["Push Notifications"],
+        "summary": "Отозвать push-уведомления для устройства",
+        "description": "Удаляет FCM токен — устройство перестанет получать push-уведомления",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.UnregisterFCMDeviceRequest"},
+            "x-example": {"fcm_token": "fMD...token..."}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/notifications/ws": {
+      "get": {
+        "tags": ["Push Notifications"],
+        "summary": "WebSocket для уведомлений",
+        "description": "WebSocket подключение для real-time уведомлений (завершение транскрибации, новые задачи и т.д.)",
+        "parameters": [
+          {"type": "string", "name": "token", "in": "query", "description": "JWT токен"}
+        ],
+        "responses": {
+          "101": {"description": "Switching Protocols"},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/my-tasks": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Мои задачи",
+        "description": "Список задач, назначенных текущему пользователю",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "array", "items": {"$ref": "#/definitions/models.Task"}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/tasks/{id}/status": {
+      "put": {
+        "tags": ["Tasks"],
+        "summary": "Обновить статус задачи",
+        "description": "Обновить статус задачи (pending, in_progress, done, cancelled)",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID задачи"},
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {"type": "string", "enum": ["pending", "in_progress", "done", "cancelled"]}
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"$ref": "#/definitions/models.Task"}
+          },
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/tracks/{id}/transcribe": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Принудительная транскрибация дорожки",
+        "description": "Форсировать транскрибацию конкретной LiveKit дорожки (track)",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID LiveKit track"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/rooms/{id}/transcripts": {
+      "get": {
+        "tags": ["Meetings"],
+        "summary": "Транскрипты комнаты",
+        "description": "Получить все транскрипты из LiveKit комнаты (все треки и спикеры)",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID или SID LiveKit комнаты"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "track_id": {"type": "string"},
+                  "participant": {"type": "string"},
+                  "phrases": {"type": "array", "items": {"$ref": "#/definitions/models.FilePhraseItem"}}
+                }
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/departments": {
+      "get": {
+        "tags": ["Organizations"],
+        "summary": "Список отделов",
+        "description": "Получить список доступных отделов организации для форм и фильтров",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "string"},
+                  "name": {"type": "string"},
+                  "level": {"type": "integer"},
+                  "path": {"type": "string"}
+                }
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/organizations": {
+      "get": {
+        "tags": ["Organizations"],
+        "summary": "Список организаций",
+        "description": "Получить список организаций (доступных текущему пользователю)",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "integer", "name": "page", "in": "query", "default": 1},
+          {"type": "integer", "name": "page_size", "in": "query", "default": 20}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.OrganizationsResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      },
+      "post": {
+        "tags": ["Organizations"],
+        "summary": "Создать организацию",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/models.CreateOrganizationRequest"},
+            "x-example": {
+              "name": "ООО Рекситл",
+              "description": "Наша организация",
+              "domain": "company.com",
+              "max_users": 100
+            }
+          }
+        ],
+        "responses": {
+          "201": {"description": "Created", "schema": {"$ref": "#/definitions/models.Organization"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/organizations/{id}": {
+      "get": {
+        "tags": ["Organizations"],
+        "summary": "Детали организации",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID организации"}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.Organization"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      },
+      "put": {
+        "tags": ["Organizations"],
+        "summary": "Обновить организацию",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID организации"},
+          {"name": "request", "in": "body", "required": true, "schema": {"$ref": "#/definitions/models.CreateOrganizationRequest"}}
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/models.Organization"}},
+          "400": {"description": "Bad Request", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      },
+      "delete": {
+        "tags": ["Organizations"],
+        "summary": "Удалить организацию",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID организации"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {"type": "object", "properties": {"message": {"type": "string"}}}
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
+        }
+      }
+    },
+    "/api/v1/organizations/{id}/stats": {
+      "get": {
+        "tags": ["Organizations"],
+        "summary": "Статистика организации",
+        "description": "Кол-во пользователей, активных встреч и т.д.",
+        "produces": ["application/json"],
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"type": "string", "name": "id", "in": "path", "required": true, "description": "UUID организации"}
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_count": {"type": "integer"},
+                "active_meetings": {"type": "integer"},
+                "total_meetings": {"type": "integer"}
+              }
+            }
+          },
+          "401": {"description": "Unauthorized", "schema": {"$ref": "#/definitions/models.ErrorResponse"}},
+          "404": {"description": "Not Found", "schema": {"$ref": "#/definitions/models.ErrorResponse"}}
         }
       }
     }
   },
   "definitions": {
-    "models.UserInfo": {
+    "models.ErrorResponse": {
       "type": "object",
       "properties": {
-        "id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
-        "username": {"type": "string", "example": "admin"},
-        "email": {"type": "string", "example": "admin@recontext.online"},
-        "role": {"$ref": "#/definitions/models.UserRole"},
-        "organization_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
-        "first_name": {"type": "string", "example": "John"},
-        "last_name": {"type": "string", "example": "Doe"},
-        "phone": {"type": "string", "example": "+1234567890"},
-        "bio": {"type": "string", "example": "Software developer"},
-        "avatar": {"type": "string", "example": "https://example.com/avatar.jpg"},
-        "department_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
-        "permissions": {"$ref": "#/definitions/models.UserPermissions"},
-        "language": {"type": "string", "example": "en"},
-        "notification_preferences": {"type": "string", "example": "rooms"}
+        "code": {"type": "integer", "example": 401},
+        "error": {"type": "string", "example": "Unauthorized"},
+        "message": {"type": "string", "example": "Invalid or expired token"},
+        "timestamp": {"type": "string", "example": "2026-05-11T10:00:00Z"}
+      }
+    },
+    "models.HealthResponse": {
+      "type": "object",
+      "properties": {
+        "status": {"type": "string", "example": "ok"},
+        "timestamp": {"type": "string", "example": "2026-05-11T10:00:00Z"},
+        "version": {"type": "string", "example": "0.1.0"}
+      }
+    },
+    "models.UserRole": {
+      "type": "string",
+      "enum": ["admin", "user", "operator", "service"],
+      "example": "user"
+    },
+    "models.UserPermissions": {
+      "type": "object",
+      "properties": {
+        "can_schedule_meetings": {"type": "boolean", "example": true},
+        "can_manage_department": {"type": "boolean", "example": false},
+        "can_approve_recordings": {"type": "boolean", "example": false}
       }
     },
     "models.MinimalUserInfo": {
       "type": "object",
       "properties": {
-        "id": {"type": "string"},
-        "username": {"type": "string"},
-        "email": {"type": "string"},
+        "id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "username": {"type": "string", "example": "johndoe"},
+        "email": {"type": "string", "example": "john@company.com"},
         "role": {"$ref": "#/definitions/models.UserRole"},
-        "first_name": {"type": "string"},
-        "last_name": {"type": "string"},
-        "bio": {"type": "string"}
+        "first_name": {"type": "string", "example": "John"},
+        "last_name": {"type": "string", "example": "Doe"},
+        "bio": {"type": "string", "example": "Backend developer"}
+      }
+    },
+    "models.UserInfo": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "username": {"type": "string", "example": "johndoe"},
+        "email": {"type": "string", "example": "john@company.com"},
+        "role": {"$ref": "#/definitions/models.UserRole"},
+        "first_name": {"type": "string", "example": "John"},
+        "last_name": {"type": "string", "example": "Doe"},
+        "phone": {"type": "string", "example": "+79001234567"},
+        "bio": {"type": "string", "example": "Backend developer"},
+        "avatar": {"type": "string", "example": "https://example.com/avatar.jpg"},
+        "organization_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440001"},
+        "department_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440002"},
+        "permissions": {"$ref": "#/definitions/models.UserPermissions"},
+        "language": {"type": "string", "example": "ru"},
+        "notification_preferences": {"type": "string", "example": "rooms", "enum": ["tracks", "rooms", "both"]}
+      }
+    },
+    "models.LoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {"type": "string", "example": "john@company.com", "description": "Email или username"},
+        "username": {"type": "string", "example": "johndoe", "description": "Алиас поля email для совместимости"},
+        "password": {"type": "string", "example": "password123"}
+      }
+    },
+    "models.MinimalLoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {"type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+        "expires_at": {"type": "string", "example": "2026-05-12T10:00:00Z"},
+        "user": {"$ref": "#/definitions/models.MinimalUserInfo"}
+      }
+    },
+    "models.RegisterRequest": {
+      "type": "object",
+      "required": ["username", "email", "password", "confirm_password", "organization_id"],
+      "properties": {
+        "username": {"type": "string", "example": "johndoe"},
+        "email": {"type": "string", "example": "john@company.com"},
+        "password": {"type": "string", "example": "secure123", "minLength": 8},
+        "confirm_password": {"type": "string", "example": "secure123"},
+        "organization_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"}
       }
     },
     "models.UpdateProfileRequest": {
       "type": "object",
       "properties": {
-        "first_name": {"type": "string"},
-        "last_name": {"type": "string"},
-        "phone": {"type": "string"},
-        "bio": {"type": "string"},
-        "avatar": {"type": "string"},
+        "first_name": {"type": "string", "example": "John"},
+        "last_name": {"type": "string", "example": "Doe"},
+        "phone": {"type": "string", "example": "+79001234567"},
+        "bio": {"type": "string", "example": "Backend developer"},
+        "avatar": {"type": "string", "example": "https://example.com/avatar.jpg"},
+        "language": {"type": "string", "example": "ru", "enum": ["ru", "en"]},
+        "notification_preferences": {"type": "string", "example": "rooms", "enum": ["tracks", "rooms", "both"]}
+      }
+    },
+    "models.UploadAvatarResponse": {
+      "type": "object",
+      "properties": {
+        "avatar_url": {"type": "string", "example": "https://example.com/avatars/user-id.jpg"},
+        "message": {"type": "string", "example": "Avatar updated successfully"}
+      }
+    },
+    "models.RequestPasswordResetRequest": {
+      "type": "object",
+      "required": ["email"],
+      "properties": {
+        "email": {"type": "string", "example": "user@company.com"}
+      }
+    },
+    "models.RequestPasswordResetResponse": {
+      "type": "object",
+      "properties": {
+        "message": {"type": "string", "example": "Password reset code sent to your email"},
+        "token_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"}
+      }
+    },
+    "models.ResetPasswordRequest": {
+      "type": "object",
+      "required": ["token_id", "code", "new_password"],
+      "properties": {
+        "token_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "code": {"type": "string", "example": "123456", "minLength": 6, "maxLength": 6},
+        "new_password": {"type": "string", "example": "newpassword123", "minLength": 8}
+      }
+    },
+    "models.ResetPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {"type": "string", "example": "Password reset successfully"}
+      }
+    },
+    "models.UploadResponse": {
+      "type": "object",
+      "properties": {
+        "recording_id": {"type": "string"},
+        "upload_url": {"type": "string"},
+        "message": {"type": "string"}
+      }
+    },
+    "models.Recording": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "user_id": {"type": "string"},
+        "title": {"type": "string"},
+        "file_name": {"type": "string"},
+        "file_size": {"type": "integer"},
+        "mime_type": {"type": "string"},
+        "storage_path": {"type": "string"},
+        "status": {"type": "string", "enum": ["queued", "processing", "completed", "failed"]},
+        "uploaded_at": {"type": "string"}
+      }
+    },
+    "models.ListRecordingsResponse": {
+      "type": "object",
+      "properties": {
+        "recordings": {"type": "array", "items": {"$ref": "#/definitions/models.Recording"}},
+        "total": {"type": "integer"},
+        "page": {"type": "integer"},
+        "page_size": {"type": "integer"}
+      }
+    },
+    "models.SearchResponse": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "text": {"type": "string"},
+              "score": {"type": "number"},
+              "source": {"type": "string"}
+            }
+          }
+        },
+        "total": {"type": "integer"},
+        "page": {"type": "integer"},
+        "page_size": {"type": "integer"}
+      }
+    },
+    "models.FileUploadResponse": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "filename": {"type": "string"},
+        "original_name": {"type": "string"},
+        "file_size": {"type": "integer"},
+        "status": {"type": "string", "example": "processing"},
+        "uploaded_at": {"type": "string"}
+      }
+    },
+    "models.InitUploadRequest": {
+      "type": "object",
+      "required": ["file_name", "file_size"],
+      "properties": {
+        "title": {"type": "string", "example": "Совещание команды 2026-05-11"},
+        "file_name": {"type": "string", "example": "meeting.mp4"},
+        "file_size": {"type": "integer", "example": 104857600, "description": "Размер файла в байтах"},
+        "mime_type": {"type": "string", "example": "video/mp4"},
+        "language": {"type": "string", "example": "ru", "description": "Язык аудио: ru, en, auto (по умолчанию auto)"}
+      }
+    },
+    "models.InitUploadResponse": {
+      "type": "object",
+      "properties": {
+        "file_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "upload_url": {"type": "string", "example": "https://minio.example.com/recontext/...?X-Amz-Signature=..."},
+        "upload_method": {"type": "string", "example": "PUT"},
+        "upload_headers": {
+          "type": "object",
+          "additionalProperties": {"type": "string"},
+          "example": {"Content-Type": "video/mp4"}
+        },
+        "storage_path": {"type": "string", "example": "uploads/user-id/file-id/meeting.mp4"},
+        "expires_at": {"type": "string", "example": "2026-05-11T10:30:00Z", "description": "Время истечения presigned URL (30 минут)"}
+      }
+    },
+    "models.ConfirmUploadRequest": {
+      "type": "object",
+      "properties": {
+        "etag": {"type": "string", "example": "\"d41d8cd98f00b204e9800998ecf8427e\"", "description": "ETag из ответа MinIO после PUT-запроса (опционально)"}
+      }
+    },
+    "models.ConfirmUploadResponse": {
+      "type": "object",
+      "properties": {
+        "file_id": {"type": "string"},
+        "status": {"type": "string", "example": "queued"},
+        "message": {"type": "string", "example": "File confirmed, transcription task queued"}
+      }
+    },
+    "models.FileStatusResponse": {
+      "type": "object",
+      "properties": {
+        "file_id": {"type": "string"},
+        "status": {"type": "string", "example": "processing", "enum": ["pending", "queued", "processing", "completed", "failed"]},
+        "progress": {"type": "integer", "example": 45, "description": "Прогресс 0-100%"},
+        "stage": {"type": "string", "example": "transcription", "description": "Текущий этап: download, transcription, diarization, vectorization"},
+        "error": {"type": "string", "example": "", "description": "Сообщение об ошибке (если failed)"},
+        "updated_at": {"type": "string"}
+      }
+    },
+    "models.FileListItem": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "file_name": {"type": "string"},
+        "file_size": {"type": "integer"},
+        "mime_type": {"type": "string"},
+        "duration": {"type": "number", "description": "Длительность в секундах"},
+        "status": {"type": "string", "enum": ["pending", "queued", "processing", "completed", "failed"]},
+        "progress": {"type": "integer"},
         "language": {"type": "string"},
-        "notification_preferences": {"type": "string", "enum": ["tracks", "rooms", "both"]}
+        "uploaded_at": {"type": "string"},
+        "completed_at": {"type": "string"}
       }
     },
-    "models.UserPermissions": {
+    "models.FileListResponse": {
       "type": "object",
       "properties": {
-        "can_schedule_meetings": {"type": "boolean"},
-        "can_manage_department": {"type": "boolean"},
-        "can_approve_recordings": {"type": "boolean"}
+        "items": {"type": "array", "items": {"$ref": "#/definitions/models.FileListItem"}},
+        "total": {"type": "integer"},
+        "page": {"type": "integer"},
+        "page_size": {"type": "integer"}
       }
     },
-    "models.UserRole": {
-      "type": "string",
-      "enum": ["admin", "user", "operator", "service"]
-    },
-    "models.ErrorResponse": {
+    "models.FileDetailResponse": {
       "type": "object",
       "properties": {
-        "code": {"type": "integer"},
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "file_name": {"type": "string"},
+        "file_size": {"type": "integer"},
+        "mime_type": {"type": "string"},
+        "duration": {"type": "number"},
+        "status": {"type": "string", "enum": ["pending", "queued", "processing", "completed", "failed"]},
+        "progress": {"type": "integer"},
+        "stage": {"type": "string"},
+        "language": {"type": "string"},
         "error": {"type": "string"},
-        "message": {"type": "string"},
-        "timestamp": {"type": "string"}
+        "uploaded_at": {"type": "string"},
+        "completed_at": {"type": "string"},
+        "transcript_summary": {
+          "type": "object",
+          "properties": {
+            "phrase_count": {"type": "integer"},
+            "speaker_count": {"type": "integer"},
+            "has_summary": {"type": "boolean"},
+            "speakers": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "video_url": {"type": "string", "example": "/api/v1/files/550e8400.../video"}
+      }
+    },
+    "models.FilePhraseItem": {
+      "type": "object",
+      "properties": {
+        "phrase_index": {"type": "integer", "example": 0},
+        "start_time": {"type": "number", "example": 0.5, "description": "Секунды от начала файла"},
+        "end_time": {"type": "number", "example": 4.2},
+        "text": {"type": "string", "example": "Добро пожаловать на совещание."},
+        "speaker": {"type": "string", "example": "SPEAKER_00"},
+        "confidence": {"type": "number", "example": 0.98}
+      }
+    },
+    "models.FileTranscriptResponse": {
+      "type": "object",
+      "properties": {
+        "file_id": {"type": "string"},
+        "language": {"type": "string", "example": "ru"},
+        "duration": {"type": "number"},
+        "speakers": {"type": "array", "items": {"type": "string"}, "example": ["SPEAKER_00", "SPEAKER_01"]},
+        "phrases": {"type": "array", "items": {"$ref": "#/definitions/models.FilePhraseItem"}},
+        "total": {"type": "integer"},
+        "page": {"type": "integer"},
+        "page_size": {"type": "integer"}
+      }
+    },
+    "models.FileSummaryResponse": {
+      "type": "object",
+      "properties": {
+        "file_id": {"type": "string"},
+        "summary": {"type": "string", "example": "Meeting discussed Q2 roadmap and budget allocation."},
+        "summary_ru": {"type": "string", "example": "На встрече обсуждался план Q2 и распределение бюджета."},
+        "key_topics": {"type": "array", "items": {"type": "string"}, "example": ["Q2 roadmap", "budget"]},
+        "action_items": {"type": "array", "items": {"type": "string"}, "example": ["Prepare budget report by May 20"]},
+        "status": {"type": "string", "example": "completed", "enum": ["pending", "processing", "completed", "failed"]},
+        "generated_at": {"type": "string"}
+      }
+    },
+    "models.RAGSearchRequest": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": {"type": "string", "example": "какой был бюджет на маркетинг?"},
+        "top_k": {"type": "integer", "default": 5, "example": 5, "description": "Количество результатов"},
+        "threshold": {"type": "number", "default": 0.7, "example": 0.7, "description": "Минимальный порог схожести (0-1)"}
+      }
+    },
+    "models.RAGSearchResponse": {
+      "type": "object",
+      "properties": {
+        "query": {"type": "string"},
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {"type": "string"},
+              "score": {"type": "number"},
+              "source": {"type": "string"},
+              "meeting_id": {"type": "string"},
+              "timestamp": {"type": "string"}
+            }
+          }
+        },
+        "count": {"type": "integer"}
+      }
+    },
+    "models.RegisterFCMDeviceRequest": {
+      "type": "object",
+      "required": ["fcm_token", "platform"],
+      "properties": {
+        "fcm_token": {"type": "string", "example": "fMD_token_from_firebase..."},
+        "platform": {"type": "string", "example": "android", "enum": ["android", "ios", "web"]},
+        "device_id": {"type": "string", "example": "device-uuid-123"}
+      }
+    },
+    "models.RegisterFCMDeviceResponse": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "message": {"type": "string", "example": "Device registered successfully"},
+        "is_new": {"type": "boolean"}
+      }
+    },
+    "models.UnregisterFCMDeviceRequest": {
+      "type": "object",
+      "required": ["fcm_token"],
+      "properties": {
+        "fcm_token": {"type": "string", "example": "fMD_token_from_firebase..."}
       }
     },
     "models.MeetingWithDetails": {
       "type": "object",
       "properties": {
-        "id": {"type": "string"},
-        "title": {"type": "string"},
-        "status": {"type": "string", "enum": ["scheduled", "in_progress", "completed", "cancelled"]},
+        "id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440000"},
+        "title": {"type": "string", "example": "Еженедельное совещание"},
         "type": {"type": "string", "enum": ["presentation", "conference"]},
-        "scheduled_at": {"type": "string"},
-        "duration": {"type": "integer"},
-        "participants": {
-          "type": "array",
-          "items": {"$ref": "#/definitions/models.UserInfo"}
-        },
+        "status": {"type": "string", "enum": ["scheduled", "in_progress", "completed", "cancelled"]},
+        "scheduled_at": {"type": "string", "example": "2026-05-12T10:00:00Z"},
+        "duration": {"type": "integer", "example": 60, "description": "Длительность в минутах"},
+        "recurrence": {"type": "string", "enum": ["none", "daily", "weekly", "monthly"]},
+        "record_video": {"type": "boolean"},
+        "record_audio": {"type": "boolean"},
+        "notes": {"type": "string"},
+        "livekit_room_name": {"type": "string"},
         "subject": {
           "type": "object",
           "properties": {
             "id": {"type": "string"},
             "name": {"type": "string"}
           }
-        }
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "user": {"$ref": "#/definitions/models.UserInfo"},
+              "role": {"type": "string", "enum": ["speaker", "participant"]},
+              "status": {"type": "string", "enum": ["invited", "accepted", "declined", "tentative"]}
+            }
+          }
+        },
+        "departments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "name": {"type": "string"}
+            }
+          }
+        },
+        "created_at": {"type": "string"},
+        "updated_at": {"type": "string"}
       }
     },
     "models.MeetingsResponse": {
       "type": "object",
       "properties": {
-        "items": {
-          "type": "array",
-          "items": {"$ref": "#/definitions/models.MeetingWithDetails"}
-        },
+        "items": {"type": "array", "items": {"$ref": "#/definitions/models.MeetingWithDetails"}},
+        "total": {"type": "integer"},
         "page": {"type": "integer"},
-        "page_size": {"type": "integer"},
-        "total": {"type": "integer"}
+        "page_size": {"type": "integer"}
       }
     },
     "models.CreateMeetingRequest": {
       "type": "object",
-      "required": ["title", "duration", "type", "subject_id"],
+      "required": ["title", "duration", "type"],
       "properties": {
-        "title": {"type": "string"},
-        "duration": {"type": "integer"},
-        "type": {"type": "string", "enum": ["presentation", "conference"]},
-        "subject_id": {"type": "string"},
-        "scheduled_at": {"type": "string"},
-        "participant_ids": {
-          "type": "array",
-          "items": {"type": "string"}
-        },
-        "department_ids": {
-          "type": "array",
-          "items": {"type": "string"}
-        },
-        "speaker_id": {"type": "string"},
-        "recurrence": {"type": "string", "enum": ["none", "daily", "weekly", "monthly"]}
+        "title": {"type": "string", "example": "Еженедельное совещание"},
+        "duration": {"type": "integer", "example": 60, "description": "Длительность в минутах"},
+        "type": {"type": "string", "enum": ["presentation", "conference"], "example": "conference"},
+        "subject_id": {"type": "string", "example": "550e8400-e29b-41d4-a716-446655440001"},
+        "scheduled_at": {"type": "string", "example": "2026-05-12T10:00:00Z"},
+        "participant_ids": {"type": "array", "items": {"type": "string"}, "example": ["uuid1", "uuid2"]},
+        "department_ids": {"type": "array", "items": {"type": "string"}, "description": "Отделы для массового приглашения"},
+        "speaker_id": {"type": "string", "description": "UUID докладчика (обязательно для type=presentation)"},
+        "recurrence": {"type": "string", "enum": ["none", "daily", "weekly", "monthly"], "example": "none"},
+        "record_video": {"type": "boolean", "example": true},
+        "record_audio": {"type": "boolean", "example": true},
+        "notes": {"type": "string", "example": "Повестка: Q2 план, бюджет"}
       }
     },
     "models.UpdateMeetingRequest": {
@@ -587,10 +1904,13 @@
         "duration": {"type": "integer"},
         "status": {"type": "string", "enum": ["scheduled", "in_progress", "completed", "cancelled"]},
         "subject_id": {"type": "string"},
-        "participant_ids": {
-          "type": "array",
-          "items": {"type": "string"}
-        }
+        "scheduled_at": {"type": "string"},
+        "participant_ids": {"type": "array", "items": {"type": "string"}},
+        "department_ids": {"type": "array", "items": {"type": "string"}},
+        "speaker_id": {"type": "string"},
+        "record_video": {"type": "boolean"},
+        "record_audio": {"type": "boolean"},
+        "notes": {"type": "string"}
       }
     },
     "models.MeetingSubjectsResponse": {
@@ -603,36 +1923,72 @@
             "properties": {
               "id": {"type": "string"},
               "name": {"type": "string"},
-              "is_active": {"type": "boolean"}
+              "description": {"type": "string"},
+              "is_active": {"type": "boolean"},
+              "department_ids": {"type": "array", "items": {"type": "string"}}
             }
           }
         },
         "total": {"type": "integer"}
       }
     },
-    "models.LoginRequest": {
+    "models.Task": {
       "type": "object",
-      "required": ["username", "password"],
       "properties": {
-        "username": {"type": "string"},
-        "password": {"type": "string"}
+        "id": {"type": "string"},
+        "meeting_id": {"type": "string"},
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "status": {"type": "string", "enum": ["pending", "in_progress", "done", "cancelled"]},
+        "assigned_to": {"type": "string"},
+        "due_date": {"type": "string"},
+        "created_at": {"type": "string"}
       }
     },
-    "models.LoginResponse": {
+    "models.Organization": {
       "type": "object",
       "properties": {
-        "token": {"type": "string"},
-        "expires_at": {"type": "string"},
-        "user": {"$ref": "#/definitions/models.UserInfo"}
+        "id": {"type": "string"},
+        "name": {"type": "string", "example": "ООО Рекситл"},
+        "description": {"type": "string"},
+        "domain": {"type": "string", "example": "company.com"},
+        "max_users": {"type": "integer"},
+        "is_active": {"type": "boolean"},
+        "created_at": {"type": "string"},
+        "updated_at": {"type": "string"}
       }
     },
-    "models.UploadAvatarResponse": {
+    "models.CreateOrganizationRequest": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "example": "ООО Рекситл"},
+        "description": {"type": "string"},
+        "domain": {"type": "string", "example": "company.com", "description": "Корпоративный домен email (опционально). Если задан, только @company.com могут регистрироваться."},
+        "max_users": {"type": "integer", "example": 100}
+      }
+    },
+    "models.OrganizationsResponse": {
       "type": "object",
       "properties": {
-        "avatar_url": {"type": "string"},
-        "message": {"type": "string"}
+        "items": {"type": "array", "items": {"$ref": "#/definitions/models.Organization"}},
+        "total": {"type": "integer"},
+        "page": {"type": "integer"},
+        "page_size": {"type": "integer"}
       }
     }
-  }
+  },
+  "tags": [
+    {"name": "Authentication", "description": "Вход, регистрация, сброс пароля"},
+    {"name": "Profile", "description": "Профиль пользователя"},
+    {"name": "Meetings", "description": "Видеовстречи и конференции"},
+    {"name": "Files", "description": "Загрузка и транскрибация аудио/видео файлов"},
+    {"name": "Recordings", "description": "Записи (legacy)"},
+    {"name": "Search", "description": "Поиск по транскриптам"},
+    {"name": "RAG Search", "description": "Семантический поиск с векторными embeddings"},
+    {"name": "Tasks", "description": "Задачи по итогам встреч"},
+    {"name": "Push Notifications", "description": "FCM push-уведомления"},
+    {"name": "Organizations", "description": "Организации и отделы"},
+    {"name": "Monitoring", "description": "Health check и метрики"}
+  ]
 }
-
