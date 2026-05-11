@@ -4909,9 +4909,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "0.1.0",
-	Host:             "localhost:8080",
+	Host:             "admin.24recontext.ru",
 	BasePath:         "/",
-	Schemes:          []string{},
+	Schemes:          []string{"https"},
 	Title:            "Recontext.online Managing Portal API",
 	Description:      "API for managing and monitoring Recontext.online platform services",
 	InfoInstanceName: "swagger",
