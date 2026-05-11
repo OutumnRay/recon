@@ -15,9 +15,9 @@
     },
     "version": "0.1.0"
   },
-  "host": "localhost:8080",
+  "host": "admin.24recontext.ru",
   "basePath": "/",
-  "schemes": ["http", "https"],
+  "schemes": ["https"],
   "securityDefinitions": {
     "BearerAuth": {
       "description": "JWT токен. Формат: Bearer {token}. Получите токен через POST /api/v1/auth/login",
