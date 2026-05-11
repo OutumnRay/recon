@@ -72,8 +72,10 @@ const (
 
 // LoginRequest представляет запрос на вход в систему
 type LoginRequest struct {
-	// Email пользователя для входа
-	Email string `json:"email" binding:"required" example:"admin@recontext.online"`
+	// Email пользователя для входа (приоритетное поле)
+	Email string `json:"email" example:"admin@recontext.online"`
+	// Username — алиас email для совместимости с фронтендом
+	Username string `json:"username" example:"admin@recontext.online"`
 	// Пароль пользователя
 	Password string `json:"password" binding:"required" example:"password123"`
 }

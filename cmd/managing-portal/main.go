@@ -201,7 +201,11 @@ func (mp *ManagingPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := mp.userRepo.GetByEmail(req.Email)
+	emailOrUsername := req.Email
+	if emailOrUsername == "" {
+		emailOrUsername = req.Username
+	}
+	user, err := mp.userRepo.GetByEmail(emailOrUsername)
 	if err != nil || !auth.VerifyPassword(req.Password, user.Password) {
 		mp.respondWithError(w, http.StatusUnauthorized, "Invalid credentials", "email or password incorrect")
 		return
