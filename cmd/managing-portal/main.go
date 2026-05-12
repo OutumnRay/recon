@@ -27,7 +27,7 @@ import (
 	"Recontext.online/pkg/prometheus"
 	"Recontext.online/pkg/rabbitmq"
 
-	_ "Recontext.online/cmd/managing-portal/docs" // Import generated docs
+	docs "Recontext.online/cmd/managing-portal/docs" // Import generated docs
 )
 
 //go:embed dist/*
@@ -852,6 +852,10 @@ func (mp *ManagingPortal) setupRoutes() *http.ServeMux {
 }
 
 func (mp *ManagingPortal) Start() error {
+	// Configure Swagger host/scheme from environment (allows different values per environment)
+	docs.SwaggerInfo.Host = getEnv("SWAGGER_HOST", "admin.24recontext.ru")
+	docs.SwaggerInfo.Schemes = []string{getEnv("SWAGGER_SCHEME", "https")}
+
 	mux := mp.setupRoutes()
 
 	// Wrap with metrics middleware

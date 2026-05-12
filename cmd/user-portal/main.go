@@ -30,7 +30,7 @@ import (
 	redispkg "Recontext.online/pkg/redis"
 	"Recontext.online/pkg/storage"
 
-	_ "Recontext.online/cmd/user-portal/docs" // Import generated docs
+	docs "Recontext.online/cmd/user-portal/docs" // Import generated docs
 )
 
 //go:embed dist/*
@@ -1522,6 +1522,10 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 }
 
 func (up *UserPortal) Start() error {
+	// Configure Swagger host/scheme from environment (allows different values per environment)
+	docs.SwaggerInfo.Host = getEnv("SWAGGER_HOST", "24recontext.ru")
+	docs.SwaggerInfo.Schemes = []string{getEnv("SWAGGER_SCHEME", "https")}
+
 	// Start WebSocket hub in goroutine
 	go up.wsHub.Run()
 	up.logger.Info("WebSocket hub started")
