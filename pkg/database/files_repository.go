@@ -77,24 +77,64 @@ func (db *DB) SetFileFailed(id uuid.UUID, errMsg string) error {
 		}).Error
 }
 
-// ListUploadedFilesV2 returns a paginated list of files for a user with optional
-// status and title-search filters.
-func (db *DB) ListUploadedFilesV2(userID uuid.UUID, page, pageSize int, status, search string) ([]UploadedFile, int64, error) {
+// ListUploadedFilesV2 returns a paginated list of files for a user with optional filters.
+//
+// Filters: status (exact), search (title/original_name ILIKE), mimeType (exact),
+// language (exact), dateFrom/dateTo (uploaded_at range).
+// Sorting: sortBy ∈ {uploaded_at, title, file_size, duration, status} default uploaded_at;
+// sortOrder ∈ {asc, desc} default desc.
+func (db *DB) ListUploadedFilesV2(
+	userID uuid.UUID,
+	page, pageSize int,
+	status, search, mimeType, language string,
+	dateFrom, dateTo *time.Time,
+	sortBy, sortOrder string,
+) ([]UploadedFile, int64, error) {
 	var total int64
 	q := db.DB.Model(&UploadedFile{}).Where("user_id = ? AND deleted_at IS NULL", userID)
+
 	if status != "" {
 		q = q.Where("status = ?", status)
 	}
 	if search != "" {
 		q = q.Where("title ILIKE ? OR original_name ILIKE ?", "%"+search+"%", "%"+search+"%")
 	}
+	if mimeType != "" {
+		q = q.Where("mime_type = ?", mimeType)
+	}
+	if language != "" {
+		q = q.Where("language = ?", language)
+	}
+	if dateFrom != nil {
+		q = q.Where("uploaded_at >= ?", *dateFrom)
+	}
+	if dateTo != nil {
+		q = q.Where("uploaded_at <= ?", *dateTo)
+	}
+
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
+	allowedSortFields := map[string]string{
+		"uploaded_at": "uploaded_at",
+		"title":       "title",
+		"file_size":   "file_size",
+		"duration":    "duration",
+		"status":      "status",
+	}
+	col, ok := allowedSortFields[sortBy]
+	if !ok {
+		col = "uploaded_at"
+	}
+	if sortOrder != "asc" {
+		sortOrder = "desc"
+	}
+	orderClause := col + " " + sortOrder
+
 	var files []UploadedFile
 	offset := (page - 1) * pageSize
-	if err := q.Order("uploaded_at DESC").Limit(pageSize).Offset(offset).Find(&files).Error; err != nil {
+	if err := q.Order(orderClause).Limit(pageSize).Offset(offset).Find(&files).Error; err != nil {
 		return nil, 0, err
 	}
 	return files, total, nil

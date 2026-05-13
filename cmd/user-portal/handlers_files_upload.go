@@ -277,13 +277,19 @@ func (up *UserPortal) getFileStatusHandler(w http.ResponseWriter, r *http.Reques
 
 // ListFilesV2 godoc
 // @Summary Список файлов пользователя
-// @Description Постраничный список загруженных файлов с фильтрами по статусу и поиском по названию
+// @Description Постраничный список загруженных файлов с фильтрами и поиском
 // @Tags Files
 // @Produce json
-// @Param page query int false "Номер страницы (с 1)" default(1)
-// @Param page_size query int false "Размер страницы" default(20)
-// @Param status query string false "Фильтр по статусу"
-// @Param search query string false "Поиск по названию"
+// @Param page       query int    false "Номер страницы (с 1)"                    default(1)
+// @Param page_size  query int    false "Размер страницы (макс 100)"              default(20)
+// @Param status     query string false "Фильтр по статусу: pending,queued,processing,completed,failed"
+// @Param search     query string false "Поиск по названию или имени файла (ILIKE)"
+// @Param mime_type  query string false "Фильтр по MIME-типу (например video/mp4)"
+// @Param language   query string false "Фильтр по языку (ru, en, auto…)"
+// @Param date_from  query string false "Загружен не ранее (RFC3339, например 2024-01-01T00:00:00Z)"
+// @Param date_to    query string false "Загружен не позднее (RFC3339)"
+// @Param sort_by    query string false "Поле сортировки: uploaded_at,title,file_size,duration,status" default(uploaded_at)
+// @Param sort_order query string false "Порядок сортировки: asc, desc"                               default(desc)
 // @Success 200 {object} models.FileListResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Security BearerAuth
@@ -300,10 +306,39 @@ func (up *UserPortal) listFilesV2Handler(w http.ResponseWriter, r *http.Request)
 	if pageSize > 100 {
 		pageSize = 100
 	}
-	status := r.URL.Query().Get("status")
-	search := r.URL.Query().Get("search")
 
-	files, total, err := up.db.ListUploadedFilesV2(claims.UserID, page, pageSize, status, search)
+	q := r.URL.Query()
+	status := q.Get("status")
+	search := q.Get("search")
+	mimeType := q.Get("mime_type")
+	language := q.Get("language")
+	sortBy := q.Get("sort_by")
+	sortOrder := q.Get("sort_order")
+
+	var dateFrom, dateTo *time.Time
+	if v := q.Get("date_from"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			dateFrom = &t
+		} else {
+			up.respondWithError(w, http.StatusBadRequest, "Invalid date_from format, use RFC3339", err.Error())
+			return
+		}
+	}
+	if v := q.Get("date_to"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			dateTo = &t
+		} else {
+			up.respondWithError(w, http.StatusBadRequest, "Invalid date_to format, use RFC3339", err.Error())
+			return
+		}
+	}
+
+	files, total, err := up.db.ListUploadedFilesV2(
+		claims.UserID, page, pageSize,
+		status, search, mimeType, language,
+		dateFrom, dateTo,
+		sortBy, sortOrder,
+	)
 	if err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to list files", err.Error())
 		return

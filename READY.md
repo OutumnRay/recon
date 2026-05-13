@@ -1188,6 +1188,34 @@
 7. `FileResultConsumer` читает результат, сохраняет фразы в `file_transcription_phrases`, обновляет статус файла
 8. Фронтенд опрашивает `GET /api/v1/files/{id}/status` (или `/transcript`, `/summary`)
 
+### Phase 16: Расширенный поиск, пагинация и фильтрация GET /api/v1/files (Completed)
+
+- ✅ Расширен `ListUploadedFilesV2` в `pkg/database/files_repository.go`:
+  - Фильтр по MIME-типу (`mime_type`)
+  - Фильтр по языку (`language`)
+  - Фильтр по диапазону дат загрузки (`date_from`, `date_to`, формат RFC3339)
+  - Сортировка: поле (`sort_by`: uploaded_at, title, file_size, duration, status) и направление (`sort_order`: asc/desc)
+  - Существующие фильтры `status` и `search` (ILIKE по title/original_name) сохранены
+- ✅ Обновлён `listFilesV2Handler` в `cmd/user-portal/handlers_files_upload.go`:
+  - Чтение всех новых query-параметров из URL
+  - Валидация `date_from` / `date_to` с понятным сообщением об ошибке
+  - Swagger-аннотации для всех новых параметров
+- ✅ Сборка `go build ./cmd/user-portal/...` — успешно
+
+#### API после изменений: GET /api/v1/files
+| Параметр     | Тип    | Описание |
+|--------------|--------|----------|
+| `page`       | int    | Страница (с 1, по умолчанию 1) |
+| `page_size`  | int    | Размер страницы (макс 100, по умолчанию 20) |
+| `status`     | string | Фильтр по статусу (pending/queued/processing/completed/failed) |
+| `search`     | string | Поиск по названию или оригинальному имени файла (ILIKE) |
+| `mime_type`  | string | Фильтр по MIME-типу (например `video/mp4`) |
+| `language`   | string | Фильтр по языку (ru, en, auto…) |
+| `date_from`  | string | Загружен не ранее (RFC3339) |
+| `date_to`    | string | Загружен не позднее (RFC3339) |
+| `sort_by`    | string | Поле сортировки: uploaded_at, title, file_size, duration, status |
+| `sort_order` | string | Направление: asc / desc (по умолчанию desc) |
+
 ### Immediate Next Steps
 1. Добавить отображение статуса транскрибации и результатов транскрипции в UI Documents-страницы
 2. Тестировать сквозной поток: загрузка → MinIO → Redis → Python-воркер → транскрипция → результат → БД
