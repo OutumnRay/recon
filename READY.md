@@ -1216,9 +1216,64 @@
 | `sort_by`    | string | Поле сортировки: uploaded_at, title, file_size, duration, status |
 | `sort_order` | string | Направление: asc / desc (по умолчанию desc) |
 
+### Phase 17: Multipart Upload + Cookie Auth + Confirm Cancel (Completed)
+
+#### Multipart PresignedPostPolicy (MinIO)
+- ✅ **pkg/storage/minio.go** — добавлен метод `PresignedPostPolicy`:
+  - Использует `minio.NewPostPolicy()` с bucket, key, expiry, content-type, max-size
+  - Возвращает URL + `map[string]string` с form-полями для multipart/form-data
+  - Подписывается через `publicClient` (публичный endpoint)
+- ✅ **internal/models/uploads.go** — `InitUploadResponse` обновлён:
+  - Поле `UploadFields map[string]string` — form-поля для FormData
+  - `UploadMethod` теперь всегда `"POST"`
+  - Документация: фронтенд добавляет все `upload_fields` в FormData до файла, затем `append("file", blob)`
+- ✅ **handlers_files_upload.go** — `initFileUploadHandler` переключён с `PresignedPutObject` на `PresignedPostPolicy`
+
+#### HTTP-only Cookie Auth
+- ✅ **pkg/auth/middleware.go** — `AuthMiddleware` теперь читает JWT из куки `recontext_token` как fallback (до query-параметра `token`)
+- ✅ **cmd/user-portal/main.go**:
+  - Добавлен хелпер `setAuthCookie` — ставит `HttpOnly`, `SameSite=Lax/None`, `Secure` по TLS/X-Forwarded-Proto
+  - `loginHandler`, `registerHandler`, `checkAuthHandler` — устанавливают куку вместе с JSON-ответом
+  - `logoutHandler` (`POST /api/v1/auth/logout`) — очищает куку (MaxAge=-1)
+  - Route `/api/v1/auth/logout` зарегистрирован как публичный
+
+#### Confirm Upload Cancel (success: false)
+- ✅ **internal/models/uploads.go** — `ConfirmUploadRequest` добавлено поле `Success *bool`:
+  - `null` / `true` — нормальное подтверждение (старое поведение)
+  - `false` — клиент сигнализирует об отмене/ошибке загрузки
+- ✅ **handlers_files_upload.go** — `confirmFileUploadHandler`:
+  - При `success=false`: удаляет объект из MinIO (best-effort) + удаляет запись из БД
+  - Возвращает `{status: "cancelled"}` с кодом 200
+  - Только при статусе `pending` (как и раньше)
+
+#### Фронтенд — как использовать multipart POST
+```javascript
+// 1. Инициализация
+const init = await fetch('/api/v1/files/init', { method: 'POST', ... });
+const { upload_url, upload_fields, file_id } = await init.json();
+
+// 2. Загрузка через FormData (БЕЗ Authorization header!)
+const formData = new FormData();
+Object.entries(upload_fields).forEach(([k, v]) => formData.append(k, v));
+formData.append('file', fileBlob);  // файл — ПОСЛЕДНИМ
+const uploadResp = await fetch(upload_url, { method: 'POST', body: formData });
+const etag = uploadResp.headers.get('ETag');
+
+// 3a. Успех — confirm
+await fetch(`/api/v1/files/${file_id}/confirm`, {
+  method: 'POST', body: JSON.stringify({ etag, success: true })
+});
+
+// 3b. Ошибка — сигнализируем об отмене
+await fetch(`/api/v1/files/${file_id}/confirm`, {
+  method: 'POST', body: JSON.stringify({ success: false })
+});
+```
+
 ### Immediate Next Steps
-1. Добавить отображение статуса транскрибации и результатов транскрипции в UI Documents-страницы
-2. Тестировать сквозной поток: загрузка → MinIO → Redis → Python-воркер → транскрипция → результат → БД
+1. Обновить фронтенд для multipart POST загрузки (FormData вместо PUT)
+2. Добавить отображение статуса транскрибации и результатов транскрипции в UI Documents-страницы
+3. Тестировать сквозной поток: загрузка → MinIO → Redis → Python-воркер → транскрипция → результат → БД
 3. Complete Summarization Worker integration
 
 ## Notes

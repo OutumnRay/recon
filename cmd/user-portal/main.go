@@ -286,6 +286,8 @@ func (up *UserPortal) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	up.setAuthCookie(w, r, token, expiresAt)
+
 	response := models.MinimalLoginResponse{
 		Token:     token,
 		ExpiresAt: expiresAt,
@@ -420,6 +422,8 @@ func (up *UserPortal) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	up.setAuthCookie(w, r, token, expiresAt)
+
 	response := models.MinimalLoginResponse{
 		Token:     token,
 		ExpiresAt: expiresAt,
@@ -471,6 +475,8 @@ func (up *UserPortal) checkAuthHandler(w http.ResponseWriter, r *http.Request) {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to generate token", err.Error())
 		return
 	}
+
+	up.setAuthCookie(w, r, token, expiresAt)
 
 	response := models.MinimalLoginResponse{
 		Token:     token,
@@ -1104,6 +1110,43 @@ func (up *UserPortal) unregisterFCMDeviceHandler(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(response)
 }
 
+// setAuthCookie записывает JWT в HttpOnly-куку. Secure ставится по TLS / X-Forwarded-Proto.
+func (up *UserPortal) setAuthCookie(w http.ResponseWriter, r *http.Request, token string, expiresAt time.Time) {
+	secure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "recontext_token",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+		Expires:  expiresAt,
+	})
+}
+
+// Logout godoc
+// @Summary Выход из системы
+// @Description Очищает cookie с JWT-токеном
+// @Tags Authentication
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Router /api/v1/auth/logout [post]
+func (up *UserPortal) logoutHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "recontext_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1,
+	})
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Logged out"})
+}
+
 func (up *UserPortal) respondWithError(w http.ResponseWriter, code int, message string, detail string) {
 	response := models.ErrorResponse{
 		Error:     message,
@@ -1180,6 +1223,9 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 
 	updateMiddleware := chainMiddleware(http.HandlerFunc(up.updateProfileHandler), auth.AuthMiddleware(up.jwtManager))
 	mux.HandleFunc("/api/v1/update-profile", http.HandlerFunc(updateMiddleware.ServeHTTP))
+
+	// Logout (public — очищает куку без валидации токена)
+	mux.HandleFunc("/api/v1/auth/logout", up.logoutHandler)
 
 	// Password reset endpoints (public)
 	mux.HandleFunc("/api/v1/auth/password-reset/request", up.requestPasswordResetHandler)

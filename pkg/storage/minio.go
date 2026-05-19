@@ -312,6 +312,40 @@ func (mc *MinIOClient) PresignedPutObject(ctx context.Context, objectPath string
 	return u.String(), nil
 }
 
+// PresignedPostPolicy returns a time-limited multipart/form-data POST URL and the
+// required form fields. The browser sends a FormData with all returned fields plus
+// the file under key "file". This is the recommended upload method for browser
+// clients because it allows server-side validation via a signed policy document.
+// maxSizeBytes=0 disables size enforcement.
+func (mc *MinIOClient) PresignedPostPolicy(ctx context.Context, objectPath, mimeType string, maxSizeBytes int64, expiry time.Duration) (string, map[string]string, error) {
+	policy := minio.NewPostPolicy()
+	if err := policy.SetBucket(mc.bucket); err != nil {
+		return "", nil, fmt.Errorf("presigned post policy SetBucket: %w", err)
+	}
+	if err := policy.SetKey(objectPath); err != nil {
+		return "", nil, fmt.Errorf("presigned post policy SetKey: %w", err)
+	}
+	if err := policy.SetExpires(time.Now().Add(expiry)); err != nil {
+		return "", nil, fmt.Errorf("presigned post policy SetExpires: %w", err)
+	}
+	if mimeType != "" {
+		if err := policy.SetContentType(mimeType); err != nil {
+			return "", nil, fmt.Errorf("presigned post policy SetContentType: %w", err)
+		}
+	}
+	if maxSizeBytes > 0 {
+		if err := policy.SetContentLengthRange(1, maxSizeBytes); err != nil {
+			return "", nil, fmt.Errorf("presigned post policy SetContentLengthRange: %w", err)
+		}
+	}
+
+	u, formData, err := mc.publicClient.PresignedPostPolicy(ctx, policy)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to generate presigned POST policy: %w", err)
+	}
+	return u.String(), formData, nil
+}
+
 // PresignedGetObject returns a time-limited URL for downloading an object.
 func (mc *MinIOClient) PresignedGetObject(ctx context.Context, objectPath string, expiry time.Duration) (string, error) {
 	u, err := mc.publicClient.PresignedGetObject(ctx, mc.bucket, objectPath, expiry, make(url.Values))

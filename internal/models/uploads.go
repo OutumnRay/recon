@@ -139,18 +139,30 @@ type InitUploadRequest struct {
 }
 
 // InitUploadResponse — ответ на POST /api/v1/files/init
+//
+// Метод загрузки — multipart/form-data POST:
+//   - Создать FormData, добавить все поля из upload_fields, затем file под ключом "file"
+//   - POST на upload_url с этой FormData (без заголовка Authorization)
+//   - ETag вернётся в заголовке ответа MinIO (используется в confirm)
 type InitUploadResponse struct {
-	FileID        uuid.UUID         `json:"file_id"`
-	UploadURL     string            `json:"upload_url"`
-	UploadMethod  string            `json:"upload_method"`
-	UploadHeaders map[string]string `json:"upload_headers"`
-	StoragePath   string            `json:"storage_path"`
-	ExpiresAt     time.Time         `json:"expires_at"`
+	FileID       uuid.UUID         `json:"file_id"`
+	UploadURL    string            `json:"upload_url"`
+	UploadMethod string            `json:"upload_method"` // всегда "POST"
+	// UploadFields — обязательные поля formData (key, policy, x-amz-* и др.)
+	// Фронтенд добавляет их в FormData ДО файла, затем append("file", fileBlob)
+	UploadFields map[string]string `json:"upload_fields"`
+	StoragePath  string            `json:"storage_path"`
+	ExpiresAt    time.Time         `json:"expires_at"`
 }
 
 // ConfirmUploadRequest — тело POST /api/v1/files/{id}/confirm
+//
+// Success=false: клиент сообщает, что загрузка не была завершена (ошибка, отмена).
+// Бэкенд удалит запись из БД и объект из MinIO. При nil или true — нормальное подтверждение.
 type ConfirmUploadRequest struct {
-	ETag string `json:"etag"`
+	ETag    string `json:"etag"`
+	// Success=false означает отмену загрузки; запись и объект будут удалены
+	Success *bool  `json:"success,omitempty"`
 }
 
 // ConfirmUploadResponse — ответ на POST /api/v1/files/{id}/confirm

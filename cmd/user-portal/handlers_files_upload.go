@@ -97,9 +97,9 @@ func (up *UserPortal) initFileUploadHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	expiry := 30 * time.Minute
-	presignedURL, err := up.minioClient.PresignedPutObject(r.Context(), objectPath, expiry)
+	presignedURL, formFields, err := up.minioClient.PresignedPostPolicy(r.Context(), objectPath, mimeType, req.FileSize, expiry)
 	if err != nil {
-		up.logger.Errorf("[Files/Init] Failed to generate presigned URL: %v", err)
+		up.logger.Errorf("[Files/Init] Failed to generate presigned POST policy: %v", err)
 		_ = up.db.DeleteUploadedFile(fileID.String())
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to generate upload URL", err.Error())
 		return
@@ -108,12 +108,10 @@ func (up *UserPortal) initFileUploadHandler(w http.ResponseWriter, r *http.Reque
 	resp := models.InitUploadResponse{
 		FileID:       fileID,
 		UploadURL:    presignedURL,
-		UploadMethod: "PUT",
-		UploadHeaders: map[string]string{
-			"Content-Type": mimeType,
-		},
-		StoragePath: objectPath,
-		ExpiresAt:   time.Now().Add(expiry),
+		UploadMethod: "POST",
+		UploadFields: formFields,
+		StoragePath:  objectPath,
+		ExpiresAt:    time.Now().Add(expiry),
 	}
 
 	up.logger.Infof("[Files/Init] File %s created for user %s, presigned URL issued", fileID, claims.UserID)
@@ -168,6 +166,22 @@ func (up *UserPortal) confirmFileUploadHandler(w http.ResponseWriter, r *http.Re
 
 	var req models.ConfirmUploadRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	// success=false — клиент сигнализирует о неудачной или отменённой загрузке
+	if req.Success != nil && !*req.Success {
+		if up.minioClient != nil {
+			_ = up.minioClient.DeleteFile(context.Background(), dbFile.StoragePath)
+		}
+		_ = up.db.DeleteUploadedFile(fileID.String())
+		up.logger.Infof("[Files/Confirm] Upload cancelled for file %s by user %s", fileID, claims.UserID)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(models.ConfirmUploadResponse{
+			FileID:  fileID,
+			Status:  "cancelled",
+			Message: "Upload cancelled, file record deleted",
+		})
+		return
+	}
 
 	// Verify the object actually exists in MinIO before queueing
 	if up.minioClient != nil {

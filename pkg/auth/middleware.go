@@ -33,6 +33,13 @@ func AuthMiddleware(jwtManager *JWTManager) func(http.Handler) http.Handler {
 				token = parts[1]
 			}
 
+			// Fallback to cookie (set by loginHandler / registerHandler)
+			if token == "" {
+				if cookie, err := r.Cookie("recontext_token"); err == nil {
+					token = cookie.Value
+				}
+			}
+
 			// Fallback to token query parameter (e.g., for WebSocket connections)
 			if token == "" {
 				token = r.URL.Query().Get("token")
