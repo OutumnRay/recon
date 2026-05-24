@@ -34,8 +34,8 @@ type AssistantChatResponse struct {
 }
 
 const (
-	maxTranscriptChars = 8000
-	maxPhrasesForLLM   = 400
+	maxTranscriptChars = 3000
+	maxPhrasesForLLM   = 150
 )
 
 // assistantChatHandler godoc
