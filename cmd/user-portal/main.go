@@ -1593,17 +1593,17 @@ func (up *UserPortal) Start() error {
 
 	// Initialize LLM client for memo generation
 	llmClient := llm.NewClient(
-		getEnv("LLM_API_ENDPOINT", "https://api.openai.com/v1"),
-		getEnv("LLM_MODEL", "gpt-3.5-turbo"),
+		getEnv("LLM_API_ENDPOINT", "http://ollama:11434/v1"),
+		getEnv("LLM_MODEL", "llama3.2"),
 		getEnv("LLM_API_KEY", ""),
 	)
 	up.llmClient = llmClient
 	if llmClient.IsConfigured() {
 		up.logger.Infof(" [LLM] Configured with endpoint: %s, model: %s",
-			getEnv("LLM_API_ENDPOINT", "https://api.openai.com/v1"),
-			getEnv("LLM_MODEL", "gpt-3.5-turbo"))
+			getEnv("LLM_API_ENDPOINT", "http://ollama:11434/v1"),
+			getEnv("LLM_MODEL", "llama3.2"))
 	} else {
-		up.logger.Info(" [LLM] Not configured - memo generation will be skipped")
+		up.logger.Info(" [LLM] Not configured - LLM features will be unavailable")
 	}
 
 	// Start transcription notifier if RabbitMQ and FCM are available

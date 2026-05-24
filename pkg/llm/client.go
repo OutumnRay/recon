@@ -53,9 +53,10 @@ func NewClient(endpoint, model, apiKey string) *Client {
 	}
 }
 
-// IsConfigured checks if the LLM client is properly configured
+// IsConfigured checks if the LLM client is properly configured.
+// apiKey is optional — local models (Ollama) don't require authentication.
 func (c *Client) IsConfigured() bool {
-	return c.endpoint != "" && c.model != "" && c.apiKey != ""
+	return c.endpoint != "" && c.model != ""
 }
 
 // GenerateChatCompletion generates a chat completion using the LLM API
@@ -80,7 +81,9 @@ func (c *Client) GenerateChatCompletion(messages []Message) (string, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
