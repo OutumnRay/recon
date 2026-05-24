@@ -141,11 +141,13 @@ func (up *UserPortal) handleAssistantSummary(w http.ResponseWriter, userID uuid.
 	// No cached summary — build from phrases
 	transcript, err := up.buildTranscriptForFile(fileID, userID)
 	if err != nil {
+		up.logger.Errorf("[Assistant:summary] buildTranscript error for file %s: %v", fileID, err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to load transcript", err.Error())
 		return
 	}
 
 	if transcript == "" {
+		up.logger.Infof("[Assistant:summary] No phrases found for file %s (transcript not ready)", fileID)
 		up.respondWithError(w, http.StatusUnprocessableEntity, "Transcript not ready", "Transcription is not yet completed for this file")
 		return
 	}
@@ -154,6 +156,8 @@ func (up *UserPortal) handleAssistantSummary(w http.ResponseWriter, userID uuid.
 	if title == "" {
 		title = file.OriginalName
 	}
+
+	up.logger.Infof("[Assistant:summary] Sending %d chars to LLM for file %s", len(transcript), fileID)
 
 	messages := []llm.Message{
 		{
@@ -169,6 +173,7 @@ func (up *UserPortal) handleAssistantSummary(w http.ResponseWriter, userID uuid.
 
 	result, err := up.llmClient.GenerateChatCompletion(messages)
 	if err != nil {
+		up.logger.Errorf("[Assistant:summary] LLM error for file %s: %v", fileID, err)
 		up.respondWithError(w, http.StatusInternalServerError, "LLM request failed", err.Error())
 		return
 	}
@@ -203,11 +208,13 @@ func (up *UserPortal) handleAssistantDefinitions(w http.ResponseWriter, userID u
 
 	transcript, err := up.buildTranscriptForFile(fileID, userID)
 	if err != nil {
+		up.logger.Errorf("[Assistant:definitions] buildTranscript error for file %s: %v", fileID, err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to load transcript", err.Error())
 		return
 	}
 
 	if transcript == "" {
+		up.logger.Infof("[Assistant:definitions] No phrases found for file %s (transcript not ready)", fileID)
 		up.respondWithError(w, http.StatusUnprocessableEntity, "Transcript not ready", "Transcription is not yet completed for this file")
 		return
 	}
@@ -216,6 +223,8 @@ func (up *UserPortal) handleAssistantDefinitions(w http.ResponseWriter, userID u
 	if title == "" {
 		title = file.OriginalName
 	}
+
+	up.logger.Infof("[Assistant:definitions] Sending %d chars to LLM for file %s", len(transcript), fileID)
 
 	messages := []llm.Message{
 		{
@@ -231,6 +240,7 @@ func (up *UserPortal) handleAssistantDefinitions(w http.ResponseWriter, userID u
 
 	result, err := up.llmClient.GenerateChatCompletion(messages)
 	if err != nil {
+		up.logger.Errorf("[Assistant:definitions] LLM error for file %s: %v", fileID, err)
 		up.respondWithError(w, http.StatusInternalServerError, "LLM request failed", err.Error())
 		return
 	}
