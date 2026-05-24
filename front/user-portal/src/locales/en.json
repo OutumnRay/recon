@@ -115,6 +115,7 @@
   "nav": {
     "meetings": "Meetings",
     "search": "Search",
+    "assistant": "AI Assistant",
     "documents": "Documents",
     "management": "Management",
     "profile": "Profile"
@@ -207,6 +208,43 @@
     "subtitle": "Search through your meetings and transcripts",
     "comingSoon": "Search functionality coming soon",
     "description": "You'll be able to search through all your meetings, transcripts, and documents to find exactly what you need."
+  },
+  "assistant": {
+    "title": "AI Assistant",
+    "subtitle": "Smart assistant for working with your recordings",
+    "inputPlaceholder": "Ask something...",
+    "send": "Send",
+    "referencedFiles": "Referenced recordings",
+    "actions": {
+      "summary": "Summary",
+      "summaryHint": "Get a brief overview of a selected recording",
+      "definitions": "Key Definitions",
+      "definitionsHint": "Extract terms and concepts from a recording",
+      "findVideos": "Find in Videos",
+      "findVideosHint": "Find recordings that mention a topic"
+    },
+    "welcome": {
+      "title": "Hi! I'm your AI assistant",
+      "description": "Ask a question or use the quick actions above to get a summary, extract definitions, or find recordings by topic."
+    },
+    "fileSelector": {
+      "prompt": "Select a recording",
+      "placeholder": "— Choose a file —",
+      "noFiles": "No completed recordings found. Please upload and transcribe a file first.",
+      "confirm": "Continue"
+    },
+    "findVideos": {
+      "prompt": "What are you looking for in recordings?",
+      "placeholder": "Enter a topic or keyword..."
+    },
+    "messages": {
+      "summaryRequest": "Summarize the recording «{{title}}»",
+      "definitionsRequest": "Extract key terms and definitions from the recording «{{title}}»",
+      "findVideosRequest": "Which recordings mention «{{query}}»?"
+    },
+    "errors": {
+      "requestFailed": "Failed to get a response from the assistant. Check if the LLM service is configured."
+    }
   },
   "management": {
     "title": "Management",

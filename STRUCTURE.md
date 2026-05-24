@@ -32,7 +32,8 @@ Recontext.online/
 │   ├── user-portal/               # User Portal service
 │   │   ├── main.go                # Entry point with file upload and search
 │   │   ├── handlers_files_upload.go   # Presigned-URL upload flow handlers (init, confirm, status, list, detail, transcript, summary, video, delete)
-│   │   └── handlers_files_consumer.go # Redis BRPOP consumer — reads transcription results from Python worker
+│   │   ├── handlers_files_consumer.go # Redis BRPOP consumer — reads transcription results from Python worker
+│   │   └── handlers_assistant.go      # AI-ассистент: краткое содержание, определения, поиск по видео (POST /api/v1/assistant/chat)
 │   ├── jitsi-agent/               # Custom Jitsi recording agent
 │   │   └── main.go                # WebRTC recording service
 │   ├── transcription-worker/      # Transcription worker service
@@ -157,6 +158,15 @@ Recontext.online/
   - TypeScript interfaces for LiveKit entities
   - API methods for rooms, participants, tracks
   - Authenticated requests with JWT
+
+- **cmd/user-portal/handlers_assistant.go**: AI-ассистент
+  - `POST /api/v1/assistant/chat` — единая точка входа с режимами:
+    - `summary` — краткое содержание записи (через `file_id`)
+    - `definitions` — ключевые термины и определения (через `file_id`)
+    - `find_videos` — полнотекстовый поиск по фразам всех файлов пользователя
+    - `chat` — свободный диалог (опционально с контекстом файла)
+  - Использует `pkg/llm` (Ollama / OpenAI-совместимый API)
+  - Контекст строится из `file_transcription_phrases`; кэш из `file_summaries`
 
 - **cmd/user-portal/main.go**: User Portal API server (Port 8081)
   - **Authentication**: `/api/v1/auth/login`

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX, LuUser, LuChevronDown } from 'react-icons/lu';
+import { LuCalendar, LuSearch, LuFileText, LuSettings, LuLogOut, LuMenu, LuX, LuUser, LuChevronDown, LuBot } from 'react-icons/lu';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { APP_VERSION } from '../config/version';
 import './Dashboard.css';
@@ -144,6 +144,10 @@ export const Dashboard: React.FC = () => {
       return { title: t('meetings.title'), subtitle: t('meetings.subtitle') };
     }
 
+    if (location.pathname.startsWith('/dashboard/assistant')) {
+      return { title: t('assistant.title'), subtitle: t('assistant.subtitle') };
+    }
+
     return { title: 'Recontext', subtitle: t('nav.dashboard', { defaultValue: '' }) };
   })();
 
@@ -187,6 +191,15 @@ export const Dashboard: React.FC = () => {
           >
             <span className="nav-icon"><LuSearch /></span>
             <span className="nav-label">{t('nav.search')}</span>
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/assistant"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={closeMobileMenu}
+          >
+            <span className="nav-icon"><LuBot /></span>
+            <span className="nav-label">{t('nav.assistant')}</span>
           </NavLink>
 
           {hasFilePermission && (

@@ -1270,11 +1270,42 @@ await fetch(`/api/v1/files/${file_id}/confirm`, {
 });
 ```
 
+### Phase 18: AI-ассистент на user-portal (Completed)
+
+#### Backend
+- ✅ Создан `cmd/user-portal/handlers_assistant.go` с единым эндпоинтом `POST /api/v1/assistant/chat`
+  - Режим `summary`: краткое содержание файла через LLM (с кэшированием из `file_summaries`)
+  - Режим `definitions`: ключевые термины и определения из транскрипции
+  - Режим `find_videos`: полнотекстовый поиск по `file_transcription_phrases` всех файлов пользователя + объяснение от LLM
+  - Режим `chat`: свободный диалог (опционально с контекстом транскрипции файла)
+- ✅ Добавлено поле `llmClient *llm.Client` в структуру `UserPortal`; клиент сохраняется в `Start()` и используется в хэндлерах
+- ✅ Зарегистрирован роут `/api/v1/assistant/chat` в `setupRoutes()`
+- ✅ Транскрипт обрезается до 8000 символов / 400 фраз, чтобы вписаться в контекстное окно LLM
+
+#### Frontend (User Portal)
+- ✅ Создана страница `front/user-portal/src/pages/Assistant.tsx`
+  - 3 кнопки быстрого доступа: Краткое содержание, Ключевые определения, Поиск по видео
+  - Встроенные панели: выбор файла (для summary/definitions) и поле поиска (для find_videos)
+  - История чата: пузырьки пользователя (синие) и ассистента (белые карточки)
+  - Ссылки на найденные файлы в ответах (chips)
+  - Индикатор набора текста (анимированные точки)
+  - Поле ввода с поддержкой Enter
+- ✅ Создан `Assistant.css` со стилями Aurora Design System
+- ✅ Добавлен роут `/dashboard/assistant` в `App.tsx`
+- ✅ Добавлен пункт «AI Ассистент» (иконка LuBot) в навигационное меню `Dashboard.tsx`
+- ✅ Добавлен заголовок страницы в `pageMeta` в `Dashboard.tsx`
+- ✅ Добавлены переводы в `ru.json` и `en.json` (ключ `assistant.*`)
+
+#### Конфигурация
+- Сервис использует переменные окружения: `LLM_API_ENDPOINT`, `LLM_MODEL`, `LLM_API_KEY`
+- По умолчанию указывает на OpenAI, но совместим с Ollama (локальный LLM, уже есть в docker-compose)
+- Если LLM не настроен — возвращает 503 Service Unavailable
+
 ### Immediate Next Steps
 1. Обновить фронтенд для multipart POST загрузки (FormData вместо PUT)
 2. Добавить отображение статуса транскрибации и результатов транскрипции в UI Documents-страницы
 3. Тестировать сквозной поток: загрузка → MinIO → Redis → Python-воркер → транскрипция → результат → БД
-3. Complete Summarization Worker integration
+4. Complete Summarization Worker integration
 
 ## Notes
 - **Phase 1 (Infrastructure) is complete**: Project structure, Docker infrastructure, CI/CD pipeline

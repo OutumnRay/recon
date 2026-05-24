@@ -82,6 +82,7 @@ type UserPortal struct {
 	transcriptionNotifier  *TranscriptionNotifier
 	notificationService    *notifications.NotificationService
 	fileResultConsumer     *FileResultConsumer
+	llmClient              *llm.Client
 }
 
 // EmailServiceInterface defines the interface for email services
@@ -1278,6 +1279,12 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 		authMiddleware,
 	))
 
+	// ── AI Assistant ─────────────────────────────────────────────────────────────
+	mux.Handle("/api/v1/assistant/chat", chainMiddleware(
+		http.HandlerFunc(up.assistantChatHandler),
+		authMiddleware,
+	))
+
 	// ── Legacy file upload (kept for backward-compat) ──────────────────────────
 	mux.Handle("/api/v1/files/upload", chainMiddleware(
 		http.HandlerFunc(up.uploadFileHandler),
@@ -1590,6 +1597,7 @@ func (up *UserPortal) Start() error {
 		getEnv("LLM_MODEL", "gpt-3.5-turbo"),
 		getEnv("LLM_API_KEY", ""),
 	)
+	up.llmClient = llmClient
 	if llmClient.IsConfigured() {
 		up.logger.Infof(" [LLM] Configured with endpoint: %s, model: %s",
 			getEnv("LLM_API_ENDPOINT", "https://api.openai.com/v1"),
