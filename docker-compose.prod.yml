@@ -112,7 +112,7 @@ services:
       - REDIS_TASK_QUEUE=${REDIS_TASK_QUEUE:-recontext:transcription:queue}
       - FCM_CREDENTIALS_JSON=${FCM_CREDENTIALS_JSON:-}
       - LLM_API_ENDPOINT=${LLM_API_ENDPOINT:-http://ollama:11434/v1}
-      - LLM_MODEL=${LLM_MODEL:-qwen2.5:7b}
+      - LLM_MODEL=${LLM_MODEL:-qwen2.5:3b}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
