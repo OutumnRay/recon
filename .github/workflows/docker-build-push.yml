@@ -42,6 +42,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wanderfox1/recontext-user-portal
+          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
           path: front/user-portal
 
       - name: Set up Docker Buildx
