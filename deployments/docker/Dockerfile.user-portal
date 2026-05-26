@@ -1,38 +1,17 @@
-# Frontend build stage
-FROM node:20-alpine AS frontend-builder
-
-WORKDIR /app/frontend
-
-# Copy frontend package files
-COPY front/user-portal/package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
-
-# Copy frontend source
-COPY front/user-portal/ ./
-
-# Build frontend
-RUN npm run build
-
-# Backend build stage
-FROM golang:1.24-alpine AS backend-builder
+# Build stage
+FROM golang:1.24-alpine AS builder
 
 ENV PATH="/go/bin:${PATH}"
 
 WORKDIR /app
 
-# Copy go mod files
 COPY go.mod go.sum* ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
-# Copy source code
 COPY . .
 
-# Copy built frontend from frontend-builder to cmd/user-portal/dist
-COPY --from=frontend-builder /app/frontend/dist ./cmd/user-portal/dist
-
-# Install swagger generator (swag) and refresh docs
+# Install swagger generator and refresh docs
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 RUN cd cmd/user-portal && \
     GOCACHE=/tmp/go-build swag init \
@@ -42,7 +21,6 @@ RUN cd cmd/user-portal && \
       --output docs \
       --dir . ../../internal/models
 
-# Build the application with embedded frontend
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o user-portal ./cmd/user-portal
 
 # Runtime stage
@@ -52,14 +30,9 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the binary from builder (frontend is embedded inside)
-COPY --from=backend-builder /app/user-portal .
+COPY --from=builder /app/user-portal .
+COPY --from=builder /app/pkg/email/templates ./pkg/email/templates
 
-# Copy email templates
-COPY --from=backend-builder /app/pkg/email/templates ./pkg/email/templates
-
-# Expose port
 EXPOSE 8081
 
-# Run the application
 CMD ["./user-portal"]

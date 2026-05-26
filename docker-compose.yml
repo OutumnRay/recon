@@ -64,14 +64,23 @@ services:
     restart: unless-stopped
 
   # 2. User Portal
+  user-portal-front:
+    image: raykzer/recontext-user-portal-front:latest
+    container_name: recontext-user-portal-front
+    ports:
+      - "${USER_PORTAL_PORT:-20081}:80"
+    depends_on:
+      - user-portal
+    networks:
+      - recontext-network
+    restart: unless-stopped
+
   user-portal:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.user-portal
     image: raykzer/recontext-user-portal:latest
     container_name: recontext-user-portal
-    ports:
-      - "${USER_PORTAL_PORT:-20081}:8081"
     environment:
       - APP_VERSION=${APP_VERSION:-0.1.0+0}
       - SERVER_HOST=0.0.0.0

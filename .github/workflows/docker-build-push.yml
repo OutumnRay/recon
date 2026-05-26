@@ -37,14 +37,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Checkout user-portal frontend
-        if: matrix.service.name == 'user-portal'
-        uses: actions/checkout@v4
-        with:
-          repository: wanderfox1/recontext-user-portal
-          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
-          path: front/user-portal
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

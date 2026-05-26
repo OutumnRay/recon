@@ -1,10 +1,8 @@
 package main
 
 import (
-	"embed"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"os"
 	"strconv"
@@ -32,9 +30,6 @@ import (
 
 	docs "Recontext.online/cmd/user-portal/docs" // Import generated docs
 )
-
-//go:embed dist/*
-var staticFiles embed.FS
 
 const version = "0.1.0"
 
@@ -1168,37 +1163,6 @@ func chainMiddleware(handler http.Handler, middlewares ...func(http.Handler) htt
 	return handler
 }
 
-// serveStaticFiles serves the React frontend
-func serveStaticFiles() http.Handler {
-	// Get the dist subdirectory from embedded files
-	distFS, err := fs.Sub(staticFiles, "dist")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get dist directory: %v", err))
-	}
-
-	fileServer := http.FileServer(http.FS(distFS))
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if file exists
-		path := strings.TrimPrefix(r.URL.Path, "/")
-		if path == "" {
-			path = "index.html"
-		}
-
-		// Try to open the file
-		file, err := distFS.Open(path)
-		if err != nil {
-			// File doesn't exist, serve index.html for SPA routing
-			r.URL.Path = "/"
-			fileServer.ServeHTTP(w, r)
-			return
-		}
-		file.Close()
-
-		// File exists, serve it
-		fileServer.ServeHTTP(w, r)
-	})
-}
 
 func (up *UserPortal) setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
@@ -1567,9 +1531,6 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 	// Serve uploaded avatars
 	avatarsFS := http.FileServer(http.Dir("uploads"))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", avatarsFS))
-
-	// Serve React frontend for all other routes
-	mux.Handle("/", serveStaticFiles())
 
 	return mux
 }
