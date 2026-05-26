@@ -5,8 +5,8 @@
 ```
 Recontext.online/
 ├── .git/                          # Git version control
-├── front/                         # Frontend applications
-│   └── managing-portal/           # Managing Portal React app
+├── front/                         # Frontend applications (только managing-portal)
+│   └── managing-portal/           # Managing Portal React app (в этом репо)
 │       ├── src/
 │       │   ├── components/        # React components
 │       │   │   ├── Dashboard.tsx
@@ -19,6 +19,9 @@ Recontext.online/
 │       │   ├── services/          # API services
 │       │   │   └── livekit.ts     # LiveKit API client
 │       │   └── App.tsx            # Main app with routing
+│   # user-portal frontend — отдельный репозиторий:
+│   #   https://github.com/wanderfox1/recontext-user-portal
+│   #   Клонируется в CI/CD в front/user-portal/ перед Docker build
 ├── .github/                       # GitHub configuration
 │   └── workflows/                 # GitHub Actions workflows
 │       └── docker-build-push.yml  # Docker image build and push workflow
@@ -167,6 +170,11 @@ Recontext.online/
     - `chat` — свободный диалог (опционально с контекстом файла)
   - Использует `pkg/llm` (Ollama / OpenAI-совместимый API)
   - Контекст строится из `file_transcription_phrases`; кэш из `file_summaries`
+
+- **User Portal Frontend** — внешний репозиторий `wanderfox1/recontext-user-portal`
+  - CI/CD клонирует его автоматически в `front/user-portal/` перед Docker build
+  - Собственный workflow в том репо запускает полный деплой при пуше в main
+  - Шаблон workflow: `docs/frontend-deploy-workflow.yml`
 
 - **cmd/user-portal/main.go**: User Portal API server (Port 8081)
   - **Authentication**: `/api/v1/auth/login`
