@@ -17,6 +17,9 @@ log "=== Начало деплоя ==="
 
 cd "$DEPLOY_DIR"
 
+log "Тянем актуальную конфигурацию из git..."
+git pull origin main || git pull new-origin main || log "ПРЕДУПРЕЖДЕНИЕ: git pull не удался, продолжаем с локальной конфигурацией"
+
 log "Тянем свежие образы из Docker Hub..."
 docker compose -f "$COMPOSE_FILE" pull
 
