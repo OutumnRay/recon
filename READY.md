@@ -1216,18 +1216,31 @@
 | `sort_by`    | string | Поле сортировки: uploaded_at, title, file_size, duration, status |
 | `sort_order` | string | Направление: asc / desc (по умолчанию desc) |
 
-### Phase 17: Multipart Upload + Cookie Auth + Confirm Cancel (Completed)
+### Phase 17: S3 Multipart Upload + Cookie Auth + Confirm Cancel (Completed)
 
-#### Multipart PresignedPostPolicy (MinIO)
-- ✅ **pkg/storage/minio.go** — добавлен метод `PresignedPostPolicy`:
-  - Использует `minio.NewPostPolicy()` с bucket, key, expiry, content-type, max-size
-  - Возвращает URL + `map[string]string` с form-полями для multipart/form-data
-  - Подписывается через `publicClient` (публичный endpoint)
-- ✅ **internal/models/uploads.go** — `InitUploadResponse` обновлён:
-  - Поле `UploadFields map[string]string` — form-поля для FormData
-  - `UploadMethod` теперь всегда `"POST"`
-  - Документация: фронтенд добавляет все `upload_fields` в FormData до файла, затем `append("file", blob)`
-- ✅ **handlers_files_upload.go** — `initFileUploadHandler` переключён с `PresignedPutObject` на `PresignedPostPolicy`
+#### Реальный S3 Multipart Upload (MinIO)
+- ✅ **pkg/storage/minio.go** — три новых метода:
+  - `InitiateMultipartUpload(ctx, objectPath, contentType, totalSize, chunkSize, expiry)`:
+    - Вызывает `minio.Core.NewMultipartUpload` → получает `uploadId`
+    - Генерирует presigned PUT URL для каждой части через `publicClient.Presign("PUT", ...?partNumber=N&uploadId=...)`
+    - Возвращает `[]MultipartPart{PartNumber, UploadURL, Offset, Size}`
+    - chunkSize < 5 МБ → автокоррекция до 10 МБ; при ошибке presign → AbortMultipartUpload
+  - `CompleteMultipartUpload(ctx, objectPath, uploadID, []CompletePart)`:
+    - Конвертирует в `[]minio.CompletePart`, вызывает `minio.Core.CompleteMultipartUpload`
+    - MinIO собирает объект из частей
+  - `AbortMultipartUpload(ctx, objectPath, uploadID)`:
+    - Вызывает `minio.Core.AbortMultipartUpload` — удаляет все загруженные части
+- ✅ **internal/models/uploads.go** — новые типы:
+  - `MultipartPart{PartNumber, UploadURL, Offset, Size}` — для ответа init
+  - `UploadedPart{PartNumber, ETag}` — от клиента в confirm
+  - `InitUploadRequest` добавлено `ChunkSize int64` (0 → 10 МБ)
+  - `InitUploadResponse` заменён: `{file_id, upload_id, upload_method:"MULTIPART", parts[], storage_path, expires_at}`
+  - `ConfirmUploadRequest` заменён: `{upload_id, parts[], success?}`
+- ✅ **handlers_files_upload.go**:
+  - `initFileUploadHandler` вызывает `InitiateMultipartUpload`, возвращает presigned URLs для всех частей
+  - `confirmFileUploadHandler`:
+    - `success=false` → `AbortMultipartUpload` + удаление записи из БД
+    - `success=true/nil` → `CompleteMultipartUpload` (MinIO собирает объект) → `ConfirmUpload` в БД → очередь Redis
 
 #### HTTP-only Cookie Auth
 - ✅ **pkg/auth/middleware.go** — `AuthMiddleware` теперь читает JWT из куки `recontext_token` как fallback (до query-параметра `token`)

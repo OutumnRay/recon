@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -312,38 +313,109 @@ func (mc *MinIOClient) PresignedPutObject(ctx context.Context, objectPath string
 	return u.String(), nil
 }
 
-// PresignedPostPolicy returns a time-limited multipart/form-data POST URL and the
-// required form fields. The browser sends a FormData with all returned fields plus
-// the file under key "file". This is the recommended upload method for browser
-// clients because it allows server-side validation via a signed policy document.
-// maxSizeBytes=0 disables size enforcement.
-func (mc *MinIOClient) PresignedPostPolicy(ctx context.Context, objectPath, mimeType string, maxSizeBytes int64, expiry time.Duration) (string, map[string]string, error) {
-	policy := minio.NewPostPolicy()
-	if err := policy.SetBucket(mc.bucket); err != nil {
-		return "", nil, fmt.Errorf("presigned post policy SetBucket: %w", err)
+// ─── S3 Multipart Upload ──────────────────────────────────────────────────────
+
+// MultipartPart holds the presigned PUT URL and byte range for one upload part.
+// The client PUTs exactly Size bytes starting at Offset, then records the ETag
+// from the response for use in CompleteMultipartUpload.
+type MultipartPart struct {
+	PartNumber int
+	UploadURL  string
+	Offset     int64
+	Size       int64
+}
+
+// CompletePart is the ETag of an already-uploaded part, returned by the client.
+type CompletePart struct {
+	PartNumber int
+	ETag       string
+}
+
+const defaultChunkSize int64 = 10 * 1024 * 1024 // 10 MB
+const minChunkSize int64 = 5 * 1024 * 1024       // 5 MB — S3 minimum per part (except last)
+
+// InitiateMultipartUpload starts a new S3 multipart upload and returns a presigned
+// PUT URL for every part. chunkSize=0 defaults to 10 MB; values below 5 MB are
+// clamped to 5 MB (S3 minimum). The caller uploads each part independently via
+// PUT to its URL, then calls CompleteMultipartUpload with the collected ETags.
+func (mc *MinIOClient) InitiateMultipartUpload(
+	ctx context.Context,
+	objectPath, contentType string,
+	totalSize, chunkSize int64,
+	expiry time.Duration,
+) (uploadID string, parts []MultipartPart, err error) {
+	if chunkSize < minChunkSize {
+		chunkSize = defaultChunkSize
 	}
-	if err := policy.SetKey(objectPath); err != nil {
-		return "", nil, fmt.Errorf("presigned post policy SetKey: %w", err)
+
+	opts := minio.PutObjectOptions{}
+	if contentType != "" {
+		opts.ContentType = contentType
 	}
-	if err := policy.SetExpires(time.Now().Add(expiry)); err != nil {
-		return "", nil, fmt.Errorf("presigned post policy SetExpires: %w", err)
+
+	core := minio.Core{Client: mc.client}
+	uploadID, err = core.NewMultipartUpload(ctx, mc.bucket, objectPath, opts)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to initiate multipart upload: %w", err)
 	}
-	if mimeType != "" {
-		if err := policy.SetContentType(mimeType); err != nil {
-			return "", nil, fmt.Errorf("presigned post policy SetContentType: %w", err)
+
+	numParts := int((totalSize + chunkSize - 1) / chunkSize)
+	if numParts == 0 {
+		numParts = 1
+	}
+
+	parts = make([]MultipartPart, numParts)
+	for i := 0; i < numParts; i++ {
+		pn := i + 1
+		offset := int64(i) * chunkSize
+		size := chunkSize
+		if offset+size > totalSize {
+			size = totalSize - offset
 		}
-	}
-	if maxSizeBytes > 0 {
-		if err := policy.SetContentLengthRange(1, maxSizeBytes); err != nil {
-			return "", nil, fmt.Errorf("presigned post policy SetContentLengthRange: %w", err)
+
+		params := make(url.Values)
+		params.Set("partNumber", strconv.Itoa(pn))
+		params.Set("uploadId", uploadID)
+
+		u, presignErr := mc.publicClient.Presign(ctx, "PUT", mc.bucket, objectPath, expiry, params)
+		if presignErr != nil {
+			_ = mc.AbortMultipartUpload(context.Background(), objectPath, uploadID)
+			return "", nil, fmt.Errorf("failed to presign part %d: %w", pn, presignErr)
+		}
+
+		parts[i] = MultipartPart{
+			PartNumber: pn,
+			UploadURL:  u.String(),
+			Offset:     offset,
+			Size:       size,
 		}
 	}
 
-	u, formData, err := mc.publicClient.PresignedPostPolicy(ctx, policy)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to generate presigned POST policy: %w", err)
+	return uploadID, parts, nil
+}
+
+// CompleteMultipartUpload assembles all uploaded parts into the final object.
+// parts must be sorted by PartNumber in ascending order.
+func (mc *MinIOClient) CompleteMultipartUpload(ctx context.Context, objectPath, uploadID string, parts []CompletePart) error {
+	minioParts := make([]minio.CompletePart, len(parts))
+	for i, p := range parts {
+		minioParts[i] = minio.CompletePart{PartNumber: p.PartNumber, ETag: p.ETag}
 	}
-	return u.String(), formData, nil
+	core := minio.Core{Client: mc.client}
+	if _, err := core.CompleteMultipartUpload(ctx, mc.bucket, objectPath, uploadID, minioParts, minio.PutObjectOptions{}); err != nil {
+		return fmt.Errorf("failed to complete multipart upload: %w", err)
+	}
+	return nil
+}
+
+// AbortMultipartUpload cancels an in-progress multipart upload and removes any
+// already-uploaded parts from storage.
+func (mc *MinIOClient) AbortMultipartUpload(ctx context.Context, objectPath, uploadID string) error {
+	core := minio.Core{Client: mc.client}
+	if err := core.AbortMultipartUpload(ctx, mc.bucket, objectPath, uploadID); err != nil {
+		return fmt.Errorf("failed to abort multipart upload: %w", err)
+	}
+	return nil
 }
 
 // PresignedGetObject returns a time-limited URL for downloading an object.

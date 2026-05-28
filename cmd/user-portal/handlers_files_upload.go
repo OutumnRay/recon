@@ -13,6 +13,7 @@ import (
 	"Recontext.online/internal/models"
 	"Recontext.online/pkg/auth"
 	"Recontext.online/pkg/database"
+	"Recontext.online/pkg/storage"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 )
@@ -20,12 +21,14 @@ import (
 // ─── POST /api/v1/files/init ──────────────────────────────────────────────────
 
 // InitFileUpload godoc
-// @Summary Инициализировать загрузку файла (presigned URL)
-// @Description Создаёт запись файла в БД и возвращает presigned PUT URL для прямой загрузки на MinIO с фронтенда
+// @Summary Инициализировать S3 multipart загрузку
+// @Description Создаёт запись в БД, инициирует S3 multipart upload и возвращает presigned PUT URL
+// @Description для каждой части. Клиент загружает части параллельно (PUT на upload_url),
+// @Description собирает ETags и передаёт их в POST /api/v1/files/{id}/confirm.
 // @Tags Files
 // @Accept json
 // @Produce json
-// @Param request body models.InitUploadRequest true "Параметры файла"
+// @Param request body models.InitUploadRequest true "Параметры файла (chunk_size опционален, по умолчанию 10 МБ)"
 // @Success 201 {object} models.InitUploadResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -97,24 +100,37 @@ func (up *UserPortal) initFileUploadHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	expiry := 30 * time.Minute
-	presignedURL, formFields, err := up.minioClient.PresignedPostPolicy(r.Context(), objectPath, mimeType, req.FileSize, expiry)
+	uploadID, storageParts, err := up.minioClient.InitiateMultipartUpload(
+		r.Context(), objectPath, mimeType, req.FileSize, req.ChunkSize, expiry,
+	)
 	if err != nil {
-		up.logger.Errorf("[Files/Init] Failed to generate presigned POST policy: %v", err)
+		up.logger.Errorf("[Files/Init] Failed to initiate multipart upload: %v", err)
 		_ = up.db.DeleteUploadedFile(fileID.String())
-		up.respondWithError(w, http.StatusInternalServerError, "Failed to generate upload URL", err.Error())
+		up.respondWithError(w, http.StatusInternalServerError, "Failed to initiate multipart upload", err.Error())
 		return
+	}
+
+	parts := make([]models.MultipartPart, len(storageParts))
+	for i, p := range storageParts {
+		parts[i] = models.MultipartPart{
+			PartNumber: p.PartNumber,
+			UploadURL:  p.UploadURL,
+			Offset:     p.Offset,
+			Size:       p.Size,
+		}
 	}
 
 	resp := models.InitUploadResponse{
 		FileID:       fileID,
-		UploadURL:    presignedURL,
-		UploadMethod: "POST",
-		UploadFields: formFields,
+		UploadID:     uploadID,
+		UploadMethod: "MULTIPART",
+		Parts:        parts,
 		StoragePath:  objectPath,
 		ExpiresAt:    time.Now().Add(expiry),
 	}
 
-	up.logger.Infof("[Files/Init] File %s created for user %s, presigned URL issued", fileID, claims.UserID)
+	up.logger.Infof("[Files/Init] File %s created for user %s, multipart uploadId=%s, %d parts",
+		fileID, claims.UserID, uploadID, len(parts))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(resp)
@@ -123,13 +139,14 @@ func (up *UserPortal) initFileUploadHandler(w http.ResponseWriter, r *http.Reque
 // ─── POST /api/v1/files/{id}/confirm ─────────────────────────────────────────
 
 // ConfirmFileUpload godoc
-// @Summary Подтвердить завершение загрузки файла
-// @Description Переводит файл из статуса pending в queued и ставит задачу транскрибации в Redis
+// @Summary Завершить S3 multipart загрузку
+// @Description Принимает upload_id и ETags всех частей, вызывает CompleteMultipartUpload и ставит задачу в очередь.
+// @Description При success=false — AbortMultipartUpload и удаление записи из БД.
 // @Tags Files
 // @Accept json
 // @Produce json
 // @Param id path string true "ID файла"
-// @Param request body models.ConfirmUploadRequest true "ETag из ответа MinIO"
+// @Param request body models.ConfirmUploadRequest true "upload_id + parts с ETags (или success=false для отмены)"
 // @Success 200 {object} models.ConfirmUploadResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -167,10 +184,12 @@ func (up *UserPortal) confirmFileUploadHandler(w http.ResponseWriter, r *http.Re
 	var req models.ConfirmUploadRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-	// success=false — клиент сигнализирует о неудачной или отменённой загрузке
+	// success=false — клиент сигнализирует об отмене или ошибке загрузки
 	if req.Success != nil && !*req.Success {
-		if up.minioClient != nil {
-			_ = up.minioClient.DeleteFile(context.Background(), dbFile.StoragePath)
+		if up.minioClient != nil && req.UploadID != "" {
+			if abortErr := up.minioClient.AbortMultipartUpload(context.Background(), dbFile.StoragePath, req.UploadID); abortErr != nil {
+				up.logger.Errorf("[Files/Confirm] AbortMultipartUpload failed for %s: %v", fileID, abortErr)
+			}
 		}
 		_ = up.db.DeleteUploadedFile(fileID.String())
 		up.logger.Infof("[Files/Confirm] Upload cancelled for file %s by user %s", fileID, claims.UserID)
@@ -178,22 +197,36 @@ func (up *UserPortal) confirmFileUploadHandler(w http.ResponseWriter, r *http.Re
 		json.NewEncoder(w).Encode(models.ConfirmUploadResponse{
 			FileID:  fileID,
 			Status:  "cancelled",
-			Message: "Upload cancelled, file record deleted",
+			Message: "Upload cancelled, multipart aborted, file record deleted",
 		})
 		return
 	}
 
-	// Verify the object actually exists in MinIO before queueing
+	// Валидация обязательных полей для успешного confirm
+	if req.UploadID == "" {
+		up.respondWithError(w, http.StatusBadRequest, "upload_id is required", "")
+		return
+	}
+	if len(req.Parts) == 0 {
+		up.respondWithError(w, http.StatusBadRequest, "parts is required and must not be empty", "")
+		return
+	}
+
+	// Завершаем multipart upload — MinIO собирает объект из загруженных частей
 	if up.minioClient != nil {
-		if _, statErr := up.minioClient.StatObject(r.Context(), dbFile.StoragePath); statErr != nil {
-			up.logger.Errorf("[Files/Confirm] Object not found in MinIO (%s): %v", dbFile.StoragePath, statErr)
-			up.respondWithError(w, http.StatusUnprocessableEntity, "File not found in storage", "Upload may have failed or not completed")
+		completeParts := make([]storage.CompletePart, len(req.Parts))
+		for i, p := range req.Parts {
+			completeParts[i] = storage.CompletePart{PartNumber: p.PartNumber, ETag: p.ETag}
+		}
+		if completeErr := up.minioClient.CompleteMultipartUpload(r.Context(), dbFile.StoragePath, req.UploadID, completeParts); completeErr != nil {
+			up.logger.Errorf("[Files/Confirm] CompleteMultipartUpload failed for %s: %v", fileID, completeErr)
+			up.respondWithError(w, http.StatusUnprocessableEntity, "Failed to complete multipart upload", completeErr.Error())
 			return
 		}
 	}
 
-	if err := up.db.ConfirmUpload(fileID, req.ETag); err != nil {
-		up.logger.Errorf("[Files/Confirm] Failed to confirm upload: %v", err)
+	if err := up.db.ConfirmUpload(fileID, ""); err != nil {
+		up.logger.Errorf("[Files/Confirm] Failed to confirm upload in DB: %v", err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to confirm upload", err.Error())
 		return
 	}

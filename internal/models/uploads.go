@@ -127,42 +127,65 @@ type DeleteFileRequest struct {
 	Reason string    `json:"reason,omitempty"`
 }
 
-// ─── Presigned-upload flow ────────────────────────────────────────────────────
+// ─── S3 Multipart Upload flow ─────────────────────────────────────────────────
+//
+// Полный цикл загрузки:
+//
+//  1. POST /api/v1/files/init
+//     Бэкенд инициирует S3 multipart upload и возвращает presigned PUT URL для
+//     каждой части. Фронтенд загружает части параллельно и собирает ETags.
+//
+//  2. PUT <part.upload_url>   (прямо в MinIO, без Authorization)
+//     Тело — ровно part.size байт начиная с part.offset.
+//     MinIO возвращает ETag в заголовке ответа.
+//
+//  3. POST /api/v1/files/{id}/confirm  { upload_id, parts: [{part_number, etag}...] }
+//     Бэкенд вызывает CompleteMultipartUpload и ставит задачу в очередь.
+//     При success=false — AbortMultipartUpload + удаление записи.
 
 // InitUploadRequest — тело POST /api/v1/files/init
 type InitUploadRequest struct {
-	Title    string `json:"title"`
-	FileName string `json:"file_name"`
-	FileSize int64  `json:"file_size"`
-	MimeType string `json:"mime_type"`
-	Language string `json:"language"` // "ru", "en", "auto"
+	Title     string `json:"title"`
+	FileName  string `json:"file_name"`
+	FileSize  int64  `json:"file_size"`
+	MimeType  string `json:"mime_type"`
+	Language  string `json:"language"`  // "ru", "en", "auto"
+	ChunkSize int64  `json:"chunk_size"` // байт на часть; 0 → 10 МБ; мин 5 МБ
+}
+
+// MultipartPart — одна часть для загрузки (presigned PUT URL + диапазон байт)
+type MultipartPart struct {
+	PartNumber int    `json:"part_number"`
+	UploadURL  string `json:"upload_url"`
+	Offset     int64  `json:"offset"`
+	Size       int64  `json:"size"`
 }
 
 // InitUploadResponse — ответ на POST /api/v1/files/init
-//
-// Метод загрузки — multipart/form-data POST:
-//   - Создать FormData, добавить все поля из upload_fields, затем file под ключом "file"
-//   - POST на upload_url с этой FormData (без заголовка Authorization)
-//   - ETag вернётся в заголовке ответа MinIO (используется в confirm)
 type InitUploadResponse struct {
-	FileID       uuid.UUID         `json:"file_id"`
-	UploadURL    string            `json:"upload_url"`
-	UploadMethod string            `json:"upload_method"` // всегда "POST"
-	// UploadFields — обязательные поля formData (key, policy, x-amz-* и др.)
-	// Фронтенд добавляет их в FormData ДО файла, затем append("file", fileBlob)
-	UploadFields map[string]string `json:"upload_fields"`
-	StoragePath  string            `json:"storage_path"`
-	ExpiresAt    time.Time         `json:"expires_at"`
+	FileID       uuid.UUID       `json:"file_id"`
+	UploadID     string          `json:"upload_id"`     // S3 multipart uploadId
+	UploadMethod string          `json:"upload_method"` // всегда "MULTIPART"
+	Parts        []MultipartPart `json:"parts"`
+	StoragePath  string          `json:"storage_path"`
+	ExpiresAt    time.Time       `json:"expires_at"`
+}
+
+// UploadedPart — ETag загруженной части, отправляется клиентом в confirm
+type UploadedPart struct {
+	PartNumber int    `json:"part_number"`
+	ETag       string `json:"etag"`
 }
 
 // ConfirmUploadRequest — тело POST /api/v1/files/{id}/confirm
 //
-// Success=false: клиент сообщает, что загрузка не была завершена (ошибка, отмена).
-// Бэкенд удалит запись из БД и объект из MinIO. При nil или true — нормальное подтверждение.
+// success=false: загрузка не завершена (ошибка, отмена пользователем).
+// Бэкенд вызовет AbortMultipartUpload и удалит запись из БД.
 type ConfirmUploadRequest struct {
-	ETag    string `json:"etag"`
-	// Success=false означает отмену загрузки; запись и объект будут удалены
-	Success *bool  `json:"success,omitempty"`
+	UploadID string         `json:"upload_id"`
+	Parts    []UploadedPart `json:"parts"`
+	// Success=false — отмена; nil/true — нормальное подтверждение
+	Success  *bool          `json:"success,omitempty"`
 }
 
 // ConfirmUploadResponse — ответ на POST /api/v1/files/{id}/confirm
