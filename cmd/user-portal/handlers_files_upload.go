@@ -831,3 +831,111 @@ func buildMinIOGetOptions(r *http.Request) minio.GetObjectOptions {
 	}
 	return opts
 }
+
+// ─── POST /api/v1/files/{id}/reprocess ───────────────────────────────────────
+
+// reprocessFileHandler восстанавливает файл из MinIO когда DB-запись осталась
+// в статусе queued/failed из-за временной недоступности БД при получении результата.
+// Читает paragraphs.json из minio:transcripts/{id}/, вставляет фразы в БД и
+// переводит файл в статус completed.
+func (up *UserPortal) reprocessFileHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/files/"), "/")
+	if len(parts) < 1 || parts[0] == "" {
+		http.Error(w, "missing file ID", http.StatusBadRequest)
+		return
+	}
+	fileID, err := uuid.Parse(parts[0])
+	if err != nil {
+		http.Error(w, "invalid file ID", http.StatusBadRequest)
+		return
+	}
+
+	dbFile, err := up.db.GetUploadedFileV2(fileID)
+	if err != nil {
+		http.Error(w, "file not found", http.StatusNotFound)
+		return
+	}
+	if dbFile.UserID != claims.UserID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if dbFile.Status == "completed" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "completed", "message": "already completed"})
+		return
+	}
+
+	if up.minioClient == nil {
+		http.Error(w, "storage not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	transcriptPath := fmt.Sprintf("transcripts/%s/paragraphs.json", fileID)
+	obj, err := up.minioClient.GetClient().GetObject(
+		r.Context(), up.minioClient.GetBucket(), transcriptPath, minio.GetObjectOptions{},
+	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("transcript not found in storage: %v", err), http.StatusNotFound)
+		return
+	}
+	defer obj.Close()
+
+	data, err := io.ReadAll(obj)
+	if err != nil {
+		http.Error(w, "failed to read transcript", http.StatusInternalServerError)
+		return
+	}
+
+	var doc struct {
+		Paragraphs []models.FileResultParagraph `json:"paragraphs"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil {
+		http.Error(w, "failed to parse transcript", http.StatusInternalServerError)
+		return
+	}
+
+	phrases := make([]database.FileTranscriptionPhrase, 0, len(doc.Paragraphs))
+	var duration float64
+	for i, p := range doc.Paragraphs {
+		phrases = append(phrases, database.FileTranscriptionPhrase{
+			FileID:      fileID,
+			PhraseIndex: i,
+			StartTime:   p.Start,
+			EndTime:     p.End,
+			Text:        p.Text,
+			Speaker:     p.Speaker,
+		})
+		if p.End > duration {
+			duration = p.End
+		}
+	}
+
+	_ = up.db.DeleteFilePhrases(fileID)
+	if len(phrases) > 0 {
+		if err := up.db.BulkInsertPhrases(phrases); err != nil {
+			http.Error(w, fmt.Sprintf("failed to save phrases: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := up.db.SetFileCompleted(fileID, duration); err != nil {
+		http.Error(w, fmt.Sprintf("failed to update status: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	up.logger.Infof("[Reprocess] File %s recovered from MinIO — phrases=%d duration=%.1fs", fileID, len(phrases), duration)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"file_id":  fileID,
+		"status":   "completed",
+		"phrases":  len(phrases),
+		"duration": duration,
+	})
+}

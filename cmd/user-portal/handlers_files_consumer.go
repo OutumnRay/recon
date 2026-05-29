@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"Recontext.online/internal/models"
@@ -125,6 +126,37 @@ func (c *FileResultConsumer) loop() {
 	}
 }
 
+// isTransientDBError reports whether err is a recoverable PostgreSQL/network error
+// that warrants a retry (e.g. server in recovery mode, connection reset).
+func isTransientDBError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "recovery mode") ||
+		strings.Contains(msg, "57P03") ||
+		strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "broken pipe") ||
+		strings.Contains(msg, "EOF")
+}
+
+// retryDB retries fn up to maxAttempts times when the error is transient.
+// Delays: 2 s, 4 s, 6 s … (linear back-off).
+func retryDB(maxAttempts int, fn func() error) error {
+	var lastErr error
+	for i := 0; i < maxAttempts; i++ {
+		if lastErr = fn(); lastErr == nil {
+			return nil
+		}
+		if !isTransientDBError(lastErr) {
+			return lastErr
+		}
+		time.Sleep(time.Duration(i+1) * 2 * time.Second)
+	}
+	return lastErr
+}
+
 func (c *FileResultConsumer) handleResult(payload string) {
 	var cb models.FileResultCallback
 	if err := json.Unmarshal([]byte(payload), &cb); err != nil {
@@ -146,17 +178,25 @@ func (c *FileResultConsumer) handleResult(payload string) {
 		return
 	}
 
-	_ = c.db.UpdateFileProgress(fileID, "transcribing", "saving", 90)
+	_ = retryDB(5, func() error {
+		return c.db.UpdateFileProgress(fileID, "transcribing", "saving", 90)
+	})
 
 	if cb.TranscriptPath != "" {
-		if err := c.savePhrases(fileID, cb.TranscriptPath); err != nil {
+		if err := retryDB(5, func() error {
+			return c.savePhrases(fileID, cb.TranscriptPath)
+		}); err != nil {
 			c.up.logger.Errorf("[FileConsumer] Failed to save phrases for %s: %v", fileID, err)
-			_ = c.db.SetFileFailed(fileID, fmt.Sprintf("failed to save phrases: %v", err))
+			_ = retryDB(3, func() error {
+				return c.db.SetFileFailed(fileID, fmt.Sprintf("failed to save phrases: %v", err))
+			})
 			return
 		}
 	}
 
-	if err := c.db.SetFileCompleted(fileID, cb.Duration); err != nil {
+	if err := retryDB(5, func() error {
+		return c.db.SetFileCompleted(fileID, cb.Duration)
+	}); err != nil {
 		c.up.logger.Errorf("[FileConsumer] Failed to mark file %s completed: %v", fileID, err)
 		return
 	}

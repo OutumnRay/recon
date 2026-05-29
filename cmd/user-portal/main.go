@@ -1291,6 +1291,8 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 			switch {
 			case strings.HasSuffix(p, "/confirm") && r.Method == http.MethodPost:
 				up.confirmFileUploadHandler(w, r)
+			case strings.HasSuffix(p, "/reprocess") && r.Method == http.MethodPost:
+				up.reprocessFileHandler(w, r)
 			case strings.HasSuffix(p, "/status") && r.Method == http.MethodGet:
 				up.getFileStatusHandler(w, r)
 			case strings.HasSuffix(p, "/transcript") && r.Method == http.MethodGet:
