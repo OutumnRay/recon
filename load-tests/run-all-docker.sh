@@ -12,7 +12,7 @@
 
 set -e
 
-NETWORK="${DOCKER_NETWORK:-recontext-network}"
+NETWORK="${DOCKER_NETWORK:-recontext_recontext-network}"
 RESULTS_DIR="$(pwd)/load-tests/results/$(date +%Y%m%d_%H%M%S)"
 TESTS_DIR="$(pwd)/load-tests"
 
