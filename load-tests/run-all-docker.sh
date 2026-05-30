@@ -56,6 +56,7 @@ run_test() {
 
   if docker run --rm \
       --network "$NETWORK" \
+      --user root \
       -v "$TESTS_DIR:/load-tests" \
       $K6_ENV \
       grafana/k6 run --out "json=$out" "$script"; then
