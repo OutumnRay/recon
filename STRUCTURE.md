@@ -82,6 +82,17 @@ Recontext.online/
 │       ├── Dockerfile.jitsi-agent
 │       ├── Dockerfile.transcription-worker
 │       └── Dockerfile.summarization-worker
+├── load-tests/                    # k6 нагрузочные тесты
+│   ├── config.js                  # Общая конфигурация (URL, credentials, thresholds)
+│   ├── smoke-test.js              # Smoke: 2 VU, 2 мин — проверка живучести
+│   ├── health-check.js            # Health: 10 VU, 3 мин — только /health эндпоинты
+│   ├── load-test.js               # Load: рост до 50 VU, 10 мин — рабочая нагрузка
+│   ├── stress-test.js             # Stress: рост до 200 VU — поиск точки отказа
+│   ├── spike-test.js              # Spike: резкий пик 150 VU — проверка восстановления
+│   ├── managing-portal.js         # Детальный тест Managing Portal API
+│   ├── user-portal.js             # Детальный тест User Portal API
+│   ├── full-suite.js              # Полный набор: 5 параллельных сценариев
+│   └── run-all.sh                 # Скрипт последовательного запуска всех тестов
 ├── .dockerignore                  # Docker build ignore file
 ├── CLAUDE.md                      # Guidelines for Claude Code
 ├── README.md                      # Project vision and architecture (Russian)
