@@ -1,10 +1,16 @@
 // Конфигурация нагрузочного тестирования Recontext.online
-// Все параметры можно переопределить через переменные окружения k6:
-//   k6 run -e SERVER=192.168.1.10 -e MANAGING_PORT=20080 full-suite.js
+//
+// Режим Docker-сети (по умолчанию) — k6 запускается внутри recontext-network:
+//   MANAGING_HOST=managing-portal  MANAGING_PORT=8080
+//   USER_HOST=user-portal          USER_PORT=8081
+//
+// Режим с хоста (если порты открыты наружу):
+//   k6 run -e MANAGING_HOST=localhost -e MANAGING_PORT=20080 \
+//          -e USER_HOST=localhost     -e USER_PORT=20082 script.js
 
 export const BASE = {
-  managingPortal: `http://${__ENV.SERVER || 'localhost'}:${__ENV.MANAGING_PORT || '20080'}`,
-  userPortal:     `http://${__ENV.SERVER || 'localhost'}:${__ENV.USER_PORT || '20081'}`,
+  managingPortal: `http://${__ENV.MANAGING_HOST || 'managing-portal'}:${__ENV.MANAGING_PORT || '8080'}`,
+  userPortal:     `http://${__ENV.USER_HOST     || 'user-portal'}:${__ENV.USER_PORT     || '8081'}`,
 };
 
 export const CREDS = {
