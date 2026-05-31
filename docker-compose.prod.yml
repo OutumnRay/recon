@@ -308,7 +308,7 @@ services:
 
   # 11. Grafana — дашборды и визуализация
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.5.2
     container_name: recontext-grafana
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
