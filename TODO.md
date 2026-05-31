@@ -1,13 +1,7 @@
-# User Portal Swagger Sync Task
+# TODO — исправление и повторный запуск нагрузочного тестирования
 
-## Plan Steps:
-- [x] Understand project files and endpoints via search_files/read_file
-- [x] Create detailed edit plan and get user approval  
-- [ ] Step 1: Create TODO.md with breakdown
-- [x] Step 2: Update cmd/user-portal/docs/swagger.json with missing paths, params, schemas
-- [ ] Step 3: Verify changes (read updated file)
-- [ ] Step 4: Followup - instruct restart server, check Swagger UI
-- [ ] Step 5: attempt_completion
-
-**Next: Update swagger.json**
+- [ ] 1. Исправить авторизацию в `load-tests/config.js`: передавать в `/api/v1/auth/login` поле `login` вместо `username` и поставить дефолтные email-логины.
+- [ ] 2. Запустить `k6`-скрипт user-portal в одиночку (smoke) и проверить, что больше нет 401.
+- [ ] 3. Запустить полный набор нагрузочных тестов (`load-tests/run-all.sh` или `load-tests/run-all-docker.sh` — в зависимости от текущего способа запуска).
+- [ ] 4. Зафиксировать метрики/ошибки (кол-во login_errors/api_errors и долю 401) для диагностики возможных следующих проблем.
 

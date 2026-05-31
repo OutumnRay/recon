@@ -14,8 +14,12 @@ export const BASE = {
 };
 
 export const CREDS = {
-  admin: { username: __ENV.ADMIN_USER || 'admin', password: __ENV.ADMIN_PASS || 'admin123' },
-  user:  { username: __ENV.USER_USER  || 'user',  password: __ENV.USER_PASS  || 'user123'  },
+  // В /api/v1/auth/login бэкенд ожидает поле `login` (email/логин).
+  // На сервере используются:
+  //   admin@recontext.online / admin123
+  //   user@recontext.online  / user123
+  admin: { login: __ENV.ADMIN_USER || 'admin@recontext.online', password: __ENV.ADMIN_PASS || 'admin123' },
+  user:  { login: __ENV.USER_USER  || 'user@recontext.online',  password: __ENV.USER_PASS  || 'user123'  },
 };
 
 // Пороги качества (thresholds) — применяются во всех сценариях
