@@ -316,7 +316,7 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-grafana123}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-https://grafana.24recontext.ru}
     volumes:
       - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
       - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
