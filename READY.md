@@ -2,6 +2,20 @@
 
 ## What Has Been Completed
 
+### Observability — Prometheus + Grafana
+- ✅ `observability/prometheus.yml` — конфиг Prometheus, скрейпит: managing-portal, user-portal, transcription-worker-py, rabbitmq (15692), postgres-exporter, minio, qdrant, cadvisor
+- ✅ `observability/grafana/datasources/prometheus.yml` — автоматический datasource Prometheus в Grafana
+- ✅ `observability/grafana/dashboards/dashboard-provider.yml` — провайдер дашбордов из файловой системы
+- ✅ `observability/grafana/dashboards/recontext-overview.json` — главный дашборд: статус сервисов, HTTP метрики, latency p50/p95, очереди задач, активные конференции, CPU/Memory контейнеров, RabbitMQ, PostgreSQL, MinIO
+- ✅ `deployments/rabbitmq/enabled_plugins` — включает `rabbitmq_prometheus` plugin (порт 15692)
+- ✅ `docker-compose.prod.yml` — добавлены сервисы: prometheus (9090), grafana (3000), cadvisor, postgres-exporter
+  - Volumes: `prometheus_data` (retention 30d), `grafana_data`
+  - RabbitMQ монтирует `enabled_plugins` для Prometheus plugin
+  - Переменные: `PROMETHEUS_PORT`, `GRAFANA_PORT`, `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`
+- ✅ `pkg/metrics/metrics.go` — ServiceMetrics с HTTP, jobs, conferences, errors (уже в сервисах)
+- ✅ `pkg/metrics/middleware.go` — HTTPMetricsMiddleware (уже применён в managing-portal и user-portal)
+- ✅ Endpoint `/metrics` (promhttp.Handler) в managing-portal (8080) и user-portal (8081)
+
 ### Production-деплой на выделенный сервер (CI/CD)
 - ✅ `docker-compose.prod.yml` — файл для выделенного сервера с named volumes:
   - `postgres_data` — данные PostgreSQL сохраняются между деплоями

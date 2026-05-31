@@ -76,12 +76,24 @@ Recontext.online/
 ├── api/                           # API definitions (placeholder)
 │   └── proto/                     # gRPC protocol definitions (placeholder)
 ├── deployments/                   # Deployment configurations
-│   └── docker/                    # Dockerfiles
-│       ├── Dockerfile.managing-portal
-│       ├── Dockerfile.user-portal
-│       ├── Dockerfile.jitsi-agent
-│       ├── Dockerfile.transcription-worker
-│       └── Dockerfile.summarization-worker
+│   ├── docker/                    # Dockerfiles
+│   │   ├── Dockerfile.managing-portal
+│   │   ├── Dockerfile.user-portal
+│   │   ├── Dockerfile.jitsi-agent
+│   │   ├── Dockerfile.transcription-worker
+│   │   └── Dockerfile.summarization-worker
+│   ├── nginx/                     # Nginx configs
+│   │   └── user-portal-front.conf
+│   └── rabbitmq/                  # RabbitMQ configs
+│       └── enabled_plugins        # Включает rabbitmq_management + rabbitmq_prometheus
+├── observability/                 # Prometheus + Grafana конфигурация
+│   ├── prometheus.yml             # Конфиг Prometheus (scrape configs для всех сервисов)
+│   └── grafana/
+│       ├── datasources/
+│       │   └── prometheus.yml     # Автопровижининг Prometheus datasource
+│       └── dashboards/
+│           ├── dashboard-provider.yml   # Провайдер дашбордов из файловой системы
+│           └── recontext-overview.json  # Главный дашборд: сервисы, HTTP, инфра, очереди
 ├── load-tests/                    # k6 нагрузочные тесты
 │   ├── config.js                  # Общая конфигурация (URL, credentials, thresholds)
 │   ├── smoke-test.js              # Smoke: 2 VU, 2 мин — проверка живучести
