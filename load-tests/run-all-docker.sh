@@ -22,9 +22,9 @@ MANAGING_PORT="${MANAGING_PORT:-8080}"
 USER_HOST="${USER_HOST:-user-portal}"
 USER_PORT="${USER_PORT:-8081}"
 
-ADMIN_USER="${ADMIN_USER:-admin}"
+ADMIN_USER="${ADMIN_USER:-admin@recontext.online}"
 ADMIN_PASS="${ADMIN_PASS:-admin123}"
-USER_USER="${USER_USER:-user}"
+USER_USER="${USER_USER:-user@recontext.online}"
 USER_PASS="${USER_PASS:-user123}"
 
 mkdir -p "$RESULTS_DIR"

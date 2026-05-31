@@ -141,10 +141,10 @@ export default function () {
     // find_videos — не требует file_id
     const r = http.post(
       `${BASE.userPortal}/api/v1/assistant/chat`,
-      JSON.stringify({ mode: 'find_videos', query: 'нагрузочное тестирование' }),
+      JSON.stringify({ mode: 'find_videos', message: 'нагрузочное тестирование' }),
       { headers: hdrs, tags: { type: 'api_write' } },
     );
-    // 200 — LLM есть, 503 — LLM не настроен; оба ок
+    // 200 — LLM есть, 503 — LLM не настроен; оба ок для НТ
     check(r, { 'POST /assistant/chat 200/503': (x) => [200, 503].includes(x.status) });
   });
 
