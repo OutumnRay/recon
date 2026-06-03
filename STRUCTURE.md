@@ -299,7 +299,7 @@ Recontext.online/
 - **.github/workflows/docker-build-push.yml**: CI/CD pipeline
   - Builds 5 Docker images: managing-portal, user-portal, jitsi-agent, transcription-worker, summarization-worker
   - Tags images as :latest and :<commit-sha>
-  - Pushes to Docker Hub (sivanov2018/recontext-*)
+  - Pushes to Docker Hub (raykzer/recontext-*)
   - Uses DOCKER_USERNAME and DOCKER_PASSWORD secrets
 
 ## Docker Compose Services

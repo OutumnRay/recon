@@ -123,7 +123,7 @@
   - Builds Docker images on push to main
   - Multi-service build matrix (5 services)
   - Tags images as `:latest` and `:<commit-sha>`
-  - Pushes to Docker Hub: `sivanov2018/recontext-<service-name>`
+  - Pushes to Docker Hub: `raykzer/recontext-<service-name>`
   - Uses `DOCKER_USERNAME` and `DOCKER_PASSWORD` secrets
   - Build caching for faster builds
   - `fail-fast: false` - continues building other services on failure
@@ -975,7 +975,7 @@
   - Environment variables for configuration
 - ✅ Added transcription service to docker-compose.yml
   - Container name: recontext-transcription-service
-  - Image: sivanov2018/recontext-transcription-service:latest
+  - Image: raykzer/recontext-transcription-service:latest
   - Environment configuration:
     - RABBITMQ_HOST=192.168.5.153
     - DB_HOST=postgres
