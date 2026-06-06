@@ -77,36 +77,68 @@ func (db *DB) SetFileFailed(id uuid.UUID, errMsg string) error {
 		}).Error
 }
 
-// ListUploadedFilesV2 returns a paginated list of files for a user with optional filters.
+// ListUploadedFilesV2 returns a paginated list of files visible to the given user.
+//
+// Visibility rules (applied in order):
+//   - System admin (role="admin"): sees all files in the system.
+//   - Regular user: sees own files + files explicitly shared with them + org-wide shared
+//     files (shared_with_id IS NULL) that belong to the same organization.
 //
 // Filters: status (exact), search (title/original_name ILIKE), mimeType (exact),
 // language (exact), dateFrom/dateTo (uploaded_at range).
 func (db *DB) ListUploadedFilesV2(
 	userID uuid.UUID,
+	userRole string,
+	userOrgID *uuid.UUID,
 	page, pageSize int,
 	status, search, mimeType, language string,
 	dateFrom, dateTo *time.Time,
 ) ([]UploadedFile, int64, error) {
 	var total int64
-	q := db.DB.Model(&UploadedFile{}).Where("user_id = ? AND deleted_at IS NULL", userID)
+	q := db.DB.Model(&UploadedFile{}).Where("uploaded_files.deleted_at IS NULL")
+
+	if userRole != "admin" {
+		// Explicit per-user shares
+		explicitQ := db.DB.Model(&FileShare{}).
+			Select("file_id").
+			Where("shared_with_id = ?", userID)
+
+		if userOrgID != nil {
+			// Org-wide shares for files belonging to the same organization
+			orgWideQ := db.DB.Table("uploaded_files uf2").
+				Select("uf2.id").
+				Joins("INNER JOIN file_shares fs ON fs.file_id = uf2.id AND fs.shared_with_id IS NULL").
+				Where("uf2.organization_id = ? AND uf2.deleted_at IS NULL", *userOrgID)
+
+			q = q.Where(
+				"uploaded_files.user_id = ? OR uploaded_files.id IN (?) OR uploaded_files.id IN (?)",
+				userID, explicitQ, orgWideQ,
+			)
+		} else {
+			q = q.Where(
+				"uploaded_files.user_id = ? OR uploaded_files.id IN (?)",
+				userID, explicitQ,
+			)
+		}
+	}
 
 	if status != "" {
-		q = q.Where("status = ?", status)
+		q = q.Where("uploaded_files.status = ?", status)
 	}
 	if search != "" {
-		q = q.Where("title ILIKE ? OR original_name ILIKE ?", "%"+search+"%", "%"+search+"%")
+		q = q.Where("uploaded_files.title ILIKE ? OR uploaded_files.original_name ILIKE ?", "%"+search+"%", "%"+search+"%")
 	}
 	if mimeType != "" {
-		q = q.Where("mime_type = ?", mimeType)
+		q = q.Where("uploaded_files.mime_type = ?", mimeType)
 	}
 	if language != "" {
-		q = q.Where("language = ?", language)
+		q = q.Where("uploaded_files.language = ?", language)
 	}
 	if dateFrom != nil {
-		q = q.Where("uploaded_at >= ?", *dateFrom)
+		q = q.Where("uploaded_files.uploaded_at >= ?", *dateFrom)
 	}
 	if dateTo != nil {
-		q = q.Where("uploaded_at <= ?", *dateTo)
+		q = q.Where("uploaded_files.uploaded_at <= ?", *dateTo)
 	}
 
 	if err := q.Count(&total).Error; err != nil {
@@ -115,10 +147,123 @@ func (db *DB) ListUploadedFilesV2(
 
 	var files []UploadedFile
 	offset := (page - 1) * pageSize
-	if err := q.Order("uploaded_at DESC").Limit(pageSize).Offset(offset).Find(&files).Error; err != nil {
+	if err := q.Order("uploaded_files.uploaded_at DESC").Limit(pageSize).Offset(offset).Find(&files).Error; err != nil {
 		return nil, 0, err
 	}
 	return files, total, nil
+}
+
+// ─── Access control ───────────────────────────────────────────────────────────
+
+// CanUserAccessFile reports whether the user is allowed to read the given file.
+//
+// Access is granted when the user is:
+//  1. The file owner.
+//  2. A system admin (role="admin").
+//  3. An org_admin in the same organization as the file owner.
+//  4. Listed in file_shares for that file (explicit share).
+//  5. The file has an org-wide share (shared_with_id IS NULL) AND the user
+//     belongs to the same organization as the file owner.
+func (db *DB) CanUserAccessFile(fileID, userID uuid.UUID, userRole string, userOrgID *uuid.UUID) (bool, error) {
+	var file UploadedFile
+	if err := db.DB.Where("id = ? AND deleted_at IS NULL", fileID).First(&file).Error; err != nil {
+		return false, err
+	}
+
+	if file.UserID == userID {
+		return true, nil
+	}
+
+	if userRole == "admin" {
+		return true, nil
+	}
+
+	// Org admin sees everything within their organization
+	if userRole == "org_admin" && userOrgID != nil && file.OrganizationID != nil && *userOrgID == *file.OrganizationID {
+		return true, nil
+	}
+
+	// Explicit per-user share
+	var explicitCount int64
+	if err := db.DB.Model(&FileShare{}).
+		Where("file_id = ? AND shared_with_id = ?", fileID, userID).
+		Count(&explicitCount).Error; err != nil {
+		return false, err
+	}
+	if explicitCount > 0 {
+		return true, nil
+	}
+
+	// Org-wide share: file must be in the same org as the requesting user
+	if userOrgID != nil && file.OrganizationID != nil && *userOrgID == *file.OrganizationID {
+		var orgWideCount int64
+		if err := db.DB.Model(&FileShare{}).
+			Where("file_id = ? AND shared_with_id IS NULL", fileID).
+			Count(&orgWideCount).Error; err != nil {
+			return false, err
+		}
+		if orgWideCount > 0 {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// ─── File sharing CRUD ────────────────────────────────────────────────────────
+
+// CreateFileShare adds a share record. Returns error if the share already exists.
+func (db *DB) CreateFileShare(share *FileShare) error {
+	return db.DB.Create(share).Error
+}
+
+// GetFileShare returns a share record by ID.
+func (db *DB) GetFileShare(shareID uuid.UUID) (*FileShare, error) {
+	var s FileShare
+	if err := db.DB.Where("id = ?", shareID).First(&s).Error; err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+// ListFileShares returns all shares for the given file, optionally loading the
+// shared-with user (username, email) via a join.
+func (db *DB) ListFileShares(fileID uuid.UUID) ([]FileShare, error) {
+	var shares []FileShare
+	if err := db.DB.Where("file_id = ?", fileID).
+		Order("created_at ASC").
+		Find(&shares).Error; err != nil {
+		return nil, err
+	}
+	return shares, nil
+}
+
+// DeleteFileShare removes a share record by ID. The caller is responsible for
+// verifying that the requesting user owns the file.
+func (db *DB) DeleteFileShare(shareID uuid.UUID) error {
+	result := db.DB.Where("id = ?", shareID).Delete(&FileShare{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("share not found")
+	}
+	return nil
+}
+
+// FileShareExists reports whether an identical share already exists.
+func (db *DB) FileShareExists(fileID uuid.UUID, sharedWithID *uuid.UUID) (bool, error) {
+	q := db.DB.Model(&FileShare{}).Where("file_id = ?", fileID)
+	if sharedWithID == nil {
+		q = q.Where("shared_with_id IS NULL")
+	} else {
+		q = q.Where("shared_with_id = ?", *sharedWithID)
+	}
+	var count int64
+	if err := q.Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // ─── Transcription phrases ────────────────────────────────────────────────────

@@ -79,18 +79,19 @@ func (up *UserPortal) initFileUploadHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	dbFile := &database.UploadedFile{
-		ID:           fileID,
-		Title:        title,
-		Filename:     fmt.Sprintf("%d-%s", time.Now().Unix(), req.FileName),
-		OriginalName: req.FileName,
-		FileSize:     req.FileSize,
-		MimeType:     mimeType,
-		StoragePath:  objectPath,
-		Bucket:       bucket,
-		UserID:       claims.UserID,
-		Language:     language,
-		Status:       "pending",
-		UploadedAt:   time.Now(),
+		ID:             fileID,
+		Title:          title,
+		Filename:       fmt.Sprintf("%d-%s", time.Now().Unix(), req.FileName),
+		OriginalName:   req.FileName,
+		FileSize:       req.FileSize,
+		MimeType:       mimeType,
+		StoragePath:    objectPath,
+		Bucket:         bucket,
+		UserID:         claims.UserID,
+		OrganizationID: claims.OrganizationID,
+		Language:       language,
+		Status:         "pending",
+		UploadedAt:     time.Now(),
 	}
 
 	if err := up.db.CreateUploadedFileV2(dbFile); err != nil {
@@ -172,7 +173,8 @@ func (up *UserPortal) confirmFileUploadHandler(w http.ResponseWriter, r *http.Re
 		up.respondWithError(w, http.StatusNotFound, "File not found", err.Error())
 		return
 	}
-	if dbFile.UserID != claims.UserID && claims.Role != models.RoleAdmin {
+	canAccess, err := up.db.CanUserAccessFile(dbFile.ID, claims.UserID, string(claims.Role), claims.OrganizationID)
+	if err != nil || !canAccess {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}
@@ -295,7 +297,8 @@ func (up *UserPortal) getFileStatusHandler(w http.ResponseWriter, r *http.Reques
 		up.respondWithError(w, http.StatusNotFound, "File not found", err.Error())
 		return
 	}
-	if dbFile.UserID != claims.UserID && claims.Role != models.RoleAdmin {
+	canAccess, err := up.db.CanUserAccessFile(dbFile.ID, claims.UserID, string(claims.Role), claims.OrganizationID)
+	if err != nil || !canAccess {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}
@@ -377,7 +380,8 @@ func (up *UserPortal) listFilesV2Handler(w http.ResponseWriter, r *http.Request)
 	}
 
 	files, total, err := up.db.ListUploadedFilesV2(
-		claims.UserID, page, pageSize,
+		claims.UserID, string(claims.Role), claims.OrganizationID,
+		page, pageSize,
 		status, search, mimeType, language,
 		dateFrom, dateTo,
 	)
@@ -443,7 +447,8 @@ func (up *UserPortal) getFileDetailHandler(w http.ResponseWriter, r *http.Reques
 		up.respondWithError(w, http.StatusNotFound, "File not found", err.Error())
 		return
 	}
-	if dbFile.UserID != claims.UserID && claims.Role != models.RoleAdmin {
+	canAccess, err := up.db.CanUserAccessFile(dbFile.ID, claims.UserID, string(claims.Role), claims.OrganizationID)
+	if err != nil || !canAccess {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}
@@ -525,7 +530,8 @@ func (up *UserPortal) deleteFileHandler(w http.ResponseWriter, r *http.Request) 
 		up.respondWithError(w, http.StatusNotFound, "File not found", err.Error())
 		return
 	}
-	if dbFile.UserID != claims.UserID && claims.Role != models.RoleAdmin {
+	canAccess, err := up.db.CanUserAccessFile(dbFile.ID, claims.UserID, string(claims.Role), claims.OrganizationID)
+	if err != nil || !canAccess {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}
@@ -581,7 +587,8 @@ func (up *UserPortal) getFileTranscriptHandler(w http.ResponseWriter, r *http.Re
 		up.respondWithError(w, http.StatusNotFound, "File not found", err.Error())
 		return
 	}
-	if dbFile.UserID != claims.UserID && claims.Role != models.RoleAdmin {
+	canAccess, err := up.db.CanUserAccessFile(dbFile.ID, claims.UserID, string(claims.Role), claims.OrganizationID)
+	if err != nil || !canAccess {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}
@@ -658,7 +665,8 @@ func (up *UserPortal) getFileSummaryHandler(w http.ResponseWriter, r *http.Reque
 		up.respondWithError(w, http.StatusNotFound, "File not found", err.Error())
 		return
 	}
-	if dbFile.UserID != claims.UserID && claims.Role != models.RoleAdmin {
+	canAccess, err := up.db.CanUserAccessFile(dbFile.ID, claims.UserID, string(claims.Role), claims.OrganizationID)
+	if err != nil || !canAccess {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}
@@ -723,7 +731,8 @@ func (up *UserPortal) getFileVideoHandler(w http.ResponseWriter, r *http.Request
 		up.respondWithError(w, http.StatusNotFound, "File not found", err.Error())
 		return
 	}
-	if dbFile.UserID != claims.UserID && claims.Role != models.RoleAdmin {
+	canAccess, err := up.db.CanUserAccessFile(dbFile.ID, claims.UserID, string(claims.Role), claims.OrganizationID)
+	if err != nil || !canAccess {
 		up.respondWithError(w, http.StatusForbidden, "Access denied", "")
 		return
 	}

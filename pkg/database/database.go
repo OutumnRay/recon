@@ -218,6 +218,7 @@ func (db *DB) RunMigrations() error {
 		&Group{},
 		&GroupMembership{},
 		&UploadedFile{},
+		&FileShare{},
 		&FileTranscription{},
 		&FileTranscriptionPhrase{},
 		&FileSummary{},
@@ -279,6 +280,14 @@ func (db *DB) createAdditionalIndexes() error {
 		"CREATE INDEX IF NOT EXISTS idx_uploaded_files_group ON uploaded_files(group_id)",
 		"CREATE INDEX IF NOT EXISTS idx_uploaded_files_status ON uploaded_files(status)",
 		"CREATE INDEX IF NOT EXISTS idx_uploaded_files_uploaded_at ON uploaded_files(uploaded_at DESC)",
+		"CREATE INDEX IF NOT EXISTS idx_uploaded_files_org ON uploaded_files(organization_id)",
+
+		// File shares indexes
+		"CREATE INDEX IF NOT EXISTS idx_file_shares_file_id ON file_shares(file_id)",
+		"CREATE INDEX IF NOT EXISTS idx_file_shares_shared_by ON file_shares(shared_by_id)",
+		"CREATE INDEX IF NOT EXISTS idx_file_shares_shared_with ON file_shares(shared_with_id)",
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_file_shares_unique_user ON file_shares(file_id, shared_with_id) WHERE shared_with_id IS NOT NULL",
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_file_shares_unique_org ON file_shares(file_id) WHERE shared_with_id IS NULL",
 
 		// File transcription phrases indexes
 		"CREATE INDEX IF NOT EXISTS idx_file_phrases_file_id ON file_transcription_phrases(file_id)",

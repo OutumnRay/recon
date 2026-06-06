@@ -184,6 +184,8 @@ type UploadedFile struct {
 	Bucket string `gorm:"type:varchar(100);not null;default:'recontext'" json:"bucket"`
 	// UserID - ID пользователя, который загрузил файл
 	UserID uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
+	// OrganizationID - ID организации владельца файла (для изоляции по компаниям)
+	OrganizationID *uuid.UUID `gorm:"type:uuid;index:idx_uploaded_files_org_id" json:"organization_id,omitempty"`
 	// GroupID - ID группы, к которой относится файл (опционально)
 	GroupID *uuid.UUID `gorm:"type:uuid" json:"group_id,omitempty"`
 	// Language - язык файла для транскрипции (ru, en, auto)
@@ -677,6 +679,30 @@ type TemporaryUser struct {
 	// Meeting - встреча, к которой относится временный пользователь
 	Meeting Meeting `gorm:"foreignKey:MeetingID;constraint:OnDelete:CASCADE" json:"meeting,omitempty"`
 }
+
+// FileShare - запись о предоставлении доступа к файлу другому пользователю или всей организации
+type FileShare struct {
+	// ID - уникальный идентификатор записи о доступе
+	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	// FileID - ID файла, к которому предоставляется доступ
+	FileID uuid.UUID `gorm:"type:uuid;not null;index:idx_file_shares_file_id" json:"file_id"`
+	// SharedByID - ID пользователя, предоставившего доступ (должен быть владельцем файла)
+	SharedByID uuid.UUID `gorm:"type:uuid;not null" json:"shared_by_id"`
+	// SharedWithID - ID пользователя, которому предоставлен доступ
+	// NULL означает доступ для всей организации (org-wide share)
+	SharedWithID *uuid.UUID `gorm:"type:uuid;index:idx_file_shares_user_id" json:"shared_with_id,omitempty"`
+	// Permission - уровень доступа: "view" (просмотр) или "edit" (редактирование)
+	Permission string `gorm:"type:varchar(50);not null;default:'view'" json:"permission"`
+	// CreatedAt - время предоставления доступа
+	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+
+	// Relations
+	File       UploadedFile `gorm:"foreignKey:FileID;constraint:OnDelete:CASCADE" json:"-"`
+	SharedBy   User         `gorm:"foreignKey:SharedByID;constraint:OnDelete:CASCADE" json:"-"`
+	SharedWith *User        `gorm:"foreignKey:SharedWithID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+func (FileShare) TableName() string { return "file_shares" }
 
 func (Department) TableName() string          { return "departments" }
 func (User) TableName() string                { return "users" }

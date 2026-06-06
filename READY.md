@@ -1328,6 +1328,54 @@ await fetch(`/api/v1/files/${file_id}/confirm`, {
 - По умолчанию указывает на OpenAI, но совместим с Ollama (локальный LLM, уже есть в docker-compose)
 - Если LLM не настроен — возвращает 503 Service Unavailable
 
+### Phase 19: Ролевая модель доступа к файлам (Completed)
+
+#### Изоляция по компаниям (organizations)
+- ✅ Добавлено поле `organization_id` в модель `UploadedFile` (`pkg/database/models.go`)
+  - Автоматически заполняется из JWT-токена пользователя при загрузке файла
+  - Индекс `idx_uploaded_files_org_id` для быстрой фильтрации
+- ✅ `initFileUploadHandler` записывает `organization_id` из `claims.OrganizationID`
+- ✅ `ListUploadedFilesV2` — фильтрация файлов по принципу наименьших привилегий:
+  - `role=admin` — видит все файлы системы
+  - обычный пользователь — видит только свои файлы + явно расшаренные + org-wide в своей организации
+
+#### Шаринг файлов (file_shares)
+- ✅ Новая модель `FileShare` (`pkg/database/models.go`):
+  - `file_id` + `shared_by_id` + `shared_with_id` (NULL = вся организация) + `permission` (view/edit)
+  - Уникальные индексы: один explicit share на пользователя, один org-wide share на файл
+  - Каскадное удаление при удалении файла или пользователя
+- ✅ AutoMigrate и индексы добавлены в `database.go`
+- ✅ Новые методы в `pkg/database/files_repository.go`:
+  - `CanUserAccessFile` — проверяет право доступа (owner / admin / org_admin / explicit share / org-wide share)
+  - `CreateFileShare`, `GetFileShare`, `ListFileShares`, `DeleteFileShare`, `FileShareExists`
+  - `ListUploadedFilesV2` — обновлён с поддержкой видимости расшаренных файлов
+
+#### API endpoints шаринга
+- ✅ `POST /api/v1/files/{id}/share` — поделиться файлом с пользователем или всей организацией
+  - Только владелец файла (или admin) может поделиться
+  - Проверяется принадлежность получателя к той же организации
+  - Нельзя расшарить себе самому
+- ✅ `GET /api/v1/files/{id}/shares` — список всех доступов к файлу с именами пользователей
+- ✅ `DELETE /api/v1/files/{id}/shares/{shareId}` — отозвать доступ
+
+#### Обновлённые проверки доступа
+- ✅ Все 7 хэндлеров файлов теперь используют `CanUserAccessFile` вместо `dbFile.UserID != claims.UserID`
+  - `confirmFileUploadHandler`, `getFileStatusHandler`, `getFileDetailHandler`
+  - `deleteFileHandler`, `getFileTranscriptHandler`, `getFileSummaryHandler`, `getFileVideoHandler`
+- ✅ Модели запросов/ответов: `FileShareRequest`, `FileShareInfo`, `FileShareListResponse` (`internal/models/uploads.go`)
+- ✅ Новый файл хэндлеров: `cmd/user-portal/handlers_files_sharing.go`
+- ✅ Сборка `go build ./cmd/user-portal/...` — успешно
+
+#### Матрица доступа
+| Пользователь | Условие | Доступ |
+|---|---|---|
+| Владелец файла | `file.user_id = current_user` | ✅ всегда |
+| Системный админ | `role = 'admin'` | ✅ все файлы |
+| Org admin | `role = 'org_admin'` AND `same org` | ✅ в рамках организации |
+| Явный шаринг | `file_shares.shared_with_id = current_user` | ✅ |
+| Org-wide шаринг | `shared_with_id IS NULL` AND `same org` | ✅ |
+| Другая организация | `org_id ≠ file.org_id` | ❌ никогда |
+
 ### Immediate Next Steps
 1. Обновить фронтенд для multipart POST загрузки (FormData вместо PUT)
 2. Добавить отображение статуса транскрибации и результатов транскрипции в UI Documents-страницы

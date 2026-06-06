@@ -35,6 +35,7 @@ Recontext.online/
 │   ├── user-portal/               # User Portal service
 │   │   ├── main.go                # Entry point with file upload and search
 │   │   ├── handlers_files_upload.go   # Presigned-URL upload flow handlers (init, confirm, status, list, detail, transcript, summary, video, delete)
+│   │   ├── handlers_files_sharing.go  # Шаринг файлов: POST /share, GET /shares, DELETE /shares/{id}
 │   │   ├── handlers_files_consumer.go # Redis BRPOP consumer — reads transcription results from Python worker
 │   │   └── handlers_assistant.go      # AI-ассистент: краткое содержание, определения, поиск по видео (POST /api/v1/assistant/chat)
 │   ├── jitsi-agent/               # Custom Jitsi recording agent

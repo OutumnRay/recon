@@ -305,3 +305,39 @@ type FileResultParagraph struct {
 	Text    string  `json:"text"`
 	Speaker string  `json:"speaker"`
 }
+
+// ─── File sharing ─────────────────────────────────────────────────────────────
+
+// FileShareRequest — тело POST /api/v1/files/{id}/share
+type FileShareRequest struct {
+	// SharedWithID — ID пользователя, которому предоставляется доступ.
+	// Если не указан (null) — доступ предоставляется всей организации владельца.
+	SharedWithID *uuid.UUID `json:"shared_with_id,omitempty"`
+	// Permission — уровень доступа: "view" (по умолчанию) или "edit"
+	Permission string `json:"permission"`
+}
+
+// FileShareInfo — информация об одной записи доступа к файлу
+type FileShareInfo struct {
+	// ID — уникальный идентификатор записи о доступе
+	ID uuid.UUID `json:"id"`
+	// FileID — ID файла
+	FileID uuid.UUID `json:"file_id"`
+	// SharedByID — ID пользователя, предоставившего доступ
+	SharedByID uuid.UUID `json:"shared_by_id"`
+	// SharedWithID — ID получателя доступа; nil = весь org
+	SharedWithID *uuid.UUID `json:"shared_with_id,omitempty"`
+	// Permission — уровень доступа
+	Permission string `json:"permission"`
+	// CreatedAt — время предоставления доступа
+	CreatedAt time.Time `json:"created_at"`
+	// Денормализованная информация о получателе (заполняется при листинге)
+	SharedWithUsername *string `json:"shared_with_username,omitempty"`
+	SharedWithEmail    *string `json:"shared_with_email,omitempty"`
+}
+
+// FileShareListResponse — ответ на GET /api/v1/files/{id}/shares
+type FileShareListResponse struct {
+	FileID uuid.UUID       `json:"file_id"`
+	Shares []FileShareInfo `json:"shares"`
+}

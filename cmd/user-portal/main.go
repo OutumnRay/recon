@@ -1301,6 +1301,13 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 				up.getFileSummaryHandler(w, r)
 			case strings.HasSuffix(p, "/video"):
 				up.getFileVideoHandler(w, r)
+			// Sharing endpoints
+			case strings.HasSuffix(p, "/share") && r.Method == http.MethodPost:
+				up.shareFileHandler(w, r)
+			case strings.HasSuffix(p, "/shares") && r.Method == http.MethodGet:
+				up.listFileSharesHandler(w, r)
+			case strings.Contains(p, "/shares/") && r.Method == http.MethodDelete:
+				up.deleteFileShareHandler(w, r)
 			case r.Method == http.MethodGet:
 				up.getFileDetailHandler(w, r)
 			case r.Method == http.MethodDelete:
