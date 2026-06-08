@@ -93,6 +93,7 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 		Language:       dbUser.Language,
 		IsActive:       dbUser.IsActive,
 		LastLogin:      dbUser.LastLogin,
+		LastLogoutAt:   dbUser.LastLogoutAt,
 		CreatedAt:      dbUser.CreatedAt,
 		UpdatedAt:      dbUser.UpdatedAt,
 	}
@@ -432,6 +433,14 @@ func (r *UserRepository) EmailExists(email string) (bool, error) {
 	}
 
 	return count > 0, nil
+}
+
+// SetLastLogout records the time of logout for a user.
+// Any token issued before this timestamp will be rejected by /api/v1/auth/check.
+func (r *UserRepository) SetLastLogout(userID uuid.UUID) error {
+	return r.db.DB.Model(&User{}).
+		Where("id = ?", userID).
+		Update("last_logout_at", time.Now()).Error
 }
 
 // ListDepartmentMembers returns active users belonging to the given department and organization.

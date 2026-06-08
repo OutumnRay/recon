@@ -92,6 +92,8 @@ type User struct {
 	IsActive bool `gorm:"default:true" json:"is_active"`
 	// LastLogin - время последнего входа пользователя в систему
 	LastLogin *time.Time `json:"last_login"`
+	// LastLogoutAt - время последнего выхода; токены, выданные до этого момента, считаются недействительными
+	LastLogoutAt *time.Time `gorm:"column:last_logout_at" json:"last_logout_at"`
 	// Language - предпочитаемый язык интерфейса пользователя
 	Language string `gorm:"type:varchar(10);not null;default:'en'" json:"language"`
 	// DepartmentID - ID отдела, к которому относится пользователь

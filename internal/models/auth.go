@@ -44,6 +44,8 @@ type User struct {
 	IsActive bool `json:"is_active" db:"is_active"`
 	// Время последнего входа пользователя
 	LastLogin *time.Time `json:"last_login,omitempty" db:"last_login"`
+	// Время последнего выхода; токены, выданные до этой отметки, недействительны
+	LastLogoutAt *time.Time `json:"last_logout_at,omitempty" db:"last_logout_at"`
 	// Время создания аккаунта пользователя
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	// Время последнего обновления аккаунта пользователя

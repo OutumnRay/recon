@@ -466,6 +466,19 @@ func (up *UserPortal) checkAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Токен выдан до последнего выхода — он аннулирован (logout из другой вкладки или устройства)
+	if user.LastLogoutAt != nil && claims.IssuedAt < user.LastLogoutAt.Unix() {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "recontext_token",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			MaxAge:   -1,
+		})
+		up.respondWithError(w, http.StatusUnauthorized, "Token has been revoked", "")
+		return
+	}
+
 	token, expiresAt, err := up.jwtManager.GenerateToken(user)
 	if err != nil {
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to generate token", err.Error())
@@ -1135,6 +1148,23 @@ func (up *UserPortal) setAuthCookie(w http.ResponseWriter, r *http.Request, toke
 // @Success 200 {object} map[string]string
 // @Router /api/v1/auth/logout [post]
 func (up *UserPortal) logoutHandler(w http.ResponseWriter, r *http.Request) {
+	// Попытаться определить пользователя по токену (из заголовка или куки)
+	// и зафиксировать время выхода, чтобы аннулировать токен на сервере.
+	rawToken := ""
+	if auth := r.Header.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
+		rawToken = strings.TrimPrefix(auth, "Bearer ")
+	}
+	if rawToken == "" {
+		if c, err := r.Cookie("recontext_token"); err == nil {
+			rawToken = c.Value
+		}
+	}
+	if rawToken != "" {
+		if claims, err := up.jwtManager.VerifyToken(rawToken); err == nil {
+			_ = up.userRepo.SetLastLogout(claims.UserID)
+		}
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "recontext_token",
 		Value:    "",
