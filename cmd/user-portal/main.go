@@ -478,13 +478,16 @@ func (up *UserPortal) checkAuthHandler(w http.ResponseWriter, r *http.Request) {
 		Token:     token,
 		ExpiresAt: expiresAt,
 		User: models.MinimalUserInfo{
-			ID:        user.ID,
-			Username:  user.Username,
-			Email:     user.Email,
-			Role:      user.Role,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Bio:       user.Bio,
+			ID:             user.ID,
+			Username:       user.Username,
+			Email:          user.Email,
+			Role:           user.Role,
+			FirstName:      user.FirstName,
+			LastName:       user.LastName,
+			Bio:            user.Bio,
+			Groups:         user.Groups,
+			OrganizationID: user.OrganizationID,
+			DepartmentID:   user.DepartmentID,
 		},
 	}
 
@@ -1480,6 +1483,15 @@ func (up *UserPortal) setupRoutes() *http.ServeMux {
 			if pathAfterUsers == "" {
 				if r.Method == http.MethodGet {
 					up.listUsersHandler(w, r)
+				} else {
+					http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				}
+				return
+			}
+			// Список коллег по отделу — точный путь без ID
+			if pathAfterUsers == "colleagues" {
+				if r.Method == http.MethodGet {
+					up.getDepartmentMembersHandler(w, r)
 				} else {
 					http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 				}

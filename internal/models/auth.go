@@ -224,13 +224,16 @@ type ResetPasswordResponse struct {
 
 // MinimalUserInfo - минимальная информация о пользователе для LoginResponse (по API.md)
 type MinimalUserInfo struct {
-	ID        uuid.UUID `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	Username  string    `json:"username" example:"admin"`
-	Email     string    `json:"email" example:"admin@recontext.online"`
-	Role      UserRole  `json:"role" example:"admin"`
-	FirstName string    `json:"first_name" example:"John"`
-	LastName  string    `json:"last_name" example:"Doe"`
-	Bio       string    `json:"bio,omitempty" example:"Software developer"`
+	ID             uuid.UUID   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Username       string      `json:"username" example:"admin"`
+	Email          string      `json:"email" example:"admin@recontext.online"`
+	Role           UserRole    `json:"role" example:"admin"`
+	FirstName      string      `json:"first_name" example:"John"`
+	LastName       string      `json:"last_name" example:"Doe"`
+	Bio            string      `json:"bio,omitempty" example:"Software developer"`
+	Groups         []uuid.UUID `json:"groups,omitempty"`
+	OrganizationID *uuid.UUID  `json:"organization_id,omitempty"`
+	DepartmentID   *uuid.UUID  `json:"department_id,omitempty"`
 }
 
 // MinimalLoginResponse - минимальный ответ логина без sensitive полей

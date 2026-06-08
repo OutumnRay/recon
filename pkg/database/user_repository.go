@@ -433,3 +433,48 @@ func (r *UserRepository) EmailExists(email string) (bool, error) {
 
 	return count > 0, nil
 }
+
+// ListDepartmentMembers returns active users belonging to the given department and organization.
+// Used for meeting participant selection on the front-end.
+func (r *UserRepository) ListDepartmentMembers(departmentID, organizationID uuid.UUID) ([]*models.User, error) {
+	var dbUsers []User
+	err := r.db.DB.
+		Where("department_id = ? AND organization_id = ? AND is_active = true", departmentID, organizationID).
+		Order("last_name ASC, first_name ASC").
+		Find(&dbUsers).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list department members: %w", err)
+	}
+
+	users := make([]*models.User, 0, len(dbUsers))
+	for _, dbUser := range dbUsers {
+		user := &models.User{
+			ID:             dbUser.ID,
+			Username:       dbUser.Username,
+			Email:          dbUser.Email,
+			Role:           models.UserRole(dbUser.Role),
+			OrganizationID: dbUser.OrganizationID,
+			DepartmentID:   dbUser.DepartmentID,
+			Language:       dbUser.Language,
+			IsActive:       dbUser.IsActive,
+		}
+		if len(dbUser.Groups) > 0 {
+			user.Groups = make([]uuid.UUID, len(dbUser.Groups))
+			for i, g := range dbUser.Groups {
+				user.Groups[i], _ = uuid.Parse(g)
+			}
+		}
+		if dbUser.FirstName != nil {
+			user.FirstName = *dbUser.FirstName
+		}
+		if dbUser.LastName != nil {
+			user.LastName = *dbUser.LastName
+		}
+		if dbUser.AvatarURL != nil {
+			user.Avatar = *dbUser.AvatarURL
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
