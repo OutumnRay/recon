@@ -284,6 +284,8 @@ func (up *UserPortal) getMeetingTokenHandler(w http.ResponseWriter, r *http.Requ
 
 	fmt.Printf("DEBUG: Preparing to send response...\n")
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		fmt.Printf("ERROR: Failed to encode JSON response: %v\n", err)
 		up.respondWithError(w, http.StatusInternalServerError, "Failed to encode response", err.Error())
