@@ -47,3 +47,9 @@ __pycache__
 .env
 .env.prod
 deploy.log
+
+# Скомпилированные бинарники (собираются в Docker из исходников)
+/managing-portal
+/user-portal
+/cmd/user-portal/user-portal
+/cmd/managing-portal/managing-portal

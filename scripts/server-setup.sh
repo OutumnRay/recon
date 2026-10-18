@@ -48,7 +48,8 @@ docker compose version
 # 2. Репозиторий
 if [ ! -d "$DEPLOY_DIR/.git" ]; then
     log "Клонируем $REPO_URL в $DEPLOY_DIR..."
-    git clone -b "$BRANCH" "$REPO_URL" "$DEPLOY_DIR"
+    # --depth 1: без истории (в ней ~150 МБ старых бинарников), git pull при этом работает
+    git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$DEPLOY_DIR"
 else
     log "Репозиторий уже есть, обновляем..."
     git -C "$DEPLOY_DIR" pull origin "$BRANCH"
