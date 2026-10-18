@@ -16,6 +16,22 @@
 - ✅ `pkg/metrics/middleware.go` — HTTPMetricsMiddleware (уже применён в managing-portal и user-portal)
 - ✅ Endpoint `/metrics` (promhttp.Handler) в managing-portal (8080) и user-portal (8081)
 
+### Переезд на новый сервер (192.168.0.166, домен 24recontext.ru)
+- ✅ `scripts/server-setup.sh` — первичная настройка чистого сервера: Docker, nginx, certbot, ufw, клон `OutumnRay/recon` в `/opt/recontext`, `.env` со случайными секретами, права для пользователя деплоя
+- ✅ `.env.prod.example` — шаблон production-окружения под домен (PORTAL_URL, MINIO_PUBLIC_ENDPOINT, LIVEKIT_URL)
+- ✅ Host-nginx конфиги: `site.conf` (24recontext.ru), `admin.conf`, `storage.conf` (MinIO для presigned URL), `livekit.conf` (wss); TLS через certbot
+- ✅ LiveKit в `docker-compose.prod.yml` переведён из `--dev` в production: ключи из `.env`, вебхуки на `managing-portal:8080/webhook/meet`, `use_external_ip` для работы за NAT
+- ✅ managing-portal ходит в LiveKit по внутреннему адресу (`LIVEKIT_INTERNAL_URL`), браузер получает публичный `LIVEKIT_URL`
+- ✅ Инфраструктурные порты (Postgres, Redis, RabbitMQ, Qdrant, Ollama, Grafana, Prometheus, MinIO console) слушают только `INTERNAL_BIND_ADDR` (по умолчанию 127.0.0.1)
+- ✅ `pkg/storage/minio.go` — явный регион у publicClient: presigned URL подписываются без сетевого запроса на публичный хост (за NAT он недоступен изнутри контейнера)
+- ✅ `user-portal-front.conf` — `client_max_body_size 600m` (multipart-загрузка до 500 МБ)
+- ✅ `deploy.sh` подхватывает `.env`, лог в `$DEPLOY_DIR/deploy.log`, если нет прав на `/var/log`
+- ✅ `.env` добавлен в `.gitignore` (репозиторий публичный)
+- ⏳ Автодеплой: GitHub Actions не достаёт до приватного 192.168.0.166 — нужен проброс SSH на роутере (SERVER_HOST = внешний IP/домен, SERVER_SSH_PORT = внешний порт)
+- ⏳ Перенести данные со старого сервера (pg_dump + mc mirror), если он доступен
+- ⏳ LiveKit Egress (запись встреч) в prod-compose отсутствует — нужен отдельный сервис livekit/egress
+- ⏳ Убрать захардкоженные ключи MinIO/БД из `cmd/track-processor/*` (утилиты отладки, репозиторий публичный)
+
 ### Production-деплой на выделенный сервер (CI/CD)
 - ✅ `docker-compose.prod.yml` — файл для выделенного сервера с named volumes:
   - `postgres_data` — данные PostgreSQL сохраняются между деплоями

@@ -30,7 +30,8 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_BUCKET=${MINIO_BUCKET:-recontext}
-      - LIVEKIT_URL=${LIVEKIT_URL:-}
+      # Серверный API LiveKit (egress) — внутри docker-сети; браузеру публичный адрес отдаёт user-portal
+      - LIVEKIT_URL=${LIVEKIT_INTERNAL_URL:-http://livekit:7880}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-}
       - LIVEKIT_WEBHOOK_DEBUG=${LIVEKIT_WEBHOOK_DEBUG:-false}
@@ -48,7 +49,7 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-noreply@localhost}
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Recontext}
-      - PORTAL_URL=${PORTAL_URL:-http://localhost:20081}
+      - PORTAL_URL=${PORTAL_URL:-https://24recontext.ru}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@recontext.online}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
     depends_on:
@@ -118,7 +119,7 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-noreply@localhost}
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Recontext}
-      - PORTAL_URL=${PORTAL_URL:-http://localhost:20081}
+      - PORTAL_URL=${PORTAL_URL:-https://24recontext.ru}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_TASK_QUEUE=${REDIS_TASK_QUEUE:-recontext:transcription:queue}
@@ -147,7 +148,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: recontext-postgres
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     environment:
       - POSTGRES_USER=${DB_USER:-recontext}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-recontext}
@@ -168,8 +169,8 @@ services:
     image: rabbitmq:3.12-management-alpine
     container_name: recontext-rabbitmq
     ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${RABBITMQ_PORT:-5672}:5672"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${RABBITMQ_MGMT_PORT:-15672}:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-recontext}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-recontext}
@@ -190,7 +191,7 @@ services:
     image: redis:7-alpine
     container_name: recontext-redis
     ports:
-      - "${REDIS_PORT:-6380}:6379"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${REDIS_PORT:-6380}:6379"
     command: redis-server --save "" --appendonly no --loglevel warning
     networks:
       - recontext-network
@@ -230,7 +231,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - HEALTH_PORT=8085
     ports:
-      - "8085:8085"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:8085:8085"
     depends_on:
       redis:
         condition: service_healthy
@@ -246,7 +247,7 @@ services:
     container_name: recontext-minio
     ports:
       - "${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
     environment:
       - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
@@ -268,8 +269,8 @@ services:
     image: qdrant/qdrant:latest
     container_name: recontext-qdrant
     ports:
-      - "${QDRANT_PORT:-6333}:6333"
-      - "${QDRANT_GRPC_PORT:-6334}:6334"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${QDRANT_PORT:-6333}:6333"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${QDRANT_GRPC_PORT:-6334}:6334"
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
@@ -281,7 +282,7 @@ services:
     image: ollama/ollama:latest
     container_name: recontext-ollama
     ports:
-      - "${OLLAMA_PORT:-11434}:11434"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${OLLAMA_PORT:-11434}:11434"
     volumes:
       - ollama_models:/root/.ollama
     networks:
@@ -293,7 +294,7 @@ services:
     image: prom/prometheus:latest
     container_name: recontext-prometheus
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${PROMETHEUS_PORT:-9090}:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -311,7 +312,7 @@ services:
     image: grafana/grafana:11.5.2
     container_name: recontext-grafana
     ports:
-      - "${GRAFANA_PORT:-3000}:3000"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-grafana123}
@@ -357,17 +358,32 @@ services:
       - recontext-network
     restart: unless-stopped
 
-  # 14. LiveKit Server
+  # 14. LiveKit Server (production-режим, ключи из .env)
+  #   7880/tcp — сигналинг (наружу через host-nginx как wss://livekit.<домен>)
+  #   7881/tcp, 7882/udp — медиа WebRTC, пробрасываются на роутере напрямую
   livekit:
     image: livekit/livekit-server:latest
     container_name: recontext-livekit
     ports:
-      - "7880:7880"
+      - "${INTERNAL_BIND_ADDR:-127.0.0.1}:7880:7880"
       - "7881:7881"
       - "7882:7882/udp"
     environment:
-      - "LIVEKIT_KEYS=devkey: devsecret"
-    command: --dev --bind 0.0.0.0
+      LIVEKIT_CONFIG: |
+        port: 7880
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          # Сервер за NAT: публичный IP определяется через STUN
+          use_external_ip: true
+        keys:
+          ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY не задан в .env}: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET не задан в .env}
+        webhook:
+          api_key: ${LIVEKIT_API_KEY}
+          urls:
+            - http://managing-portal:8080/webhook/meet
+        logging:
+          level: info
     networks:
       - recontext-network
     restart: unless-stopped

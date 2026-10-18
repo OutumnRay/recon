@@ -9,6 +9,16 @@ DEPLOY_DIR="${DEPLOY_DIR:-/opt/recontext}"
 COMPOSE_FILE="docker-compose.prod.yml"
 LOG_FILE="/var/log/recontext-deploy.log"
 
+# Без прав на /var/log упавший tee при pipefail остановил бы весь деплой
+if ! touch "$LOG_FILE" 2>/dev/null; then
+    LOG_FILE="$DEPLOY_DIR/deploy.log"
+fi
+
+# Переменные из .env (docker compose читает его сам, но скрипту нужен, например, LLM_MODEL)
+if [ -f "$DEPLOY_DIR/.env" ]; then
+    set -a; source "$DEPLOY_DIR/.env"; set +a
+fi
+
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
 }

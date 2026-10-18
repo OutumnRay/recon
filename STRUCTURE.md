@@ -84,7 +84,13 @@ Recontext.online/
 │   │   ├── Dockerfile.transcription-worker
 │   │   └── Dockerfile.summarization-worker
 │   ├── nginx/                     # Nginx configs
-│   │   └── user-portal-front.conf
+│   │   ├── user-portal-front.conf     # nginx внутри контейнера user-portal-front (/api, /ws → user-portal:8081)
+│   │   ├── site.conf                  # host-nginx: 24recontext.ru → User Portal (127.0.0.1:20081)
+│   │   ├── admin.conf                 # host-nginx: admin.24recontext.ru → Managing Portal (127.0.0.1:20080)
+│   │   ├── storage.conf               # host-nginx: storage.24recontext.ru → MinIO S3 (127.0.0.1:9000, presigned URL)
+│   │   ├── livekit.conf               # host-nginx: livekit.24recontext.ru → LiveKit сигналинг (wss, 127.0.0.1:7880)
+│   │   ├── grafana.conf               # host-nginx: grafana.24recontext.ru → Grafana (127.0.0.1:3000)
+│   │   └── prometheus.conf            # host-nginx: prometheus.24recontext.ru → Prometheus (basic auth)
 │   └── rabbitmq/                  # RabbitMQ configs
 │       └── enabled_plugins        # Включает rabbitmq_management + rabbitmq_prometheus
 ├── observability/                 # Prometheus + Grafana конфигурация
@@ -425,6 +431,8 @@ docker-compose build
 - **CI/CD Pipeline**: GitHub Actions with multi-service builds and SSH auto-deploy to prod server
 - **docker-compose.prod.yml**: Production compose с named volumes (PostgreSQL, MinIO, Qdrant, RabbitMQ)
 - **scripts/deploy.sh**: Скрипт деплоя — `docker compose pull && up -d`, запускается с сервера по SSH
+- **scripts/server-setup.sh**: Первичная настройка чистого сервера — Docker, nginx, certbot, ufw, клон репозитория в /opt/recontext, генерация .env
+- **.env.prod.example**: Шаблон production .env (домен 24recontext.ru, `__GENERATE__` заменяется на случайные секреты)
 
 ⚠️ **Partially Implemented**:
 - **Worker Services**: Basic Go structure implemented, pending:

@@ -43,3 +43,7 @@ google-services.json
 GoogleService-Info.plist
 
 __pycache__
+# Секреты окружения (шаблоны *.example коммитятся)
+.env
+.env.prod
+deploy.log

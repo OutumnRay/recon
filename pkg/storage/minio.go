@@ -53,9 +53,16 @@ func NewMinIOClient(config MinIOConfig) (*MinIOClient, error) {
 	publicHost, publicSSL := parseEndpointHost(publicEndpoint)
 	publicClient := client
 	if publicHost != config.Endpoint {
+		region := os.Getenv("MINIO_REGION")
+		if region == "" {
+			region = "us-east-1" // регион MinIO по умолчанию
+		}
 		pc, pcErr := minio.New(publicHost, &minio.Options{
 			Creds:  credentials.NewStaticV4(config.AccessKey, config.SecretKey, ""),
 			Secure: publicSSL,
+			// Явный регион: без него minio-go перед подписью идёт по сети на публичный
+			// хост за GetBucketLocation, а изнутри контейнера за NAT он может быть недоступен.
+			Region: region,
 		})
 		if pcErr == nil {
 			publicClient = pc
