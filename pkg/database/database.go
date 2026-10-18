@@ -437,7 +437,20 @@ func (db *DB) insertDefaultData() error {
 		Permissions:    `{"can_schedule_meetings": true, "can_manage_department": true, "can_approve_recordings": true}`,
 		OrganizationID: &org.ID,
 	}
-	db.Where(User{Username: adminUser.Username}).Assign(&adminUser).FirstOrCreate(&adminUser)
+	// Если админ уже есть — синхронизируем email и пароль с ADMIN_EMAIL/ADMIN_PASSWORD.
+	// Нельзя передавать один и тот же указатель в Assign и FirstOrCreate: найденная запись
+	// перезаписывает его поля, и в базу уходит старый пароль вместо нового.
+	var existingAdmin User
+	if err := db.Where(User{Username: adminUser.Username}).First(&existingAdmin).Error; err == nil {
+		db.Model(&existingAdmin).Updates(map[string]interface{}{
+			"email":     adminEmail,
+			"password":  hashedAdminPassword,
+			"role":      "admin",
+			"is_active": true,
+		})
+	} else {
+		db.Create(&adminUser)
+	}
 
 	// Insert default regular user with organization link (UUID will be auto-generated)
 	regularUser := User{
