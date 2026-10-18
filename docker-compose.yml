@@ -234,7 +234,8 @@ services:
 
   # 7. MinIO Storage (без volume — данные эфемерны)
   minio:
-    image: minio/minio:latest
+    # minio/minio удалён с Docker Hub (сентябрь 2026) — совместимый форк Silo, версия зафиксирована
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z
     container_name: recontext-minio
     ports:
       - "${MINIO_PORT:-9000}:9000"
